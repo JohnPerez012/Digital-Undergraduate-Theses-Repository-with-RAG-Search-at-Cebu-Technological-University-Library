@@ -1,0 +1,19 @@
+"Error loading projects. Please try again later."{
+- when no internet connection and trying and CAN access the web application
+}
+
+<header-controls>{
+- this must be invisible or MUST not render in the UI if "Error loading projects. Please try again later." present.
+}
+
+<logo-container>{
+- this must be user's interactive; if user will click it then refresh the whole page and
+- also when the user will hover it, they see the following animate from left to right under from the logo; this must be shown as the following:
+---------
+| LOGO  | "RECAP"
+| LOGO  | "Online Repository for undergraduates thesis"
+---------
+- there must be the title: "RECAP" and the sub title must be the "Online Repository for undergraduates thesis"
+- so that will be the one wwho will be get's out smoothly from left to right under the logo IF the user will hover the logo.
+}
+
