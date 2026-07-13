@@ -851,10 +851,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 500);
     };
 
-    window.editProject = (projectId) => {
+    window.editProject = async (projectId) => {
         console.log('Edit project:', projectId);
-        showToast('Edit functionality coming soon', 'ℹ️');
-        // TODO: Implement edit modal or redirect to edit page
+        try {
+            showToast('Loading project details...', 'ℹ️');
+            const doc = await db.collection('projects').doc(projectId).get();
+            if (!doc.exists) {
+                showToast('Project not found', '❌');
+                return;
+            }
+            const data = doc.data();
+            
+            // Populate form fields
+            document.getElementById('project-id-input').value = projectId;
+            document.getElementById('project-title-input').value = data.title || '';
+            document.getElementById('project-authors-input').value = Array.isArray(data.authors) ? data.authors.join(', ') : (data.authors || '');
+            document.getElementById('project-program-select').value = data.program || 'BSCS';
+            document.getElementById('project-year-input').value = data.year || '';
+            document.getElementById('project-adviser-input').value = data.adviser || '';
+            document.getElementById('project-status-select').value = data.status || 'Completed';
+            document.getElementById('project-abstract-input').value = data.abstract || '';
+            document.getElementById('project-findings-input').value = data.keyFindings || '';
+            
+            // Customize modal for editing
+            document.getElementById('project-modal-title').textContent = 'Edit Capstone Project';
+            document.getElementById('submit-project-btn').textContent = 'Apply Edit';
+            
+            // Show modal
+            document.getElementById('project-modal').classList.add('active');
+        } catch (error) {
+            console.error('Error loading project for edit:', error);
+            showToast('Error loading project details: ' + error.message, '❌');
+        }
     };
 
     window.deleteProject = async (projectId, title) => {
@@ -869,6 +897,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             showToast('Deleting project...', 'ℹ️');
             await db.collection('projects').doc(projectId).delete();
+            
+            // Update Realtime Database projects_document_count
+            if (rtdb) {
+                try {
+                    const countSnapshot = await db.collection('projects').get();
+                    const newCount = countSnapshot.size;
+                    await rtdb.ref('projects_document_count').set(newCount);
+                    console.log('Realtime database project count updated to:', newCount);
+                } catch (rtdbErr) {
+                    console.error('Error updating RTDB project count:', rtdbErr);
+                }
+            }
+
             showToast('Project deleted successfully', '✅');
             await loadProjectsData();
             await loadDashboardData(); // Refresh stats
@@ -910,7 +951,175 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addProjectBtn = document.getElementById('add-project-btn');
     if (addProjectBtn) {
         addProjectBtn.addEventListener('click', () => {
-            showToast('Add project feature coming soon', 'ℹ️');
+            // Reset form fields
+            document.getElementById('project-id-input').value = '';
+            document.getElementById('project-title-input').value = '';
+            document.getElementById('project-authors-input').value = '';
+            document.getElementById('project-program-select').value = 'BSCS';
+            document.getElementById('project-year-input').value = new Date().getFullYear();
+            document.getElementById('project-adviser-input').value = '';
+            document.getElementById('project-status-select').value = 'Completed';
+            document.getElementById('project-abstract-input').value = '';
+            document.getElementById('project-findings-input').value = '';
+            
+            // Customize modal for creating
+            document.getElementById('project-modal-title').textContent = 'Add Capstone Project';
+            document.getElementById('submit-project-btn').textContent = 'Add Project';
+            
+            // Show modal
+            document.getElementById('project-modal').classList.add('active');
+        });
+    }
+
+    // ===== Project Modal Handlers =====
+    const projectModal = document.getElementById('project-modal');
+    const projectForm = document.getElementById('project-form');
+    const cancelProjectBtn = document.getElementById('cancel-project-btn');
+    const projectModalCloseBtn = document.getElementById('project-modal-close-btn');
+    const projectModalOverlay = document.getElementById('project-modal-overlay');
+
+    const closeProjectModal = () => {
+        if (projectModal) {
+            projectModal.classList.remove('active');
+            if (projectForm) projectForm.reset();
+        }
+    };
+
+    if (cancelProjectBtn) cancelProjectBtn.addEventListener('click', closeProjectModal);
+    if (projectModalCloseBtn) projectModalCloseBtn.addEventListener('click', closeProjectModal);
+    if (projectModalOverlay) projectModalOverlay.addEventListener('click', closeProjectModal);
+
+    if (projectForm) {
+        projectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectId = document.getElementById('project-id-input').value;
+            const title = document.getElementById('project-title-input').value.trim();
+            const authorsRaw = document.getElementById('project-authors-input').value;
+            const authors = authorsRaw.split(',').map(a => a.trim()).filter(a => a.length > 0);
+            const program = document.getElementById('project-program-select').value;
+            const year = parseInt(document.getElementById('project-year-input').value.trim(), 10);
+            const adviser = document.getElementById('project-adviser-input').value.trim();
+            const status = document.getElementById('project-status-select').value;
+            const abstract = document.getElementById('project-abstract-input').value.trim();
+            const keyFindings = document.getElementById('project-findings-input').value.trim();
+
+            showToast(projectId ? 'Updating project...' : 'Creating project...', 'ℹ️');
+
+            try {
+                if (projectId) {
+                    // Fetch existing data to see which fields are updated
+                    const currentDoc = await db.collection('projects').doc(projectId).get();
+                    if (!currentDoc.exists) {
+                        showToast('Project not found to update', '❌');
+                        return;
+                    }
+                    const oldData = currentDoc.data();
+                    
+                    const changedFields = [];
+                    
+                    if ((oldData.title || '') !== title) changedFields.push('title');
+                    
+                    const oldAuthorsStr = Array.isArray(oldData.authors) ? oldData.authors.join(',') : (oldData.authors || '');
+                    const newAuthorsStr = authors.join(',');
+                    if (oldAuthorsStr !== newAuthorsStr) changedFields.push('authors');
+                    
+                    if ((oldData.program || '') !== program) changedFields.push('program');
+                    if (parseInt(oldData.year, 10) !== year) changedFields.push('year');
+                    if ((oldData.adviser || '') !== adviser) changedFields.push('adviser');
+                    if ((oldData.status || '') !== status) changedFields.push('status');
+                    if ((oldData.abstract || '') !== abstract) changedFields.push('abstract');
+                    if ((oldData.keyFindings || '') !== keyFindings) changedFields.push('keyFindings');
+
+                    // Update Firestore
+                    const updatedData = {
+                        title,
+                        authors,
+                        program,
+                        year,
+                        adviser,
+                        status,
+                        abstract,
+                        keyFindings,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await db.collection('projects').doc(projectId).update(updatedData);
+
+                    // Update Realtime Database
+                    if (changedFields.length > 0 && rtdb) {
+                        try {
+                            const recentRef = rtdb.ref('recent update');
+                            const prevRef = rtdb.ref('prev update');
+                            const counterRef = rtdb.ref('update_counter');
+                            
+                            // Fetch and increment the update counter
+                            const counterSnapshot = await counterRef.once('value');
+                            const currentCounter = counterSnapshot.val() || 0;
+                            const nextUpdateId = currentCounter + 1;
+                            
+                            // Save updated counter
+                            await counterRef.set(nextUpdateId);
+                            
+                            const snapshot = await recentRef.once('value');
+                            const currentRecent = snapshot.val();
+                            
+                            if (currentRecent) {
+                                await prevRef.set(currentRecent);
+                            }
+                            
+                            const newUpdate = {
+                                UpdateID: nextUpdateId,
+                                DocID: projectId,
+                                timestamp_updated: new Date().toISOString(),
+                                field_updated: changedFields
+                            };
+                            await recentRef.set(newUpdate);
+                            console.log('RTDB update logged:', newUpdate);
+                            console.log('RTDB target path:', recentRef.toString());
+                        } catch (rtdbErr) {
+                            console.error('Error logging update to RTDB:', rtdbErr);
+                        }
+                    }
+
+                    showToast('Project updated successfully', '✅');
+                } else {
+                    // Create in Firestore
+                    const newProject = {
+                        title,
+                        authors,
+                        program,
+                        year,
+                        adviser,
+                        status,
+                        abstract,
+                        keyFindings,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    const docRef = await db.collection('projects').add(newProject);
+
+                    // Update Realtime Database count
+                    if (rtdb) {
+                        try {
+                            const countSnapshot = await db.collection('projects').get();
+                            const newCount = countSnapshot.size;
+                            await rtdb.ref('projects_document_count').set(newCount);
+                            console.log('RTDB project count updated to:', newCount);
+                        } catch (rtdbErr) {
+                            console.error('Error updating RTDB project count:', rtdbErr);
+                        }
+                    }
+
+                    showToast('Project created successfully', '✅');
+                }
+
+                closeProjectModal();
+                await loadProjectsData();
+                await loadDashboardData();
+            } catch (error) {
+                console.error('Error saving project:', error);
+                showToast('Error saving project: ' + error.message, '❌');
+            }
         });
     }
 

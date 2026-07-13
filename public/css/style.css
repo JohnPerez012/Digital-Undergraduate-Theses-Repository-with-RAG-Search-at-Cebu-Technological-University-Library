@@ -66,7 +66,7 @@ body {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
+    /* border-bottom: 1px solid var(--border); */
     box-shadow: var(--shadow-sm);
     position: sticky;
     top: 0;
@@ -78,7 +78,7 @@ body {
     background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
+    /* border-bottom: 1px solid var(--border); */
 }
 
 .header--scrolled {
@@ -121,7 +121,7 @@ body {
 .nav-menu {
     display: flex;
     align-items: stretch;
-    gap: 0;
+    gap: 0.75rem;
 }
 
 .nav-menu > *,
@@ -149,10 +149,10 @@ body {
 }
 
 /* Login Button — glass default, solid on hover */
-#login-nav-link {
+#login-nav-link, #about-nav-link {
     padding: 0.45rem 1.2rem;
     border-radius: 9999px;
-    border: 1px solid rgba(99, 102, 241, 0.35);
+    /* border: 1px solid rgba(99, 102, 241, 0.35); */
     background: rgba(99, 102, 241, 0.08);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -165,7 +165,7 @@ body {
                 color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-#login-nav-link:hover {
+#login-nav-link:hover, #about-nav-link:hover {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: #ffffff;
@@ -173,18 +173,19 @@ body {
     transform: translateY(-1px);
 }
 
-[data-theme="dark"] #login-nav-link {
+[data-theme="dark"] #login-nav-link, #login-nav-link {
     border-color: rgba(129, 140, 248, 0.4);
     background: rgba(129, 140, 248, 0.1);
 }
 
-[data-theme="dark"] #login-nav-link:hover {
+[data-theme="dark"] #login-nav-link:hover, #login-nav-link:hover {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: #ffffff;
 }
 
 /* About Nav Link — ghost pill style */
+/* 
 .nav-about-link {
     text-decoration: none;
     color: var(--text-secondary);
@@ -209,7 +210,7 @@ body {
     background: rgba(129, 140, 248, 0.12);
     border-color: rgba(129, 140, 248, 0.3);
     color: var(--primary-color);
-}
+} */
 
 /* Theme Toggle Button — circular glass pill */
 #theme-toggle {
@@ -220,7 +221,7 @@ body {
     height: 38px;
     min-width: 38px;
     border-radius: 50%;
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    /* border: 1px solid rgba(99, 102, 241, 0.3); */
     background: rgba(99, 102, 241, 0.07);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -879,6 +880,18 @@ html.auth-cached-logged-in #profile-link {
     box-shadow: var(--shadow-md);
 }
 
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
 .btn-secondary {
     background-color: var(--surface);
     color: var(--text-primary);
@@ -1406,8 +1419,7 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
     transition: box-shadow 0.25s, border-color 0.25s;
 }
 
-.profile-img-trigger:hover,
-.profile-dropdown-wrapper:hover .profile-img-trigger {
+.profile-img-trigger:hover {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }

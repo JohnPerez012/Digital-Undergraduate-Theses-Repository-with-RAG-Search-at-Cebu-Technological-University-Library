@@ -276,10 +276,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const pdThemeToggle = document.getElementById('pd-theme-toggle');
     const pdLogoutBtn = document.getElementById('pd-logout-btn');
     const avatarImg = document.getElementById('pd-avatar-img');
+    const userName = document.getElementById("user-name");
 
     if (dropWrapper && trigger && dropPanel) {
-        let hoverTimer = null;
-
         function openDropdown() {
             dropPanel.classList.add('open');
             trigger.setAttribute('aria-expanded', 'true');
@@ -290,24 +289,14 @@ document.addEventListener('DOMContentLoaded', function() {
             trigger.setAttribute('aria-expanded', 'false');
         }
 
-        // Show after 1.75s hover
-        dropWrapper.addEventListener('mouseenter', () => {
-            hoverTimer = setTimeout(openDropdown, 1750);
-        });
-
-        // Cancel and close on mouseleave
-        dropWrapper.addEventListener('mouseleave', () => {
-            clearTimeout(hoverTimer);
-            setTimeout(() => {
-                if (!dropPanel.matches(':hover') && !dropWrapper.matches(':hover')) {
-                    closeDropdown();
-                }
-            }, 150);
-        });
-
-        dropPanel.addEventListener('mouseleave', () => {
-            clearTimeout(hoverTimer);
-            closeDropdown();
+        // Toggle dropdown on profile click
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (dropPanel.classList.contains('open')) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
         });
 
         // Close on click outside
@@ -317,31 +306,35 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Trigger Click — navigate to the user's own dashboard based on role
-        trigger.addEventListener('click', (e) => {
-            const userType = sessionStorage.getItem('userType');
-            let dashboardPage = 'student_page.html';
-            
-            if (userType === 'admin') {
-                dashboardPage = 'admin_page.html';
-            } else if (userType === 'librarian') {
-                dashboardPage = 'library_page.html';
-            } else if (userType === 'student') {
-                dashboardPage = 'student_page.html';
-            }
-            
-            const path = window.location.pathname;
-            const isOnDashboard = path.endsWith(dashboardPage) ||
-                                   path.endsWith(dashboardPage.replace('.html', ''));
+        // Dashboard Row Navigation
+        const pdDashboardRow = document.getElementById('pd-dashboard-row');
+        if (pdDashboardRow) {
+            pdDashboardRow.addEventListener('click', () => {
+                const userType = sessionStorage.getItem('userType');
+                let dashboardPage = 'student_page.html';
+                
+                if (userType === 'admin') {
+                    dashboardPage = 'admin_page.html';
+                } else if (userType === 'librarian') {
+                    dashboardPage = 'library_page.html';
+                } else if (userType === 'teacher') {
+                    dashboardPage = 'teacher_page.html';
+                } else if (userType === 'student') {
+                    dashboardPage = 'student_page.html';
+                }
+                
+                const path = window.location.pathname;
+                const isOnDashboard = path.endsWith(dashboardPage) ||
+                                       path.endsWith(dashboardPage.replace('.html', ''));
 
-            if (isOnDashboard) {
-                // Already on the correct dashboard — do nothing
-                e.preventDefault();
-                e.stopPropagation();
-            } else {
-                window.location.href = dashboardPage;
-            }
-        });
+                if (isOnDashboard) {
+                    // Already on correct dashboard - just close dropdown
+                    closeDropdown();
+                } else {
+                    window.location.href = dashboardPage;
+                }
+            });
+        }
 
         // Sync theme switch inside dropdown
         function syncThemePill() {
@@ -410,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateHeader(user);
             
             if (user && sessionStorage.getItem('autoLoggedIn') === 'true') {
+                userName.textContent = user.displayName || "User";
                 const justRegistered = sessionStorage.getItem('justRegistered') === 'true';
                 if (justRegistered) {
                     const userDoc = await db.collection('users').doc(user.uid).get();
@@ -422,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     sessionStorage.removeItem('justRegistered');
                     showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
-                    
+
                     if (userData.userType === 'student') {
                         window.location.href = 'student_page.html';
                     } else if (userData.userType === 'admin') {

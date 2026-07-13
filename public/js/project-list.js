@@ -111,13 +111,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
         allProjects.sort((a, b) => {
             if (sortField === 'createdAt') {
-                const dateA = a.createdAt ? a.createdAt.toMillis() : 0;
-                const dateB = b.createdAt ? b.createdAt.toMillis() : 0;
+                // Handle both Firestore Timestamps and cached dates
+                let dateA = 0;
+                let dateB = 0;
+                
+                if (a.createdAt) {
+                    if (typeof a.createdAt.toMillis === 'function') {
+                        // Firestore Timestamp
+                        dateA = a.createdAt.toMillis();
+                    } else if (typeof a.createdAt === 'object' && a.createdAt.seconds) {
+                        // Cached Firestore Timestamp
+                        dateA = a.createdAt.seconds * 1000;
+                    } else {
+                        // String or number
+                        dateA = new Date(a.createdAt).getTime();
+                    }
+                }
+                
+                if (b.createdAt) {
+                    if (typeof b.createdAt.toMillis === 'function') {
+                        dateB = b.createdAt.toMillis();
+                    } else if (typeof b.createdAt === 'object' && b.createdAt.seconds) {
+                        dateB = b.createdAt.seconds * 1000;
+                    } else {
+                        dateB = new Date(b.createdAt).getTime();
+                    }
+                }
+                
                 return (dateA - dateB) * modifier;
             } 
             else if (sortField === 'updatedAt') {
-                const dateA = a.updatedAt ? a.updatedAt.toMillis() : (a.createdAt ? a.createdAt.toMillis() : 0);
-                const dateB = b.updatedAt ? b.updatedAt.toMillis() : (b.createdAt ? b.createdAt.toMillis() : 0);
+                // Handle both Firestore Timestamps and cached dates
+                let dateA = 0;
+                let dateB = 0;
+                
+                if (a.updatedAt) {
+                    if (typeof a.updatedAt.toMillis === 'function') {
+                        dateA = a.updatedAt.toMillis();
+                    } else if (typeof a.updatedAt === 'object' && a.updatedAt.seconds) {
+                        dateA = a.updatedAt.seconds * 1000;
+                    } else {
+                        dateA = new Date(a.updatedAt).getTime();
+                    }
+                } else if (a.createdAt) {
+                    if (typeof a.createdAt.toMillis === 'function') {
+                        dateA = a.createdAt.toMillis();
+                    } else if (typeof a.createdAt === 'object' && a.createdAt.seconds) {
+                        dateA = a.createdAt.seconds * 1000;
+                    } else {
+                        dateA = new Date(a.createdAt).getTime();
+                    }
+                }
+                
+                if (b.updatedAt) {
+                    if (typeof b.updatedAt.toMillis === 'function') {
+                        dateB = b.updatedAt.toMillis();
+                    } else if (typeof b.updatedAt === 'object' && b.updatedAt.seconds) {
+                        dateB = b.updatedAt.seconds * 1000;
+                    } else {
+                        dateB = new Date(b.updatedAt).getTime();
+                    }
+                } else if (b.createdAt) {
+                    if (typeof b.createdAt.toMillis === 'function') {
+                        dateB = b.createdAt.toMillis();
+                    } else if (typeof b.createdAt === 'object' && b.createdAt.seconds) {
+                        dateB = b.createdAt.seconds * 1000;
+                    } else {
+                        dateB = new Date(b.createdAt).getTime();
+                    }
+                }
+                
                 return (dateA - dateB) * modifier;
             }
             else if (sortField === 'title') {
@@ -145,11 +208,128 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', applySorting);
     });
 
-    // Fetch Projects Logic
+    // ===== SMART CACHING WITH VERSION CHECKING =====
+    
+    /**
+     * Check if cached data is up-to-date by comparing with RTDB counters
+     * @returns {Promise<boolean>} True if cache is valid, false if needs refresh
+     */
+    async function isCacheValid() {
+        try {
+            // Get cached metadata
+            const cachedMetadata = localStorage.getItem('projectsMetadata');
+            if (!cachedMetadata) {
+                console.log('📦 No cache found, fetching fresh data');
+                return false;
+            }
+            
+            const metadata = JSON.parse(cachedMetadata);
+            const cachedCount = metadata.projectCount || 0;
+            const cachedUpdateCounter = metadata.updateCounter || 0;
+            
+            console.log(`📦 Cached: ${cachedCount} projects, update counter: ${cachedUpdateCounter}`);
+            
+            // Fetch RTDB counters
+            const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
+            const rtdbData = await rtdbResponse.json();
+            
+            const currentCount = rtdbData.projects_document_count || 0;
+            const currentUpdateCounter = rtdbData.update_counter || 0;
+            
+            console.log(`🔄 RTDB: ${currentCount} projects, update counter: ${currentUpdateCounter}`);
+            
+            // Compare counters
+            if (cachedCount !== currentCount) {
+                console.log('⚠️ Project count mismatch! Cache outdated (new project added/deleted)');
+                return false;
+            }
+            
+            if (cachedUpdateCounter !== currentUpdateCounter) {
+                console.log('⚠️ Update counter mismatch! Cache outdated (project was updated)');
+                return false;
+            }
+            
+            console.log('✓ Cache is up-to-date!');
+            return true;
+            
+        } catch (error) {
+            console.error('Error checking cache validity:', error);
+            return false; // On error, fetch fresh data
+        }
+    }
+    
+    /**
+     * Load projects from localStorage cache
+     */
+    function loadFromCache() {
+        try {
+            const cachedProjects = localStorage.getItem('projectsData');
+            if (!cachedProjects) return null;
+            
+            const projects = JSON.parse(cachedProjects);
+            console.log(`✓ Loaded ${projects.length} projects from cache`);
+            return projects;
+            
+        } catch (error) {
+            console.error('Error loading from cache:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Save projects to localStorage cache with metadata
+     */
+    async function saveToCache(projects) {
+        try {
+            // Fetch current RTDB counters
+            const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
+            const rtdbData = await rtdbResponse.json();
+            
+            const metadata = {
+                projectCount: rtdbData.projects_document_count || projects.length,
+                updateCounter: rtdbData.update_counter || 0,
+                lastCached: new Date().toISOString()
+            };
+            
+            // Save projects data
+            localStorage.setItem('projectsData', JSON.stringify(projects));
+            
+            // Save metadata
+            localStorage.setItem('projectsMetadata', JSON.stringify(metadata));
+            
+            console.log(`✓ Cached ${projects.length} projects with metadata:`, metadata);
+            
+        } catch (error) {
+            console.error('Error saving to cache:', error);
+        }
+    }
+
+    // Fetch Projects Logic with Smart Caching
     async function fetchProjects() {
         if (!projectsContainer) return;
         
         try {
+            // Check if cache is valid
+            const cacheValid = await isCacheValid();
+            
+            if (cacheValid) {
+                // Load from cache
+                const cachedProjects = loadFromCache();
+                
+                if (cachedProjects && cachedProjects.length > 0) {
+                    allProjects = cachedProjects;
+                    console.log('🚀 Using cached data - instant load!');
+                    
+                    // Apply default sort
+                    applySorting();
+                    return;
+                }
+            }
+            
+            // Cache invalid or not found - fetch from Firestore
+            console.log('📡 Fetching fresh data from Firestore...');
+            projectsContainer.innerHTML = '<p class="loading-text">Loading projects...</p>';
+            
             if (typeof db === 'undefined') {
                 console.error('Firestore db is not initialized.');
                 projectsContainer.innerHTML = '<p class="loading-text">Database configuration missing.</p>';
@@ -170,6 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(paginationContainer) paginationContainer.innerHTML = '';
                 return;
             }
+            
+            // Save to cache
+            await saveToCache(allProjects);
 
             // Apply default sort (Date Created, Descending)
             applySorting();

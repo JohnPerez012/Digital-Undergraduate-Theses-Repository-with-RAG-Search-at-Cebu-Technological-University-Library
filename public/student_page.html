@@ -470,8 +470,7 @@
             transition: box-shadow 0.25s, border-color 0.25s;
         }
 
-        .profile-img-trigger:hover,
-        .profile-dropdown-wrapper:hover .profile-img-trigger {
+        .profile-img-trigger:hover {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
         }
@@ -643,6 +642,24 @@
                                 <!-- Avatar -->
                                 <div class="pd-avatar">
                                     <img id="pd-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="Profile">
+                                </div>
+
+                                <div class="pd-divider"></div>
+
+                                <!-- Dashboard Row -->
+                                <div class="pd-row" id="pd-dashboard-row" style="cursor:pointer;">
+                                    <span class="pd-row-label">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="3" width="7" height="7"></rect>
+                                            <rect x="14" y="3" width="7" height="7"></rect>
+                                            <rect x="14" y="14" width="7" height="7"></rect>
+                                            <rect x="3" y="14" width="7" height="7"></rect>
+                                        </svg>
+                                        Dashboard
+                                    </span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
                                 </div>
 
                                 <div class="pd-divider"></div>

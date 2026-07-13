@@ -17,3 +17,6 @@
 - so that will be the one wwho will be get's out smoothly from left to right under the logo IF the user will hover the logo.
 }
 
+
+
+the cursor blinking smoothness style will be: expand effects animationsss 

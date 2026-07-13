@@ -1,700 +1,1229 @@
-// =====================================
-// AI CHATBOT WIDGET - GEMINI POWERED
-// =====================================
+/**
+ * Chatbot Module
+ * Handles the chatbot UI and interactions
+ * Uses AIService for RAG-powered responses
+ */
 
-(function() {
-    'use strict';
-
-    // ========== CONFIGURATION ==========
-    const CONFIG = {
-        GEMINI_API_KEY: 'AIzaSyD-cx4ujJ2RUq6TZ8fUaNetft05OuTW4vk', // Using the same Firebase API key
-        GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-        MAX_HISTORY: 20,
-        STORAGE_KEY: 'recaps_chatbot_history',
-        TYPING_DELAY: 1500,
-        WELCOME_SUGGESTIONS: [
-            { icon: '📚', text: 'How do I submit a capstone project?' },
-            { icon: '🔍', text: 'Search for projects by year' },
-            { icon: '👤', text: 'How do I update my profile?' },
-            { icon: '💡', text: 'What are the project requirements?' }
-        ],
-        QUICK_ACTIONS: [
-            '📊 View Projects',
-            '📝 Submit Project',
-            '👥 Manage Users',
-            '📈 Analytics',
-            '⚙️ Settings'
-        ]
-    };
-
-    // ========== STATE ==========
-    let chatState = {
-        isOpen: false,
-        conversationHistory: [],
-        unreadCount: 0,
-        currentUser: null,
-        currentPage: null,
-        isStandalone: false
-    };
-
-    // ========== DOM ELEMENTS ==========
-    let elements = {
-        button: null,
-        window: null,
-        messagesContainer: null,
-        welcomeScreen: null,
-        input: null,
-        sendBtn: null,
-        typingIndicator: null,
-        badge: null
-    };
-
-    // ========== INITIALIZATION ==========
-    function init() {
-        console.log('🤖 Initializing AI Chatbot...');
-        
-        // Get current user and page context
-        detectUserContext();
-        detectPageContext();
-        
-        // Check if we are on the standalone chatbot page
-        chatState.isStandalone = document.getElementById('messages-container') !== null && document.getElementById('user-input') !== null;
-        
-        // Create chatbot UI (must be BEFORE loadConversationHistory)
-        createChatbotUI();
-        
-        // Load conversation history
-        loadConversationHistory();
-        
-        // Attach event listeners
-        attachEventListeners();
-        
-        console.log('✅ AI Chatbot initialized');
+const Chatbot = {
+  messagesContainer: null,
+  userInput: null,
+  sendBtn: null,
+  typingIndicator: null,
+  welcomeScreen: null,
+  conversationMessages: [], // in-memory buffer of { role, text, time }
+  guestDialog: null,
+  cachedConversations: null, // Cache for lazy-loaded conversations
+  conversationsLoading: false, // Flag to prevent duplicate loads
+  
+  /**
+   * Create and inject guest dialog modal
+   */
+  createGuestDialog() {
+    // Create guest dialog HTML
+    const guestDialogHTML = `
+      <div class="guest-dialog-modal" id="Guest-dialog">
+        <div class="container">
+          <h2>You need to Log-in to use the Chatbot.</h2>
+          <h3>This dialog prevents anonymous use of AI tokens — which are limited and not free.</h3>
+          <span class="disclaimer">*AI API tokens are limited and cost money. Please log in to continue.</span>
+          <nav class="nav-menu">
+            <a href="index.html" class="nav-link secondary" id="back-to-search-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:5px"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              Back to Search
+            </a>
+            <button class="nav-link" id="guest-login-btn">Log In to Continue</button>
+          </nav>
+        </div>
+      </div>
+    `;
+    
+    // Inject into DOM
+    document.body.insertAdjacentHTML('beforeend', guestDialogHTML);
+    this.guestDialog = document.getElementById('Guest-dialog');
+    
+    // Setup guest login button click handler
+    const guestLoginBtn = document.getElementById('guest-login-btn');
+    if (guestLoginBtn) {
+      guestLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openLoginFromGuest();
+      });
     }
-
-    // ========== USER CONTEXT ==========
-    function detectUserContext() {
-        // Try to get current user from Firebase Auth
-        if (typeof firebase !== 'undefined' && firebase.auth()) {
-            firebase.auth().onAuthStateChanged((user) => {
-                if (user) {
-                    chatState.currentUser = {
-                        uid: user.uid,
-                        email: user.email,
-                        displayName: user.displayName || user.email
-                    };
-                    
-                    // Try to get user role from Firestore
-                    if (firebase.firestore) {
-                        firebase.firestore().collection('users').doc(user.uid).get()
-                            .then(doc => {
-                                if (doc.exists) {
-                                    chatState.currentUser.role = doc.data().userType || 'student';
-                                }
-                            })
-                            .catch(err => console.warn('Could not fetch user role:', err));
-                    }
-                }
-            });
+    
+    console.log('✓ Guest dialog created');
+  },
+  
+  /**
+   * Open login modal from guest dialog
+   */
+  openLoginFromGuest() {
+    if (this.guestDialog) {
+      this.guestDialog.classList.remove('active');
+    }
+    
+    const loginModal = document.getElementById('login-modal');
+    if (loginModal) {
+      loginModal.classList.add('active');
+    }
+  },
+  
+  /**
+   * Check login status and show guest dialog if needed
+   */
+  checkLoginAndShowGuest() {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const user = firebase.auth().currentUser;
+      
+      if (!user) {
+        // User is NOT logged in
+        if (this.guestDialog) {
+          this.guestDialog.classList.add('active');
         }
+        if (this.userInput) {
+          this.userInput.disabled = true;
+          this.userInput.placeholder = 'Please log in to use the chatbot';
+        }
+        if (this.sendBtn) {
+          this.sendBtn.disabled = true;
+        }
+      }
     }
-
-    // ========== PAGE CONTEXT ==========
-    function detectPageContext() {
-        const path = window.location.pathname;
-        if (path.includes('admin')) chatState.currentPage = 'admin';
-        else if (path.includes('teacher')) chatState.currentPage = 'teacher';
-        else if (path.includes('library')) chatState.currentPage = 'librarian';
-        else if (path.includes('student')) chatState.currentPage = 'student';
-        else if (path.includes('about')) chatState.currentPage = 'about';
-        else chatState.currentPage = 'home';
+  },
+  
+  /**
+   * Setup login modal monitoring
+   */
+  setupLoginModalMonitoring() {
+    const loginModal = document.getElementById('login-modal');
+    if (!loginModal) return;
+    
+    const loginModalClose = loginModal.querySelector('.modal-close');
+    const loginModalBackdrop = loginModal.querySelector('.modal-backdrop');
+    
+    // Monitor X button click
+    if (loginModalClose) {
+      loginModalClose.addEventListener('click', () => {
+        setTimeout(() => this.checkLoginAndShowGuest(), 150);
+      });
     }
-
-    // ========== CREATE UI ==========
-    function createChatbotUI() {
-        if (chatState.isStandalone) {
-            chatState.isOpen = true; // Always active in standalone mode
-            elements.messagesContainer = document.getElementById('messages-container');
-            elements.welcomeScreen = document.getElementById('welcome-screen');
-            elements.input = document.getElementById('user-input');
-            elements.sendBtn = document.getElementById('send-btn');
-            elements.typingIndicator = document.getElementById('typing-indicator');
+    
+    // Monitor backdrop click
+    if (loginModalBackdrop) {
+      loginModalBackdrop.addEventListener('click', () => {
+        setTimeout(() => this.checkLoginAndShowGuest(), 150);
+      });
+    }
+    
+    // Monitor ESC key press
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && loginModal.classList.contains('active')) {
+        setTimeout(() => this.checkLoginAndShowGuest(), 150);
+      }
+    });
+    
+    // Monitor class changes with MutationObserver
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isActive = loginModal.classList.contains('active');
+          if (!isActive) {
+            setTimeout(() => this.checkLoginAndShowGuest(), 150);
+          }
+        }
+      });
+    });
+    
+    observer.observe(loginModal, { attributes: true });
+    
+    console.log('✓ Login modal monitoring active');
+  },
+  
+  /**
+   * Setup Firebase auth state listener
+   */
+  setupAuthListener() {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      firebase.auth().onAuthStateChanged((user) => {
+        if (!user) {
+          // User is NOT logged in
+          if (this.guestDialog) {
+            this.guestDialog.classList.add('active');
+          }
+          if (this.userInput) {
+            this.userInput.disabled = true;
+            this.userInput.placeholder = 'Please log in to use the chatbot';
+          }
+          if (this.sendBtn) {
+            this.sendBtn.disabled = true;
+          }
+        } else {
+          // User IS logged in
+          if (this.guestDialog) {
+            this.guestDialog.classList.remove('active');
+          }
+          if (this.userInput) {
+            this.userInput.disabled = false;
+            this.userInput.placeholder = 'Type your message here...';
+          }
+        }
+      });
+      
+      console.log('✓ Auth state listener active');
+    }
+  },
+  
+  /**
+   * Initialize chatbot
+   */
+  init() {
+    this.messagesContainer = document.getElementById('messages-container');
+    this.userInput = document.getElementById('user-input');
+    this.sendBtn = document.getElementById('send-btn');
+    this.typingIndicator = document.getElementById('typing-indicator');
+    this.welcomeScreen = document.getElementById('welcome-screen');
+    this.clearBtn = document.getElementById('clear-btn');
+    
+    if (!this.messagesContainer || !this.userInput || !this.sendBtn) {
+      console.error('Chatbot elements not found');
+      return;
+    }
+    
+    // Create guest dialog
+    this.createGuestDialog();
+    
+    // Setup auth listener
+    this.setupAuthListener();
+    
+    // Setup login modal monitoring
+    this.setupLoginModalMonitoring();
+    
+    // Setup event listeners
+    this.setupEventListeners();
+    
+    // Update clear button visibility on init
+    this.updateClearButtonVisibility();
+    
+    // Auto-load last viewed conversation if returning from another page
+    this.autoLoadLastConversation();
+    
+    // Lazy load conversations in the background
+    this.lazyLoadConversations();
+    
+    console.log('✓ Chatbot initialized with RAG support');
+  },
+  
+  /**
+   * Setup event listeners
+   */
+  setupEventListeners() {
+    // Send button click
+    this.sendBtn.addEventListener('click', () => {
+      // Check authentication before sending
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          console.warn('⚠️ Send blocked: User not authenticated');
+          const guestDialog = document.getElementById('Guest-dialog');
+          if (guestDialog) guestDialog.classList.add('active');
+          return;
+        }
+      }
+      this.sendMessage();
+    });
+    
+    // Enter key to send (Shift+Enter for new line)
+    this.userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+          const user = firebase.auth().currentUser;
+          if (!user) {
+            console.warn('⚠️ Send blocked: User not authenticated');
+            const guestDialog = document.getElementById('Guest-dialog');
+            if (guestDialog) guestDialog.classList.add('active');
             return;
+          }
         }
+        this.sendMessage();
+      }
+    });
+    
+    // Input: enforce 500 non-space char limit + update counter + resize
+    this.userInput.addEventListener('input', (e) => {
+      const MAX = 500;
+      let text = e.target.value;
 
-        // Create floating button
-        const button = document.createElement('button');
-        button.className = 'chatbot-button';
-        button.setAttribute('aria-label', 'Open AI Chatbot');
-        button.innerHTML = `
-            <svg class="chatbot-icon-chat" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            <svg class="chatbot-icon-close" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        `;
-        elements.button = button;
+      // Enforce the limit — strip excess non-space characters
+      text = this._truncateToNonSpaceLimit(text, MAX);
+      if (text !== e.target.value) {
+        e.target.value = text;
+      }
 
-        // Create badge
-        const badge = document.createElement('span');
-        badge.className = 'chatbot-badge';
-        badge.style.display = 'none';
-        badge.textContent = '0';
-        button.appendChild(badge);
-        elements.badge = badge;
+      // Count non-space characters
+      const nonSpaceCount = text.replace(/\s/g, '').length;
 
-        // Create chat window
-        const chatWindow = document.createElement('div');
-        chatWindow.className = 'chatbot-window';
-        chatWindow.innerHTML = `
-            <div class="chatbot-header">
-                <div class="chatbot-avatar">🤖</div>
-                <div class="chatbot-header-info">
-                    <div class="chatbot-header-title">RE-CAPS AI Assistant</div>
-                    <div class="chatbot-header-status">
-                        <span class="chatbot-status-dot"></span>
-                        Online
-                    </div>
-                </div>
-                <div class="chatbot-header-actions">
-                    <button class="chatbot-header-btn" id="chatbot-clear" title="Clear conversation">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="chatbot-messages" id="chatbot-messages">
-                <div class="chatbot-welcome" id="chatbot-welcome">
-                    <div class="chatbot-welcome-icon">👋</div>
-                    <h3>Welcome to RE-CAPS AI!</h3>
-                    <p>I'm here to help you navigate the Research and Capstone Project Archiving System. Ask me anything!</p>
-                    <div class="chatbot-suggestions" id="chatbot-suggestions"></div>
-                </div>
-
-                <div class="chatbot-typing" id="chatbot-typing">
-                    <div class="chatbot-message-avatar">🤖</div>
-                    <div class="chatbot-typing-bubble">
-                        <span class="chatbot-typing-dot"></span>
-                        <span class="chatbot-typing-dot"></span>
-                        <span class="chatbot-typing-dot"></span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chatbot-input-container">
-                <div class="chatbot-quick-actions" id="chatbot-quick-actions"></div>
-                <div class="chatbot-input-wrapper">
-                    <textarea 
-                        class="chatbot-input" 
-                        id="chatbot-input" 
-                        placeholder="Type your message..."
-                        rows="1"
-                    ></textarea>
-                    <button class="chatbot-send-btn" id="chatbot-send" disabled>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        `;
-        elements.window = chatWindow;
-
-        // Get references
-        elements.messagesContainer = chatWindow.querySelector('#chatbot-messages');
-        elements.welcomeScreen = chatWindow.querySelector('#chatbot-welcome');
-        elements.input = chatWindow.querySelector('#chatbot-input');
-        elements.sendBtn = chatWindow.querySelector('#chatbot-send');
-        elements.typingIndicator = chatWindow.querySelector('#chatbot-typing');
-
-        // Append to body
-        document.body.appendChild(button);
-        document.body.appendChild(chatWindow);
-
-        // Render welcome suggestions
-        renderWelcomeSuggestions();
-        renderQuickActions();
-    }
-
-    // ========== WELCOME SUGGESTIONS ==========
-    function renderWelcomeSuggestions() {
-        const container = document.getElementById('chatbot-suggestions');
-        if (!container) return;
-
-        container.innerHTML = CONFIG.WELCOME_SUGGESTIONS.map(suggestion => `
-            <button class="chatbot-suggestion" data-text="${suggestion.text}">
-                <span>${suggestion.icon}</span>
-                <span>${suggestion.text}</span>
-            </button>
-        `).join('');
-
-        // Attach click handlers
-        container.querySelectorAll('.chatbot-suggestion').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const text = btn.getAttribute('data-text');
-                sendMessage(text);
-            });
-        });
-    }
-
-    // ========== QUICK ACTIONS ==========
-    function renderQuickActions() {
-        const container = document.getElementById('chatbot-quick-actions');
-        if (!container) return;
-
-        container.innerHTML = CONFIG.QUICK_ACTIONS.map(action => `
-            <button class="chatbot-quick-action" data-action="${action}">${action}</button>
-        `).join('');
-
-        // Attach click handlers
-        container.querySelectorAll('.chatbot-quick-action').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const action = btn.getAttribute('data-action');
-                sendMessage(`Help me with: ${action}`);
-            });
-        });
-    }
-
-    // ========== EVENT LISTENERS ==========
-    function attachEventListeners() {
-        // Toggle chat window
-        if (elements.button) {
-            elements.button.addEventListener('click', toggleChatWindow);
+      // Update counter display
+      const counter = document.getElementById('char-counter');
+      if (counter) {
+        counter.textContent = `${nonSpaceCount} / ${MAX}`;
+        counter.classList.remove('near-limit', 'at-limit');
+        if (nonSpaceCount >= MAX) {
+          counter.classList.add('at-limit');
+        } else if (nonSpaceCount >= MAX - 60) {
+          counter.classList.add('near-limit');
         }
+      }
 
-        // Send message on button click
-        if (elements.sendBtn) {
-            elements.sendBtn.addEventListener('click', () => {
-            const message = elements.input.value.trim();
-            if (message) {
-                sendMessage(message);
-            }
-        });
-
-        // Send message on Enter (Shift+Enter for new line)
-        elements.input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const message = elements.input.value.trim();
-                if (message) {
-                    sendMessage(message);
-                }
-            }
-        });
-
-        // Enable/disable send button based on input
-        elements.input.addEventListener('input', () => {
-            const hasText = elements.input.value.trim().length > 0;
-            elements.sendBtn.disabled = !hasText;
-            
-            // Auto-resize textarea
-            elements.input.style.height = 'auto';
-            elements.input.style.height = elements.input.scrollHeight + 'px';
-        });
-
-        // Clear conversation
-        const clearBtn = document.getElementById(chatState.isStandalone ? 'clear-btn' : 'chatbot-clear');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearConversation);
-        }
-
-        // Keyboard shortcut: Ctrl+K to focus chatbot
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                if (!chatState.isOpen) {
-                    toggleChatWindow();
-                }
-                elements.input.focus();
-            }
-        });
+      this.sendBtn.disabled = !text.trim();
+      this.autoResizeTextarea();
+    });
+    
+    // Clear conversation button
+    const clearBtn = document.getElementById('clear-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => this.clearConversation());
     }
-
-    // ========== TOGGLE WINDOW ==========
-    function toggleChatWindow() {
-        chatState.isOpen = !chatState.isOpen;
-        
-        if (chatState.isOpen) {
-            elements.button.classList.add('active');
-            elements.window.classList.add('active');
-            elements.input.focus();
-            
-            // Reset unread count
-            chatState.unreadCount = 0;
-            updateBadge();
-            
-            // Scroll to bottom
-            scrollToBottom();
-        } else {
-            elements.button.classList.remove('active');
-            elements.window.classList.remove('active');
-        }
+  },
+  
+  /**
+   * Truncate text so that non-space characters do not exceed `limit`.
+   * Spaces/newlines/tabs are preserved and do not count.
+   */
+  _truncateToNonSpaceLimit(text, limit) {
+    let count = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (!/\s/.test(text[i])) {
+        count++;
+        if (count > limit) return text.substring(0, i);
+      }
     }
-
-    // ========== SEND MESSAGE ==========
-    async function sendMessage(text) {
-        if (!text || text.trim().length === 0) return;
-
-        // Add user message to UI
-        addMessage('user', text);
-        
-        // Add to conversation history
-        chatState.conversationHistory.push({
-            role: 'user',
-            content: text,
-            timestamp: Date.now()
-        });
-
-        // Clear input
-        elements.input.value = '';
-        elements.input.style.height = 'auto';
-        elements.sendBtn.disabled = true;
-
-        // Hide welcome screen
-        if (elements.welcomeScreen) {
-            elements.welcomeScreen.style.display = 'none';
-        }
-
-        // Show typing indicator
-        showTypingIndicator();
-
-        // Get AI response
-        try {
-            const response = await getAIResponse(text);
-            hideTypingIndicator();
-            addMessage('bot', response);
-            
-            // Add to conversation history
-            chatState.conversationHistory.push({
-                role: 'assistant',
-                content: response,
-                timestamp: Date.now()
-            });
-
-            // Save to localStorage
-            saveConversationHistory();
-        } catch (error) {
-            hideTypingIndicator();
-            addMessage('bot', '❌ Sorry, I encountered an error. Please try again.', true);
-            console.error('Chatbot error:', error);
-        }
-    }
-
-    // ========== GET AI RESPONSE ==========
-    async function getAIResponse(userMessage) {
-        // Build context-aware system prompt
-        const systemContext = buildSystemContext();
-        
-        // Prepare conversation history for API
-        const messages = chatState.conversationHistory
-            .slice(-10) // Last 10 messages for context
-            .map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }));
-
-        // Add system context as first message
-        messages.unshift({
-            role: 'user',
-            parts: [{ text: systemContext }]
-        });
-
-        // Add current message
-        messages.push({
-            role: 'user',
-            parts: [{ text: userMessage }]
-        });
-
-        try {
-            const response = await fetch(`${CONFIG.GEMINI_API_URL}?key=${CONFIG.GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: messages,
-                    generationConfig: {
-                        temperature: 0.7,
-                        topK: 40,
-                        topP: 0.95,
-                        maxOutputTokens: 1024
-                    },
-                    safetySettings: [
-                        {
-                            category: "HARM_CATEGORY_HARASSMENT",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        },
-                        {
-                            category: "HARM_CATEGORY_HATE_SPEECH",
-                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                        }
-                    ]
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-                return data.candidates[0].content.parts[0].text;
-            } else {
-                throw new Error('Invalid response format');
-            }
-        } catch (error) {
-            console.error('Gemini API error:', error);
-            throw error;
-        }
-    }
-
-    // ========== BUILD SYSTEM CONTEXT ==========
-    function buildSystemContext() {
-        let context = `You are an AI assistant for RE-CAPS (Research and Capstone Project Archiving System), a web-based platform for managing academic capstone projects.
-
-SYSTEM OVERVIEW:
-- RE-CAPS is a capstone project archiving system for academic institutions
-- It allows students to submit projects, teachers to review them, librarians to catalog them, and admins to manage everything
-- The system supports multiple roles: Admin, Librarian, Teacher, Student
-
-YOUR ROLE:
-- Help users navigate the system
-- Answer questions about features and functionality
-- Provide guidance on how to complete tasks
-- Be friendly, helpful, and concise
-- Use emojis sparingly for emphasis
-
-ROLE PERMISSIONS:
-- Admin: Full system access, can create librarian accounts, manage all users and projects
-- Librarian: Manage project archive and catalog, cannot create user accounts
-- Teacher: View projects and students, manage own classes and submissions
-- Student: Submit and view own projects, browse archived projects
-
-CURRENT CONTEXT:
-- Page: ${chatState.currentPage}`;
-
-        if (chatState.currentUser) {
-            context += `\n- User: ${chatState.currentUser.displayName} (${chatState.currentUser.role || 'student'})`;
-        } else {
-            context += `\n- User: Not logged in (anonymous visitor)`;
-        }
-
-        context += `\n\nREMEMBER:
-- Keep responses concise (2-3 sentences for simple questions)
-- Provide step-by-step instructions when needed
-- If you don't know something, admit it and suggest where to find help
-- Be context-aware based on the current page and user role`;
-
-        return context;
-    }
-
-    // ========== ADD MESSAGE TO UI ==========
-    function addMessage(type, text, isError = false) {
-        const messageDiv = document.createElement('div');
-        const prefix = chatState.isStandalone ? '' : 'chatbot-';
-        messageDiv.className = `${prefix}message ${type}`;
-        
-        const avatar = type === 'user' ? 
-            (chatState.currentUser?.displayName?.charAt(0).toUpperCase() || '👤') : 
-            '🤖';
-
-        const time = new Date().toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-        });
-
-        if (isError) {
-            messageDiv.innerHTML = `
-                <div class="${prefix}message-avatar">${avatar}</div>
-                <div class="${prefix}message-content">
-                    <div class="${chatState.isStandalone ? 'error-message' : 'chatbot-error'}">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>${text}</span>
-                    </div>
-                    <div class="${prefix}message-time">${time}</div>
-                </div>
-            `;
-        } else {
-            messageDiv.innerHTML = `
-                <div class="${prefix}message-avatar">${avatar}</div>
-                <div class="${prefix}message-content">
-                    <div class="${prefix}message-bubble">${formatMessage(text)}</div>
-                    <div class="${prefix}message-time">${time}</div>
-                    ${type === 'bot' ? `
-                        <div class="${prefix}message-actions">
-                            <button class="${prefix}message-action-btn" onclick="window.chatbot.copyMessage(this)">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Copy
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-        }
-
-        // Insert before typing indicator
-        elements.messagesContainer.insertBefore(messageDiv, elements.typingIndicator);
-        
-        // Scroll to bottom
-        scrollToBottom();
-
-        // If window is closed, increment unread count
-        if (!chatState.isOpen && type === 'bot') {
-            chatState.unreadCount++;
-            updateBadge();
-        }
-    }
-
-    // ========== FORMAT MESSAGE ==========
-    function formatMessage(text) {
-        // Convert markdown-like formatting to HTML
-        let formatted = text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-            .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
-            .replace(/`(.*?)`/g, '<code>$1</code>') // Code
-            .replace(/\n/g, '<br>'); // Line breaks
-        
-        return formatted;
-    }
-
-    // ========== TYPING INDICATOR ==========
-    function showTypingIndicator() {
-        elements.typingIndicator.classList.add('active');
-        scrollToBottom();
-    }
-
-    function hideTypingIndicator() {
-        elements.typingIndicator.classList.remove('active');
-    }
-
-    // ========== SCROLL TO BOTTOM ==========
-    function scrollToBottom() {
-        setTimeout(() => {
-            elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
-        }, 100);
-    }
-
-    // ========== UPDATE BADGE ==========
-    function updateBadge() {
-        if (chatState.unreadCount > 0) {
-            elements.badge.textContent = chatState.unreadCount > 9 ? '9+' : chatState.unreadCount;
-            elements.badge.style.display = 'block';
-        } else {
-            elements.badge.style.display = 'none';
-        }
-    }
-
-    // ========== CLEAR CONVERSATION ==========
-    function clearConversation() {
-        if (confirm('Are you sure you want to clear the conversation?')) {
-            // Remove all messages
-            const messages = elements.messagesContainer.querySelectorAll(chatState.isStandalone ? '.message' : '.chatbot-message');
-            messages.forEach(msg => msg.remove());
-
-            // Clear history
-            chatState.conversationHistory = [];
-            saveConversationHistory();
-
-            // Show welcome screen
-            elements.welcomeScreen.style.display = 'block';
-
-            // Show toast
-            if (typeof showToast === 'function') {
-                showToast('✨ Conversation cleared');
-            }
-        }
-    }
-
-    // ========== COPY MESSAGE ==========
-    function copyMessage(button) {
-        const messageContent = button.closest(chatState.isStandalone ? '.message-content' : '.chatbot-message-content');
-        const bubble = messageContent.querySelector(chatState.isStandalone ? '.message-bubble' : '.chatbot-message-bubble');
-        const text = bubble.textContent;
-
-        navigator.clipboard.writeText(text).then(() => {
-            if (typeof showToast === 'function') {
-                showToast('📋 Message copied to clipboard');
-            }
-            
-            // Change button text temporarily
-            const originalHTML = button.innerHTML;
-            button.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Copied
-            `;
-            
-            setTimeout(() => {
-                button.innerHTML = originalHTML;
-            }, 2000);
-        }).catch(err => {
-            console.error('Copy failed:', err);
-            if (typeof showToast === 'function') {
-                showToast('❌ Copy failed');
-            }
-        });
-    }
-
-    // ========== LOCAL STORAGE ==========
-    function saveConversationHistory() {
-        try {
-            // Keep only last MAX_HISTORY messages
-            const historyToSave = chatState.conversationHistory.slice(-CONFIG.MAX_HISTORY);
-            localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(historyToSave));
-        } catch (error) {
-            console.warn('Failed to save conversation history:', error);
-        }
-    }
-
-    function loadConversationHistory() {
-        try {
-            const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
-            if (saved) {
-                chatState.conversationHistory = JSON.parse(saved);
-                
-                // Restore messages to UI
-                chatState.conversationHistory.forEach(msg => {
-                    if (msg.role === 'user') {
-                        addMessage('user', msg.content);
-                    } else if (msg.role === 'assistant') {
-                        addMessage('bot', msg.content);
-                    }
-                });
-
-                // Hide welcome screen if there are messages
-                if (chatState.conversationHistory.length > 0) {
-                    elements.welcomeScreen.style.display = 'none';
-                }
-            }
-        } catch (error) {
-            console.warn('Failed to load conversation history:', error);
-        }
-    }
-
-    // ========== PUBLIC API ==========
-    window.chatbot = {
-        init,
-        sendMessage,
-        toggleChatWindow,
-        clearConversation,
-        copyMessage
-    };
-
-    // ========== AUTO-INIT ==========
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+    return text;
+  },
+  
+  /**
+   * Auto-resize textarea
+   */
+  autoResizeTextarea() {
+    const ta = this.userInput;
+    ta.style.height = 'auto';
+    const scrollH = ta.scrollHeight;
+    const maxH = 200;
+    if (scrollH > maxH) {
+      ta.style.height = maxH + 'px';
+      ta.style.overflowY = 'auto';
     } else {
-        init();
+      ta.style.height = scrollH + 'px';
+      ta.style.overflowY = 'hidden';
+    }
+  },
+  
+  /**
+   * Send message
+   */
+  async sendMessage() {
+    const message = this.userInput.value.trim();
+    if (!message) return;
+    
+    // SECURITY: Block if user is not logged in
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        console.warn('⚠️ Message blocked: User not authenticated');
+        const guestDialog = document.getElementById('Guest-dialog');
+        if (guestDialog) guestDialog.classList.add('active');
+        return;
+      }
     }
 
-})();
+    // LIMIT: Max 3 conversations per user (only applies to brand-new conversations)
+    if (typeof ChatService !== 'undefined' && !ChatService.currentConversationId) {
+      const count = await ChatService.getConversationCount();
+      if (count >= 3) {
+        this.showConversationLimitError();
+        return;
+      }
+    }
+    
+    // Hide welcome screen
+    if (this.welcomeScreen) {
+      this.welcomeScreen.style.display = 'none';
+    }
+    
+    // Add user message to UI & buffer
+    this.conversationMessages.push({
+      role: 'user',
+      text: message,
+      time: this.getCurrentTime(),
+    });
+    this.addUserMessage(message);
+    
+    // Clear input + reset counter
+    this.userInput.value = '';
+    this.userInput.style.height = 'auto';
+    this.userInput.style.overflowY = 'hidden';
+    this.sendBtn.disabled = true;
+    const counter = document.getElementById('char-counter');
+    if (counter) {
+      counter.textContent = '0 / 500';
+      counter.classList.remove('near-limit', 'at-limit');
+    }
+    
+    // Show typing indicator
+    this.showTyping();
+    
+    try {
+      // Get AI response with RAG
+      const response = await AIService.sendMessage(message);
+      
+      // Hide typing indicator
+      this.hideTyping();
+      
+      // Extract plain text from response
+      const responseText = response.success
+        ? (response.response || '')
+        : (response.error || 'An error occurred.');
+      
+      // Add bot message to buffer
+      this.conversationMessages.push({
+        role: 'bot',
+        text: responseText,
+        time: this.getCurrentTime(),
+      });
+      
+      // Add bot message to UI
+      this.addBotMessage(response);
+      
+      // Auto-save to Firestore
+      if (typeof ChatService !== 'undefined') {
+        const wasNewConversation = !ChatService.currentConversationId;
+        await ChatService.saveConversation(this.conversationMessages);
+        
+        // Invalidate cache if this was a new conversation
+        if (wasNewConversation && ChatService.currentConversationId) {
+          this.invalidateConversationCache();
+        }
+      }
+      
+    } catch (error) {
+      console.error('Chatbot error:', error);
+      this.hideTyping();
+      this.addErrorMessage();
+    }
+  },
+
+  /**
+   * Show a clear error when the 3-conversation limit is reached
+   */
+  showConversationLimitError() {
+    // Toast notification
+    if (typeof showToast === 'function') {
+      showToast('Conversation limit reached! Delete an existing conversation first.', 'error');
+    }
+
+    // Also show a visible error bubble in the chat UI
+    const mainContainer = document.querySelector('.chatbot-main');
+    if (mainContainer) mainContainer.classList.add('chat-active');
+    if (this.welcomeScreen) this.welcomeScreen.style.display = 'none';
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot';
+    messageDiv.innerHTML = `
+      <div class="message-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">⚠️</div>
+      <div class="message-content">
+        <div class="error-message">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div>
+            <strong>Conversation limit reached (3/3)</strong><br>
+            You can only have <strong>3 saved conversations</strong>. Please open
+            <em>Chat History</em> and delete an existing conversation before starting a new one.
+          </div>
+        </div>
+        <div class="message-time">${this.getCurrentTime()}</div>
+      </div>
+    `;
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+    console.warn('⚠️ Conversation limit (3) reached for this user.');
+  },
+
+  addUserMessage(message) {
+    const mainContainer = document.querySelector('.chatbot-main');
+    if (mainContainer) {
+      mainContainer.classList.add('chat-active');
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user';
+    
+    // Get user profile image (if logged in)
+    const userPhotoURL = firebase.auth().currentUser?.photoURL || null;
+    const userAvatar = userPhotoURL 
+      ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+         </svg>`;
+    
+    messageDiv.innerHTML = `
+      <div class="message-avatar">
+        ${userAvatar}
+      </div>
+      <div class="message-content">
+        <div class="message-bubble">${this.escapeHtml(message)}</div>
+        <div class="message-time">${this.getCurrentTime()}</div>
+      </div>
+    `;
+    
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+    
+    // Update clear button visibility
+    this.updateClearButtonVisibility();
+  },
+
+  /**
+   * Get AI provider logo
+   */
+  getProviderLogo(providerName) {
+    const logos = {
+      'Mistral AI': 'https://docs.mistral.ai/img/logo.svg',
+      'Groq AI': 'https://groq.com/wp-content/uploads/2024/03/PBG-mark1-color.svg',
+      'Google Gemini': 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg',
+      'OpenRouter': 'https://openrouter.ai/favicon-32x32.png'
+    };
+    
+    const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='40' height='40' rx='20' fill='%23667eea'/><text x='50%25' y='54%25' font-family='Inter,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>AI</text></svg>`;
+    return logos[providerName] || fallbackSvg;
+  },
+  
+  /**
+   * Add bot message to UI with formatting
+   */
+  addBotMessage(response) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot';
+    
+    // Handle both success and error responses
+    let messageText = '';
+    let providerName = 'AI';
+    let projectsUsed = 0;
+    let relevantProjects = [];
+    
+    if (response.success) {
+      messageText = response.response; // The actual AI response text
+      providerName = response.provider || 'AI';
+      projectsUsed = response.projectsUsed || 0;
+      relevantProjects = response.relevantProjects || [];
+    } else {
+      // Error response
+      messageText = response.error || 'An error occurred. Please try again.';
+    }
+    
+    // Get provider logo
+    const providerLogo = this.getProviderLogo(providerName);
+    
+    // Format message if MessageFormatter is available
+    let formattedMessage = messageText;
+    if (typeof MessageFormatter !== 'undefined') {
+      formattedMessage = MessageFormatter.formatComplete(messageText, providerName);
+    } else {
+      formattedMessage = this.formatMessage(messageText);
+    }
+    
+    // Build RAG badge ONLY if:
+    // 1. Projects were found (relevantProjects.length > 0)
+    // 2. AND the response actually references projects (contains project titles or numbers)
+    let ragBadge = '';
+    if (relevantProjects.length > 0) {
+      // Check if the AI response actually used the projects
+      // Look for project titles, keywords, or specific data in the response
+      const usedProjects = this.detectProjectUsage(messageText, relevantProjects);
+      
+      if (usedProjects) {
+        ragBadge = `
+          <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
+          </div>
+        `;
+      }
+    }
+    
+    messageDiv.innerHTML = `
+      <div class="message-avatar" style="background: white; padding: 4px;">
+        <img src="${providerLogo}" 
+             alt="${providerName}" 
+             style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"
+             onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\' viewBox=\'0 0 40 40\'><rect width=\'40\' height=\'40\' rx=\'20\' fill=\'%23667eea\'/><text x=\'50%25\' y=\'54%25\' font-family=\'Inter,sans-serif\' font-size=\'13\' font-weight=\'700\' fill=\'white\' text-anchor=\'middle\' dominant-baseline=\'middle\'>AI</text></svg>'">
+      </div>
+      <div class="message-content">
+        <div class="message-bubble">${formattedMessage}</div>
+        <div class="message-time">
+          <span style="opacity: 0.6;">${providerName}</span> • ${this.getCurrentTime()}
+        </div>
+        ${ragBadge}
+        <div class="message-actions">
+          <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+          </button>
+        </div>
+      </div>
+    `;
+    
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+    
+    // Update clear button visibility
+    this.updateClearButtonVisibility();
+  },
+  
+  /**
+   * Detect if the AI response actually used project data
+   */
+  detectProjectUsage(responseText, projects) {
+    if (!responseText || !projects || projects.length === 0) return false;
+    
+    const lowerResponse = responseText.toLowerCase();
+    
+    // Check for project-related keywords that indicate actual project discussion
+    const projectKeywords = [
+      'project', 'capstone', 'research', 'thesis',
+      'authors', 'adviser', 'abstract', 'year',
+      'program', 'study', 'paper', 'document'
+    ];
+    
+    // Check for numbers that match project count
+    const hasProjectCount = lowerResponse.includes(`${projects.length} project`);
+    
+    // Check if response mentions specific project titles
+    const mentionsProjects = projects.some(p => {
+      if (!p.title) return false;
+      const titleWords = p.title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      return titleWords.some(word => lowerResponse.includes(word));
+    });
+    
+    // Check if response has typical project-related content
+    const hasProjectKeywords = projectKeywords.some(kw => lowerResponse.includes(kw));
+    
+    // Don't show badge for generic greetings
+    const isGenericGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|greetings)/i.test(lowerResponse);
+    
+    if (isGenericGreeting) return false;
+    
+    // Show badge only if response actually discusses projects
+    return hasProjectCount || mentionsProjects || (hasProjectKeywords && responseText.length > 100);
+  },
+  
+  /**
+   * Add error message
+   */
+  addErrorMessage() {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot';
+    messageDiv.innerHTML = `
+      <div class="message-avatar">🤖</div>
+      <div class="message-content">
+        <div class="error-message">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <div>
+            <strong>Sorry, I'm having trouble right now.</strong><br>
+            All AI providers are temporarily unavailable. Please try again in a moment.
+          </div>
+        </div>
+        <div class="message-time">${this.getCurrentTime()}</div>
+      </div>
+    `;
+    
+    this.messagesContainer.appendChild(messageDiv);
+    this.scrollToBottom();
+  },
+  
+  /**
+   * Show typing indicator
+   */
+  showTyping() {
+    if (this.typingIndicator) {
+      // Update typing indicator avatar to show AI logo
+      const typingAvatar = this.typingIndicator.querySelector('.message-avatar');
+      if (typingAvatar) {
+        typingAvatar.style.background = 'white';
+        typingAvatar.style.padding = '4px';
+        typingAvatar.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 40 40'><rect width='40' height='40' rx='20' fill='%23667eea'/><text x='50%' y='54%' font-family='Inter,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>AI</text></svg>`;
+      }
+      
+      this.typingIndicator.classList.add('active');
+      this.scrollToBottom();
+    }
+  },
+  
+  /**
+   * Hide typing indicator
+   */
+  hideTyping() {
+    if (this.typingIndicator) {
+      this.typingIndicator.classList.remove('active');
+    }
+  },
+  
+  /**
+   * Copy message to clipboard
+   */
+  copyMessage(button) {
+    const messageBubble = button.closest('.message-content').querySelector('.message-bubble');
+    const text = messageBubble.textContent || messageBubble.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Copied!
+      `;
+      
+      setTimeout(() => {
+        button.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy
+        `;
+      }, 2000);
+    }).catch(err => {
+      console.error('Copy failed:', err);
+    });
+  },
+  
+  /**
+   * Render a saved conversation into the chat UI
+   * @param {Object} conversation - conversation object from Firestore (includes messages array)
+   */
+  renderConversation(conversation) {
+    if (!conversation || !conversation.messages) return;
+
+    // Clear current UI (but keep welcome screen & typing indicator)
+    const existingMessages = this.messagesContainer.querySelectorAll('.message');
+    existingMessages.forEach(msg => msg.remove());
+
+    // Reset in-memory buffer
+    this.conversationMessages = [];
+
+    // Clear AI service history so it doesn't mix old context
+    if (typeof AIService !== 'undefined') {
+      AIService.clearHistory();
+    }
+
+    // Hide welcome screen
+    if (this.welcomeScreen) {
+      this.welcomeScreen.style.display = 'none';
+    }
+
+    // Activate chat layout
+    const mainContainer = document.querySelector('.chatbot-main');
+    if (mainContainer) mainContainer.classList.add('chat-active');
+
+    // Replay each message
+    conversation.messages.forEach(msg => {
+      this.conversationMessages.push(msg);
+      if (msg.role === 'user') {
+        this._renderUserMessage(msg.text, msg.time);
+      } else {
+        this._renderBotMessage(msg.text, msg.time);
+      }
+    });
+
+    this.scrollToBottom();
+    console.log('✓ Conversation rendered:', conversation.id);
+  },
+
+  /**
+   * Internal: render a user bubble with an explicit timestamp (used when replaying history)
+   */
+  _renderUserMessage(message, time) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user';
+    const userPhotoURL = (typeof firebase !== 'undefined' && firebase.auth().currentUser?.photoURL) || null;
+    const userAvatar = userPhotoURL
+      ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+         </svg>`;
+    messageDiv.innerHTML = `
+      <div class="message-avatar">${userAvatar}</div>
+      <div class="message-content">
+        <div class="message-bubble">${this.escapeHtml(message)}</div>
+        <div class="message-time">${time || ''}</div>
+      </div>
+    `;
+    this.messagesContainer.appendChild(messageDiv);
+  },
+
+  /**
+   * Internal: render a plain bot bubble with an explicit timestamp (used when replaying history)
+   */
+  _renderBotMessage(text, time) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot';
+    let formattedMessage = text;
+    if (typeof MessageFormatter !== 'undefined') {
+      formattedMessage = MessageFormatter.formatComplete(text, 'AI');
+    } else {
+      formattedMessage = this.formatMessage(text);
+    }
+    messageDiv.innerHTML = `
+      <div class="message-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; font-family:Inter,sans-serif;">
+        AI
+      </div>
+      <div class="message-content">
+        <div class="message-bubble">${formattedMessage}</div>
+        <div class="message-time">${time || ''}</div>
+        <div class="message-actions">
+          <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+          </button>
+        </div>
+      </div>
+    `;
+    this.messagesContainer.appendChild(messageDiv);
+  },
+
+  /**
+   * Update clear button visibility
+   * Shows button only if there are messages in the current conversation
+   */
+  updateClearButtonVisibility() {
+    if (!this.clearBtn) return;
+    
+    // Check if there are any messages (excluding welcome screen and typing indicator)
+    const messages = this.messagesContainer.querySelectorAll('.message:not(.typing-indicator)');
+    const hasMessages = messages.length > 0;
+    
+    if (hasMessages) {
+      this.clearBtn.style.display = 'flex';
+    } else {
+      this.clearBtn.style.display = 'none';
+    }
+  },
+  
+  /**
+   * Clear conversation
+   */
+  clearConversation() {
+    if (typeof showChatbotModal === 'function') {
+      showChatbotModal('clear-modal');
+    } else {
+      // Fallback
+      if (confirm('Clear all messages?')) {
+        this.executeClearConversation();
+      }
+    }
+  },
+  
+  /**
+   * Execute clear conversation after confirmation
+   * Also deletes the conversation from database
+   */
+  async executeClearConversation() {
+    if (typeof closeChatbotModal === 'function') {
+      closeChatbotModal('clear-modal');
+    }
+    
+    // Delete current conversation from database if it exists
+    if (typeof ChatService !== 'undefined' && ChatService.currentConversationId) {
+      try {
+        await ChatService.deleteConversation(ChatService.currentConversationId);
+        console.log('✓ Conversation deleted from database');
+        
+        // Invalidate cache after deletion
+        this.invalidateConversationCache();
+      } catch (error) {
+        console.error('Failed to delete conversation from database:', error);
+      }
+    }
+    
+    const mainContainer = document.querySelector('.chatbot-main');
+    if (mainContainer) {
+      mainContainer.classList.remove('chat-active');
+    }
+    
+    // Remove all messages except welcome screen and typing indicator
+    const messages = this.messagesContainer.querySelectorAll('.message');
+    messages.forEach(msg => msg.remove());
+    
+    // Clear local buffer
+    this.conversationMessages = [];
+    
+    // Reset ChatService session so next message starts a new conversation
+    if (typeof ChatService !== 'undefined') {
+      ChatService.resetConversation();
+    }
+    
+    // Show welcome screen again
+    if (this.welcomeScreen) {
+      this.welcomeScreen.style.display = 'block';
+    }
+    
+    // Clear AI service history
+    if (typeof AIService !== 'undefined') {
+      AIService.clearHistory();
+    }
+    
+    // Clear last viewed conversation from sessionStorage
+    sessionStorage.removeItem('lastViewedConversation');
+    
+    console.log('✓ Conversation cleared');
+    
+    // Update clear button visibility (should hide now)
+    this.updateClearButtonVisibility();
+  },
+  
+  /**
+   * Start a new conversation
+   * Clears current chat and resets to welcome screen
+   */
+  async startNewConversation() {
+    // Check if user has reached the 3 conversation limit
+    const count = await ChatService.getConversationCount();
+    
+    if (count >= 3) {
+      alert('You have reached the maximum of 3 saved conversations. Please delete an old conversation from Chat History before starting a new one.');
+      return;
+    }
+    
+    // Clear current conversation without showing modal
+    const mainContainer = document.querySelector('.chatbot-main');
+    if (mainContainer) {
+      mainContainer.classList.remove('chat-active');
+    }
+    
+    // Remove all messages
+    const messages = this.messagesContainer.querySelectorAll('.message');
+    messages.forEach(msg => msg.remove());
+    
+    // Clear local buffer
+    this.conversationMessages = [];
+    
+    // Reset ChatService session
+    if (typeof ChatService !== 'undefined') {
+      ChatService.resetConversation();
+    }
+    
+    // Show welcome screen
+    if (this.welcomeScreen) {
+      this.welcomeScreen.style.display = 'block';
+    }
+    
+    // Clear AI service history
+    if (typeof AIService !== 'undefined') {
+      AIService.clearHistory();
+    }
+    
+    // Clear last viewed conversation from sessionStorage
+    sessionStorage.removeItem('lastViewedConversation');
+    
+    console.log('✓ New conversation started');
+  },
+  
+  /**
+   * Lazy load conversations in the background
+   * Called on page load to pre-fetch chat history
+   */
+  async lazyLoadConversations() {
+    // Check if user is logged in
+    const user = (typeof firebase !== 'undefined' && firebase.auth)
+      ? firebase.auth().currentUser
+      : null;
+    
+    if (!user) {
+      console.log('ℹ️ No user logged in, skipping lazy load');
+      return;
+    }
+    
+    // Prevent duplicate loads
+    if (this.conversationsLoading || this.cachedConversations !== null) {
+      console.log('ℹ️ Conversations already loading or cached');
+      return;
+    }
+    
+    this.conversationsLoading = true;
+    console.log('📥 Lazy loading conversations in background...');
+    
+    try {
+      if (typeof ChatService !== 'undefined') {
+        const conversations = await ChatService.loadConversations();
+        this.cachedConversations = conversations;
+        console.log(`✓ Lazy load complete: ${conversations.length} conversation(s) cached`);
+      }
+    } catch (error) {
+      console.error('Failed to lazy load conversations:', error);
+      this.cachedConversations = null;
+    } finally {
+      this.conversationsLoading = false;
+    }
+  },
+  
+  /**
+   * Get conversations (from cache or fresh load)
+   * @returns {Promise<Array>} array of conversation objects
+   */
+  async getConversations() {
+    // Return cached conversations if available
+    if (this.cachedConversations !== null) {
+      console.log('✓ Using cached conversations');
+      return this.cachedConversations;
+    }
+    
+    // Load fresh if not cached
+    console.log('📥 Loading conversations (not cached)...');
+    if (typeof ChatService !== 'undefined') {
+      const conversations = await ChatService.loadConversations();
+      this.cachedConversations = conversations;
+      return conversations;
+    }
+    
+    return [];
+  },
+  
+  /**
+   * Invalidate conversation cache
+   * Call this after creating, deleting, or updating conversations
+   */
+  invalidateConversationCache() {
+    this.cachedConversations = null;
+    console.log('🔄 Conversation cache invalidated');
+  },
+  
+  /**
+   * Auto-load last viewed conversation if returning from another page
+   */
+  async autoLoadLastConversation() {
+    // Check if user is logged in
+    const user = (typeof firebase !== 'undefined' && firebase.auth)
+      ? firebase.auth().currentUser
+      : null;
+    
+    if (!user) {
+      console.log('ℹ️ No user logged in, skipping auto-load');
+      return;
+    }
+    
+    // Check if there's a last viewed conversation in sessionStorage
+    const lastConversationId = sessionStorage.getItem('lastViewedConversation');
+    
+    if (!lastConversationId) {
+      console.log('ℹ️ No last conversation to auto-load');
+      return;
+    }
+    
+    // Check if there are already messages loaded (user might have already started chatting)
+    const existingMessages = this.messagesContainer.querySelectorAll('.message:not(.typing-indicator)');
+    if (existingMessages.length > 0) {
+      console.log('ℹ️ Conversation already active, skipping auto-load');
+      return;
+    }
+    
+    // Load the last viewed conversation
+    try {
+      console.log(`📂 Auto-loading last conversation: ${lastConversationId}`);
+      
+      if (typeof ChatService !== 'undefined') {
+        const conversation = await ChatService.loadConversation(lastConversationId);
+        
+        if (conversation) {
+          this.renderConversation(conversation);
+          console.log('✓ Last conversation auto-loaded successfully');
+        } else {
+          console.warn('⚠️ Last conversation not found, clearing from sessionStorage');
+          sessionStorage.removeItem('lastViewedConversation');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to auto-load last conversation:', error);
+      sessionStorage.removeItem('lastViewedConversation');
+    }
+  },
+  
+  /**
+   * Render a saved conversation from history
+   * @param {Object} conversation - Conversation object with messages array
+   */
+  renderConversation(conversation) {
+    if (!conversation || !conversation.messages) {
+      console.error('Invalid conversation data');
+      return;
+    }
+    
+    const mainContainer = document.querySelector('.chatbot-main');
+    if (mainContainer) {
+      mainContainer.classList.add('chat-active');
+    }
+    
+    // Hide welcome screen
+    if (this.welcomeScreen) {
+      this.welcomeScreen.style.display = 'none';
+    }
+    
+    // Clear existing messages
+    const existingMessages = this.messagesContainer.querySelectorAll('.message');
+    existingMessages.forEach(msg => msg.remove());
+    
+    // Load messages into local buffer
+    this.conversationMessages = conversation.messages || [];
+    
+    // Render each message
+    conversation.messages.forEach(msg => {
+      if (msg.role === 'user') {
+        this.renderUserMessage(msg.text, msg.time);
+      } else if (msg.role === 'bot') {
+        this.renderBotMessage(msg.text, msg.time);
+      }
+    });
+    
+    // Scroll to bottom
+    this.scrollToBottom();
+    
+    // Update clear button visibility
+    this.updateClearButtonVisibility();
+    
+    // Set the current conversation ID in ChatService
+    if (typeof ChatService !== 'undefined') {
+      ChatService.currentConversationId = conversation.id;
+    }
+    
+    console.log(`✓ Rendered conversation: ${conversation.title || 'Untitled'}`);
+  },
+  
+  /**
+   * Render user message (for loading from history)
+   */
+  renderUserMessage(text, time) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message user';
+    
+    // Get user profile image (if logged in)
+    const userPhotoURL = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) 
+      ? firebase.auth().currentUser.photoURL 
+      : null;
+    
+    const userAvatar = userPhotoURL 
+      ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+         </svg>`;
+    
+    messageDiv.innerHTML = `
+      <div class="message-avatar">
+        ${userAvatar}
+      </div>
+      <div class="message-content">
+        <div class="message-bubble">${this.escapeHtml(text)}</div>
+        <div class="message-time">${time}</div>
+      </div>
+    `;
+    
+    this.messagesContainer.appendChild(messageDiv);
+  },
+  
+  /**
+   * Render bot message (for loading from history)
+   */
+  renderBotMessage(text, time) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message bot';
+    
+    // Format message if MessageFormatter is available
+    let formattedMessage = text;
+    if (typeof MessageFormatter !== 'undefined') {
+      formattedMessage = MessageFormatter.formatComplete(text, 'AI');
+    } else {
+      formattedMessage = this.formatMessage(text);
+    }
+    
+    messageDiv.innerHTML = `
+      <div class="message-avatar" style="background: white; padding: 4px;">
+        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='40' height='40' rx='20' fill='%23667eea'/><text x='50%25' y='54%25' font-family='Inter,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>AI</text></svg>" 
+             alt="AI" 
+             style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
+      </div>
+      <div class="message-content">
+        <div class="message-bubble">${formattedMessage}</div>
+        <div class="message-time">${time}</div>
+      </div>
+    `;
+    
+    this.messagesContainer.appendChild(messageDiv);
+  },
+  
+  /**
+   * Format message (basic formatting if MessageFormatter not available)
+   */
+  formatMessage(text) {
+    // Replace line breaks with <br>
+    text = text.replace(/\n/g, '<br>');
+    
+    // Bold text (**text**)
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic text (*text*)
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    
+    return text;
+  },
+  
+  /**
+   * Scroll to bottom
+   */
+  scrollToBottom() {
+    setTimeout(() => {
+      this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+    }, 100);
+  },
+  
+  /**
+   * Get current time
+   */
+  getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  },
+  
+  /**
+   * Escape HTML
+   */
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+};
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => Chatbot.init());
+} else {
+  Chatbot.init();
+}
+
+// Make available globally
+window.Chatbot = Chatbot;
