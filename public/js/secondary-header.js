@@ -1,11 +1,12 @@
 /**
  * Secondary Header Active State Detection
- * Detects the current page and applies active styling to the corresponding navigation item
- * Conditionally shows "Project Detail" button based on sessionStorage
+ * Detects the current page and applies active styling to the corresponding navigation item.
+ * The active item is also disabled — you cannot click a link to the page you are already on.
+ * Conditionally shows "Project Detail" button based on sessionStorage.
  */
 
 /**
- * Detects the current page and applies the active state to the corresponding nav item
+ * Detects the current page and applies the active + disabled state to the matching nav item.
  */
 function initSecondaryHeader() {
   // Check if a project has been viewed
@@ -17,13 +18,10 @@ function initSecondaryHeader() {
   // Show/hide Project Detail button based on sessionStorage
   if (projectDetailNavItem) {
     if (hasViewedProject) {
-      if (projectDetailNavItem.style.display === 'none' || window.getComputedStyle(projectDetailNavItem).display === 'none') {
-        projectDetailNavItem.style.display = 'flex';
-        projectDetailNavItem.classList.add('nav-item-animated-show');
-      } else {
-        projectDetailNavItem.style.display = 'flex';
-      }
+      // User has viewed a project - show the button
+      projectDetailNavItem.style.display = 'flex';
     } else {
+      // No project viewed yet - hide the button
       projectDetailNavItem.style.display = 'none';
     }
   }
@@ -48,21 +46,43 @@ function initSecondaryHeader() {
   const pageMap = {
     'index': 'index',
     '': 'index', // Root path
-    'view_project_details': 'project-detail'
+    'view_project_details': 'project-detail',
+    'chatbot': 'ai-chatbot'
   };
   
   // Determine current page, defaulting to index for unknown pages or root
   const currentPage = pageMap[fileName] || 'index';
   
-  // Apply active state to matching navigation item
+  // Apply active + disabled state to current page; ensure others are clickable
   navItems.forEach(item => {
-    if (item.dataset.page === currentPage) {
+    const isCurrentPage = item.dataset.page === currentPage;
+
+    if (isCurrentPage) {
+      // Mark as active (visual highlight)
       item.classList.add('active');
       item.setAttribute('aria-current', 'page');
+
+      // Mark as disabled so it cannot be clicked
+      item.classList.add('nav-item-disabled');
+      item.style.pointerEvents = 'none';
+      item.style.cursor = 'not-allowed';
+      item.setAttribute('aria-disabled', 'true');
+      item.setAttribute('tabindex', '-1');
+
+      // Belt-and-suspenders: block any click that somehow gets through
+      item.addEventListener('click', e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, { capture: true });
+
     } else {
-      // Remove active state from other items (in case it was set)
-      item.classList.remove('active');
+      // Ensure non-current items are fully interactive
+      item.classList.remove('active', 'nav-item-disabled');
       item.removeAttribute('aria-current');
+      item.removeAttribute('aria-disabled');
+      item.style.pointerEvents = '';
+      item.style.cursor = '';
+      item.removeAttribute('tabindex');
     }
   });
 }
