@@ -28,7 +28,7 @@ const Chatbot = {
           <span class="disclaimer">*AI API tokens are limited and cost money. Please log in to continue.</span>
           <nav class="nav-menu">
             <a href="index.html" class="nav-link secondary" id="back-to-search-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:5px"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <svg class="back-to-search-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
               Back to Search
             </a>
             <button class="nav-link" id="guest-login-btn">Log In to Continue</button>
@@ -47,6 +47,22 @@ const Chatbot = {
       guestLoginBtn.addEventListener('click', (e) => {
         e.preventDefault();
         this.openLoginFromGuest();
+      });
+    }
+
+    // Setup back to search button click handler
+    const backToSearchBtn = document.getElementById('back-to-search-btn');
+    if (backToSearchBtn) {
+      backToSearchBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (this.guestDialog) {
+          this.guestDialog.classList.remove('active');
+        }
+        if (window.ViewManager && typeof window.ViewManager.switchView === 'function') {
+          window.ViewManager.switchView('index');
+        } else {
+          window.location.href = 'index.html';
+        }
       });
     }
     
@@ -76,7 +92,10 @@ const Chatbot = {
       
       if (!user) {
         // User is NOT logged in
-        if (this.guestDialog) {
+        const chatbotView = document.getElementById('chatbot-view');
+        const isChatbotActive = chatbotView && chatbotView.classList.contains('active');
+        
+        if (this.guestDialog && isChatbotActive) {
           this.guestDialog.classList.add('active');
         }
         if (this.userInput) {
@@ -85,6 +104,17 @@ const Chatbot = {
         }
         if (this.sendBtn) {
           this.sendBtn.disabled = true;
+        }
+      } else {
+        if (this.guestDialog) {
+          this.guestDialog.classList.remove('active');
+        }
+        if (this.userInput) {
+          this.userInput.disabled = false;
+          this.userInput.placeholder = 'Type your message here...';
+        }
+        if (this.sendBtn) {
+          this.sendBtn.disabled = false;
         }
       }
     }
@@ -146,8 +176,13 @@ const Chatbot = {
       firebase.auth().onAuthStateChanged((user) => {
         if (!user) {
           // User is NOT logged in
-          if (this.guestDialog) {
+          const chatbotView = document.getElementById('chatbot-view');
+          const isChatbotActive = chatbotView && chatbotView.classList.contains('active');
+          
+          if (this.guestDialog && isChatbotActive) {
             this.guestDialog.classList.add('active');
+          } else if (this.guestDialog && !isChatbotActive) {
+            this.guestDialog.classList.remove('active');
           }
           if (this.userInput) {
             this.userInput.disabled = true;
@@ -165,6 +200,9 @@ const Chatbot = {
             this.userInput.disabled = false;
             this.userInput.placeholder = 'Type your message here...';
           }
+          
+          // Trigger lazy load when user authentication is confirmed
+          this.lazyLoadConversations();
         }
       });
       
@@ -182,6 +220,8 @@ const Chatbot = {
     this.typingIndicator = document.getElementById('typing-indicator');
     this.welcomeScreen = document.getElementById('welcome-screen');
     this.clearBtn = document.getElementById('clear-btn');
+    this.exportBtn = document.getElementById('export-btn');
+
     
     if (!this.messagesContainer || !this.userInput || !this.sendBtn) {
       console.error('Chatbot elements not found');
@@ -191,7 +231,7 @@ const Chatbot = {
     // Create guest dialog
     this.createGuestDialog();
     
-    // Setup auth listener
+    // Setup auth listener (this will trigger lazy load when user is confirmed)
     this.setupAuthListener();
     
     // Setup login modal monitoring
@@ -205,9 +245,6 @@ const Chatbot = {
     
     // Auto-load last viewed conversation if returning from another page
     this.autoLoadLastConversation();
-    
-    // Lazy load conversations in the background
-    this.lazyLoadConversations();
     
     console.log('✓ Chatbot initialized with RAG support');
   },
@@ -318,6 +355,37 @@ const Chatbot = {
   },
   
   /**
+   * Clean and sanitize message text (remove HTML tags, images, scripts)
+   */
+  cleanMessageText(text) {
+    if (!text || typeof text !== 'string') return '';
+    
+    // Create a temporary div to parse HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = text;
+    
+    // Remove all image tags
+    const images = temp.querySelectorAll('img');
+    images.forEach(img => img.remove());
+    
+    // Remove all script tags
+    const scripts = temp.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
+    
+    // Remove all style tags
+    const styles = temp.querySelectorAll('style');
+    styles.forEach(style => style.remove());
+    
+    // Get cleaned text content
+    let cleanedText = temp.textContent || temp.innerText || '';
+    
+    // Trim excessive whitespace
+    cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
+    
+    return cleanedText;
+  },
+
+  /**
    * Send message
    */
   async sendMessage() {
@@ -344,6 +412,13 @@ const Chatbot = {
       }
     }
     
+    // Clean the message text (remove any HTML/images)
+    const cleanMessage = this.cleanMessageText(message);
+    if (!cleanMessage) {
+      console.warn('⚠️ Message is empty after cleaning');
+      return;
+    }
+    
     // Hide welcome screen
     if (this.welcomeScreen) {
       this.welcomeScreen.style.display = 'none';
@@ -352,10 +427,10 @@ const Chatbot = {
     // Add user message to UI & buffer
     this.conversationMessages.push({
       role: 'user',
-      text: message,
+      text: cleanMessage,
       time: this.getCurrentTime(),
     });
-    this.addUserMessage(message);
+    this.addUserMessage(cleanMessage);
     
     // Clear input + reset counter
     this.userInput.value = '';
@@ -373,7 +448,7 @@ const Chatbot = {
     
     try {
       // Get AI response with RAG
-      const response = await AIService.sendMessage(message);
+      const response = await AIService.sendMessage(cleanMessage);
       
       // Hide typing indicator
       this.hideTyping();
@@ -383,10 +458,13 @@ const Chatbot = {
         ? (response.response || '')
         : (response.error || 'An error occurred.');
       
+      // Clean the response text as well
+      const cleanResponseText = this.cleanMessageText(responseText);
+      
       // Add bot message to buffer
       this.conversationMessages.push({
         role: 'bot',
-        text: responseText,
+        text: cleanResponseText,
         time: this.getCurrentTime(),
       });
       
@@ -712,14 +790,23 @@ const Chatbot = {
    * @param {Object} conversation - conversation object from Firestore (includes messages array)
    */
   renderConversation(conversation) {
-    if (!conversation || !conversation.messages) return;
+    if (!conversation || !conversation.messages) {
+      console.error('Invalid conversation data');
+      return;
+    }
 
     // Clear current UI (but keep welcome screen & typing indicator)
-    const existingMessages = this.messagesContainer.querySelectorAll('.message');
+    const existingMessages = this.messagesContainer.querySelectorAll('.message:not(.typing-indicator)');
     existingMessages.forEach(msg => msg.remove());
 
-    // Reset in-memory buffer
-    this.conversationMessages = [];
+    // Clean all messages before loading
+    const cleanedMessages = conversation.messages.map(msg => ({
+      ...msg,
+      text: this.cleanMessageText(msg.text || '')
+    })).filter(msg => msg.text.length > 0); // Remove empty messages
+
+    // Set in-memory buffer to the cleaned messages
+    this.conversationMessages = [...cleanedMessages];
 
     // Clear AI service history so it doesn't mix old context
     if (typeof AIService !== 'undefined') {
@@ -735,18 +822,25 @@ const Chatbot = {
     const mainContainer = document.querySelector('.chatbot-main');
     if (mainContainer) mainContainer.classList.add('chat-active');
 
-    // Replay each message
-    conversation.messages.forEach(msg => {
-      this.conversationMessages.push(msg);
+    // Replay each cleaned message
+    cleanedMessages.forEach(msg => {
       if (msg.role === 'user') {
         this._renderUserMessage(msg.text, msg.time);
-      } else {
+      } else if (msg.role === 'bot') {
         this._renderBotMessage(msg.text, msg.time);
       }
     });
 
+    // Set the current conversation ID in ChatService
+    if (typeof ChatService !== 'undefined') {
+      ChatService.currentConversationId = conversation.id;
+    }
+
+    // Update clear button visibility
+    this.updateClearButtonVisibility();
+
     this.scrollToBottom();
-    console.log('✓ Conversation rendered:', conversation.id);
+    console.log('✓ Conversation rendered:', conversation.id, `(${cleanedMessages.length} messages)`);
   },
 
   /**
@@ -755,7 +849,9 @@ const Chatbot = {
   _renderUserMessage(message, time) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message user';
-    const userPhotoURL = (typeof firebase !== 'undefined' && firebase.auth().currentUser?.photoURL) || null;
+    const userPhotoURL = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) 
+      ? firebase.auth().currentUser.photoURL 
+      : null;
     const userAvatar = userPhotoURL
       ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
       : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
@@ -772,7 +868,7 @@ const Chatbot = {
   },
 
   /**
-   * Internal: render a plain bot bubble with an explicit timestamp (used when replaying history)
+   * Internal: render a bot message with plain formatting (used when replaying history)
    */
   _renderBotMessage(text, time) {
     const messageDiv = document.createElement('div');
@@ -817,8 +913,12 @@ const Chatbot = {
     
     if (hasMessages) {
       this.clearBtn.style.display = 'flex';
+      this.exportBtn.style.display = 'flex';
+
     } else {
       this.clearBtn.style.display = 'none';
+      this.exportBtn.style.display = 'none';
+
     }
   },
   
@@ -1058,117 +1158,6 @@ const Chatbot = {
       console.error('Failed to auto-load last conversation:', error);
       sessionStorage.removeItem('lastViewedConversation');
     }
-  },
-  
-  /**
-   * Render a saved conversation from history
-   * @param {Object} conversation - Conversation object with messages array
-   */
-  renderConversation(conversation) {
-    if (!conversation || !conversation.messages) {
-      console.error('Invalid conversation data');
-      return;
-    }
-    
-    const mainContainer = document.querySelector('.chatbot-main');
-    if (mainContainer) {
-      mainContainer.classList.add('chat-active');
-    }
-    
-    // Hide welcome screen
-    if (this.welcomeScreen) {
-      this.welcomeScreen.style.display = 'none';
-    }
-    
-    // Clear existing messages
-    const existingMessages = this.messagesContainer.querySelectorAll('.message');
-    existingMessages.forEach(msg => msg.remove());
-    
-    // Load messages into local buffer
-    this.conversationMessages = conversation.messages || [];
-    
-    // Render each message
-    conversation.messages.forEach(msg => {
-      if (msg.role === 'user') {
-        this.renderUserMessage(msg.text, msg.time);
-      } else if (msg.role === 'bot') {
-        this.renderBotMessage(msg.text, msg.time);
-      }
-    });
-    
-    // Scroll to bottom
-    this.scrollToBottom();
-    
-    // Update clear button visibility
-    this.updateClearButtonVisibility();
-    
-    // Set the current conversation ID in ChatService
-    if (typeof ChatService !== 'undefined') {
-      ChatService.currentConversationId = conversation.id;
-    }
-    
-    console.log(`✓ Rendered conversation: ${conversation.title || 'Untitled'}`);
-  },
-  
-  /**
-   * Render user message (for loading from history)
-   */
-  renderUserMessage(text, time) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message user';
-    
-    // Get user profile image (if logged in)
-    const userPhotoURL = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) 
-      ? firebase.auth().currentUser.photoURL 
-      : null;
-    
-    const userAvatar = userPhotoURL 
-      ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
-           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-         </svg>`;
-    
-    messageDiv.innerHTML = `
-      <div class="message-avatar">
-        ${userAvatar}
-      </div>
-      <div class="message-content">
-        <div class="message-bubble">${this.escapeHtml(text)}</div>
-        <div class="message-time">${time}</div>
-      </div>
-    `;
-    
-    this.messagesContainer.appendChild(messageDiv);
-  },
-  
-  /**
-   * Render bot message (for loading from history)
-   */
-  renderBotMessage(text, time) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'message bot';
-    
-    // Format message if MessageFormatter is available
-    let formattedMessage = text;
-    if (typeof MessageFormatter !== 'undefined') {
-      formattedMessage = MessageFormatter.formatComplete(text, 'AI');
-    } else {
-      formattedMessage = this.formatMessage(text);
-    }
-    
-    messageDiv.innerHTML = `
-      <div class="message-avatar" style="background: white; padding: 4px;">
-        <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='40' height='40' rx='20' fill='%23667eea'/><text x='50%25' y='54%25' font-family='Inter,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>AI</text></svg>" 
-             alt="AI" 
-             style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;">
-      </div>
-      <div class="message-content">
-        <div class="message-bubble">${formattedMessage}</div>
-        <div class="message-time">${time}</div>
-      </div>
-    `;
-    
-    this.messagesContainer.appendChild(messageDiv);
   },
   
   /**

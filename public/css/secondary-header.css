@@ -1,40 +1,73 @@
 /* Secondary Sticky Header Component */
 
 .secondary-header {
-  position: sticky;
-  top: 72px; /* Positioned below main header */
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 90;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Prevents flex children from stretching weirdly */
-  height: 0; /* Prevents it from taking up space in the document flow and showing body background */
+  align-items: flex-end;
+  height: auto;
+  padding-bottom: 12px;
   overflow: visible;
   background: transparent;
-  pointer-events: none; /* Allow clicks through transparent areas */
-  transition: all 0.3s ease;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* When inside the main header (initial state) */
+.secondary-header.secondary-inside-header {
+  position: absolute;
+  bottom: 0;
+  transform: translateY(50%);
+}
+
+/* When sticky at top (after scrolling) */
+.secondary-header.secondary-sticky-top {
+  position: fixed;
+  top: 9px;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  transform: translateY(0);
+  z-index: 101; /* Above header */
+  padding-bottom: 0;
 }
 
 .secondary-header-container {
   display: flex;
-  width: max-content; /* Forces the container to hug its contents */
+  width: max-content;
   gap: 0.5rem;
-  margin-top: 1rem; /* Replaces parent padding to float over content */
+  margin: 0;
   padding: 0.5rem 1rem;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border);
-  border-radius: 9999px; /* Pill-shaped design */
+  border-radius: 9999px;
   box-shadow: var(--shadow-md);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: auto; /* Restore click handling */
-  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced glassmorphism when sticky */
+.secondary-header.secondary-sticky-top .secondary-header-container {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 /* Glassmorphism effect for dark mode */
 [data-theme="dark"] .secondary-header-container {
-  background: rgba(30, 41, 59, 0.7);
+  background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+[data-theme="dark"] .secondary-header.secondary-sticky-top .secondary-header-container {
+  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* Navigation Item Styles */

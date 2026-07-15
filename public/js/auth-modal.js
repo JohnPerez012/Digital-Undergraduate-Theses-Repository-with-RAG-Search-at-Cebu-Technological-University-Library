@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const path = window.location.pathname;
                 const isOnDashboard = path.endsWith(dashboardPage) ||
-                                       path.endsWith(dashboardPage.replace('.html', ''));
+                                    path.endsWith(dashboardPage.replace('.html', ''));
 
                 if (isOnDashboard) {
                     // Already on correct dashboard - just close dropdown
@@ -421,7 +421,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.href = 'student_page.html';
                     } else if (userData.userType === 'admin') {
                         window.location.href = 'admin_page.html';
-                    } else {
+                    }  else if (userData.userType === 'librarian') {
+                        redirectUrl = 'library_page.html';
+                    } else if (userData.userType === 'teacher') {
+                        redirectUrl = 'teacher_page.html';
+                    } 
+                    else {
                         window.location.reload();
                     }
                 }

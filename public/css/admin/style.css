@@ -1124,7 +1124,7 @@ body {
     justify-content: space-between;
     padding: 1.75rem;
     border-bottom: 1px solid var(--border);
-    background: var(--background);
+    /* background: var(--background); */
 }
 
 .modal-header h3 {
@@ -1646,4 +1646,201 @@ body {
 .btn-export svg {
     width: 16px;
     height: 16px;
+}
+
+/* Custom Wide Modal Content for Project Modal */
+.project-modal-content {
+    max-width: 850px !important;
+}
+
+/* Auto-save Switch Toggle */
+#project-autosave-toggle:checked + .auto-save-switch-track {
+    background: var(--admin-primary) !important;
+}
+
+#project-autosave-toggle:checked + .auto-save-switch-track .auto-save-switch-thumb {
+    transform: translateX(22px) !important;
+}
+
+/* Dynamic rows styling */
+.dynamic-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dynamic-input-row .form-input {
+    flex-grow: 1;
+}
+
+.remove-row-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.remove-row-btn:hover {
+    background: var(--admin-danger);
+    border-color: var(--admin-danger);
+    color: white;
+}
+
+
+/* ===== Custom Year Selector ===== */
+.year-selector-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.year-selector-input {
+    padding-right: 50px !important;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 1rem !important;
+    color: var(--admin-primary) !important;
+}
+
+.year-selector-input:focus {
+    cursor: pointer;
+}
+
+.year-controls {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 10;
+}
+
+.year-btn {
+    width: 28px;
+    height: 24px;
+    border: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.year-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.year-btn:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.year-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.year-btn:active {
+    transform: scale(0.95);
+}
+
+.year-btn svg {
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.year-btn-up {
+    animation: float-up 2s ease-in-out infinite;
+}
+
+.year-btn-down {
+    animation: float-down 2s ease-in-out infinite;
+    animation-delay: 1s;
+}
+
+@keyframes float-up {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+@keyframes float-down {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(2px);
+    }
+}
+
+/* Enhanced year button with glow effect on hover */
+.year-btn:hover {
+    background: linear-gradient(135deg, #764ba2, #667eea);
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.6),
+                0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Year input with gradient border on focus */
+.year-selector-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15),
+                0 0 20px rgba(102, 126, 234, 0.3);
+    background: var(--surface);
+}
+
+/* Ripple effect for year buttons */
+.year-btn .ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple-animation 0.6s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Disabled state */
+.year-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.year-selector-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }

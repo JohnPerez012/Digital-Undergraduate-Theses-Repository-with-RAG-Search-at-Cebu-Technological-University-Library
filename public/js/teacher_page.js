@@ -500,7 +500,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('View project:', projectId);
         showToast('Opening project details...', 'ℹ️');
         setTimeout(() => {
-            window.location.href = `view_project_details.html?id=${projectId}`;
+            // Set flag to show details view
+            sessionStorage.setItem('showProjectDetails', 'true');
+            // Navigate to index.html which will handle the view
+            window.location.href = 'index.html';
         }, 500);
     };
 

@@ -9,6 +9,13 @@
  * Detects the current page and applies the active + disabled state to the matching nav item.
  */
 function initSecondaryHeader() {
+  // Check if we're on index.html - if so, skip this (ViewManager handles it)
+  const currentPath = window.location.pathname;
+  if (currentPath.endsWith('index.html') || currentPath.endsWith('/')) {
+    console.log('Secondary header: Skipping init on index.html (ViewManager handles navigation)');
+    return;
+  }
+  
   // Check if a project has been viewed
   const hasViewedProject = sessionStorage.getItem('selectedProjectForViewDetails');
   
@@ -36,7 +43,6 @@ function initSecondaryHeader() {
   }
   
   // Get current page filename from URL
-  const currentPath = window.location.pathname;
   let fileName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
   
   // Clean filename: remove extension and any hash/query params
@@ -46,12 +52,15 @@ function initSecondaryHeader() {
   const pageMap = {
     'index': 'index',
     '': 'index', // Root path
-    'view_project_details': 'project-detail',
-    'chatbot': 'ai-chatbot'
+    'library_page': 'library',
+    'admin_page': 'admin',
+    'teacher_page': 'teacher',
+    'student_page': 'student',
+    'about_page': 'about'
   };
   
   // Determine current page, defaulting to index for unknown pages or root
-  const currentPage = pageMap[fileName] || 'index';
+  const currentPage = pageMap[fileName] || fileName;
   
   // Apply active + disabled state to current page; ensure others are clickable
   navItems.forEach(item => {
@@ -94,3 +103,4 @@ if (document.readyState === 'loading') {
   // DOM already loaded, initialize immediately
   initSecondaryHeader();
 }
+
