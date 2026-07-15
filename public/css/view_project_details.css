@@ -62,7 +62,7 @@ body::before {
     border: 1px dashed var(--border);
     border-radius: 24px;
     text-align: center;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     padding: 2.5rem;
     backdrop-filter: blur(8px);
 }
@@ -122,7 +122,7 @@ body::before {
 }
 
 .project-authors-line {
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-size: 0.9rem;
     line-height: 1.6;
     margin: 0 0 2rem 0;
@@ -147,7 +147,7 @@ body::before {
 }
 
 .section-text {
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-size: 0.95rem;
     line-height: 1.8;
     margin: 0;
@@ -211,7 +211,7 @@ body::before {
 
 .fair-list span {
     font-size: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .cite-btn {
@@ -255,7 +255,7 @@ body::before {
 
 .related-item span {
     font-size: 0.75rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .info-row {
@@ -273,7 +273,7 @@ body::before {
 
 .info-row span {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 .info-row strong, .info-row em {
@@ -283,7 +283,7 @@ body::before {
 }
 
 .info-row em {
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
 
@@ -293,3 +293,26 @@ body::before {
     }
 }
 
+
+/* Citation Modal Styles */
+.citation-tab.active {
+    color: var(--primary-color) !important;
+    border-bottom-color: var(--primary-color) !important;
+}
+
+.citation-tab:hover {
+    color: var(--text-primary);
+}
+
+#citation-text {
+    user-select: all;
+}
+
+/* Modal specific overrides for citation modal */
+#citation-modal .modal-content {
+    max-width: 680px;
+}
+
+#citation-modal .modal-backdrop {
+    cursor: pointer;
+}

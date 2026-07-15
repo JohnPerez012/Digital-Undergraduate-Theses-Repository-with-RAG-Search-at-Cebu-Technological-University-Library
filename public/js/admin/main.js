@@ -847,7 +847,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('View project:', projectId);
         showToast('Opening project details...', 'ℹ️');
         setTimeout(() => {
-            window.location.href = `view_project_details.html?id=${projectId}`;
+            // Set flag to show details view
+            sessionStorage.setItem('showProjectDetails', 'true');
+            // Navigate to index.html which will handle the view
+            window.location.href = 'index.html';
         }, 500);
     };
 
@@ -865,14 +868,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Populate form fields
             document.getElementById('project-id-input').value = projectId;
             document.getElementById('project-title-input').value = data.title || '';
-            document.getElementById('project-authors-input').value = Array.isArray(data.authors) ? data.authors.join(', ') : (data.authors || '');
             document.getElementById('project-program-select').value = data.program || 'BSCS';
             document.getElementById('project-year-input').value = data.year || '';
             document.getElementById('project-adviser-input').value = data.adviser || '';
             document.getElementById('project-status-select').value = data.status || 'Completed';
             document.getElementById('project-abstract-input').value = data.abstract || '';
             document.getElementById('project-findings-input').value = data.keyFindings || '';
-            
+
+            // Populate dynamic fields
+            const editAuthors = Array.isArray(data.authors) ? data.authors : (data.authors ? data.authors.split(',').map(a => a.trim()) : []);
+            const editTopics = Array.isArray(data.topics) ? data.topics : [];
+            const editKeywords = Array.isArray(data.keywords) ? data.keywords : [];
+            initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
+
             // Customize modal for editing
             document.getElementById('project-modal-title').textContent = 'Edit Capstone Project';
             document.getElementById('submit-project-btn').textContent = 'Apply Edit';
@@ -947,6 +955,109 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // ===== Dynamic Field Helpers =====
+
+    function createDynamicRow(containerId, placeholder, value = '') {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const row = document.createElement('div');
+        row.className = 'dynamic-input-row';
+        row.innerHTML = `
+            <input type="text" class="form-input" placeholder="${placeholder}" value="${value.replace(/"/g, '&quot;')}">
+            <button type="button" class="remove-row-btn" title="Remove" aria-label="Remove entry">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>`;
+        row.querySelector('.remove-row-btn').addEventListener('click', () => {
+            row.remove();
+            triggerAutoSave();
+        });
+        row.querySelector('input').addEventListener('input', triggerAutoSave);
+        container.appendChild(row);
+    }
+
+    function getDynamicValues(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        return Array.from(container.querySelectorAll('input')).map(i => i.value.trim()).filter(v => v.length > 0);
+    }
+
+    function clearDynamicContainer(containerId) {
+        const c = document.getElementById(containerId);
+        if (c) c.innerHTML = '';
+    }
+
+    function initDynamicContainers(data = {}) {
+        clearDynamicContainer('authors-container');
+        clearDynamicContainer('topics-container');
+        clearDynamicContainer('keywords-container');
+        const authors = data.authors || [];
+        const topics = data.topics || [];
+        const keywords = data.keywords || [];
+        if (authors.length === 0) createDynamicRow('authors-container', 'e.g., Reyes, A.');
+        else authors.forEach(a => createDynamicRow('authors-container', 'e.g., Reyes, A.', a));
+        if (topics.length > 0) topics.forEach(t => createDynamicRow('topics-container', 'e.g., Machine Learning', t));
+        if (keywords.length > 0) keywords.forEach(k => createDynamicRow('keywords-container', 'e.g., Python', k));
+    }
+
+    // Auto-save timer
+    let autoSaveTimer = null;
+    function triggerAutoSave() {
+        const toggle = document.getElementById('project-autosave-toggle');
+        if (!toggle || !toggle.checked) return;
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            const projectId = document.getElementById('project-id-input').value;
+            if (!projectId) {
+                // Draft auto-save to localStorage for new projects
+                const draft = {
+                    title: document.getElementById('project-title-input').value,
+                    authors: getDynamicValues('authors-container'),
+                    adviser: document.getElementById('project-adviser-input').value,
+                    year: document.getElementById('project-year-input').value,
+                    program: document.getElementById('project-program-select').value,
+                    status: document.getElementById('project-status-select').value,
+                    abstract: document.getElementById('project-abstract-input').value,
+                    topics: getDynamicValues('topics-container'),
+                    keywords: getDynamicValues('keywords-container'),
+                    keyFindings: document.getElementById('project-findings-input').value
+                };
+                localStorage.setItem('admin_project_draft', JSON.stringify(draft));
+                showToast('Draft auto-saved', '💾');
+            }
+        }, 1500);
+    }
+
+    // Auto-save toggle visual
+    const autoSaveToggle = document.getElementById('project-autosave-toggle');
+    if (autoSaveToggle) {
+        autoSaveToggle.addEventListener('change', () => {
+            const track = autoSaveToggle.nextElementSibling;
+            const thumb = track && track.querySelector('.auto-save-switch-thumb');
+            if (autoSaveToggle.checked) {
+                if (track) track.style.background = 'var(--admin-primary)';
+                if (thumb) thumb.style.transform = 'translateX(22px)';
+            } else {
+                if (track) track.style.background = 'var(--border)';
+                if (thumb) thumb.style.transform = 'translateX(0)';
+            }
+        });
+        // Init visual state
+        const track = autoSaveToggle.nextElementSibling;
+        const thumb = track && track.querySelector('.auto-save-switch-thumb');
+        if (autoSaveToggle.checked) {
+            if (track) track.style.background = 'var(--admin-primary)';
+            if (thumb) thumb.style.transform = 'translateX(22px)';
+        }
+    }
+
+    // ===== Add/Remove dynamic rows via buttons =====
+    const addAuthorBtn = document.getElementById('add-author-btn');
+    if (addAuthorBtn) addAuthorBtn.addEventListener('click', () => createDynamicRow('authors-container', 'e.g., Reyes, A.'));
+    const addTopicBtn = document.getElementById('add-topic-btn');
+    if (addTopicBtn) addTopicBtn.addEventListener('click', () => createDynamicRow('topics-container', 'e.g., Machine Learning'));
+    const addKeywordBtn = document.getElementById('add-keyword-btn');
+    if (addKeywordBtn) addKeywordBtn.addEventListener('click', () => createDynamicRow('keywords-container', 'e.g., Python'));
+
     // ===== Add Project Button =====
     const addProjectBtn = document.getElementById('add-project-btn');
     if (addProjectBtn) {
@@ -954,21 +1065,116 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Reset form fields
             document.getElementById('project-id-input').value = '';
             document.getElementById('project-title-input').value = '';
-            document.getElementById('project-authors-input').value = '';
             document.getElementById('project-program-select').value = 'BSCS';
             document.getElementById('project-year-input').value = new Date().getFullYear();
             document.getElementById('project-adviser-input').value = '';
             document.getElementById('project-status-select').value = 'Completed';
             document.getElementById('project-abstract-input').value = '';
             document.getElementById('project-findings-input').value = '';
-            
+
+            // Check for autosaved draft
+            const draft = localStorage.getItem('admin_project_draft');
+            if (draft) {
+                try {
+                    const d = JSON.parse(draft);
+                    document.getElementById('project-title-input').value = d.title || '';
+                    document.getElementById('project-adviser-input').value = d.adviser || '';
+                    document.getElementById('project-year-input').value = d.year || new Date().getFullYear();
+                    document.getElementById('project-program-select').value = d.program || 'BSCS';
+                    document.getElementById('project-status-select').value = d.status || 'Completed';
+                    document.getElementById('project-abstract-input').value = d.abstract || '';
+                    document.getElementById('project-findings-input').value = d.keyFindings || '';
+                    initDynamicContainers({ authors: d.authors || [], topics: d.topics || [], keywords: d.keywords || [] });
+                    showToast('Draft restored ✨', 'ℹ️');
+                } catch { initDynamicContainers(); }
+            } else {
+                initDynamicContainers();
+            }
+
             // Customize modal for creating
-            document.getElementById('project-modal-title').textContent = 'Add Capstone Project';
-            document.getElementById('submit-project-btn').textContent = 'Add Project';
-            
+            document.getElementById('project-modal-title').textContent = 'Add New Project';
+            document.getElementById('submit-project-btn').textContent = 'Save Project';
+
             // Show modal
             document.getElementById('project-modal').classList.add('active');
         });
+    }
+
+    // ===== Year Selector Functionality =====
+    const yearInput = document.getElementById('project-year-input');
+    const yearBtnUp = document.querySelector('.year-btn-up');
+    const yearBtnDown = document.querySelector('.year-btn-down');
+    const MIN_YEAR = 2023;
+    const MAX_YEAR = 2100;
+
+    // Set default year to current year if empty
+    if (yearInput && !yearInput.value) {
+        yearInput.value = new Date().getFullYear();
+    }
+
+    // Year up button
+    if (yearBtnUp) {
+        yearBtnUp.addEventListener('click', (e) => {
+            e.preventDefault();
+            let currentYear = parseInt(yearInput.value) || new Date().getFullYear();
+            if (currentYear < MAX_YEAR) {
+                yearInput.value = currentYear + 1;
+                // Trigger ripple effect
+                createRipple(e, yearBtnUp);
+            }
+        });
+    }
+
+    // Year down button
+    if (yearBtnDown) {
+        yearBtnDown.addEventListener('click', (e) => {
+            e.preventDefault();
+            let currentYear = parseInt(yearInput.value) || new Date().getFullYear();
+            if (currentYear > MIN_YEAR) {
+                yearInput.value = currentYear - 1;
+                // Trigger ripple effect
+                createRipple(e, yearBtnDown);
+            }
+        });
+    }
+
+    // Optional: Keyboard support for year input
+    if (yearInput) {
+        yearInput.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                let currentYear = parseInt(yearInput.value) || new Date().getFullYear();
+                if (currentYear < MAX_YEAR) {
+                    yearInput.value = currentYear + 1;
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                let currentYear = parseInt(yearInput.value) || new Date().getFullYear();
+                if (currentYear > MIN_YEAR) {
+                    yearInput.value = currentYear - 1;
+                }
+            }
+        });
+    }
+
+    // Ripple effect helper function
+    function createRipple(event, button) {
+        const ripple = document.createElement('span');
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = event.clientX - rect.left - size / 2;
+        const y = event.clientY - rect.top - size / 2;
+        
+        ripple.style.width = ripple.style.height = `${size}px`;
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        ripple.classList.add('ripple-effect');
+        
+        button.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
     }
 
     // ===== Project Modal Handlers =====
@@ -982,6 +1188,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (projectModal) {
             projectModal.classList.remove('active');
             if (projectForm) projectForm.reset();
+            clearDynamicContainer('authors-container');
+            clearDynamicContainer('topics-container');
+            clearDynamicContainer('keywords-container');
+            clearTimeout(autoSaveTimer);
         }
     };
 
@@ -992,17 +1202,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (projectForm) {
         projectForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const projectId = document.getElementById('project-id-input').value;
             const title = document.getElementById('project-title-input').value.trim();
-            const authorsRaw = document.getElementById('project-authors-input').value;
-            const authors = authorsRaw.split(',').map(a => a.trim()).filter(a => a.length > 0);
+            const authors = getDynamicValues('authors-container');
             const program = document.getElementById('project-program-select').value;
             const year = parseInt(document.getElementById('project-year-input').value.trim(), 10);
             const adviser = document.getElementById('project-adviser-input').value.trim();
             const status = document.getElementById('project-status-select').value;
             const abstract = document.getElementById('project-abstract-input').value.trim();
+            const topics = getDynamicValues('topics-container');
+            const keywords = getDynamicValues('keywords-container');
             const keyFindings = document.getElementById('project-findings-input').value.trim();
+
+            // Validation
+            if (authors.length === 0) {
+                showToast('Please add at least one author', '⚠️');
+                return;
+            }
 
             showToast(projectId ? 'Updating project...' : 'Creating project...', 'ℹ️');
 
@@ -1030,6 +1247,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if ((oldData.status || '') !== status) changedFields.push('status');
                     if ((oldData.abstract || '') !== abstract) changedFields.push('abstract');
                     if ((oldData.keyFindings || '') !== keyFindings) changedFields.push('keyFindings');
+                    if (JSON.stringify(oldData.topics || []) !== JSON.stringify(topics)) changedFields.push('topics');
+                    if (JSON.stringify(oldData.keywords || []) !== JSON.stringify(keywords)) changedFields.push('keywords');
 
                     // Update Firestore
                     const updatedData = {
@@ -1040,6 +1259,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         adviser,
                         status,
                         abstract,
+                        topics,
+                        keywords,
                         keyFindings,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
@@ -1092,6 +1313,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         adviser,
                         status,
                         abstract,
+                        topics,
+                        keywords,
                         keyFindings,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1111,6 +1334,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     showToast('Project created successfully', '✅');
+                    // Clear auto-saved draft
+                    localStorage.removeItem('admin_project_draft');
                 }
 
                 closeProjectModal();

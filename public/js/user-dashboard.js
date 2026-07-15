@@ -6,9 +6,47 @@
 document.addEventListener('DOMContentLoaded', () => {
     const savedProjectsList = document.getElementById('saved-projects-list');
     const clearSavedBtn = document.getElementById('clear-saved-btn');
+    const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
 
     // Only run if the saved projects section is present (i.e., on student_page.html)
     if (!savedProjectsList) return;
+
+    // Get saved view preference or default to grid
+    let currentView = localStorage.getItem('dashboardView') || 'grid';
+    savedProjectsList.setAttribute('data-current-view', currentView);
+    
+    // Set active button based on saved view
+    viewToggleBtns.forEach(btn => {
+        if (btn.dataset.view === currentView) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // View toggle functionality
+    viewToggleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const view = btn.dataset.view;
+            currentView = view;
+            
+            // Update active button
+            viewToggleBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update list view
+            savedProjectsList.setAttribute('data-current-view', view);
+            
+            // Save preference
+            localStorage.setItem('dashboardView', view);
+            
+            // Add transition animation
+            savedProjectsList.style.opacity = '0.5';
+            setTimeout(() => {
+                savedProjectsList.style.opacity = '1';
+            }, 150);
+        });
+    });
 
     // Initial render
     renderSavedProjects();
@@ -75,8 +113,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // View button
             li.querySelector('.saved-card-view-btn').addEventListener('click', () => {
+                // Add ripple effect
+                const btn = li.querySelector('.saved-card-view-btn');
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btn.style.transform = '';
+                }, 100);
+                
                 sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project.rawData));
-                window.location.href = 'view_project_details.html';
+                // Set flag to show details view
+                sessionStorage.setItem('showProjectDetails', 'true');
+                // Navigate to index.html which will handle the view
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 200);
             });
 
             // Remove button

@@ -256,7 +256,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                         `;
                         item.style.cursor = 'pointer';
                         item.addEventListener('click', () => {
-                            window.location.href = `view_project_details.html?id=${doc.id}`;
+                            // Store project data for viewing
+                            sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify({
+                                id: doc.id,
+                                title: data.title,
+                                abstract: data.abstract,
+                                authors: data.authors,
+                                adviser: data.adviser,
+                                year: data.year,
+                                program: data.program,
+                                status: data.status,
+                                keyFindings: data.keyFindings,
+                                createdAt: data.createdAt,
+                                updatedAt: data.updatedAt
+                            }));
+                            // Set flag to show details view
+                            sessionStorage.setItem('showProjectDetails', 'true');
+                            // Navigate to index.html which will handle view switching
+                            window.location.href = 'index.html';
                         });
                         recentProjectsList.appendChild(item);
                     });
@@ -497,7 +514,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('View project:', projectId);
         showToast('Opening project details...', 'ℹ️');
         setTimeout(() => {
-            window.location.href = `view_project_details.html?id=${projectId}`;
+            // Set flag to show details view
+            sessionStorage.setItem('showProjectDetails', 'true');
+            // Navigate to index.html which will handle the view
+            window.location.href = 'index.html';
         }, 500);
     };
 

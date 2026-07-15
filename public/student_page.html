@@ -292,6 +292,46 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .saved-projects-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .view-toggle-group {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .view-toggle-btn {
+            background: transparent;
+            border: none;
+            padding: 0.4rem 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .view-toggle-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .view-toggle-btn.active {
+            background: var(--primary-color);
+            color: #fff;
         }
 
         .saved-projects-title {
@@ -325,6 +365,84 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        /* List View */
+        .saved-projects-grid[data-current-view="list"] {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .saved-projects-grid[data-current-view="list"] .saved-project-card {
+            flex-direction: row;
+            align-items: center;
+            padding: 1rem 1.25rem;
+        }
+
+        .saved-projects-grid[data-current-view="list"] .saved-card-body {
+            flex: 1;
+        }
+
+        .saved-projects-grid[data-current-view="list"] .saved-card-title {
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+        }
+
+        .saved-projects-grid[data-current-view="list"] .saved-card-actions {
+            flex-direction: row;
+            min-width: 200px;
+        }
+
+        /* Compact View */
+        .saved-projects-grid[data-current-view="compact"] {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-project-card {
+            flex-direction: row;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            gap: 0.75rem;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-body {
+            flex: 1;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-meta {
+            font-size: 0.7rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-title {
+            font-size: 0.88rem;
+            margin-bottom: 0.2rem;
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-authors {
+            font-size: 0.75rem;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-actions {
+            flex-direction: row;
+            min-width: 180px;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-view-btn {
+            padding: 0.35rem 0.7rem;
+            font-size: 0.75rem;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-card-remove-btn {
+            padding: 0.35rem 0.4rem;
+        }
+
+        .saved-projects-grid[data-current-view="compact"] .saved-project-card:hover {
+            transform: translateY(-1px);
         }
 
         .saved-project-card {
@@ -383,6 +501,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.5rem;
+            transition: all 0.3s ease;
         }
 
         .saved-card-view-btn {
@@ -394,13 +513,35 @@
             font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s, transform 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .saved-card-view-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .saved-card-view-btn:hover::before {
+            left: 100%;
         }
 
         .saved-card-view-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.4);
+        }
+        
+        .saved-card-view-btn:active {
+            transform: translateY(0) scale(0.98);
+            transition: all 0.1s ease;
         }
 
         .saved-card-remove-btn {
@@ -754,9 +895,38 @@
         <section class="saved-projects-section">
             <div class="saved-projects-header">
                 <h2 class="saved-projects-title">📌 Saved Projects</h2>
-                <button id="clear-saved-btn" class="clear-saved-btn">Clear All</button>
+                <div class="saved-projects-controls">
+                    <div class="view-toggle-group">
+                        <button class="view-toggle-btn active" data-view="grid" title="Grid View">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="3" width="7" height="7"></rect>
+                                <rect x="14" y="14" width="7" height="7"></rect>
+                                <rect x="3" y="14" width="7" height="7"></rect>
+                            </svg>
+                        </button>
+                        <button class="view-toggle-btn" data-view="list" title="List View">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg>
+                        </button>
+                        <button class="view-toggle-btn" data-view="compact" title="Compact View">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="4" y1="6" x2="20" y2="6"></line>
+                                <line x1="4" y1="12" x2="20" y2="12"></line>
+                                <line x1="4" y1="18" x2="20" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <button id="clear-saved-btn" class="clear-saved-btn">Clear All</button>
+                </div>
             </div>
-            <ul id="saved-projects-list" class="saved-projects-grid">
+            <ul id="saved-projects-list" class="saved-projects-grid" data-current-view="grid">
                 <!-- Populated dynamically by user-dashboard.js -->
                 <li class="saved-empty-state">No saved projects yet. Explore and save some!</li>
             </ul>
@@ -775,71 +945,7 @@
     <script src="js/theme-toggle.js"></script>
     <script src="js/auth-modal.js"></script>
     <script src="js/user-dashboard.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Dynamic Greeting
-            const hour = new Date().getHours();
-            let greetingText = 'Good evening';
-            if (hour < 12) greetingText = 'Good morning';
-            else if (hour < 18) greetingText = 'Good afternoon';
-            
-            const userName = sessionStorage.getItem('userName') || 'Student';
-            document.getElementById('greeting').textContent = `${greetingText}, ${userName.split(' ')[0]}.`;
-
-            // Cool Interaction 1: Focus Mode
-            const focusBtn = document.getElementById('focus-toggle');
-            focusBtn.addEventListener('click', () => {
-                document.body.classList.toggle('focus-mode');
-                if (document.body.classList.contains('focus-mode')) {
-                    focusBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Exit Focus`;
-                } else {
-                    focusBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Focus Mode`;
-                }
-            });
-
-            // Cool Interaction 2: Smooth mouse follow effect for cards (parallax)
-            const cards = document.querySelectorAll('.action-card');
-            cards.forEach(card => {
-                card.addEventListener('mousemove', (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    
-                    const rotateX = ((y - centerY) / centerY) * -5;
-                    const rotateY = ((x - centerX) / centerX) * 5;
-                    
-                    // Only apply if not in focus mode, or if it's the target
-                    if(!document.body.classList.contains('focus-mode') || card.classList.contains('focus-target')) {
-                        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px) scale(1.02)`;
-                    }
-                });
-                
-                card.addEventListener('mouseleave', () => {
-                    if(!document.body.classList.contains('focus-mode') || card.classList.contains('focus-target')) {
-                        card.style.transform = `perspective(1000px) rotateX(0) rotateY(0) translateY(0) scale(1)`;
-                    }
-                });
-            });
-
-            // Cool Interaction 3: Custom cursor dot that expands on hoverable elements
-            const cursorDot = document.getElementById('cursor-dot');
-            document.addEventListener('mousemove', (e) => {
-                cursorDot.style.left = e.clientX + 'px';
-                cursorDot.style.top = e.clientY + 'px';
-            });
-            
-            const hoverables = document.querySelectorAll('a, button, .action-card');
-            hoverables.forEach(el => {
-                el.addEventListener('mouseenter', () => cursorDot.classList.add('active'));
-                el.addEventListener('mouseleave', () => cursorDot.classList.remove('active'));
-            });
-
-        });
-    </script>
+    <script src="js/student_page.js"></script>
     <script src="js/smooth-scroll.js"></script>
 </body>
 </html>

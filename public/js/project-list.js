@@ -90,7 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function openProjectDetails(project) {
         try {
             sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
-            window.location.href = 'view_project_details.html';
+            // Check if ViewManager exists (we're on index.html)
+            if (window.ViewManager && typeof window.ViewManager.switchView === 'function') {
+                // We're already on index.html, just switch view
+                window.ViewManager.switchView('project-detail');
+            } else {
+                // We're on a different page, navigate to index
+                sessionStorage.setItem('showProjectDetails', 'true');
+                window.location.href = 'index.html';
+            }
         } catch (error) {
             console.error('Unable to open project details:', error);
         }

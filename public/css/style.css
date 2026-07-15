@@ -53,6 +53,7 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     transition: background-color 0.3s ease, color 0.3s ease;
+    padding-top: 72px; /* Account for fixed header */
 }
 
 .container {
@@ -61,33 +62,37 @@ body {
     padding: 0 1.5rem;
 }
 
+/* Header Wrapper */
+.header-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Header Styles */
 .header {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    /* border-bottom: 1px solid var(--border); */
     box-shadow: var(--shadow-sm);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    transition: all 0.3s ease;
+    position: relative;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 [data-theme="dark"] .header {
     background: rgba(15, 23, 42, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    /* border-bottom: 1px solid var(--border); */
 }
 
 .header--scrolled {
     background: rgba(255, 255, 255, 0.75);
-    border-radius: 0 0 24px 24px;
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: none;
 }
 
 [data-theme="dark"] .header--scrolled {
@@ -1566,7 +1571,4 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
     border-color: #ef4444;
     color: #fff;
 }
-
-
-
 
