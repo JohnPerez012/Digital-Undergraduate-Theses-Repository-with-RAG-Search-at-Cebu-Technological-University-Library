@@ -3,13 +3,18 @@
  * Handles rendering of saved projects on the student dashboard (student_page.html).
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const savedProjectsList = document.getElementById('saved-projects-list');
     const clearSavedBtn = document.getElementById('clear-saved-btn');
     const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
 
     // Only run if the saved projects section is present (i.e., on student_page.html)
     if (!savedProjectsList) return;
+
+    // Saved projects state
+    let savedProjectIds = [];
+    let allProjects = [];
+    let currentUserId = null;
 
     // Get saved view preference or default to grid
     let currentView = localStorage.getItem('dashboardView') || 'grid';
@@ -48,21 +53,114 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Initial render
-    renderSavedProjects();
+    // Function to load all projects (for full data)
+    async function loadAllProjects() {
+        try {
+            // First check cache
+            let cachedProjects = [];
+            try {
+                cachedProjects = JSON.parse(localStorage.getItem('projectsData')) || [];
+            } catch (e) {}
 
-    // Clear All button
-    if (clearSavedBtn) {
-        clearSavedBtn.addEventListener('click', () => {
-            localStorage.setItem('savedProjects', JSON.stringify([]));
-            renderSavedProjects();
-        });
+            if (cachedProjects.length > 0) {
+                allProjects = cachedProjects;
+            } else {
+                // Load from Firestore if cache not available
+                if (typeof db !== 'undefined') {
+                    const querySnapshot = await db.collection('projects').get();
+                    allProjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+            }
+        } catch (error) {
+            console.error('Error loading all projects:', error);
+        }
     }
 
-    // Listen to changes from other parts of the app (e.g., unsaving from a project detail page)
-    window.addEventListener('projectSavedStateChanged', () => {
-        renderSavedProjects();
-    });
+    // Function to load saved projects from Firestore
+    async function loadSavedProjectsFromFirestore(userId) {
+        try {
+            const docRef = db.collection('usersSavedProjects').doc(userId);
+            const doc = await docRef.get();
+            
+            if (doc.exists) {
+                savedProjectIds = doc.data().UIDproject || [];
+            } else {
+                savedProjectIds = [];
+            }
+            
+            // Sync with localStorage
+            syncSavedProjectsWithLocalStorage();
+            
+            // Render
+            renderSavedProjects();
+        } catch (error) {
+            console.error('Error loading saved projects from Firestore:', error);
+        }
+    }
+
+    // Function to sync savedProjectIds with localStorage
+    function syncSavedProjectsWithLocalStorage() {
+        let savedProjectsFull = [];
+        
+        savedProjectIds.forEach(id => {
+            const project = allProjects.find(p => p.id === id);
+            if (project) {
+                savedProjectsFull.push({
+                    id: project.id,
+                    title: project.title,
+                    year: project.year,
+                    program: project.program,
+                    rawData: project
+                });
+            }
+        });
+        
+        localStorage.setItem('savedProjects', JSON.stringify(savedProjectsFull));
+    }
+
+    // Function to remove project from Firestore
+    async function removeProjectFromFirestore(userId, projectId) {
+        try {
+            const docRef = db.collection('usersSavedProjects').doc(userId);
+            await docRef.set({
+                UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
+            }, { merge: true });
+            
+            // Update local state
+            savedProjectIds = savedProjectIds.filter(id => id !== projectId);
+            
+            syncSavedProjectsWithLocalStorage();
+            renderSavedProjects();
+            window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
+        } catch (error) {
+            console.error('Error removing project from Firestore:', error);
+        }
+    }
+
+    // Function to clear all saved projects
+    async function clearAllSavedProjects(userId) {
+        try {
+            const docRef = db.collection('usersSavedProjects').doc(userId);
+            await docRef.set({
+                UIDproject: []
+            }, { merge: true });
+            
+            savedProjectIds = [];
+            syncSavedProjectsWithLocalStorage();
+            renderSavedProjects();
+            window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
+        } catch (error) {
+            console.error('Error clearing saved projects:', error);
+        }
+    }
+
+    // Update saved projects count badges
+    function updateSavedCount(count) {
+        const savedCountBadge = document.getElementById('saved-count');
+        const savedProjectsStats = document.getElementById('saved-projects-count');
+        if (savedCountBadge) savedCountBadge.textContent = count;
+        if (savedProjectsStats) savedProjectsStats.textContent = count;
+    }
 
     // Render Saved Projects as cards on the dashboard
     function renderSavedProjects() {
@@ -75,20 +173,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         savedProjectsList.innerHTML = '';
 
+        // Update the count badges
+        updateSavedCount(savedProjects.length);
+
         if (savedProjects.length === 0) {
             savedProjectsList.innerHTML = `
-                <li class="saved-empty-state">
+                <div class="saved-empty-state">
                     <span class="saved-empty-icon">🔖</span>
                     <p>No saved projects yet.</p>
                     <a href="index.html" class="saved-empty-link">Explore Projects →</a>
-                </li>
+                </div>
             `;
             return;
         }
 
         savedProjects.forEach(project => {
-            const li = document.createElement('li');
-            li.className = 'saved-project-card';
+            const card = document.createElement('div');
+            card.className = 'saved-project-card';
 
             const authors = Array.isArray(project.rawData?.authors)
                 ? project.rawData.authors.join(', ')
@@ -97,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const year = project.rawData?.year || '';
             const program = project.rawData?.program || '';
 
-            li.innerHTML = `
+            card.innerHTML = `
                 <div class="saved-card-body">
                     <p class="saved-card-meta">${[program, year].filter(Boolean).join(' · ')}</p>
                     <h3 class="saved-card-title">${escapeHtml(project.title)}</h3>
@@ -112,9 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // View button
-            li.querySelector('.saved-card-view-btn').addEventListener('click', () => {
+            card.querySelector('.saved-card-view-btn').addEventListener('click', () => {
                 // Add ripple effect
-                const btn = li.querySelector('.saved-card-view-btn');
+                const btn = card.querySelector('.saved-card-view-btn');
                 btn.style.transform = 'scale(0.95)';
                 setTimeout(() => {
                     btn.style.transform = '';
@@ -130,29 +231,54 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // Remove button
-            li.querySelector('.saved-card-remove-btn').addEventListener('click', () => {
-                removeSavedProject(project.id);
+            card.querySelector('.saved-card-remove-btn').addEventListener('click', async () => {
+                if (currentUserId) {
+                    await removeProjectFromFirestore(currentUserId, project.id);
+                }
             });
 
-            savedProjectsList.appendChild(li);
+            savedProjectsList.appendChild(card);
         });
-    }
-
-    function removeSavedProject(id) {
-        let savedProjects = [];
-        try {
-            savedProjects = JSON.parse(localStorage.getItem('savedProjects')) || [];
-        } catch (e) {}
-
-        savedProjects = savedProjects.filter(p => p.id !== id);
-        localStorage.setItem('savedProjects', JSON.stringify(savedProjects));
-        renderSavedProjects();
     }
 
     function escapeHtml(text) {
         return String(text || '').replace(/[&<>"']/g, match => {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
             return map[match] || match;
+        });
+    }
+
+    // Load initial data
+    await loadAllProjects();
+
+    // Clear All button
+    if (clearSavedBtn) {
+        clearSavedBtn.addEventListener('click', async () => {
+            if (currentUserId) {
+                await clearAllSavedProjects(currentUserId);
+            }
+        });
+    }
+
+    // Listen to changes from other parts of the app
+    window.addEventListener('projectSavedStateChanged', () => {
+        if (currentUserId) {
+            loadSavedProjectsFromFirestore(currentUserId);
+        }
+    });
+
+    // Auth state listener
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                await loadSavedProjectsFromFirestore(user.uid);
+            } else {
+                currentUserId = null;
+                savedProjectIds = [];
+                localStorage.removeItem('savedProjects');
+                renderSavedProjects();
+            }
         });
     }
 });

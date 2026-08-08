@@ -17,5 +17,7 @@ npm-debug.log*
 Thumbs.db
 
 #folder
-recap-backend
+# recap-backend
 .kiro
+
+.localRunner.bat

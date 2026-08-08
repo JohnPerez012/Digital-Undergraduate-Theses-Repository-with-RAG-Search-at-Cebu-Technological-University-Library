@@ -19,11 +19,12 @@ const db = firebase.firestore();
 // Set Firestore cache size limit to prevent IndexedDB bloat
 // 1 MB = 1048576 bytes (enough for metadata, small queries)
 // We use localStorage for project caching, so Firestore cache can be minimal
-db.settings({
-  cacheSizeBytes: 1048576  // 1 MB limit
-});
+// db.settings({
+//   cacheSizeBytes: 1048576,  // 1 MB limit
+//   merge: true
+// });
 
-console.log('✓ Firestore cache limited to 1 MB');
+// console.log('✓ Firestore cache limited to 1 MB');
 
 // Initialize Realtime Database conditionally if SDK is loaded
 let rtdb;
