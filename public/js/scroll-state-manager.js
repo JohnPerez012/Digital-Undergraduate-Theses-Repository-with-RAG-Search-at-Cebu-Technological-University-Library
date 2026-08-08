@@ -33,7 +33,7 @@ const ScrollStateManager = (function() {
         const scrollY = window.scrollY || window.pageYOffset;
         scrollStates[viewId] = scrollY;
         
-        console.log(`[ScrollStateManager] Saved scroll for "${viewId}": ${scrollY}px`);
+        // console.log(`[ScrollStateManager] Saved scroll for "${viewId}": ${scrollY}px`);
     }
     
     /**
@@ -47,7 +47,7 @@ const ScrollStateManager = (function() {
         const savedScroll = scrollStates[viewId] || 0;
         const currentScroll = window.scrollY || window.pageYOffset;
         
-        console.log(`[ScrollStateManager] Restoring scroll for "${viewId}": ${savedScroll}px (from ${currentScroll}px)`);
+        // console.log(`[ScrollStateManager] Restoring scroll for "${viewId}": ${savedScroll}px (from ${currentScroll}px)`);
         
         // Set flag to prevent saving during restoration
         isRestoring = true;
@@ -85,7 +85,7 @@ const ScrollStateManager = (function() {
             } else {
                 // Animation complete
                 isRestoring = false;
-                console.log(`[ScrollStateManager] Scroll animation complete`);
+                // console.log(`[ScrollStateManager] Scroll animation complete`);
             }
         }
         
@@ -99,7 +99,7 @@ const ScrollStateManager = (function() {
      * @param {string} toViewId - The view we're entering
      */
     function handleViewSwitch(fromViewId, toViewId) {
-        console.log(`[ScrollStateManager] View switch: "${fromViewId}" → "${toViewId}"`);
+        // console.log(`[ScrollStateManager] View switch: "${fromViewId}" → "${toViewId}"`);
         
         // Save scroll position of the view we're leaving
         if (fromViewId) {
@@ -142,13 +142,13 @@ const ScrollStateManager = (function() {
      * Initialize scroll state manager
      */
     function init() {
-        console.log('[ScrollStateManager] Initializing...');
+        // console.log('[ScrollStateManager] Initializing...');
         
         // Detect initial active view
         currentActiveView = getCurrentActiveView();
         
         if (currentActiveView) {
-            console.log(`[ScrollStateManager] Initial view: "${currentActiveView}"`);
+            // console.`log(`[ScrollStateManager] Initial view: "${currentActiveView}"`);
         }
         
         // Auto-save scroll position periodically for current view
@@ -173,7 +173,7 @@ const ScrollStateManager = (function() {
             }
         });
         
-        console.log('[ScrollStateManager] Initialized successfully');
+        // console.log('[ScrollStateManager] Initialized successfully');
     }
     
     /**
@@ -190,7 +190,7 @@ const ScrollStateManager = (function() {
         Object.keys(scrollStates).forEach(key => {
             scrollStates[key] = 0;
         });
-        console.log('[ScrollStateManager] All scroll states reset');
+        // console.log('[ScrollStateManager] All scroll states reset');
     }
     
     /**
@@ -200,7 +200,7 @@ const ScrollStateManager = (function() {
     function resetScrollState(viewId) {
         if (scrollStates.hasOwnProperty(viewId)) {
             scrollStates[viewId] = 0;
-            console.log(`[ScrollStateManager] Reset scroll state for "${viewId}"`);
+            // console.log(`[ScrollStateManager] Reset scroll state for "${viewId}"`);
         }
     }
     

@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectsContainer = document.getElementById('projects-container');
     const paginationContainer = document.getElementById('pagination-container');
     
+    // Saved projects state
+    let savedProjectIds = []; // Store only project IDs from Firestore
+    let savedProjectsFull = []; // Store full project data for localStorage
+    
     // Sort Dropdown UI Logic
     const sortToggleBtn = document.getElementById('sort-toggle-btn');
     const sortDropdownMenu = document.getElementById('sort-dropdown-menu');
@@ -70,6 +74,95 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const PROJECTS_PER_PAGE = 9;
     let isRAGResults = false; // Track if current results are from RAG
+    
+    // Function to load saved projects from Firestore
+    async function loadSavedProjectsFromFirestore(userId) {
+        try {
+            const docRef = db.collection('usersSavedProjects').doc(userId);
+            const doc = await docRef.get();
+            
+            if (doc.exists) {
+                savedProjectIds = doc.data().UIDproject || [];
+            } else {
+                savedProjectIds = [];
+            }
+            
+            // Sync savedProjectIds with localStorage (full project data)
+            syncSavedProjectsWithLocalStorage();
+            
+            // Re-render current page to update button states
+            renderPage(currentPage);
+        } catch (error) {
+            console.error('Error loading saved projects from Firestore:', error);
+        }
+    }
+    
+    // Function to sync savedProjectIds with localStorage
+    function syncSavedProjectsWithLocalStorage() {
+        // Load existing saved projects from localStorage
+        let localStorageSaved = [];
+        try {
+            localStorageSaved = JSON.parse(localStorage.getItem('savedProjects')) || [];
+        } catch (e) {}
+        
+        // Filter localStorageSaved to only include projects in savedProjectIds
+        savedProjectsFull = localStorageSaved.filter(p => savedProjectIds.includes(p.id));
+        
+        // Add any missing projects from allProjects to savedProjectsFull
+        savedProjectIds.forEach(id => {
+            if (!savedProjectsFull.some(p => p.id === id)) {
+                const project = allProjects.find(p => p.id === id);
+                if (project) {
+                    savedProjectsFull.push({
+                        id: project.id,
+                        title: project.title,
+                        year: project.year,
+                        program: project.program,
+                        rawData: project
+                    });
+                }
+            }
+        });
+        
+        // Save back to localStorage
+        localStorage.setItem('savedProjects', JSON.stringify(savedProjectsFull));
+    }
+    
+    // Function to save project to Firestore
+    async function saveProjectToFirestore(userId, projectId) {
+        try {
+            const docRef = db.collection('usersSavedProjects').doc(userId);
+            await docRef.set({
+                UIDproject: firebase.firestore.FieldValue.arrayUnion(projectId)
+            }, { merge: true });
+            
+            // Update local state
+            if (!savedProjectIds.includes(projectId)) {
+                savedProjectIds.push(projectId);
+            }
+            
+            syncSavedProjectsWithLocalStorage();
+        } catch (error) {
+            console.error('Error saving project to Firestore:', error);
+        }
+    }
+    
+    // Function to remove project from Firestore
+    async function removeProjectFromFirestore(userId, projectId) {
+        try {
+            const docRef = db.collection('usersSavedProjects').doc(userId);
+            await docRef.set({
+                UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
+            }, { merge: true });
+            
+            // Update local state
+            savedProjectIds = savedProjectIds.filter(id => id !== projectId);
+            
+            syncSavedProjectsWithLocalStorage();
+        } catch (error) {
+            console.error('Error removing project from Firestore:', error);
+        }
+    }
 
     // Function to update projects from search
     window.updateProjectsForSearch = function(projects, isRAG = false) {
@@ -379,12 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const endIndex = startIndex + PROJECTS_PER_PAGE;
         const projectsToShow = allProjects.slice(startIndex, endIndex);
 
-        // Get saved projects to set initial state
-        let savedProjects = [];
-        try {
-            savedProjects = JSON.parse(localStorage.getItem('savedProjects')) || [];
-        } catch(e) {}
-
         projectsToShow.forEach(data => {
             const title = data.title || 'Untitled Project';
             const year = data.year || 'N/A';
@@ -400,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const program = data.program || 'Unknown Program';
             const abstract = data.abstract || 'The abstract is not available.';
             
-            const isSaved = savedProjects.some(p => p.id === projectId);
+            const isSaved = savedProjectIds.includes(projectId);
             const saveBtnClass = isSaved ? 'btn-save saved' : 'btn-save';
             const saveBtnText = isSaved ? 'Saved' : 'Save';
 
@@ -458,32 +545,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const saveButton = card.querySelector('.btn-save');
             if (saveButton) {
-                saveButton.addEventListener('click', (e) => {
+                saveButton.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const isCurrentlySaved = saveButton.classList.contains('saved');
-                    let currentSavedProjects = JSON.parse(localStorage.getItem('savedProjects')) || [];
+                    
+                    // Get current user
+                    const user = firebase.auth().currentUser;
+                    if (!user) {
+                        // If user not logged in, maybe show login prompt?
+                        console.warn('User not logged in, cannot save project');
+                        return;
+                    }
                     
                     if (isCurrentlySaved) {
                         // Unsave
-                        currentSavedProjects = currentSavedProjects.filter(p => p.id !== projectId);
+                        await removeProjectFromFirestore(user.uid, projectId);
                         saveButton.classList.remove('saved');
                         saveButton.querySelector('.btn-text').textContent = 'Save';
                     } else {
                         // Save
-                        if (!currentSavedProjects.some(p => p.id === projectId)) {
-                            currentSavedProjects.push({
-                                id: projectId,
-                                title: title,
-                                year: year,
-                                program: program,
-                                rawData: data // Store original data just in case
-                            });
-                        }
+                        await saveProjectToFirestore(user.uid, projectId);
                         saveButton.classList.add('saved');
                         saveButton.querySelector('.btn-text').textContent = 'Saved';
                     }
-                    
-                    localStorage.setItem('savedProjects', JSON.stringify(currentSavedProjects));
                     
                     // Dispatch custom event to notify dashboard dropdown
                     window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
@@ -557,8 +641,65 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error fetching projects count:", error);
         }
     }
+    
+    // Fetch and cache users data for admin dashboard
+    async function fetchAndCacheUsers() {
+        try {
+            // Check if users cache exists and is recent (within 5 minutes)
+            const cachedUsersMetadata = localStorage.getItem('usersMetadata');
+            if (cachedUsersMetadata) {
+                const metadata = JSON.parse(cachedUsersMetadata);
+                const cacheAge = Date.now() - new Date(metadata.lastCached).getTime();
+                
+                // If cache is less than 5 minutes old, skip fetching
+                if (cacheAge < 5 * 60 * 1000) {
+                    console.log('✓ Users cache is fresh, skipping fetch');
+                    return;
+                }
+            }
+            
+            console.log('📡 Fetching users data for admin dashboard cache...');
+            const usersSnapshot = await db.collection('users').get();
+            const users = usersSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            
+            // Save to cache
+            const metadata = {
+                userCount: users.length,
+                lastCached: new Date().toISOString()
+            };
+            
+            localStorage.setItem('usersData', JSON.stringify(users));
+            localStorage.setItem('usersMetadata', JSON.stringify(metadata));
+            
+            console.log(`✓ Cached ${users.length} users for admin dashboard`);
+            
+        } catch (error) {
+            console.error('Error fetching users for cache:', error);
+            // Don't throw error - this is just for caching, not critical
+        }
+    }
 
     // Initialize
     fetchProjectsCount();
     fetchProjects();
+    // fetchAndCacheUsers(); error insufficient permissions for non-login users, so we only fetch when a user is signed in and has access to the users collection.
+
+    // Fetch and cache users only when a user is signed in AND is an admin (we'll check later, but for now skip it to avoid errors)
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                // Don't fetch users cache here to avoid permission errors - we'll fetch it only on admin pages
+                // Load saved projects from Firestore
+                loadSavedProjectsFromFirestore(user.uid);
+            } else {
+                // User logged out, clear saved projects
+                savedProjectIds = [];
+                savedProjectsFull = [];
+                localStorage.removeItem('savedProjects');
+                renderPage(currentPage);
+            }
+        });
+    } else {
+        console.warn('Firebase Auth is not available, skipping users cache fetch');
+    }
 });

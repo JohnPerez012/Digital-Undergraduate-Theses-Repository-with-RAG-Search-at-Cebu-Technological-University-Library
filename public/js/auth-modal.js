@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
                             </svg>
                         `;
-                        alert('No account found. Please register first.');
+                        showNoAccountModal();
                         return;
                     }
                     
@@ -403,7 +403,9 @@ document.addEventListener('DOMContentLoaded', function() {
             updateHeader(user);
             
             if (user && sessionStorage.getItem('autoLoggedIn') === 'true') {
-                userName.textContent = user.displayName || "User";
+                if (userName) {
+                    userName.textContent = user.displayName || "User";
+                }
                 const justRegistered = sessionStorage.getItem('justRegistered') === 'true';
                 if (justRegistered) {
                     const userDoc = await db.collection('users').doc(user.uid).get();
@@ -474,6 +476,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     window.location.href = redirectUrl;
                 }
+            }, 400);
+        });
+    }
+
+    // No Account Found Modal Function
+    function showNoAccountModal() {
+        const overlay = document.createElement('div');
+        overlay.className = 'welcome-modal-overlay';
+        
+        overlay.innerHTML = `
+            <div class="welcome-modal-content">
+                <div class="welcome-icon-wrapper">
+                    <span class="wave-emoji">🔍</span>
+                </div>
+                <h2 class="welcome-modal-title">No Account Found</h2>
+                <p class="welcome-modal-text">The Google account you used is not registered in our system. Please register first to access RE-CAPS.</p>
+                <div class="welcome-modal-buttons">
+                    <button class="welcome-modal-btn-secondary" id="no-account-back-btn">Back to Login</button>
+                    <button class="welcome-modal-btn" id="no-account-register-btn">Register Now</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        setTimeout(() => {
+            overlay.classList.add('active');
+        }, 10);
+        
+        document.getElementById('no-account-back-btn').addEventListener('click', () => {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+            }, 400);
+        });
+        
+        document.getElementById('no-account-register-btn').addEventListener('click', () => {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                window.location.href = 'account_registration.html';
             }, 400);
         });
     }
