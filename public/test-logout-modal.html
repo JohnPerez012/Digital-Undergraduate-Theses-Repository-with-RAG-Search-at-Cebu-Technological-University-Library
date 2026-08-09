@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout Modal Test</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/logout-modal.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--background);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .test-container {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .test-btn {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Logout Modal Test</h1>
+        <p>Click the button below to test the logout confirmation modal</p>
+        <button class="test-btn" id="test-logout-btn">Test Logout Modal</button>
+    </div>
+
+    <script src="js/logout-modal.js"></script>
+    <script>
+        document.getElementById('test-logout-btn').addEventListener('click', () => {
+            const modal = getLogoutModal();
+            modal.show({
+                onAbort: () => {
+                    console.log('✅ Abort button clicked - Logout cancelled');
+                    alert('Logout cancelled!');
+                },
+                onConfirm: async () => {
+                    console.log('✅ Confirm button clicked - Executing logout');
+                    
+                    // Simulate logout process
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    
+                    alert('Logout successful! (This is just a test)');
+                    console.log('✅ Logout completed successfully');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

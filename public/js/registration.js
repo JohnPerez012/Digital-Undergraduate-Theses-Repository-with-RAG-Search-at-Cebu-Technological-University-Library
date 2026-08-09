@@ -289,99 +289,83 @@
             });
         }
 
-        // 1. Slider Verification Logic (Gatekeeper component)
+        // 1. Advanced Slider Verification Logic with Bot Detection (Gatekeeper component)
         function initSliderVerify() {
-            const handle = document.getElementById('slider-verify-handle');
-            const track = document.getElementById('slider-verify-track');
-            const fill = document.getElementById('slider-verify-fill');
             const container = document.getElementById('slider-verify-container');
             const gatekeeperView = document.getElementById('gatekeeper-view');
             const formWrap = document.getElementById('registration-form-wrap');
 
-            if (!handle || !track || !fill || !container) return;
+            if (!container) return;
 
-            let isDragging = false;
-            let startX = 0;
-            let verified = false;
-
-            const onStart = (e) => {
-                if (verified) return;
-                isDragging = true;
-                startX = (e.type === 'touchstart') ? e.touches[0].clientX : e.clientX;
-                handle.style.transition = 'none';
-                fill.style.transition = 'none';
-            };
-
-            const onMove = (e) => {
-                if (!isDragging || verified) return;
-                const clientX = (e.type === 'touchmove') ? e.touches[0].clientX : e.clientX;
-                const maxSlideWidth = track.clientWidth - handle.clientWidth - 8;
-                let x = clientX - startX;
-
-                if (x < 0) x = 0;
-                if (x > maxSlideWidth) x = maxSlideWidth;
-
-                handle.style.left = (x + 4) + 'px';
-                fill.style.width = (x + handle.clientWidth / 2) + 'px';
-
-                if (x >= maxSlideWidth) {
-                    verified = true;
-                    isDragging = false;
-                    onVerified();
+            // Initialize advanced slider captcha with bot detection
+            const sliderCaptcha = new AdvancedSliderCaptcha({
+                container: container,
+                tolerance: 10,             // Position tolerance in pixels
+                minDuration: 50,           // Minimum drag time in ms (very relaxed)
+                maxDuration: 10000,        // Maximum drag time in ms (relaxed for UX)
+                minTrackPoints: 5,         // Minimum track points required
+                maxJitterY: 50,            // Maximum Y-axis jitter in pixels
+                minJitterY: 0,             // Minimum Y-axis jitter required (disabled for UX)
+                trackVarianceThreshold: 0.3, // Track variance threshold (relaxed)
+                velocityChangeThreshold: 0.1, // Velocity change threshold (relaxed)
+                onVerified: function(result) {
+                    console.log('Slider verification successful:', result.metrics);
+                    onVerifiedSuccess(container, gatekeeperView, formWrap);
+                },
+                onFailed: function(result) {
+                    console.warn('Slider verification failed:', result.errors);
+                    console.warn('Metrics:', result.metrics);
+                    
+                    // Show error feedback
+                    const bgText = container.querySelector('.slider-verify-bg-text');
+                    if (bgText) {
+                        bgText.textContent = 'Verification Failed - Please try again';
+                        bgText.style.color = '#ef4444';
+                        
+                        setTimeout(() => {
+                            bgText.textContent = 'Slide to verify you are human';
+                            bgText.style.color = '';
+                        }, 2000);
+                    }
                 }
-            };
+            });
+        }
 
-            const onEnd = () => {
-                if (!isDragging || verified) return;
-                isDragging = false;
-                handle.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                fill.style.transition = 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                handle.style.left = '4px';
-                fill.style.width = '0px';
-            };
-
-            handle.addEventListener('mousedown', onStart);
-            handle.addEventListener('touchstart', onStart);
-
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('touchmove', onMove);
-
-            window.addEventListener('mouseup', onEnd);
-            window.addEventListener('touchend', onEnd);
-
-            async function onVerified() {
-                container.classList.add('verified');
-                document.querySelector('.slider-verify-bg-text').textContent = 'Verification Successful ✓';
-                
-                // Cryptographic validation token generation
-                const timestamp = Date.now();
-                const randomArr = new Uint8Array(16);
-                crypto.getRandomValues(randomArr);
-                const randomVal = Array.from(randomArr).map(b => b.toString(16).padStart(2, '0')).join('');
-                
-                const encoder = new TextEncoder();
-                const data = encoder.encode(SECRET_SALT + ":" + timestamp + ":" + randomVal);
-                const digest = await crypto.subtle.digest('SHA-256', data);
-                expectedHash = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
-                
-                activeSessionToken = expectedHash;
-                Object.freeze(activeSessionToken);
-
-                // Transition with fade out/in
-                setTimeout(() => {
-                    gatekeeperView.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                    gatekeeperView.style.opacity = '0';
-                    gatekeeperView.style.transform = 'translateY(-10px)';
-
-                    setTimeout(() => {
-                        gatekeeperView.style.display = 'none';
-                        formWrap.style.display = 'block';
-                        formWrap.offsetHeight; // force repaint
-                        formWrap.classList.add('visible');
-                        showStep(1);
-                    }, 500);
-                }, 800);
+        async function onVerifiedSuccess(container, gatekeeperView, formWrap) {
+            container.classList.add('verified');
+            const bgText = container.querySelector('.slider-verify-bg-text');
+            if (bgText) {
+                bgText.textContent = 'Verification Successful ✓';
             }
+            
+            // Cryptographic validation token generation
+            const timestamp = Date.now();
+            const randomArr = new Uint8Array(16);
+            crypto.getRandomValues(randomArr);
+            const randomVal = Array.from(randomArr).map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            const encoder = new TextEncoder();
+            const data = encoder.encode(SECRET_SALT + ":" + timestamp + ":" + randomVal);
+            const digest = await crypto.subtle.digest('SHA-256', data);
+            expectedHash = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            activeSessionToken = expectedHash;
+            Object.freeze(activeSessionToken);
+
+            // Transition with fade out/in
+            setTimeout(() => {
+                gatekeeperView.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                gatekeeperView.style.opacity = '0';
+                gatekeeperView.style.transform = 'translateY(-10px)';
+
+                setTimeout(() => {
+                    gatekeeperView.style.display = 'none';
+                    formWrap.style.display = 'block';
+                    formWrap.offsetHeight; // force repaint
+                    formWrap.classList.add('visible');
+                    showStep(1);
+                }, 500);
+            }, 800);
         }
 
         // 2. Tamper-Evident Observers (MutationObserver APIs)

@@ -147,17 +147,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ===== Logout =====
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await auth.signOut();
-                sessionStorage.clear();
-                localStorage.removeItem('cachedAuthState');
-                showToast('Logged out successfully', '✅');
-                setTimeout(() => window.location.href = 'index.html', 1000);
-            } catch (error) {
-                console.error('Logout error:', error);
-                showToast('Error logging out', '❌');
-            }
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Use the new logout modal
+            const modal = getLogoutModal();
+            modal.show({
+                onAbort: () => {
+                    console.log('Logout cancelled by user');
+                },
+                onConfirm: async () => {
+                    await auth.signOut();
+                    sessionStorage.clear();
+                    localStorage.removeItem('cachedAuthState');
+                    showToast('Logged out successfully', '✅');
+                    setTimeout(() => window.location.href = 'index.html', 1000);
+                }
+            });
         });
     }
 
