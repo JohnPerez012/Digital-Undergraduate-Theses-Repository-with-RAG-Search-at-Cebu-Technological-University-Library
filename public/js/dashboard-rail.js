@@ -150,22 +150,33 @@
     function handleLogout(e) {
         e.preventDefault();
         
-        if (confirm('Are you sure you want to logout?')) {
-            // Clear local storage
-            localStorage.removeItem('cachedAuthState');
-            
-            // If Firebase auth is available
-            if (window.firebase && firebase.auth) {
-                firebase.auth().signOut().then(() => {
+        // Use the new logout modal
+        const modal = getLogoutModal();
+        modal.show({
+            onAbort: () => {
+                // Optional: log abort action
+                console.log('Logout cancelled by user');
+            },
+            onConfirm: async () => {
+                // Clear local storage
+                localStorage.removeItem('cachedAuthState');
+                
+                // If Firebase auth is available
+                if (window.firebase && firebase.auth) {
+                    await firebase.auth().signOut();
+                }
+                
+                // Show success toast
+                if (window.showToast) {
+                    showToast('Logged out successfully', '✅');
+                }
+                
+                // Redirect after short delay
+                setTimeout(() => {
                     window.location.href = 'index.html';
-                }).catch((error) => {
-                    console.error('Logout error:', error);
-                    window.location.href = 'index.html';
-                });
-            } else {
-                window.location.href = 'index.html';
+                }, 800);
             }
-        }
+        });
     }
 
     function initializeGreeting() {

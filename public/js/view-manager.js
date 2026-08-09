@@ -339,20 +339,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div class="sidebar-card">
-                <h3 class="sidebar-card-title">Related Studies</h3>
-                <div class="related-list">
-                    <div class="related-item">
-                        <p>Face Recognition Attendance System Using Deep Learning &mdash; Santos et al.</p>
-                        <span>2023 &middot; BSIT</span>
-                    </div>
-                    <div class="related-item">
-                        <p>Automated Student Monitoring Using RFID and Biometrics</p>
-                        <span>2022 &middot; BSIT</span>
-                    </div>
-                    <div class="related-item">
-                        <p>CNN-Based Object Detection for Campus Security Systems</p>
-                        <span>2023 &middot; BSCS</span>
-                    </div>
+                <h3 class="sidebar-card-title">Image Provided</h3>
+                <div class="img-provided">
+                    
                 </div>
             </div>
 
