@@ -1,23 +1,14 @@
-# Dependencies
-node_modules/
-package-lock.json
+# folder
+recap-backend/
+# .firebase/
 
-# Environment variables
-.env
 
-# Firebase service account key (NEVER commit this!)
+
+# file
 serviceAccountKey.json
-
-# Logs
-*.log
-npm-debug.log*
-
-# OS files
-.DS_Store
-Thumbs.db
-
-#folder
-recap-backend
-.kiro
-
-.localRunner.bat
+localRunner.bat
+firestore.indexes.json
+m.py
+SLIDER_CAPTCHA_IMPLEMENTATION.md
+TERMS_AND_CONDITIONS_IMPLEMENTATION.md
+test_slider.py
