@@ -13,11 +13,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Your Account - RE-CAPS</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/registration.css">
+    <link rel="stylesheet" href="../css/shared/style.css">
+    <link rel="stylesheet" href="../css/registration/registration.css">
     <!-- <link rel="stylesheet" href="css/secondary-header.css"> -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/toast.css">
+    <link rel="stylesheet" href="../css/shared/toast.css">
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -25,13 +25,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
     <!-- Advanced Slider Captcha -->
-    <script src="js/slider-captcha.js"></script>
+    <script src="../js/registration/slider-captcha.js"></script>
 
 </head>
 <body>
   
 
-    <a href="index.html" class="back-button" id="main-back-button">← Back</a>
+    <a href="../index.html" class="back-button" id="main-back-button">← Back</a>
     <div class="registration-container">
         <div class="registration-content">
             <!-- Gatekeeper Verification Screen -->
@@ -164,7 +164,7 @@
                                 <h3 class="error-title">Account Already Registered</h3>
                                 <p class="error-message" id="errorMessage">This Google account is already linked to an existing RE-CAPS account. Please login instead.</p>
                                 <div class="error-actions">
-                                    <a href="index.html" class="btn btn-primary btn-small">Go to Login</a>
+                                    <a href="../index.html" class="btn btn-primary btn-small">Go to Login</a>
                                     <button type="button" id="tryDifferentAccountBtn" class="btn btn-secondary btn-small">Try Different Account</button>
                                 </div>
                             </div>

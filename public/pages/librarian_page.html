@@ -13,11 +13,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Librarian Dashboard - RE-CAPS</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/dashboard-rail.css">
-    <link rel="stylesheet" href="css/logout-modal.css">
+    <link rel="stylesheet" href="../css/shared/style.css">
+    <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
+    <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/toast.css">
+    <link rel="stylesheet" href="../css/shared/toast.css">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
@@ -29,7 +29,7 @@
         <aside class="sidebar-rail" id="sidebar-rail">
             <!-- Rail Header -->
             <div class="rail-header">
-                <img src="assets/logo.png" alt="RE-CAPS Logo" class="rail-logo">
+                <img src="../assets/logo.png" alt="RE-CAPS Logo" class="rail-logo">
                 <div class="rail-brand">
                     <div class="rail-brand-title">RE-CAPS</div>
                     <div class="rail-brand-subtitle">Librarian Panel</div>
@@ -102,7 +102,7 @@
                     </div>
                 </div>
 
-                <a href="index.html" class="rail-footer-item" id="back-to-home-btn">
+                <a href="../index.html" class="rail-footer-item" id="back-to-home-btn">
                     <span class="rail-nav-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                     </span>
@@ -298,11 +298,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    <script src="js/firebase-config.js"></script>
-    <script src="js/rbac.js"></script>
-    <script src="js/toast.js"></script>
-    <script src="js/logout-modal.js"></script>
-    <script src="js/dashboard-rail.js"></script>
+    <script src="../js/shared/firebase-config.js"></script>
+    <script src="../js/pages/rbac.js"></script>
+    <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/logout-modal.js"></script>
+    <script src="../js/shared/dashboard-rail.js"></script>
     <script>
         // Placeholder for librarian-specific JavaScript
         console.log('Librarian dashboard loaded');
