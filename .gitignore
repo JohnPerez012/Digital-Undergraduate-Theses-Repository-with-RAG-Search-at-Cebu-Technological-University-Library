@@ -1,6 +1,7 @@
 # folder
 recap-backend/
-# .firebase/
+.firebase/
+addons/
 
 
 
