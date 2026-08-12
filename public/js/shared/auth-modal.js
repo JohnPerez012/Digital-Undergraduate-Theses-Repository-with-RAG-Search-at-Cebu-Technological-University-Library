@@ -157,19 +157,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     closeModal();
                     
-                    // Role-based redirect
-                    let redirectUrl = 'reload';
-                    if (userData.userType === 'student') {
-                        redirectUrl = 'student_page.html';
-                    } else if (userData.userType === 'admin') {
-                        redirectUrl = 'admin_page.html';
-                    } else if (userData.userType === 'librarian') {
-                        redirectUrl = 'library_page.html';
-                    } else if (userData.userType === 'teacher') {
-                        redirectUrl = 'teacher_page.html';
-                    }
-                    
-                    showWelcomeModal(user.displayName || email.split('@')[0], redirectUrl);
+                    // Use AuthService for role-based redirect
+                    AuthService.redirectAfterLogin(
+                        userData.userType, 
+                        user.displayName || email.split('@')[0], 
+                        showWelcomeModal
+                    );
                     
                 } catch (error) {
                     console.error('Login error:', error);
@@ -238,19 +231,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     closeModal();
                     
-                    // Role-based redirect
-                    let redirectUrl = 'reload';
-                    if (userData.userType === 'student') {
-                        redirectUrl = 'student_page.html';
-                    } else if (userData.userType === 'admin') {
-                        redirectUrl = 'admin_page.html';
-                    } else if (userData.userType === 'librarian') {
-                        redirectUrl = 'library_page.html';
-                    } else if (userData.userType === 'teacher') {
-                        redirectUrl = 'teacher_page.html';
-                    }
-                    
-                    showWelcomeModal(user.displayName || user.email.split('@')[0], redirectUrl);
+                    // Use AuthService for role-based redirect
+                    AuthService.redirectAfterLogin(
+                        userData.userType,
+                        user.displayName || user.email.split('@')[0],
+                        showWelcomeModal
+                    );
                     
                 } catch (error) {
                     console.error('Google Sign-In error:', error);
@@ -311,27 +297,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (pdDashboardRow) {
             pdDashboardRow.addEventListener('click', () => {
                 const userType = sessionStorage.getItem('userType');
-                let dashboardPage = 'student_page.html';
                 
-                if (userType === 'admin') {
-                    dashboardPage = 'admin_page.html';
-                } else if (userType === 'librarian') {
-                    dashboardPage = 'library_page.html';
-                } else if (userType === 'teacher') {
-                    dashboardPage = 'teacher_page.html';
-                } else if (userType === 'student') {
-                    dashboardPage = 'student_page.html';
-                }
-                
-                const path = window.location.pathname;
-                const isOnDashboard = path.endsWith(dashboardPage) ||
-                                    path.endsWith(dashboardPage.replace('.html', ''));
-
-                if (isOnDashboard) {
-                    // Already on correct dashboard - just close dropdown
+                // Use AuthService
+                if (AuthService.isOnCorrectDashboard(userType)) {
                     closeDropdown();
                 } else {
-                    window.location.href = dashboardPage;
+                    AuthService.navigateToDashboard(userType);
                 }
             });
         }
@@ -362,16 +333,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Dropdown Logout logic
         if (pdLogoutBtn) {
             pdLogoutBtn.addEventListener('click', async () => {
-                try {
-                    if (typeof auth !== 'undefined') {
-                        await auth.signOut();
-                    }
-                    localStorage.removeItem('cachedAuthState');
-                    sessionStorage.clear();
-                } catch (e) {
-                    console.error('Logout error:', e);
-                }
-                window.location.href = 'index.html';
+                await AuthService.logout();
             });
         }
     }
@@ -419,18 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.removeItem('justRegistered');
                     showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
 
-                    if (userData.userType === 'student') {
-                        window.location.href = 'student_page.html';
-                    } else if (userData.userType === 'admin') {
-                        window.location.href = 'admin_page.html';
-                    }  else if (userData.userType === 'librarian') {
-                        redirectUrl = 'library_page.html';
-                    } else if (userData.userType === 'teacher') {
-                        redirectUrl = 'teacher_page.html';
-                    } 
-                    else {
-                        window.location.reload();
-                    }
+                    // Navigate using AuthService
+                    AuthService.navigateToDashboard(userData.userType);
                 }
             }
         });
@@ -445,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Modern Welcome Modal Function
-    function showWelcomeModal(name, redirectUrl) {
+    function showWelcomeModal(name, redirectTarget) {
         const overlay = document.createElement('div');
         overlay.className = 'welcome-modal-overlay';
         
@@ -471,10 +423,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('welcome-lets-go-btn').addEventListener('click', () => {
             overlay.classList.remove('active');
             setTimeout(() => {
-                if (redirectUrl === 'reload') {
+                // Handle different redirect types
+                if (redirectTarget === 'reload') {
                     window.location.reload();
+                } else if (AuthService.isValidRole(redirectTarget)) {
+                    // It's a user role - navigate to their dashboard
+                    AuthService.navigateToDashboard(redirectTarget);
                 } else {
-                    window.location.href = redirectUrl;
+                    // Direct URL fallback
+                    window.location.href = redirectTarget;
                 }
             }, 400);
         });
@@ -515,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('no-account-register-btn').addEventListener('click', () => {
             overlay.classList.remove('active');
             setTimeout(() => {
-                window.location.href = 'account_registration.html';
+                AuthService.navigateToRegistration();
             }, 400);
         });
     }

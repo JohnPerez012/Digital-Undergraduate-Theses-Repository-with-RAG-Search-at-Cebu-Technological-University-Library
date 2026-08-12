@@ -52,7 +52,7 @@ function initSecondaryHeader() {
   const pageMap = {
     'index': 'index',
     '': 'index', // Root path
-    'library_page': 'library',
+    'librarian_page': 'library',
     'admin_page': 'admin',
     'teacher_page': 'teacher',
     'student_page': 'student',

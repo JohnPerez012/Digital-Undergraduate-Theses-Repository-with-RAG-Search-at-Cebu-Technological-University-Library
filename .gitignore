@@ -6,10 +6,11 @@ addons/
 
 
 # file
-serviceAccountKey.json
-localRunner.bat
 firestore.indexes.json
-m.py
-SLIDER_CAPTCHA_IMPLEMENTATION.md
-TERMS_AND_CONDITIONS_IMPLEMENTATION.md
-test_slider.py
+serviceAccountKey.json
+.firebaserc
+firebase.json
+localRunner.bat
+
+# git rm -r --cached folder
+# git rm --cached file

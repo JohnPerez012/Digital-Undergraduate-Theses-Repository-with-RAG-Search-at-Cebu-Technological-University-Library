@@ -1,0 +1,314 @@
+/**
+ * RE-CAPS Dramatic Intro Styles
+ * Supporting styles for the dramatic intro animation
+ */
+
+/* Prevent scrolling during intro animation */
+body[data-intro-active="true"] {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
+/* Ensure wrapper never affects document flow */
+.recaps-intro-wrapper {
+  /* Fixed positioning keeps it out of document flow */
+  position: fixed !important;
+  /* Prevent any layout calculations */
+  contain: layout style paint;
+  /* Create isolated rendering context */
+  isolation: isolate;
+  /* Prevent content from causing reflow */
+  overflow: hidden;
+}
+
+/* Character Animation Styles */
+.recaps-char {
+  display: inline-block;
+  will-change: transform, opacity, color, filter;
+}
+
+/* Responsive Font Sizes */
+@media (max-width: 1200px) {
+  .recaps-intro-title {
+    font-size: 4.5rem !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .recaps-intro-title {
+    font-size: 3.5rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .recaps-intro-title {
+    font-size: 3rem !important;
+    letter-spacing: 0.1em !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .recaps-intro-title {
+    font-size: 2.2rem !important;
+    letter-spacing: 0.08em !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .recaps-intro-title {
+    font-size: 1.8rem !important;
+  }
+}
+
+/* Skip Button (Optional) */
+.recaps-intro-skip-btn {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 3;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.recaps-intro-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.recaps-intro-skip-btn:active {
+  transform: translateY(0);
+}
+
+/* Loading Animation (Optional - shown before intro) */
+.recaps-intro-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10000;
+}
+
+.recaps-intro-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(125, 136, 241, 0.2);
+  border-top-color: #7d88f1;
+  border-radius: 50%;
+  animation: recaps-spin 1s linear infinite;
+}
+
+@keyframes recaps-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Smooth transition for main content */
+body.recaps-intro-active {
+  overflow: hidden;
+}
+
+body.recaps-intro-complete {
+  overflow: auto;
+}
+
+/* Scroll behavior: disabled during background phase, enabled when text-only */
+body[data-intro-active="true"] {
+  /* Scrolling is locked only while the background is visible */
+  /* Once background fades (onStart callback), scrolling is restored */
+  /* This allows users to scroll while the text completes its fade-out */
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .recaps-char {
+    will-change: auto;
+  }
+  
+  .recaps-intro-wrapper {
+    transition: none !important;
+  }
+  
+  .recaps-intro-bg {
+    transition: none !important;
+  }
+  
+  .recaps-intro-title {
+    animation: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .recaps-intro-title {
+    -webkit-text-stroke: 3px #ffffff !important;
+    filter: none !important;
+  }
+}
+
+/* =====================================================
+   LIGHT MODE
+   Triggered by either:
+   1. [data-theme="light"] attribute on <html>  (manual toggle)
+   2. @media (prefers-color-scheme: light)       (OS preference, when
+      no data-theme attribute is set)
+   ===================================================== */
+
+/* --- Helper: light-mode via data-theme attribute --- */
+
+[data-theme="light"] .recaps-intro-bg {
+  background-color: #f8fafc !important;
+}
+
+[data-theme="light"] .recaps-intro-wrapper::before {
+  background: radial-gradient(
+    circle,
+    rgba(99, 102, 241, 0.15) 0%,
+    transparent 70%
+  ) !important;
+}
+
+[data-theme="light"] .recaps-intro-skip-btn {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #333333;
+}
+
+[data-theme="light"] .recaps-intro-skip-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .recaps-intro-loading-spinner {
+  border-color: rgba(99, 102, 241, 0.2);
+  border-top-color: #6366f1;
+}
+
+[data-theme="light"] .recaps-intro-particle {
+  background: #6366f1;
+}
+
+/* --- Helper: light-mode via OS preference (no data-theme set) --- */
+
+@media (prefers-color-scheme: light) {
+  /* Only apply when data-theme is NOT explicitly set (avoid double-override) */
+  :root:not([data-theme]) .recaps-intro-bg {
+    background-color: #f8fafc !important;
+  }
+
+  :root:not([data-theme]) .recaps-intro-wrapper::before {
+    background: radial-gradient(
+      circle,
+      rgba(99, 102, 241, 0.15) 0%,
+      transparent 70%
+    ) !important;
+  }
+
+  :root:not([data-theme]) .recaps-intro-skip-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #333333;
+  }
+
+  :root:not([data-theme]) .recaps-intro-skip-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+    border-color: rgba(0, 0, 0, 0.25);
+  }
+
+  :root:not([data-theme]) .recaps-intro-loading-spinner {
+    border-color: rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+  }
+
+  :root:not([data-theme]) .recaps-intro-particle {
+    background: #6366f1;
+  }
+}
+
+/* Print styles - hide intro when printing */
+@media print {
+  .recaps-intro-wrapper {
+    display: none !important;
+  }
+}
+
+/* Additional dramatic effects (optional decorative elements) */
+.recaps-intro-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(
+    circle,
+    rgba(125, 136, 241, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  animation: recaps-pulse 3s ease-in-out infinite;
+}
+
+@keyframes recaps-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* Particle effect overlay (optional enhancement) */
+.recaps-intro-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.3;
+}
+
+.recaps-intro-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #7d88f1;
+  border-radius: 50%;
+  animation: recaps-float 4s ease-in-out infinite;
+}
+
+@keyframes recaps-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(50px);
+    opacity: 0;
+  }
+}
+

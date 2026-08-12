@@ -14,7 +14,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RE-CAPS - Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
 
 
     <link rel="stylesheet" href="css/shared/style.css">
@@ -24,6 +26,37 @@
     <link rel="stylesheet" href="css/home/rag-styles.css">
     <link rel="stylesheet" href="css/projectDetails/view_project_details.css">
     <link rel="stylesheet" href="css/chatbot/chatbot.css">
+    <link rel="stylesheet" href="css/shared/dramatic-intro.css">
+
+    <!-- GSAP loaded early in head so it's ready before DOMContentLoaded -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="js/shared/dramatic-intro.js"></script>
+
+    <!-- Intro: immediate CSS overlay painted on very first frame -->
+    <style id="recaps-intro-blocker">
+        /* Show a solid background INSTANTLY before any JS runs.
+           This guarantees the user NEVER sees the homepage flash. */
+        #recaps-static-intro {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background-color: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        /* Respect data-theme light mode */
+        [data-theme="light"] #recaps-static-intro {
+            background-color: #f8fafc;
+        }
+        /* Respect OS-level light preference when no data-theme is set yet */
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme]) #recaps-static-intro {
+                background-color: #f8fafc;
+            }
+        }
+    </style>
     
     <!-- Inline Header Injection -->
     <script>
@@ -225,6 +258,10 @@
 </head>
 
 <body>
+
+    <!-- STATIC INTRO OVERLAY: rendered on very first paint before any JS runs.
+         JS will take ownership of this element and animate it. -->
+    <div id="recaps-static-intro" aria-hidden="true"></div>
     <div class="header-wrapper">
         <header class="header"></header>
 
@@ -736,6 +773,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="js/shared/firebase-config.js"></script>
+    <script src="js/core/auth-service.js"></script>
 
     <script src="js/shared/toast.js"  ></script>
     <script src="js/shared/main.js"  ></script>
@@ -1194,6 +1232,30 @@
                         await Chatbot.startNewConversation();
                     }
                 });
+            }
+        });
+    </script>
+    <!-- Initialize Dramatic Intro - runs on DOMContentLoaded (before images/assets load) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const staticIntro = document.getElementById('recaps-static-intro');
+            const showIntro = !sessionStorage.getItem('recaps-intro-shown');
+
+            if (showIntro) {
+                // Remove static placeholder - DramaticIntro creates its own animated overlay
+                if (staticIntro) staticIntro.remove();
+
+                window.recapsIntro = new DramaticIntro({
+                    text: 'RECAPS',
+                    autoStart: true,
+                    onComplete: function() {
+                        console.log('RE-CAPS intro animation completed!');
+                        sessionStorage.setItem('recaps-intro-shown', 'true');
+                    }
+                });
+            } else {
+                // Already shown this session — remove static blocker instantly so page is visible
+                if (staticIntro) staticIntro.remove();
             }
         });
     </script>

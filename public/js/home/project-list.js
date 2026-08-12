@@ -190,7 +190,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // We're on a different page, navigate to index
                 sessionStorage.setItem('showProjectDetails', 'true');
-                window.location.href = 'index.html';
+                const isInPagesFolder = window.location.pathname.includes('/pages/');
+                window.location.href = isInPagesFolder ? '../index.html' : 'index.html';
             }
         } catch (error) {
             console.error('Unable to open project details:', error);
