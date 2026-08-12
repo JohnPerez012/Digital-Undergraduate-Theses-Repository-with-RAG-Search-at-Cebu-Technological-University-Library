@@ -1635,13 +1635,54 @@
         autoLoginBtn.addEventListener('click', async () => {
             try {
                 if (currentUser) {
+                    // Disable button to prevent double clicks
+                    autoLoginBtn.disabled = true;
+                    autoLoginBtn.textContent = 'Logging in...';
+                    
+                    // Update last login timestamp
                     await db.collection('users').doc(currentUser.uid).update({
                         lastLogin: firebase.firestore.FieldValue.serverTimestamp()
                     });
+                    
+                    // Fetch user data and populate session storage BEFORE redirecting
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const userData = userDoc.data();
+                    
+                    sessionStorage.setItem('userId', currentUser.uid);
+                    sessionStorage.setItem('userEmail', currentUser.email);
+                    sessionStorage.setItem('userName', currentUser.displayName);
+                    sessionStorage.setItem('userType', userData.userType);
+                    sessionStorage.setItem('autoLoggedIn', 'true');
+                    sessionStorage.setItem('justRegistered', 'true');
+                    
+                    // CRITICAL FIX: Ensure Firebase auth state is fully ready
+                    // Wait for onAuthStateChanged to confirm the user is authenticated
+                    return new Promise((resolve) => {
+                        const unsubscribe = auth.onAuthStateChanged((user) => {
+                            if (user && user.uid === currentUser.uid) {
+                                // Auth state confirmed - safe to navigate
+                                unsubscribe();
+                                console.log('✓ Auth state confirmed, navigating to dashboard...');
+                                
+                                // Add a small delay to ensure everything is ready
+                                setTimeout(() => {
+                                    AuthService.navigateToDashboard(userData.userType);
+                                    resolve();
+                                }, 300);
+                            }
+                        });
+                        
+                        // Timeout fallback in case auth state takes too long
+                        setTimeout(() => {
+                            console.warn('⚠ Auth state check timeout, navigating anyway...');
+                            unsubscribe();
+                            AuthService.navigateToDashboard(userData.userType);
+                            resolve();
+                        }, 3000);
+                    });
+                } else {
+                    throw new Error('No user found');
                 }
-                sessionStorage.setItem('autoLoggedIn', 'true');
-                sessionStorage.setItem('justRegistered', 'true');
-                window.location.href = '../index.html';
             } catch (error) {
                 console.error('Auto-login error:', error);
                 alert('Error during login. Redirecting to login page...');
