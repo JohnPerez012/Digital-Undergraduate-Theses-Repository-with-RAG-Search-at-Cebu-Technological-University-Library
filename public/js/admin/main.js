@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             auth.onAuthStateChanged(async (user) => {
                 if (!user) {
                     console.warn('No user logged in. Redirecting to home...');
-                    window.location.href = 'index.html';
+                    window.location.href = '../index.html';
                     resolve(false);
                     return;
                 }
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!userDoc.exists) {
                         console.error('User document does not exist');
                         showToast('Access denied: User data not found', '❌');
-                        setTimeout(() => window.location.href = 'index.html', 2000);
+                        setTimeout(() => window.location.href = '../index.html', 2000);
                         resolve(false);
                         return;
                     }
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (userType === 'student') {
                                 window.location.href = 'student_page.html';
                             } else {
-                                window.location.href = 'index.html';
+                                window.location.href = '../index.html';
                             }
                         }, 2000);
                         resolve(false);
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (error) {
                     console.error('Error checking admin role:', error);
                     showToast('Authentication error occurred', '❌');
-                    setTimeout(() => window.location.href = 'index.html', 2000);
+                    setTimeout(() => window.location.href = '../index.html', 2000);
                     resolve(false);
                 }
             });
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     sessionStorage.clear();
                     localStorage.removeItem('cachedAuthState');
                     showToast('Logged out successfully', '✅');
-                    setTimeout(() => window.location.href = 'index.html', 1000);
+                    setTimeout(() => window.location.href = '../index.html', 1000);
                 }
             });
         });
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== Back to Home =====
     if (backToHomeBtn) {
         backToHomeBtn.addEventListener('click', () => {
-            window.location.href = 'index.html';
+            window.location.href = '../index.html';
         });
     }
 
@@ -1742,7 +1742,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sessionStorage.setItem('showProjectDetails', 'true');
             
             // Navigate to index.html which will handle the view
-            window.location.href = 'index.html';
+            window.location.href = '../index.html';
             
         } catch (error) {
             console.error('Error loading project for view:', error);
@@ -1869,6 +1869,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             
             showToast('Deleting project...', 'ℹ️');
+            
+            // Delete from Firestore
             await db.collection('projects').doc(secureDeleteProjectId).delete();
             
             // Update Realtime Database projects_document_count
@@ -1881,6 +1883,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (rtdbErr) {
                     console.error('Error updating RTDB project count:', rtdbErr);
                 }
+            }
+
+            // Delete from Pinecone
+            try {
+                console.log('🔄 Deleting project from Pinecone...');
+                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const deleteResponse = await fetch(`${backendUrl}/api/projects/sync/${secureDeleteProjectId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!deleteResponse.ok) {
+                    const errorData = await deleteResponse.json();
+                    throw new Error(errorData.error || 'Pinecone delete failed');
+                }
+
+                console.log('✓ Project deleted from Pinecone successfully');
+            } catch (pineconeErr) {
+                console.error('⚠️ Pinecone delete failed (non-critical):', pineconeErr);
+                // Don't fail the entire operation if Pinecone delete fails
             }
 
             closeSecureDeleteModal();
@@ -2084,6 +2108,80 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addTopicBtn) addTopicBtn.addEventListener('click', () => createDynamicRow('topics-container', 'e.g., Machine Learning'));
     const addKeywordBtn = document.getElementById('add-keyword-btn');
     if (addKeywordBtn) addKeywordBtn.addEventListener('click', () => createDynamicRow('keywords-container', 'e.g., Python'));
+
+    // ===== Sync Pinecone Button =====
+    const syncPineconeBtn = document.getElementById('sync-pinecone-btn');
+    if (syncPineconeBtn) {
+        syncPineconeBtn.addEventListener('click', async () => {
+            const confirmed = confirm(
+                '🔄 SYNC TO PINECONE\n\n' +
+                'This will sync ALL projects from Firestore to Pinecone.\n' +
+                'This may take a few minutes depending on the number of projects.\n\n' +
+                'Continue?'
+            );
+            
+            if (!confirmed) return;
+
+            // Disable button and show loading state
+            syncPineconeBtn.disabled = true;
+            const originalHTML = syncPineconeBtn.innerHTML;
+            syncPineconeBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                Syncing...
+            `;
+
+            try {
+                showToast('Starting Pinecone sync...', 'ℹ️');
+                
+                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const response = await fetch(`${backendUrl}/api/projects/sync-all`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Sync failed');
+                }
+
+                const result = await response.json();
+                
+                console.log('✓ Pinecone sync completed:', result);
+                
+                // Show detailed results
+                let message = `✅ Sync completed!\n\n`;
+                message += `Total: ${result.totalProjects} projects\n`;
+                message += `Synced: ${result.synced}\n`;
+                message += `Failed: ${result.failed}`;
+                
+                if (result.failed > 0 && result.errors.length > 0) {
+                    message += `\n\nErrors:\n`;
+                    result.errors.slice(0, 3).forEach(err => {
+                        message += `- ${err.projectId}: ${err.error}\n`;
+                    });
+                    if (result.errors.length > 3) {
+                        message += `... and ${result.errors.length - 3} more`;
+                    }
+                }
+                
+                alert(message);
+                showToast(`Pinecone sync completed: ${result.synced}/${result.totalProjects}`, '✅');
+
+            } catch (error) {
+                console.error('❌ Pinecone sync error:', error);
+                showToast('Pinecone sync failed: ' + error.message, '❌');
+                alert('❌ Sync Failed\n\n' + error.message);
+            } finally {
+                // Re-enable button and restore original state
+                syncPineconeBtn.disabled = false;
+                syncPineconeBtn.innerHTML = originalHTML;
+            }
+        });
+    }
 
     // ===== Add Project Button =====
     const addProjectBtn = document.getElementById('add-project-btn');
@@ -2562,50 +2660,77 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
             await db.collection('projects').doc(projectId).update(updatedData);
 
-                    // Update Realtime Database
-                    if (changedFields.length > 0 && rtdb) {
-                        try {
-                            const recentRef = rtdb.ref('recent update');
-                            const prevRef = rtdb.ref('prev update');
-                            const counterRef = rtdb.ref('update_counter');
-                            
-                            // Fetch and increment the update counter
-                            const counterSnapshot = await counterRef.once('value');
-                            const currentCounter = counterSnapshot.val() || 0;
-                            const nextUpdateId = currentCounter + 1;
-                            
-                            // Save updated counter
-                            await counterRef.set(nextUpdateId);
-                            
-                            const snapshot = await recentRef.once('value');
-                            const currentRecent = snapshot.val();
-                            
-                            if (currentRecent) {
-                                await prevRef.set(currentRecent);
-                            }
-                            
-                            const newUpdate = {
-                                UpdateID: nextUpdateId,
-                                DocID: projectId,
-                                timestamp_updated: new Date().toISOString(),
-                                field_updated: changedFields
-                            };
-                            await recentRef.set(newUpdate);
-                            console.log('RTDB update logged:', newUpdate);
-                            console.log('RTDB target path:', recentRef.toString());
-                        } catch (rtdbErr) {
-                            console.error('Error logging update to RTDB:', rtdbErr);
-                        }
+            // Update Realtime Database
+            if (changedFields.length > 0 && rtdb) {
+                try {
+                    const recentRef = rtdb.ref('recent update');
+                    const prevRef = rtdb.ref('prev update');
+                    const counterRef = rtdb.ref('update_counter');
+                    
+                    // Fetch and increment the update counter
+                    const counterSnapshot = await counterRef.once('value');
+                    const currentCounter = counterSnapshot.val() || 0;
+                    const nextUpdateId = currentCounter + 1;
+                    
+                    // Save updated counter
+                    await counterRef.set(nextUpdateId);
+                    
+                    const snapshot = await recentRef.once('value');
+                    const currentRecent = snapshot.val();
+                    
+                    if (currentRecent) {
+                        await prevRef.set(currentRecent);
                     }
-
-                    showToast('Project updated successfully', '✅');
-                    closeProjectModal();
-                    await loadProjectsData();
-                    await loadDashboardData();
-                } catch (error) {
-                    console.error('Error updating project:', error);
-                    showToast('Error updating project: ' + error.message, '❌');
+                    
+                    const newUpdate = {
+                        UpdateID: nextUpdateId,
+                        DocID: projectId,
+                        timestamp_updated: new Date().toISOString(),
+                        field_updated: changedFields
+                    };
+                    await recentRef.set(newUpdate);
+                    console.log('RTDB update logged:', newUpdate);
+                    console.log('RTDB target path:', recentRef.toString());
+                } catch (rtdbErr) {
+                    console.error('Error logging update to RTDB:', rtdbErr);
                 }
+            }
+
+            // Sync to Pinecone
+            try {
+                console.log('🔄 Syncing project to Pinecone...');
+                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        projectId,
+                        projectData: updatedData
+                    })
+                });
+
+                if (!syncResponse.ok) {
+                    const errorData = await syncResponse.json();
+                    throw new Error(errorData.error || 'Pinecone sync failed');
+                }
+
+                console.log('✓ Project synced to Pinecone successfully');
+            } catch (pineconeErr) {
+                console.error('⚠️ Pinecone sync failed (non-critical):', pineconeErr);
+                // Don't fail the entire operation if Pinecone sync fails
+                showToast('Project updated (Pinecone sync pending)', '⚠️');
+            }
+
+            showToast('Project updated successfully', '✅');
+            closeProjectModal();
+            await loadProjectsData();
+            await loadDashboardData();
+        } catch (error) {
+            console.error('Error updating project:', error);
+            showToast('Error updating project: ' + error.message, '❌');
+        }
     }
 
     // Separate function for performing project creation
@@ -2627,6 +2752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             const docRef = await db.collection('projects').add(newProject);
+            const projectId = docRef.id;
 
             // Update Realtime Database count
             if (rtdb) {
@@ -2638,6 +2764,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (rtdbErr) {
                     console.error('Error updating RTDB project count:', rtdbErr);
                 }
+            }
+
+            // Sync to Pinecone
+            try {
+                console.log('🔄 Syncing new project to Pinecone...');
+                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        projectId,
+                        projectData: newProject
+                    })
+                });
+
+                if (!syncResponse.ok) {
+                    const errorData = await syncResponse.json();
+                    throw new Error(errorData.error || 'Pinecone sync failed');
+                }
+
+                console.log('✓ New project synced to Pinecone successfully');
+            } catch (pineconeErr) {
+                console.error('⚠️ Pinecone sync failed (non-critical):', pineconeErr);
+                // Don't fail the entire operation if Pinecone sync fails
+                showToast('Project created (Pinecone sync pending)', '⚠️');
             }
 
             showToast('Project created successfully', '✅');

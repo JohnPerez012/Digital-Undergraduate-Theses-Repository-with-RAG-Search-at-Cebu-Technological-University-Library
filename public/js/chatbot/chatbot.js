@@ -61,7 +61,8 @@ const Chatbot = {
         if (window.ViewManager && typeof window.ViewManager.switchView === 'function') {
           window.ViewManager.switchView('index');
         } else {
-          window.location.href = 'index.html';
+          const isInPagesFolder = window.location.pathname.includes('/pages/');
+          window.location.href = isInPagesFolder ? '../index.html' : 'index.html';
         }
       });
     }

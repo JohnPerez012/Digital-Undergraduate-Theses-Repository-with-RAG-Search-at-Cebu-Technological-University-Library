@@ -173,7 +173,12 @@
                 
                 // Redirect after short delay
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    if (window.AuthService && typeof window.AuthService.navigateToHome === 'function') {
+                        window.AuthService.navigateToHome();
+                    } else {
+                        const isInPagesFolder = window.location.pathname.includes('/pages/');
+                        window.location.href = isInPagesFolder ? '../index.html' : 'index.html';
+                    }
                 }, 800);
             }
         });

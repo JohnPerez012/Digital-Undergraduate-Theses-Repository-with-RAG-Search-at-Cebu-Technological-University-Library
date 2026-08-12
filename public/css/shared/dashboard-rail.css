@@ -29,7 +29,7 @@ html, body {
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--background);
     color: var(--text-color);
     overflow-x: hidden;
@@ -746,7 +746,7 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     border: none;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
     text-decoration: none;
 }
 
@@ -799,7 +799,7 @@ body {
     color: var(--text-primary);
     font-size: 0.9375rem;
     min-width: 280px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
     transition: all 0.2s ease;
 }
 
@@ -827,7 +827,7 @@ body {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
 }
 
 .filter-pill:hover {
@@ -1066,7 +1066,7 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 4px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
     font-size: 0.75rem;
     font-weight: 600;
 }
@@ -1165,7 +1165,7 @@ body {
     background: var(--background);
     color: var(--text-primary);
     font-size: 0.9375rem;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
     transition: all 0.2s ease;
 }
 

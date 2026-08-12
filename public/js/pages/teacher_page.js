@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             auth.onAuthStateChanged(async (user) => {
                 if (!user) {
                     console.warn('No user logged in. Redirecting to home...');
-                    window.location.href = 'index.html';
+                    window.location.href = '../index.html';
                     resolve(false);
                     return;
                 }
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (!userDoc.exists) {
                         console.error('User document does not exist');
                         showToast('Access denied: User data not found', '❌');
-                        setTimeout(() => window.location.href = 'index.html', 2000);
+                        setTimeout(() => window.location.href = '../index.html', 2000);
                         resolve(false);
                         return;
                     }
@@ -35,13 +35,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         showToast('Access denied: Teacher privileges required', '❌');
                         setTimeout(() => {
                             if (userType === 'admin') {
-                                window.location.href = 'admin_page.html';
+                                AuthService.navigateToDashboard('admin');
                             } else if (userType === 'librarian') {
-                                window.location.href = 'library_page.html';
+                                AuthService.navigateToDashboard('librarian');
                             } else if (userType === 'student') {
-                                window.location.href = 'student_page.html';
+                                AuthService.navigateToDashboard('student');
                             } else {
-                                window.location.href = 'index.html';
+                                window.location.href = '../index.html';
                             }
                         }, 2000);
                         resolve(false);
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } catch (error) {
                     console.error('Error checking teacher role:', error);
                     showToast('Authentication error occurred', '❌');
-                    setTimeout(() => window.location.href = 'index.html', 2000);
+                    setTimeout(() => window.location.href = '../index.html', 2000);
                     resolve(false);
                 }
             });
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     sessionStorage.clear();
                     localStorage.removeItem('cachedAuthState');
                     showToast('Logged out successfully', '✅');
-                    setTimeout(() => window.location.href = 'index.html', 1000);
+                    setTimeout(() => window.location.href = '../index.html', 1000);
                 }
             });
         });
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== Back to Home =====
     if (backToHomeBtn) {
         backToHomeBtn.addEventListener('click', () => {
-            window.location.href = 'index.html';
+            window.location.href = '../index.html';
         });
     }
 
@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Set flag to show details view
             sessionStorage.setItem('showProjectDetails', 'true');
             // Navigate to index.html which will handle the view
-            window.location.href = 'index.html';
+            window.location.href = '../index.html';
         }, 500);
     };
 

@@ -236,7 +236,7 @@
                 
                 overlay.classList.remove('active');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = '../index.html';
                 }, 400);
             });
         }
@@ -284,7 +284,7 @@
                 
                 overlay.classList.remove('active');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    window.location.href = '../index.html';
                 }, 400);
             });
         }
@@ -1623,7 +1623,7 @@
             setTimeout(() => {
                 const preloadFrame = document.createElement('iframe');
                 preloadFrame.style.display = 'none';
-                preloadFrame.src = 'index.html';
+                preloadFrame.src = '../index.html';
                 document.body.appendChild(preloadFrame);
             }, 1000);
         }
@@ -1641,11 +1641,11 @@
                 }
                 sessionStorage.setItem('autoLoggedIn', 'true');
                 sessionStorage.setItem('justRegistered', 'true');
-                window.location.href = 'index.html';
+                window.location.href = '../index.html';
             } catch (error) {
                 console.error('Auto-login error:', error);
                 alert('Error during login. Redirecting to login page...');
-                window.location.href = 'index.html';
+                window.location.href = '../index.html';
             }
         });
         
@@ -1654,11 +1654,11 @@
                 await auth.signOut();
                 sessionStorage.clear();
                 sessionStorage.setItem('openLoginModal', 'true');
-                window.location.href = 'index.html';
+                window.location.href = '../index.html';
             } catch (error) {
                 console.error('Sign out error:', error);
                 sessionStorage.setItem('openLoginModal', 'true');
-                window.location.href = 'index.html';
+                window.location.href = '../index.html';
             }
         });
     });

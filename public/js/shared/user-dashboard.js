@@ -226,7 +226,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sessionStorage.setItem('showProjectDetails', 'true');
                 // Navigate to index.html which will handle the view
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    const isInPagesFolder = window.location.pathname.includes('/pages/');
+                    window.location.href = isInPagesFolder ? '../index.html' : 'index.html';
                 }, 200);
             });
 
