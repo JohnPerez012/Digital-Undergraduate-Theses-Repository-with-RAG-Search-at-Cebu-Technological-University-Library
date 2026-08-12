@@ -370,19 +370,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 const justRegistered = sessionStorage.getItem('justRegistered') === 'true';
                 if (justRegistered) {
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    const userData = userDoc.data();
+                    // Check if session data is already set (from registration auto-login)
+                    const existingUserType = sessionStorage.getItem('userType');
                     
-                    sessionStorage.setItem('userId', user.uid);
-                    sessionStorage.setItem('userEmail', user.email);
-                    sessionStorage.setItem('userName', user.displayName);
-                    sessionStorage.setItem('userType', userData.userType);
-                    
-                    sessionStorage.removeItem('justRegistered');
-                    showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
+                    if (!existingUserType) {
+                        // Session data not set, fetch it now
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        const userData = userDoc.data();
+                        
+                        sessionStorage.setItem('userId', user.uid);
+                        sessionStorage.setItem('userEmail', user.email);
+                        sessionStorage.setItem('userName', user.displayName);
+                        sessionStorage.setItem('userType', userData.userType);
+                        
+                        sessionStorage.removeItem('justRegistered');
+                        showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
 
-                    // Navigate using AuthService
-                    AuthService.navigateToDashboard(userData.userType);
+                        // Navigate using AuthService
+                        AuthService.navigateToDashboard(userData.userType);
+                    } else {
+                        // Session data already set, just show toast and navigate
+                        sessionStorage.removeItem('justRegistered');
+                        showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
+                        
+                        // Navigate using AuthService
+                        AuthService.navigateToDashboard(existingUserType);
+                    }
                 }
             }
         });
