@@ -364,39 +364,13 @@ document.addEventListener('DOMContentLoaded', function() {
         auth.onAuthStateChanged(async (user) => {
             updateHeader(user);
             
-            if (user && sessionStorage.getItem('autoLoggedIn') === 'true') {
+            if (user) {
                 if (userName) {
                     userName.textContent = user.displayName || "User";
                 }
-                const justRegistered = sessionStorage.getItem('justRegistered') === 'true';
-                if (justRegistered) {
-                    // Check if session data is already set (from registration auto-login)
-                    const existingUserType = sessionStorage.getItem('userType');
-                    
-                    if (!existingUserType) {
-                        // Session data not set, fetch it now
-                        const userDoc = await db.collection('users').doc(user.uid).get();
-                        const userData = userDoc.data();
-                        
-                        sessionStorage.setItem('userId', user.uid);
-                        sessionStorage.setItem('userEmail', user.email);
-                        sessionStorage.setItem('userName', user.displayName);
-                        sessionStorage.setItem('userType', userData.userType);
-                        
-                        sessionStorage.removeItem('justRegistered');
-                        showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
-
-                        // Navigate using AuthService
-                        AuthService.navigateToDashboard(userData.userType);
-                    } else {
-                        // Session data already set, just show toast and navigate
-                        sessionStorage.removeItem('justRegistered');
-                        showToast(`Welcome to RE-CAPS, ${user.displayName}! Your account has been created successfully.`);
-                        
-                        // Navigate using AuthService
-                        AuthService.navigateToDashboard(existingUserType);
-                    }
-                }
+                // Clear any leftover registration flags to prevent unexpected behavior
+                sessionStorage.removeItem('justRegistered');
+                sessionStorage.removeItem('autoLoggedIn');
             }
         });
     }

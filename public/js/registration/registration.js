@@ -113,6 +113,7 @@
         let maxReachedStep = 1;
         let userType = null; // 'student' or 'teacher'
         const completedSteps = new Set();
+        let registrationCompleted = false; // True once account is successfully created
         
         // Dynamic custom cursor tooltip element
         const cursorTooltip = document.createElement('div');
@@ -186,9 +187,8 @@
         
         // Helper function to check if registration is complete
         function isRegistrationComplete() {
-            // Registration is only complete if the success modal is shown
-            const successModal = document.getElementById('successModal');
-            return successModal && successModal.style.display === 'flex';
+            // Use the dedicated flag — the modal uses CSS classes (.active), not inline style.display
+            return registrationCompleted;
         }
         
         // Show confirmation dialog when user tries to leave with data
@@ -1614,6 +1614,7 @@
         
         function showSuccessModal(user) {
             currentUser = user;
+            registrationCompleted = true; // Mark complete BEFORE showing modal so beforeunload guard is disabled
             successModal.classList.add('active');
             
             setTimeout(() => {
@@ -1635,10 +1636,6 @@
         autoLoginBtn.addEventListener('click', async () => {
             try {
                 if (currentUser) {
-                    // Disable button to prevent double clicks
-                    autoLoginBtn.disabled = true;
-                    autoLoginBtn.textContent = 'Logging in...';
-                    
                     // Update last login timestamp
                     await db.collection('users').doc(currentUser.uid).update({
                         lastLogin: firebase.firestore.FieldValue.serverTimestamp()
@@ -1652,34 +1649,9 @@
                     sessionStorage.setItem('userEmail', currentUser.email);
                     sessionStorage.setItem('userName', currentUser.displayName);
                     sessionStorage.setItem('userType', userData.userType);
-                    sessionStorage.setItem('autoLoggedIn', 'true');
-                    sessionStorage.setItem('justRegistered', 'true');
                     
-                    // CRITICAL FIX: Ensure Firebase auth state is fully ready
-                    // Wait for onAuthStateChanged to confirm the user is authenticated
-                    return new Promise((resolve) => {
-                        const unsubscribe = auth.onAuthStateChanged((user) => {
-                            if (user && user.uid === currentUser.uid) {
-                                // Auth state confirmed - safe to navigate
-                                unsubscribe();
-                                console.log('✓ Auth state confirmed, navigating to dashboard...');
-                                
-                                // Add a small delay to ensure everything is ready
-                                setTimeout(() => {
-                                    AuthService.navigateToDashboard(userData.userType);
-                                    resolve();
-                                }, 300);
-                            }
-                        });
-                        
-                        // Timeout fallback in case auth state takes too long
-                        setTimeout(() => {
-                            console.warn('⚠ Auth state check timeout, navigating anyway...');
-                            unsubscribe();
-                            AuthService.navigateToDashboard(userData.userType);
-                            resolve();
-                        }, 3000);
-                    });
+                    // Redirect directly to user's dashboard
+                    AuthService.navigateToDashboard(userData.userType);
                 } else {
                     throw new Error('No user found');
                 }
