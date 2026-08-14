@@ -82,17 +82,29 @@ const RAGService = {
    * Transform Pinecone matches to project format
    */
   transformToProjects(matches) {
-    return matches.map(match => ({
-      id: match.id,
-      title: match.title || 'Untitled Project',
-      abstract: match.abstract || 'No abstract available',
-      year: match.year || 'N/A',
-      program: match.program || 'Unknown Program',
-      adviser: match.adviser || 'Unknown Adviser',
-      authors: match.authors ? match.authors.split(', ') : ['Unknown Author'],
-      keywords: match.keywords ? match.keywords.split(', ') : [],
-      relevanceScore: match.score || 0
-    }));
+    return matches.map(match => {
+      let abstract = match.abstract || '';
+      const text = match.text || '';
+      if (!abstract && text) {
+        const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+        if (abstractMatch && abstractMatch[1]) {
+          abstract = abstractMatch[1].trim();
+        } else {
+          abstract = text;
+        }
+      }
+      return {
+        id: match.id,
+        title: match.title || 'Untitled Project',
+        abstract: abstract || 'No abstract available',
+        year: match.year || 'N/A',
+        program: match.program || 'Unknown Program',
+        adviser: match.adviser || 'Unknown Adviser',
+        authors: match.authors ? (Array.isArray(match.authors) ? match.authors : match.authors.split(', ')) : ['Unknown Author'],
+        keywords: match.keywords ? (Array.isArray(match.keywords) ? match.keywords : match.keywords.split(', ')) : [],
+        relevanceScore: match.score || 0
+      };
+    });
   },
 
   /**
