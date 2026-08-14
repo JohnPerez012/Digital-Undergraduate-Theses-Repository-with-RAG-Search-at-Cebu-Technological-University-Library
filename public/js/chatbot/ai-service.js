@@ -18,7 +18,7 @@ const AIService = {
   /**
    * Search for relevant projects using RAG
    */
-  async searchRelevantProjects(query, topK = 5, minScore = 0.3) {
+  async searchRelevantProjects(query, topK = 8, minScore = 0.2) {
     try {
       console.log(`🔍 Searching for relevant projects...`);
       
@@ -48,24 +48,58 @@ const AIService = {
           if (match.id && match.id.includes('document_count')) return false;
           
           // Only include if score is high enough
-          return match.score >= minScore;
+          return (match.score || 0) >= minScore;
         });
         
         if (filteredMatches.length > 0) {
           console.log(`✓ Found ${filteredMatches.length} relevant projects for context (score >= ${minScore})`);
           
-          // Format for AI context
-          return filteredMatches.map(match => ({
-            id: match.id,
-            score: match.score,
-            title: match.title || 'Untitled',
-            abstract: match.abstract || '',
-            authors: match.authors || '',
-            year: match.year || '',
-            program: match.program || '',
-            adviser: match.adviser || '',
-            keywords: match.keywords || ''
-          }));
+          // Format for AI context with full abstract extraction
+          return filteredMatches.map(match => {
+            let abstract = match.abstract || '';
+            const text = match.text || '';
+            
+            // If abstract field is missing or empty, extract from text if present
+            if (!abstract && text) {
+              const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+              if (abstractMatch && abstractMatch[1]) {
+                abstract = abstractMatch[1].trim();
+              } else {
+                abstract = text;
+              }
+            }
+
+            let authors = match.authors || '';
+            if (!authors && text) {
+              const authorsMatch = text.match(/Authors?:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Adviser|Key Findings|Program):|\n\n|\*$|$))/i);
+              if (authorsMatch) authors = authorsMatch[1].trim();
+            }
+
+            let adviser = match.adviser || '';
+            if (!adviser && text) {
+              const adviserMatch = text.match(/Adviser:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+              if (adviserMatch) adviser = adviserMatch[1].trim();
+            }
+
+            let keywords = match.keywords || '';
+            if (!keywords && text) {
+              const kwMatch = text.match(/Keywords?:\s*([^]*?)(?=(?:\s*(?:Abstract|Adviser|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+              if (kwMatch) keywords = kwMatch[1].trim();
+            }
+
+            return {
+              id: match.id,
+              score: match.score,
+              title: match.title || 'Untitled',
+              abstract: abstract,
+              fullText: text || abstract,
+              authors: authors,
+              year: match.year || '',
+              program: match.program || '',
+              adviser: adviser,
+              keywords: keywords
+            };
+          });
         }
       }
       
@@ -84,7 +118,7 @@ const AIService = {
   async sendMessage(userMessage) {
     try {
       // Step 1: Search for relevant projects
-      const relevantProjects = await this.searchRelevantProjects(userMessage, 5, 0.3);
+      const relevantProjects = await this.searchRelevantProjects(userMessage, 8, 0.2);
       
       // Step 2: Send to AI with context
       console.log(`💬 Sending message to AI with ${relevantProjects.length} projects context`);

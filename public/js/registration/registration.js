@@ -508,8 +508,32 @@
                     googleUser = result.user;
                     verifiedEmail = googleUser.email;
                     
+                    // Check if account has BOTH Google and Password providers linked (fully registered)
+                    const providerIds = (googleUser.providerData || []).map(p => p.providerId);
+                    const hasGoogleProvider = providerIds.includes('google.com') || providerIds.includes(firebase.auth.GoogleAuthProvider.PROVIDER_ID);
+                    const hasPasswordProvider = providerIds.includes('password') || providerIds.includes(firebase.auth.EmailAuthProvider.PROVIDER_ID);
+
+                    let signInMethods = [];
+                    try {
+                        signInMethods = await auth.fetchSignInMethodsForEmail(googleUser.email);
+                    } catch (e) {
+                        console.warn('Could not fetch sign-in methods:', e);
+                    }
+
+                    const hasPasswordMethod = signInMethods.includes('password');
+                    const hasGoogleMethod = signInMethods.includes('google.com');
+
+                    // Check Firestore user document
                     const userDoc = await db.collection('users').doc(googleUser.uid).get();
-                    if (userDoc.exists) {
+                    const docData = userDoc.exists ? userDoc.data() : null;
+                    const docHasPassword = docData && Array.isArray(docData.authProviders) && docData.authProviders.includes('password');
+
+                    // An account is only already registered if it has BOTH providers (Google and email/password)
+                    const isFullyRegistered = (hasGoogleProvider && hasPasswordProvider) ||
+                                              (hasGoogleMethod && hasPasswordMethod) ||
+                                              (userDoc.exists && docHasPassword);
+
+                    if (isFullyRegistered) {
                         const existingEmail = googleUser.email;
                         await auth.signOut();
                         googleUser = null;
@@ -519,6 +543,9 @@
                         googleSignInBtn.style.display = 'none';
                         errorMessage.textContent = `The Google account "${existingEmail}" is already registered. Please login instead or use a different Google account.`;
                         accountExistsError.style.display = 'flex';
+                        if (window.showToast) {
+                            showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
+                        }
                         nextToStep4Btn.disabled = true;
                         return;
                     }
@@ -1467,20 +1494,37 @@
                     college = teacherCollegeInput.value;
                 }
 
-                // 3.2 Account De-duplication Check against local Simulated Database
-                const mockDb = JSON.parse(localStorage.getItem('reCapsMockUsers')) || [];
-                const emailExists = mockDb.some(u => u.email.toLowerCase() === verifiedEmail.toLowerCase());
-                const idExists = mockDb.some(u => {
-                    const existingId = u.studentId || u.teacherId;
-                    return existingId && existingId.toLowerCase() === registeredId.toLowerCase();
-                });
+                // 3.2 Provider verification: Check if account already has BOTH Google and Password providers
+                const providerIds = (googleUser.providerData || []).map(p => p.providerId);
+                const hasGoogleProvider = providerIds.includes('google.com') || providerIds.includes(firebase.auth.GoogleAuthProvider.PROVIDER_ID);
+                const hasPasswordProvider = providerIds.includes('password') || providerIds.includes(firebase.auth.EmailAuthProvider.PROVIDER_ID);
 
-                if (emailExists) {
+                let signInMethods = [];
+                try {
+                    signInMethods = await auth.fetchSignInMethodsForEmail(verifiedEmail);
+                } catch (e) {
+                    console.warn('Could not fetch sign-in methods:', e);
+                }
+
+                const isFullyRegistered = (hasGoogleProvider && hasPasswordProvider) ||
+                                          (signInMethods.includes('google.com') && signInMethods.includes('password'));
+
+                if (isFullyRegistered) {
                     showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
                     completeBtn.disabled = false;
                     completeBtn.textContent = 'Complete';
                     return;
                 }
+
+                // 3.2 Account De-duplication Check against local Simulated Database (ID collisions with other users)
+                const mockDb = JSON.parse(localStorage.getItem('reCapsMockUsers')) || [];
+                const idExists = mockDb.some(u => {
+                    if (u.uid === googleUser.uid || (u.email && u.email.toLowerCase() === verifiedEmail.toLowerCase())) {
+                        return false;
+                    }
+                    const existingId = u.studentId || u.teacherId;
+                    return existingId && existingId.toLowerCase() === registeredId.toLowerCase();
+                });
 
                 if (idExists) {
                     showToast(`⚠️ Validation Error: ID number (${registeredId}) is already taken.`, '❌');
@@ -1536,8 +1580,11 @@
                     console.error('Error linking password:', linkError);
                     if (linkError.code === 'auth/provider-already-linked') {
                         console.log('Password provider already linked');
-                    } else if (linkError.code === 'auth/email-already-in-use') {
-                        console.warn('Email already in use with password');
+                    } else if (linkError.code === 'auth/email-already-in-use' || linkError.code === 'auth/credential-already-in-use') {
+                        showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
+                        completeBtn.disabled = false;
+                        completeBtn.textContent = 'Complete';
+                        return;
                     } else {
                         throw linkError;
                     }
@@ -1590,9 +1637,10 @@
                     createdAt: new Date().toISOString()
                 };
 
-                // Commit to simulated local database
-                mockDb.push(localUserRecord);
-                localStorage.setItem('reCapsMockUsers', JSON.stringify(mockDb));
+                // Commit to simulated local database (replacing any stale/unlinked entry for this uid/email)
+                const updatedMockDb = mockDb.filter(u => u.uid !== user.uid && u.email.toLowerCase() !== verifiedEmail.toLowerCase());
+                updatedMockDb.push(localUserRecord);
+                localStorage.setItem('reCapsMockUsers', JSON.stringify(updatedMockDb));
 
                 // Success - trigger modal display
                 showSuccessModal(user);

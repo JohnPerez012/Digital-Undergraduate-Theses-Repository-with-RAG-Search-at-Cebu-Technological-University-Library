@@ -14,11 +14,20 @@ const Chatbot = {
   guestDialog: null,
   cachedConversations: null, // Cache for lazy-loaded conversations
   conversationsLoading: false, // Flag to prevent duplicate loads
+  initialized: false, // Flag to prevent double initialization
+  isSending: false, // Flag to prevent concurrent double sends
   
   /**
    * Create and inject guest dialog modal
    */
   createGuestDialog() {
+    // Check if guest dialog already exists
+    const existingDialog = document.getElementById('Guest-dialog');
+    if (existingDialog) {
+      this.guestDialog = existingDialog;
+      return;
+    }
+
     // Create guest dialog HTML
     const guestDialogHTML = `
       <div class="guest-dialog-modal" id="Guest-dialog">
@@ -215,6 +224,10 @@ const Chatbot = {
    * Initialize chatbot
    */
   init() {
+    if (this.initialized) {
+      return;
+    }
+    
     this.messagesContainer = document.getElementById('messages-container');
     this.userInput = document.getElementById('user-input');
     this.sendBtn = document.getElementById('send-btn');
@@ -223,11 +236,12 @@ const Chatbot = {
     this.clearBtn = document.getElementById('clear-btn');
     this.exportBtn = document.getElementById('export-btn');
 
-    
     if (!this.messagesContainer || !this.userInput || !this.sendBtn) {
       console.error('Chatbot elements not found');
       return;
     }
+    
+    this.initialized = true;
     
     // Create guest dialog
     this.createGuestDialog();
@@ -390,6 +404,11 @@ const Chatbot = {
    * Send message
    */
   async sendMessage() {
+    if (this.isSending) {
+      console.warn('⚠️ Send already in progress, ignoring duplicate trigger');
+      return;
+    }
+
     const message = this.userInput.value.trim();
     if (!message) return;
     
@@ -420,6 +439,8 @@ const Chatbot = {
       return;
     }
     
+    this.isSending = true;
+
     // Hide welcome screen
     if (this.welcomeScreen) {
       this.welcomeScreen.style.display = 'none';
@@ -487,6 +508,8 @@ const Chatbot = {
       console.error('Chatbot error:', error);
       this.hideTyping();
       this.addErrorMessage();
+    } finally {
+      this.isSending = false;
     }
   },
 
@@ -645,7 +668,7 @@ const Chatbot = {
         <div class="message-time">
           <span style="opacity: 0.6;">${providerName}</span> • ${this.getCurrentTime()}
         </div>
-        ${ragBadge}
+        // {ragBadge}
         <div class="message-actions">
           <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
