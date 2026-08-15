@@ -72,6 +72,21 @@
         },
 
         /**
+         * Wait for Firebase auth to initialize and return current user
+         * @returns {Promise<firebase.User|null>}
+         */
+        getCurrentUserAsync() {
+            if (typeof auth === 'undefined') return Promise.resolve(null);
+            if (auth.currentUser) return Promise.resolve(auth.currentUser);
+            return new Promise((resolve) => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    if (typeof unsubscribe === 'function') unsubscribe();
+                    resolve(user);
+                });
+            });
+        },
+
+        /**
          * Get user type from session storage or Firestore
          * @param {string} uid - User ID
          * @returns {Promise<string|null>}
@@ -86,7 +101,7 @@
 
             // Fetch from Firestore if not in session
             if (!uid) {
-                const user = this.getCurrentUser();
+                const user = await this.getCurrentUserAsync();
                 if (!user) return null;
                 uid = user.uid;
             }
@@ -96,9 +111,10 @@
                 
                 const doc = await db.collection('users').doc(uid).get();
                 if (doc.exists) {
-                    userType = doc.data().userType || null;
+                    const data = doc.data() || {};
+                    userType = data.userType || null;
                     if (userType) {
-                        this.cacheUserData(uid, doc.data());
+                        this.cacheUserData(uid, data);
                     }
                 }
                 return userType;
@@ -116,7 +132,7 @@
         cacheUserData(uid, userData) {
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_ID, uid);
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_EMAIL, userData.email || '');
-            sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_NAME, userData.displayName || '');
+            sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_NAME, userData.displayName || userData.fullName || '');
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_TYPE, userData.userType || '');
         },
 
@@ -246,10 +262,20 @@
 
         /**
          * Navigate to user's dashboard
-         * @param {string} userType - User role
-         * @param {boolean} replace - Use replaceState (default: false)
+         * @param {string} [userType] - User role (optional, will auto-detect if missing)
+         * @param {boolean} [replace] - Use replaceState (default: false)
          */
-        navigateToDashboard(userType, replace = false) {
+        async navigateToDashboard(userType = null, replace = false) {
+            if (!userType || !this.isValidRole(userType)) {
+                userType = await this.getUserType();
+            }
+
+            if (!userType || !this.isValidRole(userType)) {
+                console.warn('[AuthService] Could not determine user role for dashboard navigation, navigating home');
+                this.navigateToHome(replace);
+                return;
+            }
+
             const path = this.getDashboardPath(userType);
             
             if (replace) {

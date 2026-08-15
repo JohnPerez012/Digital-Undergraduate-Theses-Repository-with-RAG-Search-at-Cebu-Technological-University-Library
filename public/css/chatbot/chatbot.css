@@ -1389,6 +1389,29 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
+/* Response Streaming Blinking Cursor */
+.streaming-cursor {
+    display: inline-block;
+    width: 7px;
+    height: 15px;
+    background: #667eea;
+    margin-left: 4px;
+    vertical-align: middle;
+    border-radius: 2px;
+    animation: blink-cursor 0.75s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes blink-cursor {
+    0%, 100% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+    50% {
+        opacity: 0.15;
+        transform: scaleY(0.75);
+    }
+}
+
 .chatbot-fullpage .message.user .message-bubble {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
