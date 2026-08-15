@@ -401,7 +401,7 @@ const Chatbot = {
   },
 
   /**
-   * Send message
+   * Send message with real-time response streaming
    */
   async sendMessage() {
     if (this.isSending) {
@@ -465,49 +465,184 @@ const Chatbot = {
       counter.classList.remove('near-limit', 'at-limit');
     }
     
-    // Show typing indicator
+    // Show typing indicator while waiting for the first token
     this.showTyping();
+
+    let botMessageDiv = null;
+    let bubbleDiv = null;
+    let timeDiv = null;
+    let currentProvider = 'AI';
+    let hasCreatedMessage = false;
+    let fullAccumulatedText = '';
+
+    const createStreamingBotElement = (providerName) => {
+      if (hasCreatedMessage) return;
+      hasCreatedMessage = true;
+      this.hideTyping();
+
+      botMessageDiv = document.createElement('div');
+      botMessageDiv.className = 'message bot';
+
+      const providerLogo = this.getProviderLogo(providerName);
+
+      botMessageDiv.innerHTML = `
+        <div class="message-avatar" style="background: white; padding: 4px;">
+          <img src="${providerLogo}" 
+               alt="${providerName}" 
+               style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"
+               onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 40 40\\'><rect width=\\'40\\' height=\\'40\\' rx=\\'20\\' fill=\\'%23667eea\\'/><text x=\\'50%25\\' y=\\'54%25\\' font-family=\\'Inter,sans-serif\\' font-size=\\'13\\' font-weight=\\'700\\' fill=\\'white\\' text-anchor=\\'middle\\' dominant-baseline=\\'middle\\'>AI</text></svg>'">
+        </div>
+        <div class="message-content">
+          <div class="message-bubble"><span class="streaming-cursor"></span></div>
+          <div class="message-time">
+            <span class="provider-label" style="opacity: 0.6;">${providerName}</span> • ${this.getCurrentTime()}
+          </div>
+        </div>
+      `;
+
+      this.messagesContainer.appendChild(botMessageDiv);
+      bubbleDiv = botMessageDiv.querySelector('.message-bubble');
+      timeDiv = botMessageDiv.querySelector('.message-time');
+      this.scrollToBottom();
+      this.updateClearButtonVisibility();
+    };
     
     try {
-      // Get AI response with RAG
-      const response = await AIService.sendMessage(cleanMessage);
-      
-      // Hide typing indicator
-      this.hideTyping();
-      
-      // Extract plain text from response
-      const responseText = response.success
-        ? (response.response || '')
-        : (response.error || 'An error occurred.');
-      
-      // Clean the response text as well
-      const cleanResponseText = this.cleanMessageText(responseText);
-      
-      // Add bot message to buffer
-      this.conversationMessages.push({
-        role: 'bot',
-        text: cleanResponseText,
-        time: this.getCurrentTime(),
-      });
-      
-      // Add bot message to UI
-      this.addBotMessage(response);
-      
-      // Auto-save to Firestore
-      if (typeof ChatService !== 'undefined') {
-        const wasNewConversation = !ChatService.currentConversationId;
-        await ChatService.saveConversation(this.conversationMessages);
-        
-        // Invalidate cache if this was a new conversation
-        if (wasNewConversation && ChatService.currentConversationId) {
-          this.invalidateConversationCache();
+      // Stream AI response in real time
+      await AIService.sendMessageStream(cleanMessage, {
+        onStart: (info) => {
+          currentProvider = info.provider || 'AI';
+          createStreamingBotElement(currentProvider);
+        },
+        onToken: (token, accumulatedText, info) => {
+          fullAccumulatedText = accumulatedText;
+          if (!hasCreatedMessage) {
+            currentProvider = info?.provider || 'AI';
+            createStreamingBotElement(currentProvider);
+          }
+
+          if (bubbleDiv) {
+            let formatted = '';
+            if (typeof MessageFormatter !== 'undefined') {
+              formatted = MessageFormatter.formatComplete(accumulatedText, currentProvider);
+            } else {
+              formatted = this.formatMessage(accumulatedText);
+            }
+
+            bubbleDiv.innerHTML = formatted + `<span class="streaming-cursor"></span>`;
+            this.scrollToBottom();
+          }
+        },
+        onDone: async (result) => {
+          this.hideTyping();
+          const finalProvider = result.provider || currentProvider || 'AI';
+          const finalRawText = result.response || fullAccumulatedText || '';
+
+          if (!hasCreatedMessage) {
+            createStreamingBotElement(finalProvider);
+          }
+
+          // Update provider logo & label if it changed during fallback
+          const avatarImg = botMessageDiv ? botMessageDiv.querySelector('.message-avatar img') : null;
+          if (avatarImg) {
+            avatarImg.src = this.getProviderLogo(finalProvider);
+            avatarImg.alt = finalProvider;
+          }
+          const providerLabel = botMessageDiv ? botMessageDiv.querySelector('.provider-label') : null;
+          if (providerLabel) {
+            providerLabel.textContent = finalProvider;
+          }
+
+          // Format final response
+          let formattedMessage = '';
+          if (typeof MessageFormatter !== 'undefined') {
+            formattedMessage = MessageFormatter.formatComplete(finalRawText, finalProvider);
+          } else {
+            formattedMessage = this.formatMessage(finalRawText);
+          }
+
+          if (bubbleDiv) {
+            bubbleDiv.innerHTML = formattedMessage;
+          }
+
+          // Check for RAG project usage
+          const relevantProjects = result.relevantProjects || [];
+          if (relevantProjects.length > 0 && this.detectProjectUsage(finalRawText, relevantProjects)) {
+            const ragBadge = document.createElement('div');
+            ragBadge.style.cssText = 'display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;';
+            ragBadge.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+              ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
+            `;
+            const contentDiv = botMessageDiv.querySelector('.message-content');
+            if (contentDiv) contentDiv.appendChild(ragBadge);
+          }
+
+          // Add Copy Action Button
+          const actionsDiv = document.createElement('div');
+          actionsDiv.className = 'message-actions';
+          actionsDiv.innerHTML = `
+            <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy
+            </button>
+          `;
+          const contentDiv = botMessageDiv ? botMessageDiv.querySelector('.message-content') : null;
+          if (contentDiv) contentDiv.appendChild(actionsDiv);
+
+          // Add clean bot message to buffer
+          const cleanResponseText = this.cleanMessageText(finalRawText);
+          this.conversationMessages.push({
+            role: 'bot',
+            text: cleanResponseText,
+            time: this.getCurrentTime(),
+          });
+
+          // Auto-save to Firestore
+          if (typeof ChatService !== 'undefined') {
+            const wasNewConversation = !ChatService.currentConversationId;
+            await ChatService.saveConversation(this.conversationMessages);
+            
+            // Invalidate cache if this was a new conversation
+            if (wasNewConversation && ChatService.currentConversationId) {
+              this.invalidateConversationCache();
+            }
+          }
+
+          this.scrollToBottom();
+        },
+        onError: (err) => {
+          this.hideTyping();
+          console.error('Streaming error caught in UI:', err);
+          if (!hasCreatedMessage) {
+            this.addErrorMessage();
+          } else if (bubbleDiv) {
+            bubbleDiv.innerHTML += `
+              <div class="error-message" style="margin-top: 0.75rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <div>${this.escapeHtml(err.message || 'Stream interrupted. Please try again.')}</div>
+              </div>
+            `;
+          }
+          this.scrollToBottom();
         }
-      }
+      });
       
     } catch (error) {
       console.error('Chatbot error:', error);
       this.hideTyping();
-      this.addErrorMessage();
+      if (!hasCreatedMessage) {
+        this.addErrorMessage();
+      }
     } finally {
       this.isSending = false;
     }

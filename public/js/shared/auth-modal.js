@@ -295,14 +295,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Dashboard Row Navigation
         const pdDashboardRow = document.getElementById('pd-dashboard-row');
         if (pdDashboardRow) {
-            pdDashboardRow.addEventListener('click', () => {
-                const userType = sessionStorage.getItem('userType');
+            pdDashboardRow.addEventListener('click', async () => {
+                let userType = sessionStorage.getItem('userType');
+                if (!userType && window.AuthService) {
+                    userType = await AuthService.getUserType();
+                }
                 
                 // Use AuthService
-                if (AuthService.isOnCorrectDashboard(userType)) {
+                if (window.AuthService && AuthService.isOnCorrectDashboard(userType)) {
                     closeDropdown();
-                } else {
-                    AuthService.navigateToDashboard(userType);
+                } else if (window.AuthService) {
+                    await AuthService.navigateToDashboard(userType);
                 }
             });
         }
@@ -366,7 +369,15 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (user) {
                 if (userName) {
-                    userName.textContent = user.displayName || "User";
+                    userName.textContent = user.displayName || sessionStorage.getItem('userName') || "User";
+                }
+                // Pre-fetch and cache user profile in session storage
+                if (window.AuthService) {
+                    await AuthService.getUserType(user.uid);
+                    if (userName && !user.displayName) {
+                        const cachedName = sessionStorage.getItem('userName');
+                        if (cachedName) userName.textContent = cachedName;
+                    }
                 }
                 // Clear any leftover registration flags to prevent unexpected behavior
                 sessionStorage.removeItem('justRegistered');

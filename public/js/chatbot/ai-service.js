@@ -113,79 +113,175 @@ const AIService = {
   },
   
   /**
-   * Send message to AI with RAG context and 4-tier fallback
+   * Send message to AI with RAG context and real-time response streaming (word-by-word)
+   * @param {string} userMessage - Message from user
+   * @param {Object} callbacks - { onStart, onToken, onDone, onError }
    */
-  async sendMessage(userMessage) {
+  async sendMessageStream(userMessage, callbacks = {}) {
+    const { onStart, onToken, onDone, onError } = callbacks;
+
     try {
-      // Step 1: Search for relevant projects
+      // Step 1: Search for relevant projects using Pinecone RAG
       const relevantProjects = await this.searchRelevantProjects(userMessage, 8, 0.2);
       
-      // Step 2: Send to AI with context
-      console.log(`💬 Sending message to AI with ${relevantProjects.length} projects context`);
+      console.log(`💬 Streaming message to AI with ${relevantProjects.length} projects context`);
       
+      // Step 2: Send request with stream: true
       const response = await fetch(`${this.API_BASE_URL}/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream'
         },
         body: JSON.stringify({
           message: userMessage,
           conversationHistory: this.conversationHistory,
-          relevantProjects: relevantProjects
+          relevantProjects: relevantProjects,
+          stream: true
         })
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        if (response.status === 503) {
-          // All providers failed
-          return {
-            success: false,
-            error: 'All AI providers are currently busy. Please try again in a moment.',
-            fallbackMessage: errorData.fallbackMessage
-          };
+        let errorMsg = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.fallbackMessage || errorData.error || errorMsg;
+        } catch (e) {
+          const rawText = await response.text().catch(() => '');
+          if (rawText) errorMsg = rawText;
         }
-        
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        throw new Error(errorMsg);
       }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        // Update conversation history
+
+      if (!response.body) {
+        throw new Error('ReadableStream not supported by this browser/network response');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let accumulatedText = '';
+      let providerInfo = { provider: 'AI', providerKey: 'ai', attemptNumber: 1 };
+      let isCompleted = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // keep partial trailing line
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+          const dataStr = trimmed.slice(5).trim();
+          if (dataStr === '[DONE]') {
+            isCompleted = true;
+            break;
+          }
+
+          try {
+            const data = JSON.parse(dataStr);
+
+            if (data.type === 'start') {
+              providerInfo = {
+                provider: data.provider || 'AI',
+                providerKey: data.providerKey || 'ai',
+                attemptNumber: data.attemptNumber || 1
+              };
+              if (typeof onStart === 'function') {
+                onStart(providerInfo);
+              }
+            } else if (data.type === 'token') {
+              accumulatedText += data.content;
+              if (typeof onToken === 'function') {
+                onToken(data.content, accumulatedText, providerInfo);
+              }
+            } else if (data.type === 'done') {
+              isCompleted = true;
+              const finalResult = {
+                success: true,
+                response: data.fullResponse || accumulatedText,
+                provider: data.provider || providerInfo.provider,
+                providerKey: data.providerKey || providerInfo.providerKey,
+                attemptNumber: data.attemptNumber || providerInfo.attemptNumber,
+                projectsUsed: relevantProjects.length,
+                relevantProjects: relevantProjects
+              };
+
+              // Update conversation history
+              this.conversationHistory.push(
+                { role: 'user', content: userMessage },
+                { role: 'assistant', content: finalResult.response }
+              );
+
+              // Keep only last 20 messages (10 turns) to prevent context overflow
+              if (this.conversationHistory.length > 20) {
+                this.conversationHistory = this.conversationHistory.slice(-20);
+              }
+
+              console.log(`✓ AI response streaming finished via ${finalResult.provider}`);
+
+              if (typeof onDone === 'function') {
+                onDone(finalResult);
+              }
+              return finalResult;
+            } else if (data.type === 'error') {
+              throw new Error(data.error || 'AI provider streaming failed');
+            }
+          } catch (jsonErr) {
+            if (jsonErr.message && !jsonErr.message.includes('JSON')) {
+              throw jsonErr;
+            }
+          }
+        }
+      }
+
+      // Stream closed naturally without explicit 'done' event
+      const finalResult = {
+        success: true,
+        response: accumulatedText,
+        provider: providerInfo.provider,
+        providerKey: providerInfo.providerKey,
+        attemptNumber: providerInfo.attemptNumber,
+        projectsUsed: relevantProjects.length,
+        relevantProjects: relevantProjects
+      };
+
+      if (accumulatedText) {
         this.conversationHistory.push(
           { role: 'user', content: userMessage },
-          { role: 'assistant', content: data.response }
+          { role: 'assistant', content: accumulatedText }
         );
-        
-        // Keep only last 10 messages to prevent context overflow
         if (this.conversationHistory.length > 20) {
           this.conversationHistory = this.conversationHistory.slice(-20);
         }
-        
-        console.log(`✓ AI responded via ${data.provider} (attempt ${data.attemptNumber})`);
-        
-        return {
-          success: true,
-          response: data.response,
-          provider: data.provider,
-          providerKey: data.providerKey,
-          attemptNumber: data.attemptNumber,
-          projectsUsed: data.projectsUsed,
-          relevantProjects: relevantProjects
-        };
       }
-      
-      throw new Error('Invalid response from server');
-      
+
+      if (typeof onDone === 'function') {
+        onDone(finalResult);
+      }
+      return finalResult;
+
     } catch (error) {
-      console.error('❌ AI Service error:', error);
+      console.error('❌ AI Service streaming error:', error);
+      if (typeof onError === 'function') {
+        onError(error);
+      }
       return {
         success: false,
-        error: error.message || 'Failed to get AI response'
+        error: error.message || 'Failed to get AI streaming response'
       };
     }
+  },
+
+  /**
+   * Send message to AI (wrapper that supports both streaming and non-streaming)
+   */
+  async sendMessage(userMessage) {
+    return this.sendMessageStream(userMessage);
   },
   
   /**
