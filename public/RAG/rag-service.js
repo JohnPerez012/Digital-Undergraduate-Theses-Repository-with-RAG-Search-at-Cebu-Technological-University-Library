@@ -86,7 +86,7 @@ const RAGService = {
       let abstract = match.abstract || '';
       const text = match.text || '';
       if (!abstract && text) {
-        const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+        const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Program):|\n\n|\*$|$))/i);
         if (abstractMatch && abstractMatch[1]) {
           abstract = abstractMatch[1].trim();
         } else {

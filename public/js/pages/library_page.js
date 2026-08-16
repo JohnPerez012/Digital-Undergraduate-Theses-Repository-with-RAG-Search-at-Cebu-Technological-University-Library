@@ -272,7 +272,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 year: data.year,
                                 program: data.program,
                                 status: data.status,
-                                keyFindings: data.keyFindings,
                                 createdAt: data.createdAt,
                                 updatedAt: data.updatedAt
                             }));

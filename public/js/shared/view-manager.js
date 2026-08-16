@@ -292,11 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3 class="section-title">ABSTRACT</h3>
                 <p class="section-text">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
             </div>
-            
-            <div class="project-section">
-                <h3 class="section-title">KEY FINDINGS</h3>
-                <p class="section-text">${escapeHtml(project.keyFindings || 'No findings information available.')}</p>
-            </div>
         `;
 
         detailsSidebar.innerHTML = `

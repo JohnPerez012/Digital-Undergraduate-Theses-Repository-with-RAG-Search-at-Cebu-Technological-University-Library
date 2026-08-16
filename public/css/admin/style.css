@@ -572,7 +572,7 @@ body {
     text-align: left;
     font-weight: 600;
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border);
@@ -615,7 +615,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 8px;
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 0.85rem;
@@ -651,7 +651,7 @@ body {
 
 .action-btn.action-delete,
 .action-btn.delete {
-    color: var(--admin-danger);
+    color: var(--text-secondary);
     border-color: rgba(239, 68, 68, 0.3);
 }
 
@@ -1465,7 +1465,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 20px;
     background: var(--background);
-    color: var(--text-secondary);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.875rem;

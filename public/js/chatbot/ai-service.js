@@ -61,7 +61,7 @@ const AIService = {
             
             // If abstract field is missing or empty, extract from text if present
             if (!abstract && text) {
-              const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+              const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Program):|\n\n|\*$|$))/i);
               if (abstractMatch && abstractMatch[1]) {
                 abstract = abstractMatch[1].trim();
               } else {
@@ -71,19 +71,19 @@ const AIService = {
 
             let authors = match.authors || '';
             if (!authors && text) {
-              const authorsMatch = text.match(/Authors?:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Adviser|Key Findings|Program):|\n\n|\*$|$))/i);
+              const authorsMatch = text.match(/Authors?:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Adviser|Program):|\n\n|\*$|$))/i);
               if (authorsMatch) authors = authorsMatch[1].trim();
             }
 
             let adviser = match.adviser || '';
             if (!adviser && text) {
-              const adviserMatch = text.match(/Adviser:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+              const adviserMatch = text.match(/Adviser:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Authors|Program):|\n\n|\*$|$))/i);
               if (adviserMatch) adviser = adviserMatch[1].trim();
             }
 
             let keywords = match.keywords || '';
             if (!keywords && text) {
-              const kwMatch = text.match(/Keywords?:\s*([^]*?)(?=(?:\s*(?:Abstract|Adviser|Authors|Key Findings|Program):|\n\n|\*$|$))/i);
+              const kwMatch = text.match(/Keywords?:\s*([^]*?)(?=(?:\s*(?:Abstract|Adviser|Authors|Program):|\n\n|\*$|$))/i);
               if (kwMatch) keywords = kwMatch[1].trim();
             }
 
