@@ -1774,7 +1774,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 adviser: data.adviser || '',
                 status: data.status || 'Completed',
                 abstract: data.abstract || '',
-                keyFindings: data.keyFindings || '',
                 topics: editTopics,
                 keywords: editKeywords
             };
@@ -1788,7 +1787,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-adviser-input').value = data.adviser || '';
             document.getElementById('project-status-select').value = data.status || 'Completed';
             document.getElementById('project-abstract-input').value = data.abstract || '';
-            document.getElementById('project-findings-input').value = data.keyFindings || '';
 
             // Populate dynamic fields
             initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
@@ -2069,8 +2067,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     status: document.getElementById('project-status-select').value,
                     abstract: document.getElementById('project-abstract-input').value,
                     topics: getDynamicValues('topics-container'),
-                    keywords: getDynamicValues('keywords-container'),
-                    keyFindings: document.getElementById('project-findings-input').value
+                    keywords: getDynamicValues('keywords-container')
                 };
                 localStorage.setItem('admin_project_draft', JSON.stringify(draft));
                 showToast('Draft auto-saved', '💾');
@@ -2212,7 +2209,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('project-program-select').value = d.program || '';
                     document.getElementById('project-status-select').value = d.status || 'Completed';
                     document.getElementById('project-abstract-input').value = d.abstract || '';
-                    document.getElementById('project-findings-input').value = d.keyFindings || '';
                     initDynamicContainers({ authors: d.authors || [], topics: d.topics || [], keywords: d.keywords || [] });
                     showToast('Draft restored ✨', 'ℹ️');
                 } catch { initDynamicContainers(); }
@@ -2332,10 +2328,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const abstract = document.getElementById('project-abstract-input')?.value.trim();
         const topics = getDynamicValues('topics-container');
         const keywords = getDynamicValues('keywords-container');
-        const keyFindings = document.getElementById('project-findings-input')?.value.trim();
 
         return title || authors.length > 0 || program || adviser || abstract || 
-               topics.length > 0 || keywords.length > 0 || keyFindings;
+               topics.length > 0 || keywords.length > 0;
     }
 
     // Check if form has changes from original data
@@ -2350,7 +2345,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             adviser: document.getElementById('project-adviser-input')?.value.trim() || '',
             status: document.getElementById('project-status-select')?.value || '',
             abstract: document.getElementById('project-abstract-input')?.value.trim() || '',
-            keyFindings: document.getElementById('project-findings-input')?.value.trim() || '',
             topics: getDynamicValues('topics-container'),
             keywords: getDynamicValues('keywords-container')
         };
@@ -2363,7 +2357,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentData.adviser !== originalFormData.adviser) return true;
         if (currentData.status !== originalFormData.status) return true;
         if (currentData.abstract !== originalFormData.abstract) return true;
-        if (currentData.keyFindings !== originalFormData.keyFindings) return true;
         if (JSON.stringify(currentData.topics) !== JSON.stringify(originalFormData.topics)) return true;
         if (JSON.stringify(currentData.keywords) !== JSON.stringify(originalFormData.keywords)) return true;
 
@@ -2381,7 +2374,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             adviser: document.getElementById('project-adviser-input')?.value.trim() || '',
             status: document.getElementById('project-status-select')?.value || '',
             abstract: document.getElementById('project-abstract-input')?.value.trim() || '',
-            keyFindings: document.getElementById('project-findings-input')?.value.trim() || '',
             topics: getDynamicValues('topics-container'),
             keywords: getDynamicValues('keywords-container')
         };
@@ -2413,13 +2405,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 field: 'Abstract', 
                 old: originalFormData.abstract ? (originalFormData.abstract.substring(0, 100) + '...') : 'None', 
                 new: currentData.abstract ? (currentData.abstract.substring(0, 100) + '...') : 'None'
-            });
-        }
-        if (currentData.keyFindings !== originalFormData.keyFindings) {
-            changes.push({ 
-                field: 'Key Findings', 
-                old: originalFormData.keyFindings || 'None', 
-                new: currentData.keyFindings || 'None'
             });
         }
         if (JSON.stringify(currentData.topics) !== JSON.stringify(originalFormData.topics)) {
@@ -2560,7 +2545,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             const abstract = document.getElementById('project-abstract-input').value.trim();
             const topics = getDynamicValues('topics-container');
             const keywords = getDynamicValues('keywords-container');
-            const keyFindings = document.getElementById('project-findings-input').value.trim();
 
             // Validation
             if (authors.length === 0) {
@@ -2599,7 +2583,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         async () => {
                             // User confirmed, proceed with update
                             showToast('Updating project...', 'ℹ️');
-                            await performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords, keyFindings);
+                            await performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords);
                         },
                         'Apply Changes',
                         'btn-primary'
@@ -2607,7 +2591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     // CREATE MODE: Proceed directly
                     showToast('Creating project...', 'ℹ️');
-                    await performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords, keyFindings);
+                    await performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords);
                 }
             } catch (error) {
                 console.error('Error in form submission:', error);
@@ -2617,7 +2601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Separate function for performing project update
-    async function performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords, keyFindings) {
+    async function performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords) {
         try {
             // Fetch existing data
             const currentDoc = await db.collection('projects').doc(projectId).get();
@@ -2640,7 +2624,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if ((oldData.adviser || '') !== adviser) changedFields.push('adviser');
             if ((oldData.status || '') !== status) changedFields.push('status');
             if ((oldData.abstract || '') !== abstract) changedFields.push('abstract');
-            if ((oldData.keyFindings || '') !== keyFindings) changedFields.push('keyFindings');
             if (JSON.stringify(oldData.topics || []) !== JSON.stringify(topics)) changedFields.push('topics');
             if (JSON.stringify(oldData.keywords || []) !== JSON.stringify(keywords)) changedFields.push('keywords');
 
@@ -2655,7 +2638,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 abstract,
                 topics,
                 keywords,
-                keyFindings,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection('projects').doc(projectId).update(updatedData);
@@ -2734,7 +2716,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Separate function for performing project creation
-    async function performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords, keyFindings) {
+    async function performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords) {
         try {
             // Create in Firestore
             const newProject = {
@@ -2747,7 +2729,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 abstract,
                 topics,
                 keywords,
-                keyFindings,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
