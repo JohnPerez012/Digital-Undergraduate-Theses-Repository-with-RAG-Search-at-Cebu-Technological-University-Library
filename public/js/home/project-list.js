@@ -3,9 +3,27 @@ window.ProjectList = {
     displaySearchResults: function(projects, query, isRAGSearch = false) {
         console.log(`📋 Displaying ${projects.length} search results (RAG: ${isRAGSearch})`);
         
+        // Store the search query for highlighting (only for traditional search)
+        window.currentSearchQuery = isRAGSearch ? null : query;
+        
         // Update the internal allProjects array
         if (typeof updateProjectsForSearch === 'function') {
             updateProjectsForSearch(projects, isRAGSearch);
+        }
+    },
+    
+    loadProjects: function() {
+        // Clear search query and RAG flag when loading all projects
+        window.currentSearchQuery = null;
+        
+        // Also clear the isRAGResults flag via updateProjectsForSearch
+        if (typeof clearSearchStateWrapper === 'function') {
+            clearSearchStateWrapper();
+        }
+        
+        // Expose fetchProjects to external modules
+        if (typeof fetchProjectsWrapper === 'function') {
+            fetchProjectsWrapper();
         }
     }
 };
@@ -74,6 +92,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     const PROJECTS_PER_PAGE = 9;
     let isRAGResults = false; // Track if current results are from RAG
+    
+    /**
+     * Highlight search terms in text (only for traditional search, not AI semantic)
+     * @param {string} text - The text to highlight
+     * @param {string} query - The search query
+     * @returns {string} - HTML string with highlighted terms
+     */
+    function highlightSearchTerms(text, query) {
+        if (!query || !text) return text;
+        
+        // Escape HTML in original text first
+        const escapeHtml = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
+        
+        const escapedText = escapeHtml(text);
+        
+        // Escape special regex characters in query
+        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedQuery = escapeRegex(query);
+        
+        // Create regex for case-insensitive matching
+        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        
+        // Replace matches with highlighted version
+        return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
     
     // Function to load saved projects from Firestore
     async function loadSavedProjectsFromFirestore(userId) {
@@ -488,6 +535,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const program = data.program || 'Unknown Program';
             const abstract = data.abstract || 'The abstract is not available.';
             
+            // Apply highlighting only if we have a search query and it's NOT from AI semantic search
+            const shouldHighlight = window.currentSearchQuery && !isRAGResults;
+            const displayTitle = shouldHighlight ? highlightSearchTerms(title, window.currentSearchQuery) : title;
+            const displayAuthors = shouldHighlight ? highlightSearchTerms(authorsStr, window.currentSearchQuery) : authorsStr;
+            const displayProgram = shouldHighlight ? highlightSearchTerms(program, window.currentSearchQuery) : program;
+            const displayAbstract = shouldHighlight ? highlightSearchTerms(abstract, window.currentSearchQuery) : abstract;
+            
             const isSaved = savedProjectIds.includes(projectId);
             const saveBtnClass = isSaved ? 'btn-save saved' : 'btn-save';
             const saveBtnText = isSaved ? 'Saved' : 'Save';
@@ -513,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             card.innerHTML = `
                 <div class="project-header">
-                    <h3 class="project-title">${title}</h3>
+                    <h3 class="project-title">${displayTitle}</h3>
                     <div class="project-header-right">
                         <span class="project-year">${year}</span>
                         ${relevanceBadge}
@@ -521,12 +575,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="project-meta">
                     <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                    <span class="authors">${authorsStr}</span>
+                    <span class="authors">${displayAuthors}</span>
                     <svg class="meta-icon program-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
-                    <span class="program">${program}</span>
+                    <span class="program">${displayProgram}</span>
                 </div>
                 <div class="project-abstract">
-                    ${abstract}
+                    ${displayAbstract}
                 </div>
                 <div class="project-actions">
                     <button class="${saveBtnClass}" type="button" data-id="${projectId}">
@@ -681,6 +735,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize
+    
+    // Wrapper function to clear search state
+    window.clearSearchStateWrapper = function() {
+        window.currentSearchQuery = null;
+        isRAGResults = false;
+    };
+    
+    // Wrapper function for external access
+    window.fetchProjectsWrapper = async function() {
+        // Ensure search query is cleared before fetching
+        window.currentSearchQuery = null;
+        isRAGResults = false;
+        
+        await fetchProjects();
+        await fetchProjectsCount(); // Update the total count display
+    };
+    
     fetchProjectsCount();
     fetchProjects();
     // fetchAndCacheUsers(); error insufficient permissions for non-login users, so we only fetch when a user is signed in and has access to the users collection.

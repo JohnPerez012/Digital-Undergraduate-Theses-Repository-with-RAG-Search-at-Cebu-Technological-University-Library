@@ -15,6 +15,7 @@ const SearchHandler = {
   init() {
     const searchInput = document.querySelector('.search-input');
     const searchBtn = document.querySelector('.search-btn');
+    const searchClearBtn = document.querySelector('.search-clear-btn');
     const aiToggle = document.querySelector('.ai-toggle-input');
     
     if (!searchInput || !searchBtn) {
@@ -28,6 +29,25 @@ const SearchHandler = {
       if (query) {
         this.performSearch(query);
         this.saveSearchHistory(query);
+      }
+    });
+    
+    // Handle clear button click
+    if (searchClearBtn) {
+      searchClearBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.clearSearch(searchInput, searchClearBtn);
+      });
+    }
+    
+    // Show/hide clear button based on input
+    searchInput.addEventListener('input', () => {
+      if (searchClearBtn) {
+        if (searchInput.value.trim()) {
+          searchClearBtn.style.display = 'flex';
+        } else {
+          searchClearBtn.style.display = 'none';
+        }
       }
     });
     
@@ -74,6 +94,43 @@ const SearchHandler = {
     }
     
     console.log('✓ Search handler initialized with AI semantic search support');
+  },
+  
+  /**
+   * Clear search input and reset view
+   */
+  clearSearch(searchInput, searchClearBtn) {
+    // Clear the input
+    searchInput.value = '';
+    
+    // Hide the clear button
+    if (searchClearBtn) {
+      searchClearBtn.style.display = 'none';
+    }
+    
+    // Show loading state briefly
+    const container = document.getElementById('projects-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="loading-text" style="text-align: center; padding: 3rem;">
+          <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px; border: 3px solid rgba(74, 143, 216, 0.2); border-top-color: #4a8fd8; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          <p style="animation: loadingPulse 1.5s ease-in-out infinite;">Loading all projects...</p>
+        </div>
+      `;
+    }
+    
+    // Focus back on input
+    searchInput.focus();
+    
+    // Reload all projects (reset to default view) without page refresh
+    if (typeof window.ProjectList !== 'undefined' && typeof window.ProjectList.loadProjects === 'function') {
+      window.ProjectList.loadProjects();
+    } else {
+      console.warn('ProjectList.loadProjects not available, reloading page...');
+      location.reload();
+    }
+    
+    console.log('✓ Search cleared');
   },
   
   /**

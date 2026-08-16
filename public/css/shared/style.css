@@ -842,6 +842,7 @@ html.auth-cached-logged-in #profile-link {
 }
 
 .search-bar {
+    position: relative;
     display: flex;
     align-items: center;
     background-color: #ffffff;
@@ -888,6 +889,39 @@ html.auth-cached-logged-in #profile-link {
 .search-btn:hover {
     background-color: var(--primary-dark);
     transform: scale(1.05);
+}
+
+/* Search Clear Button */
+.search-clear-btn {
+    position: absolute;
+    right: 70px; /* Position it before the search button */
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+}
+
+.search-clear-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
+[data-theme="dark"] .search-clear-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.search-clear-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* AI Search Toggle */
