@@ -52,7 +52,7 @@ const ChatService = {
     };
 
     try {
-      if (this.currentConversationId) {
+      if (this.currentConversationId && typeof this.currentConversationId === 'string' && this.currentConversationId.trim()) {
         // Update existing conversation
         await db.collection('conversations')
           .doc(this.currentConversationId)
@@ -107,6 +107,11 @@ const ChatService = {
     const user = this.getCurrentUser();
     if (!user) return;
 
+    if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      console.warn('ChatService: deleteConversation called with invalid conversationId:', conversationId);
+      return;
+    }
+
     const db = firebase.firestore();
     try {
       await db.collection('conversations').doc(conversationId).delete();
@@ -117,6 +122,7 @@ const ChatService = {
       }
     } catch (error) {
       console.error('ChatService delete error:', error);
+      throw error;
     }
   },
 
@@ -128,6 +134,11 @@ const ChatService = {
   async loadConversation(conversationId) {
     const user = this.getCurrentUser();
     if (!user) return null;
+
+    if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+      console.warn('ChatService: loadConversation called with invalid conversationId:', conversationId);
+      return null;
+    }
 
     const db = firebase.firestore();
     try {

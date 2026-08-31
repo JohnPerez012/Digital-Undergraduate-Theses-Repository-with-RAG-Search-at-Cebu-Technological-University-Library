@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -191,6 +191,7 @@
     <script src="js/shared/scroll-aware-header.js"></script>
     <script src="js/shared/scroll-state-manager.js"></script>
     <script src="js/home/ai-particles.js"></script>
+    <script src="js/home/cinematic-slider.js"></script>
     
     <style>
         /* Unified View Styles with Smooth Transitions */
@@ -285,6 +286,11 @@
         <!-- Home/Search View -->
         <div id="home-view" class="view-mode-container active">
             <section class="search-section">
+                <!-- Cinematic Slider Background -->
+                <div class="slider-background">
+                    <div class="slide-track" id="slideTrack"></div>
+                </div>
+                
                 <canvas class="ai-particles-canvas" id="ai-particles-canvas"></canvas>
                 <div class="container">
                     <div class="search-container">
@@ -953,20 +959,31 @@
         async function executeDeleteHistory() {
             if (!pendingDeleteConversationId) return;
             
+            const conversationIdToDelete = pendingDeleteConversationId;
+            const elementToRemove = pendingDeleteConversationElement;
+            
             closeChatbotModal('delete-history-modal');
             
             try {
                 if (typeof ChatService !== 'undefined') {
-                    await ChatService.deleteConversation(pendingDeleteConversationId);
+                    await ChatService.deleteConversation(conversationIdToDelete);
                 }
                 
                 if (typeof Chatbot !== 'undefined') {
                     Chatbot.invalidateConversationCache();
+                    
+                    // If the deleted conversation was the active one, start a fresh conversation
+                    if (sessionStorage.getItem('lastViewedConversation') === conversationIdToDelete) {
+                        sessionStorage.removeItem('lastViewedConversation');
+                        if (typeof Chatbot.startNewConversation === 'function') {
+                            Chatbot.startNewConversation();
+                        }
+                    }
                 }
                 
                 // Remove the conversation element from the list
-                if (pendingDeleteConversationElement) {
-                    pendingDeleteConversationElement.remove();
+                if (elementToRemove) {
+                    elementToRemove.remove();
                 }
                 
                 // Check if history is now empty
@@ -985,13 +1002,16 @@
                     }
                 }
                 
+                if (typeof showToast === 'function') {
+                    showToast('Conversation deleted successfully', 'success');
+                }
             } catch (error) {
                 console.error('Failed to delete conversation:', error);
-                alert('Failed to delete conversation. Please try again.');
-            } finally {
-                // Clean up
-                pendingDeleteConversationId = null;
-                pendingDeleteConversationElement = null;
+                if (typeof showToast === 'function') {
+                    showToast('Failed to delete conversation', 'error');
+                } else {
+                    alert('Failed to delete conversation. Please try again.');
+                }
             }
         }
 

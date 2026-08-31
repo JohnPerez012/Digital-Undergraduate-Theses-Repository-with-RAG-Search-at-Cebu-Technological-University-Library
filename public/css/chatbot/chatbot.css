@@ -3,12 +3,12 @@
    ===================================== */
 
 :root {
-    --chatbot-primary: #667eea;
-    --chatbot-primary-dark: #5568d3;
-    --chatbot-secondary: #764ba2;
-    --chatbot-success: #10b981;
+    --chatbot-primary: #08D488;
+    --chatbot-primary-dark: #069F66;
+    --chatbot-secondary: #FCCC56;
+    --chatbot-success: #08D488;
     --chatbot-danger: #ef4444;
-    --chatbot-user-bg: #667eea;
+    --chatbot-user-bg: #08D488;
     --chatbot-bot-bg: #f3f4f6;
     --chatbot-bot-bg-dark: #374151;
     --chatbot-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -658,7 +658,7 @@
     font-weight: 700;
     margin-bottom: 1rem;
     color: var(--text-color);
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #08D488, #FCCC56);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -691,7 +691,7 @@
 .guest-dialog-modal .nav-link {
     display: inline-flex;
     align-items: center;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #08D488, #FCCC56);
     color: white !important;
     padding: 0.875rem 2rem;
     border-radius: 12px;
@@ -722,8 +722,8 @@
 }
 
 .guest-dialog-modal .nav-link.secondary:hover {
-    border-color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
+    border-color: #08D488;
+    background: rgba(8, 212, 136, 0.05);
 }
 
 @keyframes fadeIn {
@@ -806,10 +806,10 @@
 }
 
 .floating-btn:hover {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #08D488, #FCCC56);
+    border-color: #08D488;
     transform: scale(1.15) translateY(-5px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 24px rgba(8, 212, 136, 0.4);
 }
 
 .floating-btn:hover svg {
@@ -871,7 +871,7 @@
 .floating-tooltip {
     position: fixed;
     padding: 0.625rem 1rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
     color: white;
     font-size: 0.8125rem;
     font-weight: 600;
@@ -1154,7 +1154,7 @@
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.75rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #08D488, #FCCC56);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1186,8 +1186,8 @@
 }
 
 .chatbot-fullpage .input-wrapper:focus-within {
-    border-color: #667eea;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.18);
+    border-color: #08D488;
+    box-shadow: 0 4px 20px rgba(8, 212, 136, 0.18);
 }
 
 .chatbot-fullpage .input-field {
@@ -1273,8 +1273,8 @@
 
 .chatbot-fullpage .send-btn:hover:not(:disabled) {
     transform: scale(1.08);
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.45);
+    background: linear-gradient(135deg, #08D488, #FCCC56);
+    box-shadow: 0 4px 14px rgba(8, 212, 136, 0.45);
 }
 
 .chatbot-fullpage .send-btn:disabled {
@@ -1413,7 +1413,7 @@
 }
 
 .chatbot-fullpage .message.user .message-bubble {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
     color: white;
     border: none;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
@@ -1447,9 +1447,9 @@
 }
 
 .chatbot-fullpage .message-action-btn:hover {
-    border-color: #667eea;
-    color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
+    border-color: #08D488;
+    color: #08D488;
+    background: rgba(8, 212, 136, 0.05);
 }
 
 .chatbot-fullpage .message-action-btn svg {
@@ -1524,9 +1524,9 @@
 }
 
 .chatbot-fullpage .suggestion-card:hover {
-    border-color: #667eea;
+    border-color: #08D488;
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+    box-shadow: 0 8px 24px rgba(8, 212, 136, 0.2);
 }
 
 .chatbot-fullpage .suggestion-icon {

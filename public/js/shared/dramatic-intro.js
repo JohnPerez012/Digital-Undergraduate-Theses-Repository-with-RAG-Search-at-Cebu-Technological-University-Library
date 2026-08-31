@@ -19,9 +19,9 @@ class DramaticIntro {
     const isLightMode = this._detectLightMode();
 
     // Light-mode defaults vs dark-mode defaults
-    const defaultStrokeColor = isLightMode ? '#6366f1' : '#7d88f1';
-    const defaultSolidColor  = isLightMode ? '#4f46e5' : '#ffffff';
-    const defaultBgColor     = isLightMode ? '#f8fafc' : '#0a0a0a';
+    const defaultStrokeColor = isLightMode ? '#07BC79' : '#B3F0DA';
+    const defaultSolidColor  = isLightMode ? '#058254' : '#B3F0DA';
+    const defaultBgColor     = isLightMode ? '#F7F7F8' : '#2a2f35';
 
     this.options = {
       text: options.text || 'RECAPS',

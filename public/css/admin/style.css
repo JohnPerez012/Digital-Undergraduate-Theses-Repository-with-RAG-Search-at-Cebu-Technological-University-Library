@@ -6,12 +6,12 @@
     --admin-sidebar-width: 260px;
     --admin-sidebar-collapsed: 70px;
     --admin-header-height: 70px;
-    --admin-primary: #667eea;
-    --admin-primary-dark: #5568d3;
+    --admin-primary: #08D488;
+    --admin-primary-dark: #069F66;
     --admin-danger: #ef4444;
-    --admin-success: #10b981;
-    --admin-warning: #f59e0b;
-    --admin-info: #3b82f6;
+    --admin-success: #08D488;
+    --admin-warning: #FCCC56;
+    --admin-info: #1AD28F;
 }
 
 /* Reset */
@@ -1843,9 +1843,9 @@ body {
 
 /* Year input with gradient border on focus */
 .year-selector-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15),
-                0 0 20px rgba(102, 126, 234, 0.3);
+    border-color: #08D488;
+    box-shadow: 0 0 0 4px rgba(8, 212, 136, 0.15),
+                0 0 20px rgba(8, 212, 136, 0.3);
     background: var(--surface);
 }
 
@@ -1904,7 +1904,7 @@ body {
 .pmodal-icon {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -1912,7 +1912,7 @@ body {
     justify-content: center;
     color: #fff;
     flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 16px rgba(8, 212, 136, 0.4);
     position: relative;
 }
 
@@ -2019,8 +2019,8 @@ body {
 }
 
 #project-autosave-toggle:checked + .pmodal-autosave-track {
-    background: #667eea;
-    border-color: #667eea;
+    background: #08D488;
+    border-color: #08D488;
 }
 
 #project-autosave-toggle:checked + .pmodal-autosave-track .pmodal-autosave-thumb {
@@ -2108,7 +2108,7 @@ body {
 .pform-section-badge {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #08D488, #FCCC56);
     color: #fff;
     border-radius: 8px;
     display: flex;
@@ -2118,7 +2118,7 @@ body {
     font-weight: 700;
     letter-spacing: 0.05em;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(8, 212, 136, 0.3);
 }
 
 .pform-section-title {
@@ -2220,9 +2220,9 @@ body {
 
 .pform-input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #08D488;
     background: var(--surface);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+    box-shadow: 0 0 0 3px rgba(8, 212, 136, 0.12);
 }
 
 .pform-select {
@@ -2367,7 +2367,7 @@ body {
     align-items: center;
     gap: 0.4rem;
     padding: 0.625rem 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
     color: #fff;
     border: none;
     border-radius: 9px;
@@ -2376,12 +2376,12 @@ body {
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: all 0.25s ease;
-    box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+    box-shadow: 0 4px 14px rgba(8, 212, 136, 0.35);
 }
 
 .pmodal-btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 8px 24px rgba(8, 212, 136, 0.5);
 }
 
 .pmodal-btn-submit:active {
@@ -2472,9 +2472,9 @@ body {
 .pmodal-body > form::-webkit-scrollbar-thumb {
     background: linear-gradient(
         180deg,
-        #667eea 0%,
-        #764ba2 60%,
-        #667eea 100%
+        #08D488 0%,
+        #FCCC56 60%,
+        #08D488 100%
     );
     border-radius: 9999px;
     min-height: 36px;
@@ -2503,7 +2503,7 @@ body {
 /* ---- Firefox scrollbar ---- */
 .pmodal-body > form {
     scrollbar-width: thin;
-    scrollbar-color: #667eea transparent;
+    scrollbar-color: #08D488 transparent;
 }
 
 /* Footer: always pinned at the bottom, never scrolls */
@@ -2711,8 +2711,8 @@ form #project-id-input {
 }
 
 .control-btn-secondary:hover {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: #069F66;
+    border-color: #069F66;
     color: white;
 }
 
@@ -2845,8 +2845,8 @@ form #project-id-input {
     gap: 0.5rem;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #764ba2;
-    background: rgba(118, 75, 162, 0.1);
+    color: #08D488;
+    background: rgba(8, 212, 136, 0.1);
     padding: 0.25rem 0.625rem;
     border-radius: 12px;
 }
@@ -2854,20 +2854,20 @@ form #project-id-input {
 .pulse-dot {
     width: 6px;
     height: 6px;
-    background: #764ba2;
+    background: #08D488;
     border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(118, 75, 162, 0.7);
+    box-shadow: 0 0 0 0 rgba(8, 212, 136, 0.7);
     animation: pulse-indicator 1.5s infinite;
 }
 
 @keyframes pulse-indicator {
     0% {
         transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(118, 75, 162, 0.7);
+        box-shadow: 0 0 0 0 rgba(8, 212, 136, 0.7);
     }
     70% {
         transform: scale(1);
-        box-shadow: 0 0 0 6px rgba(118, 75, 162, 0);
+        box-shadow: 0 0 0 6px rgba(8, 212, 136, 0);
     }
     100% {
         transform: scale(0.95);
@@ -2901,7 +2901,7 @@ form #project-id-input {
 
 .analytics-tab.active {
     background: var(--surface);
-    color: #764ba2;
+    color: #08D488;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     font-weight: 600;
 }
@@ -3042,7 +3042,7 @@ form #project-id-input {
 
 .chart-switch-btn.active {
     background: var(--surface);
-    color: #764ba2;
+    color: #08D488;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -3419,4 +3419,431 @@ form #project-id-input {
     .secure-delete-modal-content .modal-actions button {
         width: 100%;
     }
+}
+
+
+/* =====================================
+   BULK IMPORT MODAL STYLES
+   ===================================== */
+
+.bulk-import-modal-content {
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.bulk-import-instructions {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.bulk-import-instructions h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.bulk-import-instructions ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.bulk-import-instructions li {
+    font-family: 'Courier New', monospace;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+.bulk-import-instructions code {
+    background: var(--surface);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+}
+
+.bulk-import-example {
+    margin-top: 1rem;
+}
+
+.bulk-import-example summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.bulk-import-example summary:hover {
+    background: var(--surface);
+}
+
+.bulk-import-example pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.bulk-import-file-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.bulk-import-choose-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    align-self: flex-start;
+}
+
+.bulk-import-file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.bulk-import-file-info svg {
+    flex-shrink: 0;
+    color: var(--primary-color);
+}
+
+.bulk-import-file-info span {
+    color: var(--text-primary);
+    flex: 1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bulk-import-remove-file {
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: opacity 0.2s;
+}
+
+.bulk-import-remove-file:hover {
+    opacity: 0.8;
+}
+
+.bulk-import-preview {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.bulk-import-preview h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.bulk-import-preview-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bulk-preview-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.875rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bulk-preview-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bulk-preview-item-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.bulk-preview-item-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.bulk-preview-item-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.bulk-import-progress {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.bulk-import-progress h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.progress-bar-container {
+    background: var(--surface);
+    border-radius: 8px;
+    height: 24px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    width: 0%;
+}
+
+.progress-text {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.bulk-import-results {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.bulk-import-results h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--success-color);
+}
+
+.bulk-import-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.bulk-stat {
+    background: var(--surface);
+    border: 2px solid;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.bulk-stat.success {
+    border-color: var(--success-color);
+}
+
+.bulk-stat.error {
+    border-color: var(--danger-color);
+}
+
+.bulk-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.bulk-stat.success .bulk-stat-value {
+    color: var(--success-color);
+}
+
+.bulk-stat.error .bulk-stat-value {
+    color: var(--danger-color);
+}
+
+.bulk-stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bulk-import-errors {
+    background: var(--surface);
+    border: 1px solid var(--danger-color);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.bulk-import-errors h5 {
+    color: var(--danger-color);
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.bulk-import-errors ul {
+    list-style: none;
+    padding: 0;
+}
+
+.bulk-import-errors li {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--surface-secondary);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+
+/* Excel Format Guide Table */
+.excel-format-guide {
+    margin-top: 0.75rem;
+}
+
+.excel-format-guide p {
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.format-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.format-table th,
+.format-table td {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+.format-table th {
+    background: var(--primary-color);
+    color: white;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.format-table td {
+    color: var(--text-secondary);
+}
+
+.excel-format-guide ul {
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.excel-format-guide li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+
+/* Template Download Section */
+.template-download-section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+}
+
+.template-download-section h5 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.template-download-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.template-download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.template-download-btn svg {
+    flex-shrink: 0;
+}
+
+.template-download-note {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+    padding: 0.75rem;
+    background: var(--surface-secondary);
+    border-radius: 6px;
+    line-height: 1.5;
+}
+
+.template-download-note strong {
+    color: var(--primary-color);
 }

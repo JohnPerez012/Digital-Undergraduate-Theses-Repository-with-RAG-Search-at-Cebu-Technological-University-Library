@@ -2196,7 +2196,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-adviser-input').value = '';
             document.getElementById('project-status-select').value = 'Completed';
             document.getElementById('project-abstract-input').value = '';
-            document.getElementById('project-findings-input').value = '';
 
             // Check for autosaved draft
             const draft = localStorage.getItem('admin_project_draft');
@@ -3424,3 +3423,570 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 });
+
+
+    // ===== BULK IMPORT FEATURE =====
+    
+    let bulkImportData = null;
+    const bulkImportModal = document.getElementById('bulk-import-modal');
+    const bulkImportBtn = document.getElementById('bulk-import-btn');
+    const bulkImportModalOverlay = document.getElementById('bulk-import-modal-overlay');
+    const bulkImportModalCloseBtn = document.getElementById('bulk-import-modal-close-btn');
+    const bulkImportCancelBtn = document.getElementById('bulk-import-cancel-btn');
+    const bulkImportChooseBtn = document.getElementById('bulk-import-choose-btn');
+    const bulkImportFileInput = document.getElementById('bulk-import-file-input');
+    const bulkImportFileInfo = document.getElementById('bulk-import-file-info');
+    const bulkImportFilename = document.getElementById('bulk-import-filename');
+    const bulkImportRemoveFile = document.getElementById('bulk-import-remove-file');
+    const bulkImportPreview = document.getElementById('bulk-import-preview');
+    const bulkImportPreviewList = document.getElementById('bulk-import-preview-list');
+    const bulkImportCount = document.getElementById('bulk-import-count');
+    const bulkImportSubmitBtn = document.getElementById('bulk-import-submit-btn');
+    const bulkImportProgress = document.getElementById('bulk-import-progress');
+    const bulkImportProgressBar = document.getElementById('bulk-import-progress-bar');
+    const bulkImportProgressText = document.getElementById('bulk-import-progress-text');
+    const bulkImportResults = document.getElementById('bulk-import-results');
+    const bulkSuccessCount = document.getElementById('bulk-success-count');
+    const bulkErrorCount = document.getElementById('bulk-error-count');
+    const bulkImportErrors = document.getElementById('bulk-import-errors');
+    const bulkImportErrorList = document.getElementById('bulk-import-error-list');
+    const downloadExcelTemplateBtn = document.getElementById('download-excel-template');
+    const downloadJsonTemplateBtn = document.getElementById('download-json-template');
+    
+    /**
+     * Escape HTML to prevent XSS
+     */
+    function escapeHtml(text) {
+        if (!text) return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, (m) => map[m]);
+    }
+    
+    // Sample template data
+    const sampleProjects = [
+        {
+            title: "AI-Powered Agricultural Monitoring System for Precision Farming",
+            authors: ["Juan Dela Cruz", "Maria Clara Santos"],
+            program: "BSIT",
+            year: 2024,
+            adviser: "Prof. Elena Villanueva",
+            abstract: "This study explores the development and implementation of an AI-powered agricultural monitoring system designed to enhance precision farming practices.",
+            keywords: ["Artificial Intelligence", "Agriculture", "Machine Learning"],
+            topics: ["Smart Farming", "Technology"],
+            status: "Published"
+        },
+        {
+            title: "Sustainable Fishing Practices in Coastal Communities",
+            authors: ["Pedro Garcia"],
+            program: "BSFi",
+            year: 2024,
+            adviser: "Dr. Ramon Cruz",
+            abstract: "An investigation into sustainable fishing practices and their socioeconomic impact on coastal communities in the Philippines.",
+            keywords: ["Sustainability", "Fisheries"],
+            topics: ["Marine Science"],
+            status: "Completed"
+        },
+        {
+            title: "Blockchain-Based Supply Chain Management",
+            authors: ["Anna Reyes", "Carlos Mendoza"],
+            program: "BSIE",
+            year: 2023,
+            adviser: "Engr. Roberto Santos",
+            abstract: "This research presents a blockchain-based supply chain management solution tailored for Philippine SMEs.",
+            keywords: ["Blockchain", "Supply Chain"],
+            topics: ["Industrial Engineering"],
+            status: "Published",
+        }
+    ];
+    
+    // Download Excel template
+    if (downloadExcelTemplateBtn) {
+        downloadExcelTemplateBtn.addEventListener('click', () => {
+            generateExcelTemplate(sampleProjects);
+            showToast('Excel template downloaded', '✅');
+        });
+    }
+    
+    // Download JSON template
+    if (downloadJsonTemplateBtn) {
+        downloadJsonTemplateBtn.addEventListener('click', () => {
+            generateJsonTemplate(sampleProjects);
+            showToast('JSON template downloaded', '✅');
+        });
+    }
+    
+    /**
+     * Generate and download Excel template
+     */
+    function generateExcelTemplate(projects) {
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        
+        // Convert projects to worksheet format
+        const wsData = [
+            // Headers
+            ['title', 'authors', 'program', 'year', 'adviser', 'abstract', 'keywords', 'topics', 'status']
+        ];
+        
+        // Add sample data
+        projects.forEach(project => {
+            wsData.push([
+                project.title,
+                Array.isArray(project.authors) ? project.authors.join(', ') : project.authors,
+                project.program,
+                project.year,
+                project.adviser,
+                project.abstract,
+                Array.isArray(project.keywords) ? project.keywords.join(', ') : project.keywords || '',
+                Array.isArray(project.topics) ? project.topics.join(', ') : project.topics || '',
+                project.status || 'Completed',
+            ]);
+        });
+        
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 50 },  // title
+            { wch: 30 },  // authors
+            { wch: 15 },  // program
+            { wch: 8 },   // year
+            { wch: 25 },  // adviser
+            { wch: 60 },  // abstract
+            { wch: 30 },  // keywords
+            { wch: 30 },  // topics
+            { wch: 12 }     // status
+        ];
+        
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Projects');
+        
+        // Generate file and trigger download
+        XLSX.writeFile(wb, 'RECAP_Bulk_Import_Template.xlsx');
+    }
+    
+    /**
+     * Generate and download JSON template
+     */
+    function generateJsonTemplate(projects) {
+        const jsonString = JSON.stringify(projects, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'RECAP_Bulk_Import_Template.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
+    // Open bulk import modal
+    if (bulkImportBtn) {
+        bulkImportBtn.addEventListener('click', () => {
+            bulkImportModal.classList.add('active');
+            resetBulkImportModal();
+        });
+    }
+    
+    // Close bulk import modal
+    function closeBulkImportModal() {
+        bulkImportModal.classList.remove('active');
+        resetBulkImportModal();
+    }
+    
+    if (bulkImportModalOverlay) {
+        bulkImportModalOverlay.addEventListener('click', (e) => {
+            if (e.target === bulkImportModalOverlay) {
+                closeBulkImportModal();
+            }
+        });
+    }
+    
+    if (bulkImportModalCloseBtn) {
+        bulkImportModalCloseBtn.addEventListener('click', closeBulkImportModal);
+    }
+    
+    if (bulkImportCancelBtn) {
+        bulkImportCancelBtn.addEventListener('click', closeBulkImportModal);
+    }
+    
+    // Choose file button
+    if (bulkImportChooseBtn) {
+        bulkImportChooseBtn.addEventListener('click', () => {
+            bulkImportFileInput.click();
+        });
+    }
+    
+    // File input change
+    if (bulkImportFileInput) {
+        bulkImportFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const fileName = file.name.toLowerCase();
+            const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+            const isJSON = fileName.endsWith('.json');
+            
+            // Validate file type
+            if (!isExcel && !isJSON) {
+                showToast('Please select a valid Excel (.xlsx, .xls) or JSON file', '❌');
+                return;
+            }
+            
+            try {
+                let data;
+                
+                if (isExcel) {
+                    // Parse Excel file
+                    data = await parseExcelFile(file);
+                } else {
+                    // Parse JSON file
+                    const text = await file.text();
+                    data = JSON.parse(text);
+                }
+                
+                // Validate data structure
+                if (!Array.isArray(data)) {
+                    showToast('File must contain an array of projects', '❌');
+                    return;
+                }
+                
+                if (data.length === 0) {
+                    showToast('File is empty', '❌');
+                    return;
+                }
+                
+                // Validate each project
+                const errors = [];
+                const validProjects = [];
+                
+                data.forEach((project, index) => {
+                    // Clean up "None" or "null" string values
+                    if (project.abstract === "None" || project.abstract === "null" || project.abstract === null) {
+                        project.abstract = '';
+                    }
+                    if (project.adviser === "None" || project.adviser === "null" || project.adviser === null) {
+                        project.adviser = '';
+                    }
+                    
+                    // Only title, authors, program, and year are truly required
+                    const requiredFields = ['title', 'authors', 'program', 'year'];
+                    const missing = requiredFields.filter(field => !project[field]);
+                    
+                    if (missing.length > 0) {
+                        errors.push(`Project #${index + 1} "${project.title || 'Untitled'}": Missing ${missing.join(', ')}`);
+                    } else {
+                        // Ensure abstract and adviser have default values if empty
+                        if (!project.abstract || project.abstract.trim() === '') {
+                            project.abstract = 'No abstract provided.';
+                        }
+                        if (!project.adviser || project.adviser.trim() === '') {
+                            project.adviser = 'Not specified';
+                        }
+                        validProjects.push(project);
+                    }
+                });
+                
+                if (validProjects.length === 0) {
+                    showToast('No valid projects found in file', '❌');
+                    return;
+                }
+                
+                if (errors.length > 0) {
+                    console.warn('Some projects have errors:', errors);
+                    showToast(`${validProjects.length} valid projects found (${errors.length} skipped)`, '⚠️');
+                }
+                
+                // Store valid data
+                bulkImportData = validProjects;
+                
+                // Show file info
+                bulkImportFilename.textContent = file.name;
+                bulkImportFileInfo.style.display = 'flex';
+                bulkImportChooseBtn.style.display = 'none';
+                
+                // Show preview
+                renderBulkImportPreview(validProjects);
+                bulkImportPreview.style.display = 'block';
+                bulkImportSubmitBtn.disabled = false;
+                
+                showToast(`Loaded ${validProjects.length} projects`, '✅');
+                
+            } catch (error) {
+                console.error('Error parsing file:', error);
+                showToast(isExcel ? 'Invalid Excel file format' : 'Invalid JSON file format', '❌');
+            }
+        });
+    }
+    
+    /**
+     * Parse Excel file using SheetJS
+     */
+    async function parseExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get first sheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert to JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                        raw: false,
+                        defval: ''
+                    });
+                    
+                    // Process the data
+                    const projects = jsonData.map(row => {
+                        // Handle authors (split by comma if string)
+                        let authors = row.authors || row.Authors || '';
+                        if (typeof authors === 'string') {
+                            authors = authors.split(',').map(a => a.trim()).filter(a => a);
+                        }
+                        
+                        // Handle keywords (split by comma if string)
+                        let keywords = row.keywords || row.Keywords || '';
+                        if (typeof keywords === 'string') {
+                            keywords = keywords.split(',').map(k => k.trim()).filter(k => k);
+                        }
+                        
+                        // Handle topics (split by comma if string)
+                        let topics = row.topics || row.Topics || '';
+                        if (typeof topics === 'string') {
+                            topics = topics.split(',').map(t => t.trim()).filter(t => t);
+                        }
+                        
+                        return {
+                            title: row.title || row.Title || '',
+                            authors: authors,
+                            program: row.program || row.Program || '',
+                            year: parseInt(row.year || row.Year) || 0,
+                            adviser: row.adviser || row.Adviser || '',
+                            abstract: row.abstract || row.Abstract || '',
+                            keywords: keywords,
+                            topics: topics,
+                            status: row.status || row.Status || 'Completed',
+                        };
+                    });
+                    
+                    resolve(projects);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+    
+    // Remove file
+    if (bulkImportRemoveFile) {
+        bulkImportRemoveFile.addEventListener('click', () => {
+            bulkImportFileInput.value = '';
+            bulkImportData = null;
+            bulkImportFileInfo.style.display = 'none';
+            bulkImportChooseBtn.style.display = 'inline-flex';
+            bulkImportPreview.style.display = 'none';
+            bulkImportSubmitBtn.disabled = true;
+        });
+    }
+    
+    // Render preview
+    function renderBulkImportPreview(projects) {
+        bulkImportCount.textContent = projects.length;
+        bulkImportPreviewList.innerHTML = '';
+        
+        projects.slice(0, 10).forEach((project, index) => {
+            const item = document.createElement('div');
+            item.className = 'bulk-preview-item';
+            
+            const authors = Array.isArray(project.authors) 
+                ? project.authors.join(', ') 
+                : project.authors;
+            
+            item.innerHTML = `
+                <div class="bulk-preview-item-title">${index + 1}. ${escapeHtml(project.title)}</div>
+                <div class="bulk-preview-item-meta">
+                    <span>Authors: ${escapeHtml(authors)}</span>
+                    <span>Program: ${escapeHtml(project.program)}</span>
+                    <span>Year: ${project.year}</span>
+                </div>
+            `;
+            bulkImportPreviewList.appendChild(item);
+        });
+        
+        if (projects.length > 10) {
+            const moreItem = document.createElement('div');
+            moreItem.style.textAlign = 'center';
+            moreItem.style.padding = '0.5rem';
+            moreItem.style.color = 'var(--text-secondary)';
+            moreItem.textContent = `... and ${projects.length - 10} more projects`;
+            bulkImportPreviewList.appendChild(moreItem);
+        }
+    }
+    
+    // Submit bulk import
+    if (bulkImportSubmitBtn) {
+        bulkImportSubmitBtn.addEventListener('click', async () => {
+            if (!bulkImportData || bulkImportData.length === 0) {
+                showToast('No projects to import', '❌');
+                return;
+            }
+            
+            // Hide preview and submit button
+            bulkImportPreview.style.display = 'none';
+            bulkImportSubmitBtn.style.display = 'none';
+            bulkImportCancelBtn.disabled = true;
+            
+            // Show progress
+            bulkImportProgress.style.display = 'block';
+            
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+            const total = bulkImportData.length;
+            
+            for (let i = 0; i < bulkImportData.length; i++) {
+                const project = bulkImportData[i];
+                
+                try {
+                    // Prepare project data
+                    const projectData = {
+                        title: project.title,
+                        authors: Array.isArray(project.authors) ? project.authors : [project.authors],
+                        program: project.program,
+                        year: parseInt(project.year),
+                        adviser: project.adviser,
+                        abstract: project.abstract,
+                        keywords: project.keywords || [],
+                        topics: project.topics || [],
+                        status: project.status || 'Completed',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        uploadedBy: auth.currentUser.uid,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    // Add to Firestore
+                    const docRef = await db.collection('projects').add(projectData);
+                    
+                    // Sync to Pinecone (backend)
+                    try {
+                        const syncResponse = await fetch('http://localhost:3001/api/projects/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                projectId: docRef.id,
+                                projectData: {
+                                    ...projectData,
+                                    createdAt: new Date().toISOString()
+                                }
+                            })
+                        });
+                        
+                        if (!syncResponse.ok) {
+                            console.warn(`Pinecone sync failed for project: ${project.title}`);
+                        }
+                    } catch (syncError) {
+                        console.warn('Pinecone sync error:', syncError);
+                    }
+                    
+                    // Increment RTDB counter
+                    try {
+                        const countRef = firebase.database().ref('projects_document_count');
+                        await countRef.transaction((current) => (current || 0) + 1);
+                        
+                        const updateCounterRef = firebase.database().ref('update_counter');
+                        await updateCounterRef.transaction((current) => (current || 0) + 1);
+                    } catch (rtdbError) {
+                        console.warn('RTDB counter update failed:', rtdbError);
+                    }
+                    
+                    successCount++;
+                    
+                } catch (error) {
+                    console.error(`Error importing project "${project.title}":`, error);
+                    errorCount++;
+                    errors.push(`${project.title}: ${error.message}`);
+                }
+                
+                // Update progress
+                const progress = Math.round(((i + 1) / total) * 100);
+                bulkImportProgressBar.style.width = `${progress}%`;
+                bulkImportProgressBar.textContent = `${progress}%`;
+                bulkImportProgressText.textContent = `${i + 1} / ${total} imported`;
+            }
+            
+            // Hide progress
+            bulkImportProgress.style.display = 'none';
+            
+            // Show results
+            bulkSuccessCount.textContent = successCount;
+            bulkErrorCount.textContent = errorCount;
+            bulkImportResults.style.display = 'block';
+            
+            if (errors.length > 0) {
+                bulkImportErrorList.innerHTML = '';
+                errors.forEach(error => {
+                    const li = document.createElement('li');
+                    li.textContent = error;
+                    bulkImportErrorList.appendChild(li);
+                });
+                bulkImportErrors.style.display = 'block';
+            }
+            
+            // Invalidate cache
+            invalidateCache();
+            
+            // Show final toast
+            if (successCount > 0) {
+                showToast(`Successfully imported ${successCount} project${successCount !== 1 ? 's' : ''}`, '✅');
+            }
+            
+            if (errorCount > 0) {
+                showToast(`${errorCount} project${errorCount !== 1 ? 's' : ''} failed to import`, '❌');
+            }
+            
+            // Enable cancel (now "Close") button
+            bulkImportCancelBtn.disabled = false;
+            bulkImportCancelBtn.textContent = 'Close';
+            
+            // Reload projects table
+            if (document.getElementById('section-projects').classList.contains('active')) {
+                await loadProjectsData();
+            }
+        });
+    }
+    
+    // Reset bulk import modal
+    function resetBulkImportModal() {
+        bulkImportFileInput.value = '';
+        bulkImportData = null;
+        bulkImportFileInfo.style.display = 'none';
+        bulkImportChooseBtn.style.display = 'inline-flex';
+        bulkImportPreview.style.display = 'none';
+        bulkImportProgress.style.display = 'none';
+        bulkImportResults.style.display = 'none';
+        bulkImportSubmitBtn.style.display = 'inline-flex';
+        bulkImportSubmitBtn.disabled = true;
+        bulkImportCancelBtn.disabled = false;
+        bulkImportCancelBtn.textContent = 'Cancel';
+        bulkImportErrors.style.display = 'none';
+        bulkImportProgressBar.style.width = '0%';
+        bulkImportProgressBar.textContent = '';
+    }
+    
+    // ===== END BULK IMPORT FEATURE =====

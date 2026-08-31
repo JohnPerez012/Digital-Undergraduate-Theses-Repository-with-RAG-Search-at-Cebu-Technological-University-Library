@@ -215,6 +215,10 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                                 Sync Pinecone
                             </button>
+                            <button class="btn-secondary" id="bulk-import-btn" title="Import multiple projects from JSON file">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                Bulk Import
+                            </button>
                             <button class="btn-primary" id="add-project-btn">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                 Add Project
@@ -853,6 +857,168 @@
         </div>
     </div>
 
+    <!-- Bulk Import Modal -->
+    <div class="modal" id="bulk-import-modal">
+        <div class="modal-overlay" id="bulk-import-modal-overlay"></div>
+        <div class="modal-content bulk-import-modal-content">
+            <div class="modal-header">
+                <h3>Bulk Import Projects</h3>
+                <button class="modal-close-btn" id="bulk-import-modal-close-btn" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="bulk-import-instructions">
+                    <h4>Instructions</h4>
+                    <ol>
+                        <li>Prepare an <strong>Excel file (.xlsx, .xls)</strong> or <strong>JSON file</strong></li>
+                        <li>Each row/project must include: <code>title</code>, <code>authors</code>, <code>program</code>, <code>year</code></li>
+                        <li>Optional but recommended: <code>adviser</code>, <code>abstract</code>, <code>keywords</code>, <code>topics</code>, <code>status</code></li>
+                        <li>Click "Choose File" and select your Excel or JSON file</li>
+                        <li>Review the preview and click "Import Projects"</li>
+                    </ol>
+                    
+                    <div class="template-download-section">
+                        <h5>Download Template Files</h5>
+                        <div class="template-download-buttons">
+                            <button type="button" class="btn-secondary template-download-btn" id="download-excel-template">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Excel Template (.xlsx)
+                            </button>
+                            <button type="button" class="btn-secondary template-download-btn" id="download-json-template">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                JSON Template (.json)
+                            </button>
+                        </div>
+                        <p class="template-download-note">
+                            <strong>Recommended:</strong> Download the Excel template, edit it with your data, then upload it here.
+                        </p>
+                    </div>
+                    
+                    <details class="bulk-import-example">
+                        <summary>View Excel Format</summary>
+                        <div class="excel-format-guide">
+                            <p><strong>Column Headers (First Row):</strong></p>
+                            <table class="format-table">
+                                <thead>
+                                    <tr>
+                                        <th>title</th>
+                                        <th>authors</th>
+                                        <th>program</th>
+                                        <th>year</th>
+                                        <th>adviser</th>
+                                        <th>abstract</th>
+                                        <th>keywords</th>
+                                        <th>topics</th>
+                                        <th>status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>AI System</td>
+                                        <td>Juan Dela Cruz, Maria Santos</td>
+                                        <td>BSIT</td>
+                                        <td>2024</td>
+                                        <td>Prof. Villanueva</td>
+                                        <td>This study explores...</td>
+                                        <td>AI, Agriculture</td>
+                                        <td>Technology</td>
+                                        <td>Published</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p><strong>Notes:</strong></p>
+                            <ul>
+                                <li>Separate multiple authors with commas: <code>Author1, Author2, Author3</code></li>
+                                <li>Separate keywords/topics with commas</li>
+                                <li>Status options: Completed, Published, Draft</li>
+                            </ul>
+                        </div>
+                    </details>
+                    
+                    <details class="bulk-import-example">
+                        <summary>View JSON Format</summary>
+                        <pre><code>[
+  {
+    "title": "AI-Powered Agricultural System",
+    "authors": ["Juan Dela Cruz", "Maria Santos"],
+    "program": "BSIT",
+    "year": 2024,
+    "adviser": "Prof. Elena Villanueva",
+    "abstract": "This study explores the use of AI...",
+    "keywords": ["AI", "Agriculture", "Machine Learning"],
+    "topics": ["Artificial Intelligence", "Smart Farming"],
+    "status": "Completed"
+  },
+  {
+    "title": "Sustainable Fishing Practices",
+    "authors": ["Pedro Garcia"],
+    "program": "BSFi",
+    "year": 2024,
+    "adviser": "Dr. Ramon Cruz",
+    "abstract": "An investigation into sustainable...",
+    "keywords": ["Sustainability", "Fisheries"],
+    "topics": ["Marine Science"],
+    "status": "Published"
+  }
+]</code></pre>
+                    </details>
+                </div>
+
+                <div class="bulk-import-file-selector">
+                    <input type="file" id="bulk-import-file-input" accept=".json,.xlsx,.xls,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display: none;">
+                    <button type="button" class="btn-secondary bulk-import-choose-btn" id="bulk-import-choose-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Choose File (JSON or Excel)
+                    </button>
+                    <div class="bulk-import-file-info" id="bulk-import-file-info" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        <span id="bulk-import-filename">No file selected</span>
+                        <button type="button" class="bulk-import-remove-file" id="bulk-import-remove-file">×</button>
+                    </div>
+                </div>
+
+                <div class="bulk-import-preview" id="bulk-import-preview" style="display: none;">
+                    <h4>Preview (<span id="bulk-import-count">0</span> projects)</h4>
+                    <div class="bulk-import-preview-list" id="bulk-import-preview-list"></div>
+                </div>
+
+                <div class="bulk-import-progress" id="bulk-import-progress" style="display: none;">
+                    <h4>Import Progress</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="bulk-import-progress-bar"></div>
+                    </div>
+                    <div class="progress-text" id="bulk-import-progress-text">0 / 0 imported</div>
+                </div>
+
+                <div class="bulk-import-results" id="bulk-import-results" style="display: none;">
+                    <h4>Import Complete</h4>
+                    <div class="bulk-import-stats">
+                        <div class="bulk-stat success">
+                            <div class="bulk-stat-value" id="bulk-success-count">0</div>
+                            <div class="bulk-stat-label">Successful</div>
+                        </div>
+                        <div class="bulk-stat error">
+                            <div class="bulk-stat-value" id="bulk-error-count">0</div>
+                            <div class="bulk-stat-label">Failed</div>
+                        </div>
+                    </div>
+                    <div class="bulk-import-errors" id="bulk-import-errors" style="display: none;">
+                        <h5>Errors</h5>
+                        <ul id="bulk-import-error-list"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="bulk-import-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="bulk-import-submit-btn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Import Projects
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <div class="modal" id="confirmation-modal">
         <div class="modal-overlay" id="confirmation-modal-overlay"></div>
@@ -887,6 +1053,9 @@
 
     <!-- Chart.js CDN for Advanced Visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- SheetJS for Excel file parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
     <script src="../js/shared/firebase-config.js?v=3"></script>
     <script src="../js/core/auth-service.js"></script>

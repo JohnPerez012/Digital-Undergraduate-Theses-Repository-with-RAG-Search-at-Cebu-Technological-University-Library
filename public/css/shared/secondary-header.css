@@ -180,7 +180,7 @@
 
 /* Coming Soon Badge */
 .coming-soon-badge {
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  background: linear-gradient(135deg, #FCCC56, #ef4444);
   color: white;
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;

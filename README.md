@@ -344,7 +344,7 @@ npm run fix-config
 ```
 
 ---
-
+    
 ## 📁 Updated File Structure
 
 ```

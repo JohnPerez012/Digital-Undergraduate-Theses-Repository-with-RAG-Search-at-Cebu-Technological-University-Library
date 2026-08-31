@@ -103,8 +103,8 @@ body[data-intro-active="true"] {
 .recaps-intro-loading-spinner {
   width: 50px;
   height: 50px;
-  border: 3px solid rgba(125, 136, 241, 0.2);
-  border-top-color: #7d88f1;
+  border: 3px solid rgba(8, 212, 136, 0.2);
+  border-top-color: #08D488;
   border-radius: 50%;
   animation: recaps-spin 1s linear infinite;
 }
@@ -169,13 +169,13 @@ body[data-intro-active="true"] {
 /* --- Helper: light-mode via data-theme attribute --- */
 
 [data-theme="light"] .recaps-intro-bg {
-  background-color: #f8fafc !important;
+  background-color: #F7F7F8 !important;
 }
 
 [data-theme="light"] .recaps-intro-wrapper::before {
   background: radial-gradient(
     circle,
-    rgba(99, 102, 241, 0.15) 0%,
+    rgba(8, 212, 136, 0.15) 0%,
     transparent 70%
   ) !important;
 }
@@ -183,21 +183,21 @@ body[data-intro-active="true"] {
 [data-theme="light"] .recaps-intro-skip-btn {
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.15);
-  color: #333333;
+  color: #2a2f35;
 }
 
 [data-theme="light"] .recaps-intro-skip-btn:hover {
-  background: rgba(0, 0, 0, 0.12);
-  border-color: rgba(0, 0, 0, 0.25);
+  background: rgba(8, 212, 136, 0.12);
+  border-color: rgba(8, 212, 136, 0.35);
 }
 
 [data-theme="light"] .recaps-intro-loading-spinner {
-  border-color: rgba(99, 102, 241, 0.2);
-  border-top-color: #6366f1;
+  border-color: rgba(8, 212, 136, 0.2);
+  border-top-color: #08D488;
 }
 
 [data-theme="light"] .recaps-intro-particle {
-  background: #6366f1;
+  background: #08D488;
 }
 
 /* --- Helper: light-mode via OS preference (no data-theme set) --- */
@@ -205,13 +205,13 @@ body[data-intro-active="true"] {
 @media (prefers-color-scheme: light) {
   /* Only apply when data-theme is NOT explicitly set (avoid double-override) */
   :root:not([data-theme]) .recaps-intro-bg {
-    background-color: #f8fafc !important;
+    background-color: #F7F7F8 !important;
   }
 
   :root:not([data-theme]) .recaps-intro-wrapper::before {
     background: radial-gradient(
       circle,
-      rgba(99, 102, 241, 0.15) 0%,
+      rgba(8, 212, 136, 0.15) 0%,
       transparent 70%
     ) !important;
   }
@@ -219,21 +219,21 @@ body[data-intro-active="true"] {
   :root:not([data-theme]) .recaps-intro-skip-btn {
     background: rgba(0, 0, 0, 0.06);
     border-color: rgba(0, 0, 0, 0.15);
-    color: #333333;
+    color: #2a2f35;
   }
 
   :root:not([data-theme]) .recaps-intro-skip-btn:hover {
-    background: rgba(0, 0, 0, 0.12);
-    border-color: rgba(0, 0, 0, 0.25);
+    background: rgba(8, 212, 136, 0.12);
+    border-color: rgba(8, 212, 136, 0.35);
   }
 
   :root:not([data-theme]) .recaps-intro-loading-spinner {
-    border-color: rgba(99, 102, 241, 0.2);
-    border-top-color: #6366f1;
+    border-color: rgba(8, 212, 136, 0.2);
+    border-top-color: #08D488;
   }
 
   :root:not([data-theme]) .recaps-intro-particle {
-    background: #6366f1;
+    background: #08D488;
   }
 }
 
@@ -255,7 +255,7 @@ body[data-intro-active="true"] {
   height: 80%;
   background: radial-gradient(
     circle,
-    rgba(125, 136, 241, 0.15) 0%,
+    rgba(8, 212, 136, 0.15) 0%,
     transparent 70%
   );
   pointer-events: none;
@@ -290,7 +290,7 @@ body[data-intro-active="true"] {
   position: absolute;
   width: 2px;
   height: 2px;
-  background: #7d88f1;
+  background: #08D488;
   border-radius: 50%;
   animation: recaps-float 4s ease-in-out infinite;
 }
