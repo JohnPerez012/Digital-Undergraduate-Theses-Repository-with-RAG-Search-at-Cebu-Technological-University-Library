@@ -6,12 +6,12 @@
     --teacher-sidebar-width: 260px;
     --teacher-sidebar-collapsed: 70px;
     --teacher-header-height: 70px;
-    --teacher-primary: #f59e0b;
-    --teacher-primary-dark: #d97706;
+    --teacher-primary: #FCCC56;
+    --teacher-primary-dark: #CA9F43;
     --teacher-danger: #ef4444;
-    --teacher-success: #10b981;
+    --teacher-success: #08D488;
     --teacher-warning: #f97316;
-    --teacher-info: #3b82f6;
+    --teacher-info: #1AD28F;
 }
 
 /* Reset */

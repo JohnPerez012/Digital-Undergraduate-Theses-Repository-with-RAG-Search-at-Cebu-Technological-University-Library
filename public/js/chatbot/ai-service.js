@@ -14,7 +14,7 @@ const AIService = {
     console.log('✓ AI Service initialized with 4-tier fallback');
     console.log('  Priority: Mistral → Groq → Gemini → OpenRouter');
   },
-  
+   
   /**
    * Search for relevant projects using RAG
    */

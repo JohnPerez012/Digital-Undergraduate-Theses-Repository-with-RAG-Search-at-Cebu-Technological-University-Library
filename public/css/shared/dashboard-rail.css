@@ -461,23 +461,23 @@ body {
 
 /* ===== ROLE-SPECIFIC COLORS ===== */
 .dashboard-layout.role-admin .rail-nav-item.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.3);
 }
 
 .dashboard-layout.role-teacher .rail-nav-item.active {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, #FCCC56 0%, #FFD84D 100%);
+    box-shadow: 0 4px 12px rgba(252, 204, 86, 0.3);
 }
 
 .dashboard-layout.role-student .rail-nav-item.active {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, #1AD28F 0%, #4DDCA8 100%);
+    box-shadow: 0 4px 12px rgba(26, 210, 143, 0.3);
 }
 
 .dashboard-layout.role-librarian .rail-nav-item.active {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #08D488 0%, #069F66 100%);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.3);
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -948,7 +948,7 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #10b981;
+    background: #08D488;
     animation: pulse 2s ease-in-out infinite;
 }
 

@@ -6,38 +6,38 @@
 
 /* ── Variables (mirrors style.css) ── */
 :root {
-  --primary-color: #6366f1;
-  --primary-dark: #4f46e5;
+  --primary-color: #08D488;
+  --primary-dark: #069F66;
   --secondary-color: #64748b;
-  --background: #f8fafc;
+  --background: #F7F7F8;
   --surface: #ffffff;
-  --text-primary: #0f172a;
+  --text-primary: #2a2f35;
   --text-secondary: #475569;
   --border: #e2e8f0;
-  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+  --shadow-sm: 0 1px 2px 0 rgba(8,212,136,.05);
+  --shadow-md: 0 4px 6px -1px rgba(8,212,136,.1), 0 2px 4px -1px rgba(8,212,136,.06);
+  --shadow-lg: 0 10px 15px -3px rgba(8,212,136,.1), 0 4px 6px -2px rgba(8,212,136,.05);
   --radius-sm: .375rem;
   --radius-md: .5rem;
   --radius-lg: .75rem;
   --radius-xl: 1.25rem;
   --radius-2xl: 1.75rem;
-  --ctu-blue: #6366f1;
-  --ctu-orange: #f59e0b;
+  --ctu-blue: #08D488;
+  --ctu-orange: #FCCC56;
 }
 
 [data-theme="dark"] {
-  --primary-color: #818cf8;
-  --primary-dark: #a5b4fc;
+  --primary-color: #1AD28F;
+  --primary-dark: #4DDCA8;
   --secondary-color: #94a3b8;
-  --background: #0f172a;
-  --surface: #1e293b;
-  --text-primary: #f1f5f9;
+  --background: #1a1e23;
+  --surface: #2a2f35;
+  --text-primary: #F7F7F8;
   --text-secondary: #94a3b8;
   --border: #334155;
-  --shadow-sm: 0 1px 2px 0 rgba(0,0,0,.3);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.4), 0 2px 4px -1px rgba(0,0,0,.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.5), 0 4px 6px -2px rgba(0,0,0,.4);
+  --shadow-sm: 0 1px 2px 0 rgba(8,212,136,.15);
+  --shadow-md: 0 4px 6px -1px rgba(8,212,136,.2), 0 2px 4px -1px rgba(8,212,136,.15);
+  --shadow-lg: 0 10px 15px -3px rgba(8,212,136,.25), 0 4px 6px -2px rgba(8,212,136,.2);
 }
 
 /* ── Reset / Base ── */
@@ -131,8 +131,8 @@
 }
 
 .btn-orange {
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  color: #fff;
+  background: linear-gradient(135deg, #FCCC56, #FFD84D);
+  color: #2a2f35;
   border: none;
   box-shadow: 0 4px 16px rgba(245,158,11,.35);
 }
@@ -148,11 +148,11 @@
   overflow: hidden;
   padding: 5.5rem 2rem 6rem;
   text-align: center;
-  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 25%, #3b82f6 55%, #6366f1 80%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #046541 0%, #058254 20%, #069F66 40%, #08D488 60%, #B18639 80%, #FCCC56 100%);
 }
 
 [data-theme="dark"] .about-hero {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #1e3a8a 55%, #312e81 80%, #4c1d95 100%);
+  background: linear-gradient(135deg, #1a1e23 0%, #2a2f35 20%, #046541 40%, #08D488 60%, #986D2E 80%, #FCCC56 100%);
 }
 
 .bubble {
@@ -198,7 +198,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #4ade80;
+  background: #08D488;
   animation: pulse-dot 2s ease infinite;
 }
 
@@ -220,7 +220,7 @@
 }
 
 .about-hero h1 span {
-  background: linear-gradient(90deg, #fbbf24, #f472b6);
+  background: linear-gradient(90deg, #FCCC56, #08D488);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -385,15 +385,15 @@
   transition: background .22s ease, color .22s ease;
 }
 
-.fi-blue   { background: rgba(99,102,241,.12);  color: #6366f1; }
-.fi-purple { background: rgba(168,85,247,.12);  color: #a855f7; }
-.fi-orange { background: rgba(245,158,11,.12);  color: #f59e0b; }
-.fi-green  { background: rgba(34,197,94,.12);   color: #22c55e; }
+.fi-blue   { background: rgba(8,212,136,.12);  color: #08D488; }
+.fi-purple { background: rgba(252,204,86,.12);  color: #FCCC56; }
+.fi-orange { background: rgba(252,204,86,.12);  color: #FCCC56; }
+.fi-green  { background: rgba(8,212,136,.12);   color: #08D488; }
 
-.feature-card:hover .fi-blue   { background: #6366f1; color: #fff; }
-.feature-card:hover .fi-purple { background: #a855f7; color: #fff; }
-.feature-card:hover .fi-orange { background: #f59e0b; color: #fff; }
-.feature-card:hover .fi-green  { background: #22c55e; color: #fff; }
+.feature-card:hover .fi-blue   { background: #08D488; color: #fff; }
+.feature-card:hover .fi-purple { background: #FCCC56; color: #2a2f35; }
+.feature-card:hover .fi-orange { background: #FCCC56; color: #2a2f35; }
+.feature-card:hover .fi-green  { background: #08D488; color: #fff; }
 
 .feature-title {
   font-size: 1rem;
@@ -443,7 +443,7 @@
   font-size: 2.8rem;
   font-weight: 900;
   line-height: 1;
-  background: linear-gradient(135deg, var(--primary-color), #a78bfa);
+  background: linear-gradient(135deg, var(--primary-color), #FCCC56);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -507,11 +507,11 @@
   box-shadow: 0 4px 14px rgba(0,0,0,.18);
 }
 
-.av-orange { background: linear-gradient(135deg, #f59e0b, #ef4444); }
-.av-blue   { background: linear-gradient(135deg, #3b82f6, #6366f1); }
-.av-teal   { background: linear-gradient(135deg, #14b8a6, #06b6d4); }
-.av-purple { background: linear-gradient(135deg, #8b5cf6, #a855f7); }
-.av-green  { background: linear-gradient(135deg, #22c55e, #10b981); }
+.av-orange { background: linear-gradient(135deg, #FCCC56, #FFD84D); }
+.av-blue   { background: linear-gradient(135deg, #08D488, #1AD28F); }
+.av-teal   { background: linear-gradient(135deg, #069F66, #08D488); }
+.av-purple { background: linear-gradient(135deg, #B18639, #FCCC56); }
+.av-green  { background: linear-gradient(135deg, #08D488, #4DDCA8); }
 
 .team-name {
   font-size: .9rem;

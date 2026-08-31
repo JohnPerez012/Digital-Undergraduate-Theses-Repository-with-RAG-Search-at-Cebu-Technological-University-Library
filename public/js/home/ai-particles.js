@@ -26,11 +26,11 @@
         
         getRandomColor() {
             const colors = [
-                { r: 102, g: 126, b: 234 }, // #667eea
-                { r: 118, g: 75, b: 162 },  // #764ba2
-                { r: 139, g: 92, b: 246 },  // Purple
-                { r: 59, g: 130, b: 246 },  // Blue
-                { r: 168, g: 85, b: 247 }   // Violet
+                { r: 67, g: 196, b: 101 }, 
+                { r: 243, g: 244, b: 246 },  
+                { r: 252, g: 204, b: 86 },  
+                { r: 55, g: 65, b: 81 }  
+                // { r: 168, g: 85, b: 247 }  
             ];
             return colors[Math.floor(Math.random() * colors.length)];
         }

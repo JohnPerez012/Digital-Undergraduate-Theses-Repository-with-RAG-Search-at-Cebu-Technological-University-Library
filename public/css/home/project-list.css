@@ -139,7 +139,7 @@
 
 .project-title {
     user-select: none;
-    color: #2563eb;
+    color: #069F66;
     font-size: 1.1rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -148,12 +148,12 @@
 }
 
 .dark-mode .project-title, [data-theme="dark"] .project-title {
-    color: #60a5fa;
+    color: #1AD28F;
 }
 
 .project-year {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #B3F0DA;
+    color: #046541;
     font-size: 0.75rem;
     font-weight: 500;
     padding: 0.25rem 0.5rem;
@@ -162,8 +162,8 @@
 }
 
 .dark-mode .project-year, [data-theme="dark"] .project-year {
-    background: #1e3a8a;
-    color: #93c5fd;
+    background: #046541;
+    color: #B3F0DA;
 }
 
 .project-meta {
@@ -262,7 +262,7 @@
 }
 
 .btn-view-details {
-    background: #3b82f6;
+    background: #1AD28F;
     border: none;
     color: white;
     padding: 0.45rem 1rem;
@@ -274,7 +274,7 @@
 }
 
 .btn-view-details:hover {
-    background: #2563eb;
+    background: #069F66;
 }
 
 
@@ -326,9 +326,9 @@
 }
 
 .sort-toggle-btn:hover, .sort-toggle-btn.active {
-    border-color: #3b82f6;
-    color: #2563eb;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+    border-color: #08D488;
+    color: #069F66;
+    box-shadow: 0 2px 4px rgba(8, 212, 136, 0.1);
 }
 
 .dark-mode .sort-toggle-btn, [data-theme="dark"] .sort-toggle-btn {
@@ -338,8 +338,8 @@
 }
 
 .dark-mode .sort-toggle-btn:hover, [data-theme="dark"] .sort-toggle-btn.active {
-    border-color: #60a5fa;
-    color: #93c5fd;
+    border-color: #1AD28F;
+    color: #4DDCA8;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -426,7 +426,7 @@
 }
 
 .sort-radio-label input[type="radio"]:checked + .radio-custom {
-    border-color: #3b82f6;
+    border-color: #08D488;
 }
 
 .sort-radio-label input[type="radio"]:checked + .radio-custom::after {
@@ -437,7 +437,7 @@
     transform: translate(-50%, -50%);
     width: 8px;
     height: 8px;
-    background: #3b82f6;
+    background: #08D488;
     border-radius: 50%;
 }
 
@@ -470,12 +470,12 @@
 }
 
 .view-btn:hover {
-    color: #3b82f6;
+    color: #08D488;
 }
 
 .view-btn.active {
     background: white;
-    color: #2563eb;
+    color: #069F66;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
@@ -484,12 +484,12 @@
 }
 
 .dark-mode .view-btn:hover, [data-theme="dark"] .view-btn:hover {
-    color: #60a5fa;
+    color: #1AD28F;
 }
 
 .dark-mode .view-btn.active, [data-theme="dark"] .view-btn.active {
     background: #334155;
-    color: #60a5fa;
+    color: #1AD28F;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
@@ -587,14 +587,14 @@
 }
 
 .pagination-btn.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
+    background: #08D488;
+    border-color: #08D488;
     color: white;
 }
 
 .dark-mode .pagination-btn.active, [data-theme="dark"] .pagination-btn.active {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: #069F66;
+    border-color: #069F66;
 }
 
 /* RAG RELEVANCE BADGES */
@@ -657,23 +657,23 @@
 
 .dark-mode .relevance-badge.medium, 
 [data-theme="dark"] .relevance-badge.medium {
-    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
-    color: #fde68a;
-    border: 1px solid #f59e0b;
+    background: linear-gradient(135deg, #986D2E 0%, #B18639 100%);
+    color: #FFF9E6;
+    border: 1px solid #FCCC56;
 }
 
-/* Low relevance (30-49%) - Blue */
+/* Low relevance (30-49%) - Green tint */
 .relevance-badge.low {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #1e40af;
-    border: 1px solid #93c5fd;
+    background: linear-gradient(135deg, #E6FAF3 0%, #B3F0DA 100%);
+    color: #046541;
+    border: 1px solid #4DDCA8;
 }
 
 .dark-mode .relevance-badge.low, 
 [data-theme="dark"] .relevance-badge.low {
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-    color: #bfdbfe;
-    border: 1px solid #3b82f6;
+    background: linear-gradient(135deg, #046541 0%, #058254 100%);
+    color: #B3F0DA;
+    border: 1px solid #08D488;
 }
 
 /* Hover effect for badges */
@@ -763,10 +763,10 @@
 
 /* Make highlights more visible in titles */
 .project-title .search-highlight {
-    background-color: rgba(147, 197, 253, 0.4);
+    background-color: rgba(8, 212, 136, 0.4);
     font-weight: 700;
 }
 
 [data-theme="dark"] .project-title .search-highlight {
-    background-color: rgba(96, 165, 250, 0.3);
+    background-color: rgba(26, 210, 143, 0.3);
 }

@@ -10,29 +10,29 @@
     font-weight: 700;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-    color: white;
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
+    color: #2a2f35;
     margin-left: 0.5rem;
     vertical-align: middle;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 4px rgba(8, 212, 136, 0.3);
     animation: aiPulse 2s ease-in-out infinite;
 }
 
 @keyframes aiPulse {
     0%, 100% {
-        box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        box-shadow: 0 2px 4px rgba(8, 212, 136, 0.3);
     }
     50% {
-        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.5);
+        box-shadow: 0 2px 8px rgba(8, 212, 136, 0.5);
     }
 }
 
 .dark-mode .ai-badge,
 [data-theme="dark"] .ai-badge {
-    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.4);
+    background: linear-gradient(135deg, #1AD28F 0%, #FFD84D 100%);
+    box-shadow: 0 2px 4px rgba(26, 210, 143, 0.4);
 }
 
 /* RAG Search Active Indicator */
@@ -46,7 +46,7 @@
     top: -1.5rem;
     left: 0;
     font-size: 0.75rem;
-    color: #8b5cf6;
+    color: #08D488;
     font-weight: 600;
     opacity: 0;
     animation: fadeIn 0.3s ease-out forwards;
@@ -70,15 +70,15 @@
     align-items: center;
     margin-bottom: 1.5rem;
     padding: 1rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    background: linear-gradient(135deg, #E6FAF3 0%, #B3F0DA 100%);
     border-radius: 8px;
-    border-left: 4px solid #0ea5e9;
+    border-left: 4px solid #08D488;
 }
 
 .dark-mode .search-results-header,
 [data-theme="dark"] .search-results-header {
-    background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
-    border-left-color: #38bdf8;
+    background: linear-gradient(135deg, #046541 0%, #058254 100%);
+    border-left-color: #1AD28F;
 }
 
 .search-results-info {
@@ -86,12 +86,12 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.9rem;
-    color: #0369a1;
+    color: #069F66;
 }
 
 .dark-mode .search-results-info,
 [data-theme="dark"] .search-results-info {
-    color: #7dd3fc;
+    color: #4DDCA8;
 }
 
 .search-results-info svg {
@@ -105,16 +105,16 @@
 }
 
 .ai-search-toggle:has(.ai-toggle-input:checked) {
-    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    background: linear-gradient(135deg, #E6FAF3 0%, #B3F0DA 100%);
     padding: 0.75rem 1rem;
     border-radius: 8px;
-    border: 1px solid #c084fc;
+    border: 1px solid #1AD28F;
 }
 
 .dark-mode .ai-search-toggle:has(.ai-toggle-input:checked),
 [data-theme="dark"] .ai-search-toggle:has(.ai-toggle-input:checked) {
-    background: linear-gradient(135deg, #581c87 0%, #6b21a8 100%);
-    border-color: #a855f7;
+    background: linear-gradient(135deg, #046541 0%, #058254 100%);
+    border-color: #08D488;
 }
 
 /* Loading Animation for RAG Search */
@@ -130,8 +130,8 @@
 .rag-loading-spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(139, 92, 246, 0.2);
-    border-top-color: #8b5cf6;
+    border: 4px solid rgba(8, 212, 136, 0.2);
+    border-top-color: #08D488;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -161,13 +161,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-    color: white;
+    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
+    color: #2a2f35;
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.4rem 0.75rem;
     border-radius: 20px;
-    box-shadow: 0 2px 6px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 6px rgba(8, 212, 136, 0.3);
 }
 
 .rag-results-badge svg {
@@ -183,7 +183,7 @@
 }
 
 .ai-toggle-input:checked ~ .search-input {
-    border-color: #8b5cf6;
+    border-color: #08D488;
 }
 
 /* Tooltip for Relevance Badges */

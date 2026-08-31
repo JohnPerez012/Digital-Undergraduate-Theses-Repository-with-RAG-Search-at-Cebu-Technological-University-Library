@@ -6,12 +6,12 @@
     --librarian-sidebar-width: 260px;
     --librarian-sidebar-collapsed: 70px;
     --librarian-header-height: 70px;
-    --librarian-primary: #10b981;
-    --librarian-primary-dark: #059669;
-    --librarian-accent: #3b82f6;
+    --librarian-primary: #08D488;
+    --librarian-primary-dark: #069F66;
+    --librarian-accent: #1AD28F;
     --librarian-danger: #ef4444;
-    --librarian-success: #10b981;
-    --librarian-warning: #f59e0b;
+    --librarian-success: #08D488;
+    --librarian-warning: #FCCC56;
 }
 
 /* Reset */
