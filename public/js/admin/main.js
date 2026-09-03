@@ -1983,24 +1983,121 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.deleteUser = async (userId, name) => {
-        const confirmed = confirm(
-            `⚠️ DELETE USER\n\n` +
-            `Are you sure you want to delete user:\n"${name}"\n\n` +
-            `This will remove their account and all associated data.\n` +
-            `This action cannot be undone.`
-        );
-        
-        if (!confirmed) return;
-
         try {
-            showToast('Deleting user...', 'ℹ️');
-            await db.collection('users').doc(userId).delete();
-            showToast('User deleted successfully', '✅');
-            await loadUsersData();
-            await loadDashboardData(); // Refresh stats
+            // Fetch user data to get security question
+            const userDoc = await db.collection('users').doc(userId).get();
+            
+            if (!userDoc.exists) {
+                showToast('User not found', '❌');
+                return;
+            }
+            
+            const userData = userDoc.data();
+            
+            // Check if user has security question/answer
+            if (!userData.securityQuestion || !userData.securityAnswer) {
+                showToast('Cannot delete: User has no security question set', '⚠️');
+                return;
+            }
+            
+            // Map security question codes to readable text
+            const questionMap = {
+                'pet': 'What was the name of your first pet?',
+                'school': 'What was the name of your first school?',
+                'city': 'What city were you born in?',
+                'maiden': 'What is your mother\'s maiden name?',
+                'book': 'What is your favorite book?'
+            };
+            
+            const questionText = questionMap[userData.securityQuestion] || userData.securityQuestion;
+            
+            // Show security question modal
+            const modal = document.getElementById('security-question-modal');
+            const overlay = document.getElementById('security-question-modal-overlay');
+            const userNameEl = document.getElementById('security-question-user-name');
+            const questionDisplayEl = document.getElementById('security-question-display');
+            const answerInput = document.getElementById('security-answer-input');
+            const errorEl = document.getElementById('security-answer-error');
+            const closeBtn = document.getElementById('security-question-modal-close-btn');
+            const cancelBtn = document.getElementById('security-question-cancel-btn');
+            const verifyBtn = document.getElementById('security-question-verify-btn');
+            
+            // Set modal content
+            userNameEl.textContent = name;
+            questionDisplayEl.textContent = questionText;
+            answerInput.value = '';
+            errorEl.style.display = 'none';
+            
+            // Show modal
+            modal.classList.add('active');
+            answerInput.focus();
+            
+            // Close modal function
+            const closeModal = () => {
+                modal.classList.remove('active');
+                answerInput.value = '';
+                errorEl.style.display = 'none';
+            };
+            
+            // Event listeners (remove any existing ones first)
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            const newVerifyBtn = verifyBtn.cloneNode(true);
+            verifyBtn.parentNode.replaceChild(newVerifyBtn, verifyBtn);
+            const newOverlay = overlay.cloneNode(true);
+            overlay.parentNode.replaceChild(newOverlay, overlay);
+            
+            // Add new event listeners
+            newCloseBtn.addEventListener('click', closeModal);
+            newCancelBtn.addEventListener('click', closeModal);
+            newOverlay.addEventListener('click', (e) => {
+                if (e.target === newOverlay) closeModal();
+            });
+            
+            // Handle Enter key in input
+            answerInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    newVerifyBtn.click();
+                }
+            });
+            
+            // Verify and delete
+            newVerifyBtn.addEventListener('click', async () => {
+                const enteredAnswer = answerInput.value.trim();
+                const correctAnswer = userData.securityAnswer.trim();
+                
+                // Case-insensitive comparison
+                if (enteredAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                    // Correct answer - proceed with deletion
+                    try {
+                        closeModal();
+                        showToast('Deleting user...', 'ℹ️');
+                        await db.collection('users').doc(userId).delete();
+                        showToast('User deleted successfully', '✅');
+                        await loadUsersData();
+                        await loadDashboardData(); // Refresh stats
+                    } catch (error) {
+                        console.error('Error deleting user:', error);
+                        showToast('Error deleting user: ' + error.message, '❌');
+                    }
+                } else {
+                    // Incorrect answer
+                    errorEl.style.display = 'block';
+                    answerInput.style.borderColor = '#e53e3e';
+                    answerInput.focus();
+                    
+                    // Reset border color after 3 seconds
+                    setTimeout(() => {
+                        answerInput.style.borderColor = '';
+                    }, 3000);
+                }
+            });
+            
         } catch (error) {
-            console.error('Error deleting user:', error);
-            showToast('Error deleting user: ' + error.message, '❌');
+            console.error('Error in deleteUser:', error);
+            showToast('Error: ' + error.message, '❌');
         }
     };
 

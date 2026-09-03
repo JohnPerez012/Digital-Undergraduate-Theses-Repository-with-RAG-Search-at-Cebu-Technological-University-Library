@@ -1379,10 +1379,7 @@
         
         backToStep5Btn.addEventListener('click', () => showStep(5));
         
-        skipToStep7Btn.addEventListener('click', () => {
-            markStepCompleted(6);
-            showStep(7);
-        });
+        // Skip button removed - security question is now required
         
         nextToStep7Btn.addEventListener('click', () => {
             markStepCompleted(6);
@@ -1391,12 +1388,26 @@
         
         backToStep6Btn.addEventListener('click', () => showStep(6));
 
-        // Step 7 to Step 8 Navigation
+        // Step 7 to Step 8 Navigation (Security Question - Now Required)
         const nextToStep8Btn = document.getElementById('next-to-step-8');
         const backToStep7Btn = document.getElementById('back-to-step-7');
         
         if (nextToStep8Btn) {
             nextToStep8Btn.addEventListener('click', () => {
+                // Validate security question and answer are filled
+                const securityQuestion = document.getElementById('security-question').value;
+                const securityAnswer = document.getElementById('security-answer').value.trim();
+                
+                if (!securityQuestion) {
+                    showToast('Please select a security question', '⚠️');
+                    return;
+                }
+                
+                if (!securityAnswer || securityAnswer.length < 2) {
+                    showToast('Please provide an answer to your security question', '⚠️');
+                    return;
+                }
+                
                 markStepCompleted(7);
                 showStep(8);
                 initializeTermsAndConditions();
@@ -1632,12 +1643,14 @@
                     userData.college = college;
                 }
                 
+                // Security question is now REQUIRED
                 const securityQuestion = document.getElementById('security-question').value;
                 const securityAnswer = document.getElementById('security-answer').value.trim();
-                if (securityQuestion && securityAnswer) {
-                    userData.securityQuestion = securityQuestion;
-                    userData.securityAnswer = securityAnswer;
+                if (!securityQuestion || !securityAnswer) {
+                    throw new Error('Security question and answer are required');
                 }
+                userData.securityQuestion = securityQuestion;
+                userData.securityAnswer = securityAnswer;
                 
                 const user = googleUser;
                 

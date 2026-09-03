@@ -451,19 +451,18 @@
                     
                     <div class="button-group">
                         <button id="back-to-step-5" class="btn btn-secondary btn-large">Back</button>
-                        <button id="skip-to-step-7" class="btn btn-secondary btn-large">Skip</button>
                         <button id="next-to-step-7" class="btn btn-primary btn-large" disabled>Continue</button>
                     </div>
                 </div>
 
-                <!-- Step 7: Optional Question -->
+                <!-- Step 7: Security Question (Required) -->
                 <div id="step-7" class="registration-step">
                     <h1 class="step-title">Recovery Details</h1>
-                    <p class="step-subtitle">Security question (optional, for password recovery)</p>
+                    <p class="step-subtitle">Security question for account recovery</p>
                     
                     <div class="form-group">
-                        <label class="form-label" for="security-question">Security Question</label>
-                        <select id="security-question" class="form-input form-select">
+                        <label class="form-label" for="security-question">Security Question <span style="color: #e53e3e;">*</span></label>
+                        <select id="security-question" class="form-input form-select" required>
                             <option value="" disabled selected>Select a question</option>
                             <option value="pet">What was the name of your first pet?</option>
                             <option value="school">What was the name of your first school?</option>
@@ -474,8 +473,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label class="form-label" for="security-answer">Answer</label>
-                        <input type="text" id="security-answer" class="form-input" placeholder="Your answer">
+                        <label class="form-label" for="security-answer">Answer <span style="color: #e53e3e;">*</span></label>
+                        <input type="text" id="security-answer" class="form-input" placeholder="Your answer" required>
                     </div>
                     
                     <div class="button-group">
