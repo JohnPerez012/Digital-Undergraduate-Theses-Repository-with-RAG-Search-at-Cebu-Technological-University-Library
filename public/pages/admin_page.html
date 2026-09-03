@@ -1019,6 +1019,55 @@
         </div>
     </div>
 
+    <!-- Security Question Verification Modal (for User Deletion) -->
+    <div class="modal" id="security-question-modal">
+        <div class="modal-overlay" id="security-question-modal-overlay"></div>
+        <div class="modal-content confirmation-modal-content">
+            <div class="modal-header">
+                <h3 id="security-question-modal-title">🔒 Security Verification Required</h3>
+                <button class="modal-close-btn" id="security-question-modal-close-btn" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1.5rem;">
+                    <p style="font-weight: 600; margin-bottom: 0.5rem;">Deleting user: <span id="security-question-user-name" style="color: var(--primary);"></span></p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">To delete this user, you must answer their security question correctly.</p>
+                </div>
+                
+                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">Security Question:</label>
+                    <p id="security-question-display" style="color: var(--text-secondary); font-style: italic;"></p>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label for="security-answer-input" style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">Your Answer:</label>
+                    <input 
+                        type="text" 
+                        id="security-answer-input" 
+                        class="form-input" 
+                        placeholder="Enter the answer to the security question"
+                        autocomplete="off"
+                        style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary);"
+                    >
+                    <div id="security-answer-error" style="display: none; color: #e53e3e; margin-top: 0.5rem; font-size: 0.875rem;">
+                        ❌ Incorrect answer. Please try again.
+                    </div>
+                </div>
+                
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+                    <p style="margin: 0; color: #92400e; font-size: 0.875rem;">
+                        <strong>⚠️ Warning:</strong> This action cannot be undone. The user account and all associated data will be permanently deleted.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="security-question-cancel-btn">Cancel</button>
+                <button type="button" class="btn-danger" id="security-question-verify-btn">Verify & Delete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <div class="modal" id="confirmation-modal">
         <div class="modal-overlay" id="confirmation-modal-overlay"></div>

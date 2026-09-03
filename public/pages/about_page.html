@@ -252,10 +252,77 @@
     <div class="contact-card">
       <div class="contact-title">Have feedback or found an issue?</div>
       <div class="contact-sub">Reach out to the RECAP team — we'd love to hear from you.</div>
-      <div class="contact-form">
-        <input class="contact-input" type="email" placeholder="Your email address" aria-label="Your email address" />
-        <button class="btn btn-orange">Send Feedback</button>
-      </div>
+      
+      <form id="feedback-form" class="feedback-form">
+        <div class="feedback-form-row">
+          <div class="feedback-form-group">
+            <label for="feedback-name" class="feedback-label">Name <span class="required">*</span></label>
+            <input 
+              type="text" 
+              id="feedback-name" 
+              name="name" 
+              class="feedback-input" 
+              placeholder="Your full name" 
+              required
+              minlength="2"
+              maxlength="100"
+              aria-label="Your name"
+            />
+            <div class="field-feedback"></div>
+          </div>
+          
+          <div class="feedback-form-group">
+            <label for="feedback-email" class="feedback-label">Email <span class="required">*</span></label>
+            <input 
+              type="email" 
+              id="feedback-email" 
+              name="email" 
+              class="feedback-input" 
+              placeholder="your.email@example.com" 
+              required
+              aria-label="Your email address"
+            />
+            <div class="field-feedback"></div>
+          </div>
+        </div>
+        
+        <div class="feedback-form-group">
+          <label for="feedback-subject" class="feedback-label">Subject <span class="optional">(optional)</span></label>
+          <input 
+            type="text" 
+            id="feedback-subject" 
+            name="subject" 
+            class="feedback-input" 
+            placeholder="Brief subject line" 
+            maxlength="150"
+            aria-label="Feedback subject"
+          />
+        </div>
+        
+        <div class="feedback-form-group">
+          <label for="feedback-message" class="feedback-label">Message <span class="required">*</span></label>
+          <textarea 
+            id="feedback-message" 
+            name="message" 
+            class="feedback-textarea" 
+            placeholder="Tell us what's on your mind — suggestions, bug reports, questions, or general feedback..." 
+            required
+            minlength="10"
+            maxlength="2000"
+            rows="6"
+            aria-label="Your message"
+          ></textarea>
+          <div class="field-feedback"></div>
+        </div>
+        
+        <button type="submit" class="btn btn-orange btn-submit">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          Send Feedback
+        </button>
+      </form>
     </div>
   </div>
 
@@ -272,5 +339,6 @@
 <script src="../js/shared/toast.js"></script>
 <script src="../js/shared/network-monitor.js"></script>
 <script src="../js/shared/smooth-scroll.js"></script>
+<script src="../js/pages/feedback.js"></script>
 </body>
 </html>
