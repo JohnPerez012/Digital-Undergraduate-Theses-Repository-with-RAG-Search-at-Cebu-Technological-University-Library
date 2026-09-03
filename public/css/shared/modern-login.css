@@ -1,0 +1,704 @@
+/* ====================================
+   MODERN ANIMATED LOGIN MODAL - GLASSMORPHISM
+   ==================================== */
+
+/* Modal Base */
+.login-modal-modern .modal-backdrop {
+    backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.login-modal-container {
+    position: relative;
+    display: flex;
+    width: 95%;
+    max-width: 1100px;
+    height: 650px;
+    max-height: 90vh;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+[data-theme="light"] .login-modal-container {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* ====================================
+   LEFT PANEL - ANIMATED TEXT SECTION
+   ==================================== */
+
+.login-left-panel {
+    flex: 1;
+    background: linear-gradient(135deg, 
+        rgba(8, 212, 136, 0.4) 0%, 
+        rgba(8, 212, 136, 0.2) 100%
+    );
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    overflow: hidden;
+}
+
+[data-theme="light"] .login-left-panel {
+    background: linear-gradient(135deg, 
+        rgba(8, 212, 136, 0.3) 0%, 
+        rgba(8, 212, 136, 0.1) 100%
+    );
+}
+
+/* Animated Background Pattern */
+.login-left-panel::before {
+    content: '';
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    animation: backgroundMove 20s ease-in-out infinite;
+}
+
+/* Mesh gradient overlay for depth */
+.login-left-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+        linear-gradient(135deg, transparent 0%, rgba(8, 212, 136, 0.1) 50%, transparent 100%);
+    animation: meshShift 10s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundMove {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-10%, -10%) rotate(5deg); }
+}
+
+@keyframes meshShift {
+    0% { opacity: 0.3; }
+    100% { opacity: 0.7; }
+}
+
+.animated-text-container {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: white;
+}
+
+[data-theme="light"] .animated-text-container {
+    color: var(--text-primary);
+}
+
+/* Welcome Text Animation */
+.animated-welcome-text {
+    margin: 0 0 1.5rem 0;
+    font-weight: 700;
+}
+
+.welcome-line {
+    display: block;
+    font-size: 1.2rem;
+    opacity: 0;
+    animation: fadeInDown 0.8s ease forwards;
+    animation-delay: 0.2s;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .welcome-line {
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.brand-line {
+    display: block;
+    font-size: 2.5rem;
+    line-height: 1.1;
+    margin-top: 0.5rem;
+}
+
+/* Individual Letter Animation */
+.letter {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(-20px) rotateX(-90deg);
+    animation: letterDrop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .letter {
+    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.letter[data-letter="R"] { animation-delay: 0.4s; }
+.letter[data-letter="E"] { animation-delay: 0.5s; }
+.letter[data-letter="-"] { animation-delay: 0.6s; }
+.letter[data-letter="C"] { animation-delay: 0.7s; }
+.letter[data-letter="A"] { animation-delay: 0.8s; }
+.letter[data-letter="P"] { animation-delay: 0.9s; }
+.letter[data-letter="S"] { animation-delay: 1.0s; }
+
+@keyframes letterDrop {
+    to {
+        opacity: 1;
+        transform: translateY(0) rotateX(0);
+    }
+}
+
+/* Tagline Animation */
+.tagline-animated {
+    font-size: 0.95rem;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    margin: 0;
+    opacity: 0;
+    animation: fadeInUp 0.8s ease forwards;
+    animation-delay: 1.2s;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .tagline-animated {
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.tagline-word {
+    display: inline-block;
+    margin: 0 0.3rem;
+}
+
+/* Floating Particles */
+.floating-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    animation: float 15s ease-in-out infinite;
+}
+
+[data-theme="light"] .particle {
+    background: rgba(8, 212, 136, 0.5);
+    box-shadow: 0 0 10px rgba(8, 212, 136, 0.3);
+}
+
+.particle:nth-child(1) {
+    top: 20%;
+    left: 20%;
+    animation-delay: 0s;
+    animation-duration: 12s;
+}
+
+.particle:nth-child(2) {
+    top: 60%;
+    left: 80%;
+    animation-delay: 2s;
+    animation-duration: 15s;
+}
+
+.particle:nth-child(3) {
+    top: 80%;
+    left: 30%;
+    animation-delay: 4s;
+    animation-duration: 18s;
+}
+
+.particle:nth-child(4) {
+    top: 40%;
+    left: 70%;
+    animation-delay: 6s;
+    animation-duration: 14s;
+}
+
+.particle:nth-child(5) {
+    top: 10%;
+    left: 50%;
+    animation-delay: 8s;
+    animation-duration: 16s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.6;
+    }
+    50% {
+        transform: translateY(-50px) translateX(30px);
+        opacity: 1;
+    }
+    90% {
+        opacity: 0.6;
+    }
+}
+
+/* ====================================
+   RIGHT PANEL - LOGIN FORM
+   ==================================== */
+
+.login-right-panel {
+    flex: 1;
+    padding: 3rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+}
+
+[data-theme="light"] .login-right-panel {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.login-modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+[data-theme="light"] .login-modal-close {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.login-modal-close:hover {
+    background: rgba(229, 62, 62, 0.8);
+    border-color: rgba(229, 62, 62, 1);
+    color: white;
+    transform: rotate(90deg);
+}
+
+.login-form-wrapper {
+    opacity: 0;
+    animation: fadeInRight 0.8s ease forwards;
+    animation-delay: 0.3s;
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.login-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.login-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem 0;
+}
+
+/* Modern Input Groups */
+.modern-input-group {
+    margin-bottom: 1.25rem;
+}
+
+.modern-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.modern-input {
+    padding-left: 3rem !important;
+    height: 52px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-lg);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    color: var(--text-primary);
+    width: 100%;
+}
+
+[data-theme="light"] .modern-input {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modern-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(8, 212, 136, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+[data-theme="light"] .modern-input:focus {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.modern-toggle-password {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
+    z-index: 2;
+}
+
+.modern-toggle-password:hover {
+    color: var(--primary-color);
+}
+
+/* Modern Options */
+.modern-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.modern-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.modern-checkbox-custom {
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+[data-theme="light"] .modern-checkbox-custom {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.checkbox-input:checked + .modern-checkbox-custom {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkbox-input:checked + .modern-checkbox-custom::after {
+    content: '✓';
+    color: white;
+    font-size: 0.75rem;
+}
+
+/* Modern Login Button */
+.modern-login-btn {
+    width: 100%;
+    height: 52px;
+    border-radius: var(--radius-lg);
+    font-size: 1.05rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, 
+        rgba(8, 212, 136, 0.8) 0%, 
+        rgba(8, 212, 136, 1) 100%
+    );
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(8, 212, 136, 0.3);
+}
+
+.modern-login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(8, 212, 136, 0.5);
+    background: linear-gradient(135deg, 
+        rgba(8, 212, 136, 0.9) 0%, 
+        rgba(8, 212, 136, 1) 100%
+    );
+}
+
+.modern-login-btn:active {
+    transform: translateY(0);
+}
+
+.modern-login-btn svg {
+    transition: transform 0.3s ease;
+}
+
+.modern-login-btn:hover svg {
+    transform: translateX(5px);
+}
+
+/* Divider */
+.divider-with-text {
+    display: flex;
+    align-items: center;
+    margin: 1.25rem 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.divider-with-text::before,
+.divider-with-text::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .divider-with-text::before,
+[data-theme="light"] .divider-with-text::after {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.divider-with-text span {
+    padding: 0 1rem;
+}
+
+/* Modern Google Button */
+.modern-google-btn {
+    width: 100%;
+    height: 52px;
+    border-radius: var(--radius-lg);
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+[data-theme="light"] .modern-google-btn {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modern-google-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .modern-google-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* Signup Link */
+.signup-link {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.link-animated {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.link-animated::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+.link-animated:hover::after {
+    width: 100%;
+}
+
+/* ====================================
+   RESPONSIVE DESIGN
+   ==================================== */
+
+@media (max-width: 968px) {
+    .login-modal-container {
+        flex-direction: column;
+        height: auto;
+        max-height: 95vh;
+        overflow-y: auto;
+    }
+
+    .login-left-panel {
+        min-height: 220px;
+        padding: 2rem;
+    }
+
+    .brand-line {
+        font-size: 2.2rem !important;
+    }
+
+    .welcome-line {
+        font-size: 1.1rem !important;
+    }
+
+    .tagline-animated {
+        font-size: 0.85rem !important;
+    }
+
+    .login-right-panel {
+        padding: 2rem 1.5rem;
+    }
+
+    .login-title {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .login-modal-container {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .login-left-panel {
+        min-height: 180px;
+        padding: 1.5rem;
+    }
+
+    .brand-line {
+        font-size: 2rem !important;
+    }
+
+    .welcome-line {
+        font-size: 1rem !important;
+    }
+
+    .tagline-animated {
+        font-size: 0.8rem !important;
+    }
+
+    .login-right-panel {
+        padding: 1.5rem 1rem;
+    }
+
+    .modern-input,
+    .modern-login-btn,
+    .modern-google-btn {
+        height: 48px;
+    }
+}
+
+/* ====================================
+   ANIMATIONS
+   ==================================== */
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pulse Animation for Particles */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 1;
+    }
+}
