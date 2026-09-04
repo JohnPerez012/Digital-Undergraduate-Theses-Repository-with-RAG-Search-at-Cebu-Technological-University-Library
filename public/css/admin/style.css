@@ -3759,30 +3759,94 @@ form #project-id-input {
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
     overflow: hidden;
+    table-layout: auto;
 }
 
 .format-table th,
 .format-table td {
-    padding: 0.5rem;
+    padding: 0.75rem 0.5rem;
     border: 1px solid var(--border);
     text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .format-table th {
     background: var(--primary-color);
     color: white;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .format-table td {
     color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Make first column (Title) wider */
+.format-table td:first-child,
+.format-table th:first-child {
+    min-width: 100px;
+}
+
+/* Make Authors column wider */
+.format-table td:nth-child(2),
+.format-table th:nth-child(2) {
+    min-width: 120px;
+}
+
+/* Scrollable table container for mobile */
+.format-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+/* Scrollbar styling for table wrapper */
+.format-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.format-table-wrapper::-webkit-scrollbar-track {
+    background: var(--surface);
+    border-radius: 4px;
+}
+
+.format-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.format-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* Table cells better text handling */
+.format-table td {
+    max-width: 200px;
+    white-space: normal;
+}
+
+/* Special handling for abstract column */
+.format-table td:nth-child(6) {
+    max-width: 250px;
+}
+
+/* Compact columns */
+.format-table td:nth-child(3),  /* program */
+.format-table td:nth-child(4),  /* year */
+.format-table td:nth-child(9) { /* status */
+    white-space: nowrap;
 }
 
 .excel-format-guide ul {
