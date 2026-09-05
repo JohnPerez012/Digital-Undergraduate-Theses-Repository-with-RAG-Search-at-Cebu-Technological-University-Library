@@ -591,6 +591,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Error saving users to cache:', error);
         }
     }
+    
+    /**
+     * Invalidate cache - clears all cached data to force fresh fetch
+     */
+    function invalidateCache() {
+        try {
+            localStorage.removeItem('projectsData');
+            localStorage.removeItem('projectsMetadata');
+            console.log('🗑️ Cache invalidated');
+        } catch (error) {
+            console.error('Error invalidating cache:', error);
+        }
+    }
 
     // ===== Projects Data =====
     async function loadProjectsData() {
@@ -1871,17 +1884,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Delete from Firestore
             await db.collection('projects').doc(secureDeleteProjectId).delete();
             
-            // Update Realtime Database projects_document_count
-            if (rtdb) {
-                try {
-                    const countSnapshot = await db.collection('projects').get();
-                    const newCount = countSnapshot.size;
-                    await rtdb.ref('projects_document_count').set(newCount);
-                    console.log('Realtime database project count updated to:', newCount);
-                } catch (rtdbErr) {
-                    console.error('Error updating RTDB project count:', rtdbErr);
+            // Update Realtime Database counters
+            try {
+                if (rtdb) {
+                    // Decrement project count
+                    const countRef = rtdb.ref('projects_document_count');
+                    await countRef.transaction((current) => Math.max(0, (current || 0) - 1));
+                    
+                    // Increment update counter
+                    const updateCounterRef = rtdb.ref('update_counter');
+                    await updateCounterRef.transaction((current) => (current || 0) + 1);
+                    
+                    console.log('✓ RTDB counters updated after deletion');
+                } else {
+                    console.warn('RTDB not available, skipping counter update');
                 }
+            } catch (rtdbError) {
+                console.warn('RTDB counter update failed:', rtdbError);
             }
+            
+            // Invalidate cache to force fresh data on next load
+            invalidateCache();
 
             // Delete from Pinecone
             try {
@@ -3519,8 +3542,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeLibrarianModal();
         }
     });
-});
-
 
     // ===== BULK IMPORT FEATURE =====
     
@@ -4003,11 +4024,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // Increment RTDB counter
                     try {
-                        const countRef = firebase.database().ref('projects_document_count');
-                        await countRef.transaction((current) => (current || 0) + 1);
-                        
-                        const updateCounterRef = firebase.database().ref('update_counter');
-                        await updateCounterRef.transaction((current) => (current || 0) + 1);
+                        if (rtdb) {
+                            const countRef = rtdb.ref('projects_document_count');
+                            await countRef.transaction((current) => (current || 0) + 1);
+                            
+                            const updateCounterRef = rtdb.ref('update_counter');
+                            await updateCounterRef.transaction((current) => (current || 0) + 1);
+                        } else {
+                            console.warn('RTDB not available, skipping counter update');
+                        }
                     } catch (rtdbError) {
                         console.warn('RTDB counter update failed:', rtdbError);
                     }
@@ -4087,3 +4112,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // ===== END BULK IMPORT FEATURE =====
+});
