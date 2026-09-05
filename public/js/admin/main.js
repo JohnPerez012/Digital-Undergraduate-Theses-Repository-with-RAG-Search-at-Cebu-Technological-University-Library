@@ -68,6 +68,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isAdmin = await checkAdminAuth();
     if (!isAdmin) return;
 
+    // ===== Backend API URL Helper =====
+    function getBackendUrl() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3001';
+        }
+        return 'https://recaps-project-hub.onrender.com';
+    }
+
     // ===== Confirmation Modal Helper =====
     let confirmationCallback = null;
     
@@ -1909,7 +1917,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Delete from Pinecone
             try {
                 console.log('🔄 Deleting project from Pinecone...');
-                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const backendUrl = getBackendUrl();
                 const deleteResponse = await fetch(`${backendUrl}/api/projects/sync/${secureDeleteProjectId}`, {
                     method: 'DELETE',
                     headers: {
@@ -2252,7 +2260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 showToast('Starting Pinecone sync...', 'ℹ️');
                 
-                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const backendUrl = getBackendUrl();
                 const response = await fetch(`${backendUrl}/api/projects/sync-all`, {
                     method: 'POST',
                     headers: {
@@ -2800,7 +2808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Sync to Pinecone
             try {
                 console.log('🔄 Syncing project to Pinecone...');
-                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const backendUrl = getBackendUrl();
                 const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
                     method: 'POST',
                     headers: {
@@ -2869,7 +2877,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Sync to Pinecone
             try {
                 console.log('🔄 Syncing new project to Pinecone...');
-                const backendUrl = 'https://recaps-project-hub.onrender.com';
+                const backendUrl = getBackendUrl();
                 const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
                     method: 'POST',
                     headers: {
@@ -4003,7 +4011,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // Sync to Pinecone (backend)
                     try {
-                        const syncResponse = await fetch('http://localhost:3001/api/projects/sync', {
+                        const backendUrl = getBackendUrl();
+                        const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
