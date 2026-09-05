@@ -9,27 +9,19 @@ const firebaseConfig = {
   databaseURL: "https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase (only once)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
 // Initialize services
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Set Firestore cache size limit to prevent IndexedDB bloat
-// 1 MB = 1048576 bytes (enough for metadata, small queries)
-// We use localStorage for project caching, so Firestore cache can be minimal
-// db.settings({
-//   cacheSizeBytes: 1048576,  // 1 MB limit
-//   merge: true
-// });
-
-// console.log('✓ Firestore cache limited to 1 MB');
-
-// Initialize Realtime Database conditionally if SDK is loaded
+// Initialize Realtime Database (get existing instance instead of creating new one)
 let rtdb;
 if (typeof firebase.database === 'function') {
-  rtdb = firebase.app().database("https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app");
+    rtdb = firebase.database();
 }
 
 console.log('Firebase initialized successfully');
