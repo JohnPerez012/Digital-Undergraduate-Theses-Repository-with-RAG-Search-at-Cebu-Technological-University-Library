@@ -4,7 +4,10 @@
  */
 
 const AIService = {
-  API_BASE_URL: 'http://localhost:3001/api',
+  API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3001/api'
+    : 'https://recap-backend-jy5b.onrender.com/api',
+
   conversationHistory: [],
   
   /**
@@ -61,29 +64,29 @@ const AIService = {
             
             // If abstract field is missing or empty, extract from text if present
             if (!abstract && text) {
-              const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Program):|\n\n|\*$|$))/i);
+              const abstractMatch = text.match(/Abstract:\s*([^]*?)(?=(?:\s*(?:Keywords|Adviser|Authors|Program|Year|Key Findings|Topics):|\n\n|\*$|$))/i);
               if (abstractMatch && abstractMatch[1]) {
                 abstract = abstractMatch[1].trim();
-              } else {
+              } else if (!text.includes('Title:')) {
                 abstract = text;
               }
             }
 
             let authors = match.authors || '';
             if (!authors && text) {
-              const authorsMatch = text.match(/Authors?:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Adviser|Program):|\n\n|\*$|$))/i);
+              const authorsMatch = text.match(/Authors?:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Adviser|Program|Year|Key Findings|Topics):|\n\n|\*$|$))/i);
               if (authorsMatch) authors = authorsMatch[1].trim();
             }
 
             let adviser = match.adviser || '';
             if (!adviser && text) {
-              const adviserMatch = text.match(/Adviser:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Authors|Program):|\n\n|\*$|$))/i);
+              const adviserMatch = text.match(/Adviser:\s*([^]*?)(?=(?:\s*(?:Abstract|Keywords|Authors|Program|Year|Key Findings|Topics):|\n\n|\*$|$))/i);
               if (adviserMatch) adviser = adviserMatch[1].trim();
             }
 
             let keywords = match.keywords || '';
             if (!keywords && text) {
-              const kwMatch = text.match(/Keywords?:\s*([^]*?)(?=(?:\s*(?:Abstract|Adviser|Authors|Program):|\n\n|\*$|$))/i);
+              const kwMatch = text.match(/Keywords?:\s*([^]*?)(?=(?:\s*(?:Abstract|Adviser|Authors|Program|Year|Key Findings|Topics):|\n\n|\*$|$))/i);
               if (kwMatch) keywords = kwMatch[1].trim();
             }
 

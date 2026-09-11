@@ -19,12 +19,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
 
 
-    <link rel="stylesheet" href="css/shared/style.css">
-    <link rel="stylesheet" href="css/home/project-list.css">
+    <link rel="stylesheet" href="css/shared/style.css?v=2.1">
+    <link rel="stylesheet" href="css/home/project-list.css?v=2.1">
     <link rel="stylesheet" href="css/shared/toast.css">
-    <link rel="stylesheet" href="css/shared/secondary-header.css">
+    <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.1">
     <link rel="stylesheet" href="css/home/rag-styles.css">
-    <link rel="stylesheet" href="css/projectDetails/view_project_details.css">
+    <link rel="stylesheet" href="css/projectDetails/view_project_details.css?v=2.1">
     <link rel="stylesheet" href="css/chatbot/chatbot.css">
     <link rel="stylesheet" href="css/shared/dramatic-intro.css">
     <link rel="stylesheet" href="css/shared/modern-login.css">
@@ -341,7 +341,7 @@
                 </div>
             </section>
 
-            <section class="projects-list-section" style="padding: 4rem 5%; background-color: var(--background);">
+            <section class="projects-list-section">
                 <!-- Decorative elements -->
                 <div class="deco-blob"></div>
                 <div class="deco-circle deco-circle-1"></div>
@@ -349,12 +349,11 @@
                 <div class="deco-circle deco-circle-3"></div>
                 <div class="deco-blob"></div>
 
-                <div class="container" style="max-width: 1200px; margin: 0 auto;">
+                <div class="container">
                     <div class="projects-header-bar">
                         <h2 class="section-title-index" style="margin: 0;">Total Projects: <span
                                 id="total-projects-count">...</span></h2>
-                        <div class="header-controls"
-                            style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <div class="header-controls">
                             <div class="sort-control dropdown">
                                 <button class="sort-toggle-btn" id="sort-toggle-btn">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
@@ -855,6 +854,9 @@
     
     <!-- Citation Module -->
     <script src="js/projectDetails/citation.js"></script>
+    
+    <!-- Cloudinary Image Service -->
+    <script src="js/shared/cloudinary-service.js"></script>
     
     <!-- Unified View Controller -->
     <script src="js/shared/view-manager.js"></script>

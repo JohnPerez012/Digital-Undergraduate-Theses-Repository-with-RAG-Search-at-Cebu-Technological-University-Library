@@ -73,7 +73,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return 'http://localhost:3001';
         }
-        return 'https://recaps-project-hub.onrender.com';
+        return 'https://recap-backend-jy5b.onrender.com';
+    }
+
+    // ===== Title Normalization (for duplicate detection) =====
+    // Collapses whitespace and lowercases so "Effect of Guyabano" === "effect of  guyabano"
+    function normalizeTitle(str) {
+        return (str || '').trim().toLowerCase().replace(/\s+/g, ' ');
     }
 
     // ===== Confirmation Modal Helper =====
@@ -613,8 +619,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // ===== Pagination State =====
+    let allProjectsData = []; // Store all projects
+    let currentProjectsPage = 1;
+    const PROJECTS_PER_PAGE = 10;
+
     // ===== Projects Data =====
-    async function loadProjectsData() {
+    async function loadProjectsData(forceRefresh = false) {
         // Safety check: Ensure user is authenticated
         if (!auth.currentUser) {
             console.warn('Cannot load projects - no authenticated user');
@@ -623,8 +634,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const tbody = document.getElementById('projects-table-body');
         
-        // 1. Try to load and render from cache immediately
-        let projects = loadFromCache();
+        // 1. Try to load and render from cache immediately (unless force refresh)
+        let projects = forceRefresh ? null : loadFromCache();
         let renderedFromCache = false;
         
         if (projects && projects.length > 0) {
@@ -635,8 +646,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return dateB - dateA;
             });
             
-            // Render cached projects immediately
-            renderProjectsTable(projects, tbody);
+            // Store all projects globally
+            allProjectsData = projects;
+            
+            // Reset to page 1 and render with pagination
+            currentProjectsPage = 1;
+            renderProjectsTablePaginated(tbody);
             
             // Re-apply filters if active
             if (typeof applyProjectFilters === 'function') {
@@ -650,15 +665,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         try {
-            // 2. Perform cache validation asynchronously
-            const cacheValid = await isCacheValid();
-            
-            if (cacheValid && renderedFromCache) {
-                console.log('✓ Projects cache is valid. No Firestore fetch needed.');
-                return;
+            // 2. Perform cache validation asynchronously (skip if forceRefresh is true)
+            if (!forceRefresh) {
+                const cacheValid = await isCacheValid();
+                
+                if (cacheValid && renderedFromCache) {
+                    console.log('✓ Projects cache is valid. Reconciling Pinecone status in background...');
+                    checkPineconeSyncStatus();
+                    return;
+                }
             }
             
-            // Cache invalid or not found - fetch from Firestore
+            // Cache invalid or not found or forceRefresh - fetch from Firestore
             console.log('📡 Fetching fresh project data from Firestore...');
             if (!renderedFromCache) {
                 tbody.innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div> Loading projects...</td></tr>';
@@ -706,13 +724,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Save fresh data to cache
             await saveToCache(freshProjects);
             
-            // Render fresh data
-            renderProjectsTable(freshProjects, tbody);
+            // Store all projects globally
+            allProjectsData = freshProjects;
+            
+            // Reset to page 1 and render
+            currentProjectsPage = 1;
+            renderProjectsTablePaginated(tbody);
             
             // Re-apply filters
             if (typeof applyProjectFilters === 'function') {
                 applyProjectFilters();
             }
+
+            // Verify and reconcile with Pinecone vector database in background
+            checkPineconeSyncStatus();
 
         } catch (error) {
             console.error('Error loading projects:', error);
@@ -738,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <div class="error-icon">⚠️</div>
                                 <h4>Error Loading Projects</h4>
                                 <p>${error.message || 'An unexpected error occurred'}</p>
-                                <button class="btn-secondary" onclick="loadProjectsData()">Retry</button>
+                                <button class="btn-secondary" onclick="loadProjectsData(true)">Retry</button>
                             </div>
                         </td></tr>
                     `;
@@ -748,6 +773,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 showToast('Failed to check for database updates, using cached data.', '⚠️');
             }
+        }
+    }
+
+    /**
+     * Check Pinecone directly for all indexed vector IDs and reconcile UI & Firestore
+     */
+    async function checkPineconeSyncStatus() {
+        try {
+            const backendUrl = getBackendUrl();
+            const res = await fetch(`${backendUrl}/api/projects/sync-status`);
+            if (!res.ok) return;
+
+            const data = await res.json();
+            if (data.success && Array.isArray(data.vectorIds)) {
+                const vectorSet = new Set(data.vectorIds);
+                let updatedAny = false;
+
+                allProjectsData.forEach(project => {
+                    const existsInPinecone = vectorSet.has(project.id);
+                    if (existsInPinecone && project.pineconeSynced !== true) {
+                        project.pineconeSynced = true;
+                        updatedAny = true;
+                    }
+                });
+
+                if (updatedAny) {
+                    console.log(`✓ Reconciled projects with Pinecone: updated sync indicators`);
+                    const tbody = document.getElementById('projects-table-body');
+                    if (tbody) {
+                        renderProjectsTablePaginated(tbody);
+                        if (typeof applyProjectFilters === 'function') {
+                            applyProjectFilters();
+                        }
+                    }
+                    if (typeof saveToCache === 'function') {
+                        await saveToCache(allProjectsData);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('Pinecone sync-status check error (non-fatal):', err.message);
         }
     }
 
@@ -767,9 +833,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Store createdAt timestamp as data attribute for filtering
             const createdAtTimestamp = getTimestamp(data.createdAt);
             row.setAttribute('data-created-at', createdAtTimestamp);
+            const isSynced = data.pineconeSynced === true;
+            row.setAttribute('data-synced', isSynced ? 'true' : 'false');
+            row.setAttribute('data-project-id', data.id);
+            
+            const syncStatusTitle = isSynced 
+                ? 'Synced with Pinecone (AI Search active) - Click to re-sync' 
+                : 'Not synced with Pinecone - Click to sync now';
             
             row.innerHTML = `
-                <td><strong>${escapeHtml(data.title || 'Untitled')}</strong></td>
+                <td>
+                    <div class="project-title-cell">
+                        <button type="button" 
+                                class="sync-indicator-btn ${isSynced ? 'synced' : 'unsynced'}" 
+                                title="${syncStatusTitle}"
+                                onclick="syncSingleProject(event, '${data.id}')">
+                            <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
+                        </button>
+                        <strong class="project-title-text">${escapeHtml(data.title || 'Untitled')}</strong>
+                    </div>
+                </td>
                 <td>${escapeHtml((data.authors || []).join(', ') || 'N/A')}</td>
                 <td><span class="badge badge-info">${escapeHtml(data.program || 'N/A')}</span></td>
                 <td>${escapeHtml(data.year || 'N/A')}</td>
@@ -793,6 +876,194 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             tbody.appendChild(row);
         });
+    }
+
+    /**
+     * Render projects table with pagination (new paginated version)
+     */
+    function renderProjectsTablePaginated(tbody) {
+        tbody.innerHTML = '';
+
+        if (allProjectsData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No projects found</td></tr>';
+            renderProjectsPagination();
+            return;
+        }
+
+        // Calculate pagination
+        const startIndex = (currentProjectsPage - 1) * PROJECTS_PER_PAGE;
+        const endIndex = startIndex + PROJECTS_PER_PAGE;
+        const projectsToShow = allProjectsData.slice(startIndex, endIndex);
+
+        // Render current page projects
+        projectsToShow.forEach(data => {
+            const row = document.createElement('tr');
+            const createdAtTimestamp = getTimestamp(data.createdAt);
+            row.setAttribute('data-created-at', createdAtTimestamp);
+            const isSynced = data.pineconeSynced === true;
+            row.setAttribute('data-synced', isSynced ? 'true' : 'false');
+            row.setAttribute('data-project-id', data.id);
+            
+            const syncStatusTitle = isSynced 
+                ? 'Synced with Pinecone (AI Search active) - Click to re-sync' 
+                : 'Not synced with Pinecone - Click to sync now';
+            
+            row.innerHTML = `
+                <td>
+                    <div class="project-title-cell">
+                        <button type="button" 
+                                class="sync-indicator-btn ${isSynced ? 'synced' : 'unsynced'}" 
+                                title="${syncStatusTitle}"
+                                onclick="syncSingleProject(event, '${data.id}')">
+                            <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
+                        </button>
+                        <strong class="project-title-text">${escapeHtml(data.title || 'Untitled')}</strong>
+                    </div>
+                </td>
+                <td>${escapeHtml((data.authors || []).join(', ') || 'N/A')}</td>
+                <td><span class="badge badge-info">${escapeHtml(data.program || 'N/A')}</span></td>
+                <td>${escapeHtml(data.year || 'N/A')}</td>
+                <td>${escapeHtml(data.adviser || 'N/A')}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            View
+                        </button>
+                        <button class="action-btn action-edit" onclick="editProject('${data.id}')" title="Edit project">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            Edit
+                        </button>
+                        <button class="action-btn action-delete" onclick="deleteProject('${data.id}', '${escapeHtml(data.title || 'this project').replace(/'/g, "\\'")}')" title="Delete project">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Render pagination controls
+        renderProjectsPagination();
+    }
+
+    /**
+     * Render pagination controls for projects table
+     */
+    function renderProjectsPagination() {
+        const paginationContainer = document.getElementById('projects-pagination-container');
+        if (!paginationContainer) return;
+
+        paginationContainer.innerHTML = '';
+
+        const totalPages = Math.ceil(allProjectsData.length / PROJECTS_PER_PAGE);
+
+        if (totalPages <= 1) return; // No pagination needed
+
+        // Calculate range
+        const startItem = (currentProjectsPage - 1) * PROJECTS_PER_PAGE + 1;
+        const endItem = Math.min(currentProjectsPage * PROJECTS_PER_PAGE, allProjectsData.length);
+
+        // Previous button
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn';
+        prevBtn.innerHTML = '&laquo;';
+        prevBtn.disabled = currentProjectsPage === 1;
+        prevBtn.addEventListener('click', () => {
+            if (currentProjectsPage > 1) {
+                goToProjectsPage(currentProjectsPage - 1);
+            }
+        });
+        paginationContainer.appendChild(prevBtn);
+
+        // Page number buttons
+        const maxVisiblePages = 7;
+        let startPage = Math.max(1, currentProjectsPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        // Always show first page
+        if (startPage > 1) {
+            const firstBtn = createPageButton(1);
+            paginationContainer.appendChild(firstBtn);
+            
+            if (startPage > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-info';
+                ellipsis.textContent = '...';
+                paginationContainer.appendChild(ellipsis);
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = createPageButton(i);
+            paginationContainer.appendChild(pageBtn);
+        }
+
+        // Always show last page
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-info';
+                ellipsis.textContent = '...';
+                paginationContainer.appendChild(ellipsis);
+            }
+            
+            const lastBtn = createPageButton(totalPages);
+            paginationContainer.appendChild(lastBtn);
+        }
+
+        // Next button
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn';
+        nextBtn.innerHTML = '&raquo;';
+        nextBtn.disabled = currentProjectsPage === totalPages;
+        nextBtn.addEventListener('click', () => {
+            if (currentProjectsPage < totalPages) {
+                goToProjectsPage(currentProjectsPage + 1);
+            }
+        });
+        paginationContainer.appendChild(nextBtn);
+
+        // Info text
+        const infoText = document.createElement('span');
+        infoText.className = 'pagination-info';
+        infoText.textContent = `${startItem}-${endItem} of ${allProjectsData.length}`;
+        paginationContainer.appendChild(infoText);
+    }
+
+    /**
+     * Create a page button
+     */
+    function createPageButton(pageNumber) {
+        const btn = document.createElement('button');
+        btn.className = 'pagination-btn' + (pageNumber === currentProjectsPage ? ' active' : '');
+        btn.textContent = pageNumber;
+        btn.addEventListener('click', () => {
+            goToProjectsPage(pageNumber);
+        });
+        return btn;
+    }
+
+    /**
+     * Navigate to a specific page
+     */
+    function goToProjectsPage(pageNumber) {
+        currentProjectsPage = pageNumber;
+        const tbody = document.getElementById('projects-table-body');
+        renderProjectsTablePaginated(tbody);
+
+        // Scroll to top of table (instant scroll for better UX)
+        const section = document.getElementById('section-projects');
+        if (section) {
+            // Use instant scroll instead of smooth for pagination
+            section.scrollIntoView({ behavior: 'instant', block: 'start' });
+        }
     }
 
     // ===== Users Data =====
@@ -1774,7 +2045,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.editProject = async (projectId) => {
         console.log('Edit project:', projectId);
         try {
-            showToast('Loading project details...', 'ℹ️');
+            // showToast('Loading project details...', 'ℹ️');
             const doc = await db.collection('projects').doc(projectId).get();
             if (!doc.exists) {
                 showToast('Project not found', '❌');
@@ -1811,6 +2082,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Populate dynamic fields
             initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
+
+            // Populate existing project images
+            projectExistingImages = Array.isArray(data.images) ? [...data.images] : [];
+            projectImageFiles = [];
+            renderProjectImagesPreview();
 
             // Customize modal for editing
             document.getElementById('project-modal-title').textContent = 'Edit Capstone Project';
@@ -1889,8 +2165,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             showToast('Deleting project...', 'ℹ️');
             
+            // Fetch project data to get image URLs before deletion
+            let projectImages = [];
+            try {
+                const projectDoc = await db.collection('projects').doc(secureDeleteProjectId).get();
+                if (projectDoc.exists) {
+                    const projectData = projectDoc.data();
+                    projectImages = projectData.images || [];
+                    console.log(`📸 Found ${projectImages.length} images to delete`);
+                }
+            } catch (fetchError) {
+                console.warn('Could not fetch project images:', fetchError);
+            }
+            
             // Delete from Firestore
             await db.collection('projects').doc(secureDeleteProjectId).delete();
+            
+            // Delete images from Cloudinary (non-blocking)
+            if (projectImages.length > 0 && window.CloudinaryService) {
+                console.log(`🗑️  Deleting ${projectImages.length} images from Cloudinary...`);
+                try {
+                    const deleteResults = await window.CloudinaryService.deleteMultipleImages(projectImages);
+                    console.log(`✓ Deleted ${deleteResults.deletedCount} images, ${deleteResults.failedCount} failed`);
+                    
+                    if (deleteResults.failedCount > 0) {
+                        console.warn('Some images failed to delete:', deleteResults.results.filter(r => !r.success));
+                    }
+                } catch (imgError) {
+                    console.error('⚠️  Image deletion failed (non-critical):', imgError);
+                    // Don't fail the entire operation if image deletion fails
+                }
+            }
             
             // Update Realtime Database counters
             try {
@@ -2295,6 +2600,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 alert(message);
                 showToast(`Pinecone sync completed: ${result.synced}/${result.totalProjects}`, '✅');
+                await loadProjectsData();
 
             } catch (error) {
                 console.error('❌ Pinecone sync error:', error);
@@ -2304,6 +2610,114 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Re-enable button and restore original state
                 syncPineconeBtn.disabled = false;
                 syncPineconeBtn.innerHTML = originalHTML;
+            }
+        });
+    }
+
+    // ===== Sync Single Project to Pinecone =====
+    window.syncSingleProject = async (event, projectId) => {
+        if (event) {
+            event.stopPropagation();
+        }
+
+        const btn = event ? event.currentTarget : null;
+        const dot = btn ? btn.querySelector('.sync-dot') : null;
+
+        if (dot) {
+            dot.className = 'sync-dot syncing';
+            btn.title = 'Syncing to Pinecone...';
+        }
+
+        showToast('Syncing project to Pinecone...', 'ℹ️');
+
+        try {
+            const project = (allProjectsData || []).find(p => p.id === projectId);
+            const backendUrl = getBackendUrl();
+            const response = await fetch(`${backendUrl}/api/projects/sync`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    projectId,
+                    projectData: project || undefined
+                })
+            });
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || 'Failed to sync');
+            }
+
+            // Update in-memory data
+            if (project) {
+                project.pineconeSynced = true;
+            }
+
+            // Update DOM row attributes and indicator
+            const row = document.querySelector(`tr[data-project-id="${projectId}"]`) || (btn ? btn.closest('tr') : null);
+            if (row) {
+                row.setAttribute('data-synced', 'true');
+            }
+
+            if (btn && dot) {
+                dot.className = 'sync-dot synced';
+                btn.className = 'sync-indicator-btn synced';
+                btn.title = 'Synced with Pinecone (AI Search active) - Click to re-sync';
+            }
+
+            // Update cache
+            if (typeof saveToCache === 'function') {
+                await saveToCache(allProjectsData);
+            }
+
+            showToast('Project synced to Pinecone successfully', '✅');
+        } catch (err) {
+            console.error('❌ Project sync error:', err);
+            if (btn && dot) {
+                dot.className = 'sync-dot unsynced';
+                btn.className = 'sync-indicator-btn unsynced';
+                btn.title = 'Not synced with Pinecone - Click to sync now';
+            }
+            showToast(`Sync failed: ${err.message}`, '❌');
+        }
+    };
+
+    // ===== Refresh Projects Button =====
+    const refreshProjectsBtn = document.getElementById('refresh-projects-btn');
+    if (refreshProjectsBtn) {
+        refreshProjectsBtn.addEventListener('click', async () => {
+            // Disable button and show loading state
+            refreshProjectsBtn.disabled = true;
+            const originalHTML = refreshProjectsBtn.innerHTML;
+            refreshProjectsBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Refreshing...
+            `;
+
+            try {
+                showToast('Refreshing projects...', 'ℹ️');
+                
+                // Invalidate cache to force fresh data
+                invalidateCache();
+                
+                // Reload projects data with forced fresh fetch
+                await loadProjectsData(true);
+                await checkPineconeSyncStatus();
+                
+                showToast('Projects refreshed successfully', '✅');
+            } catch (error) {
+                console.error('Error refreshing projects:', error);
+                showToast('Failed to refresh projects', '❌');
+            } finally {
+                // Restore button state
+                refreshProjectsBtn.disabled = false;
+                refreshProjectsBtn.innerHTML = originalHTML;
             }
         });
     }
@@ -2342,6 +2756,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 initDynamicContainers();
             }
+
+            // Reset project images
+            projectExistingImages = [];
+            projectImageFiles = [];
+            renderProjectImagesPreview();
 
             // Customize modal for creating
             document.getElementById('project-modal-title').textContent = 'Add New Project';
@@ -2440,6 +2859,137 @@ document.addEventListener('DOMContentLoaded', async () => {
     const projectModalOverlay = document.getElementById('project-modal-overlay');
     const clearProjectBtn = document.getElementById('clear-project-btn');
     const submitProjectBtn = document.getElementById('submit-project-btn');
+
+    // Project Images State (Section 04)
+    let projectImageFiles = []; // Local File objects to upload
+    let projectExistingImages = []; // Existing Cloudinary URLs
+
+    // Initialize Project Image Dropzone and Events
+    function initProjectImageHandlers() {
+        const dropzone = document.getElementById('project-image-dropzone');
+        const fileInput = document.getElementById('project-images-input');
+        const browseBtn = document.getElementById('project-images-browse-btn');
+
+        if (!dropzone || !fileInput) return;
+
+        if (browseBtn) {
+            browseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fileInput.click();
+            });
+        }
+
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer && e.dataTransfer.files) {
+                handleSelectedImageFiles(Array.from(e.dataTransfer.files));
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files) {
+                handleSelectedImageFiles(Array.from(e.target.files));
+                fileInput.value = ''; // Reset input to allow selecting same file again
+            }
+        });
+    }
+
+    function handleSelectedImageFiles(files) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+        const maxSizeBytes = 10 * 1024 * 1024; // 10MB
+
+        for (const file of files) {
+            if (!allowedTypes.includes(file.type)) {
+                showToast(`Skipped ${file.name}: Only JPG, PNG, WEBP are allowed`, '⚠️');
+                continue;
+            }
+            if (file.size > maxSizeBytes) {
+                showToast(`Skipped ${file.name}: Exceeds 10MB limit`, '⚠️');
+                continue;
+            }
+            projectImageFiles.push(file);
+        }
+
+        renderProjectImagesPreview();
+        updateButtonVisibility();
+    }
+
+    function renderProjectImagesPreview() {
+        const grid = document.getElementById('project-images-preview-grid');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+
+        // 1. Render existing Cloudinary images
+        projectExistingImages.forEach((imgUrl, index) => {
+            const rawUrl = typeof imgUrl === 'string' ? imgUrl : (imgUrl.secure_url || imgUrl.url);
+            const thumbUrl = (typeof CloudinaryService !== 'undefined' && CloudinaryService.getThumbnailUrl)
+                ? CloudinaryService.getThumbnailUrl(rawUrl, 200, 260)
+                : rawUrl;
+            const isCover = index === 0;
+
+            const card = document.createElement('div');
+            card.className = `image-preview-card ${isCover ? 'is-cover' : ''}`;
+            card.innerHTML = `
+                <img src="${thumbUrl}" alt="Project Image ${index + 1}">
+                ${isCover ? '<span class="cover-badge">Cover</span>' : ''}
+                <div class="image-preview-actions">
+                    <button type="button" class="remove-img-btn" title="Remove image" data-existing-index="${index}">✕</button>
+                </div>
+            `;
+
+            card.querySelector('.remove-img-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                projectExistingImages.splice(index, 1);
+                renderProjectImagesPreview();
+                updateButtonVisibility();
+            });
+
+            grid.appendChild(card);
+        });
+
+        // 2. Render new selected local files
+        const existingOffset = projectExistingImages.length;
+        projectImageFiles.forEach((file, index) => {
+            const isCover = (existingOffset === 0 && index === 0);
+            const previewUrl = URL.createObjectURL(file);
+
+            const card = document.createElement('div');
+            card.className = `image-preview-card ${isCover ? 'is-cover' : ''}`;
+            card.id = `new-image-preview-${index}`;
+            card.innerHTML = `
+                <img src="${previewUrl}" alt="${escapeHtml(file.name)}">
+                ${isCover ? '<span class="cover-badge">Cover</span>' : ''}
+                <div class="image-preview-actions">
+                    <button type="button" class="remove-img-btn" title="Remove image" data-file-index="${index}">✕</button>
+                </div>
+            `;
+
+            card.querySelector('.remove-img-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                URL.revokeObjectURL(previewUrl);
+                projectImageFiles.splice(index, 1);
+                renderProjectImagesPreview();
+                updateButtonVisibility();
+            });
+
+            grid.appendChild(card);
+        });
+    }
+
+    initProjectImageHandlers();
 
     // Track original form state for change detection
     let originalFormData = {};
@@ -2613,6 +3163,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearDynamicContainer('keywords-container');
             clearTimeout(autoSaveTimer);
             
+            // Reset project images
+            projectExistingImages = [];
+            projectImageFiles = [];
+            renderProjectImagesPreview();
+
             // Reset edit mode and original data
             isEditMode = false;
             originalFormData = {};
@@ -2730,6 +3285,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Separate function for performing project update
     async function performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords) {
         try {
+            // ===== Duplicate title check (skip if title belongs to this same doc) =====
+            const titleNorm = normalizeTitle(title);
+            const dupSnap = await db.collection('projects')
+                .where('titleNorm', '==', titleNorm)
+                .limit(1)
+                .get();
+            if (!dupSnap.empty && dupSnap.docs[0].id !== projectId) {
+                showToast('Another project with this title already exists in the database.', '⚠️');
+                return;
+            }
+
             // Fetch existing data
             const currentDoc = await db.collection('projects').doc(projectId).get();
             if (!currentDoc.exists) {
@@ -2754,9 +3320,46 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (JSON.stringify(oldData.topics || []) !== JSON.stringify(topics)) changedFields.push('topics');
             if (JSON.stringify(oldData.keywords || []) !== JSON.stringify(keywords)) changedFields.push('keywords');
 
+            // Upload new images to Cloudinary if any
+            let finalImages = [...projectExistingImages];
+            if (projectImageFiles.length > 0) {
+                if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured()) {
+                    showToast(`Uploading ${projectImageFiles.length} image(s) to Cloudinary...`, 'ℹ️');
+                    for (let i = 0; i < projectImageFiles.length; i++) {
+                        const file = projectImageFiles[i];
+                        const card = document.getElementById(`new-image-preview-${i}`);
+                        if (card) {
+                            card.innerHTML += `
+                                <div class="image-upload-progress-overlay" id="upload-overlay-${i}">
+                                    <div class="image-progress-bar-container">
+                                        <div class="image-progress-bar-fill" id="upload-fill-${i}"></div>
+                                    </div>
+                                    <div class="image-progress-text" id="upload-text-${i}">0%</div>
+                                </div>
+                            `;
+                        }
+                        try {
+                            const uploadRes = await CloudinaryService.uploadImage(file, (percent) => {
+                                const fill = document.getElementById(`upload-fill-${i}`);
+                                const text = document.getElementById(`upload-text-${i}`);
+                                if (fill) fill.style.width = `${percent}%`;
+                                if (text) text.textContent = `${percent}%`;
+                            });
+                            finalImages.push(uploadRes.secure_url || uploadRes.url);
+                        } catch (uploadErr) {
+                            console.error(`Failed to upload ${file.name} to Cloudinary:`, uploadErr);
+                            showToast(`Image upload failed: ${uploadErr.message}`, '⚠️');
+                        }
+                    }
+                } else {
+                    showToast('Cloudinary is not configured yet. Project saved without new image uploads.', '⚠️');
+                }
+            }
+
             // Update Firestore
             const updatedData = {
                 title,
+                titleNorm: normalizeTitle(title), // keep shadow field in sync
                 authors,
                 program,
                 year,
@@ -2765,6 +3368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 abstract,
                 topics,
                 keywords,
+                images: finalImages,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection('projects').doc(projectId).update(updatedData);
@@ -2806,6 +3410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Sync to Pinecone
+            let isPineconeSynced = false;
             try {
                 console.log('🔄 Syncing project to Pinecone...');
                 const backendUrl = getBackendUrl();
@@ -2821,16 +3426,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 if (!syncResponse.ok) {
-                    const errorData = await syncResponse.json();
+                    const errorData = await syncResponse.json().catch(() => ({}));
                     throw new Error(errorData.error || 'Pinecone sync failed');
                 }
 
+                isPineconeSynced = true;
                 console.log('✓ Project synced to Pinecone successfully');
             } catch (pineconeErr) {
                 console.error('⚠️ Pinecone sync failed (non-critical):', pineconeErr);
                 // Don't fail the entire operation if Pinecone sync fails
-                showToast('Project updated (Pinecone sync pending)', '⚠️');
+                showToast('Project updated (Pinecone sync failed - click red dot to retry)', '⚠️');
             }
+
+            // Update pineconeSynced in Firestore
+            await db.collection('projects').doc(projectId).update({
+                pineconeSynced: isPineconeSynced
+            }).catch(() => {});
 
             showToast('Project updated successfully', '✅');
             closeProjectModal();
@@ -2845,9 +3456,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Separate function for performing project creation
     async function performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords) {
         try {
+            // ===== Duplicate title check (targeted query — no full collection fetch) =====
+            const titleNorm = normalizeTitle(title);
+            const dupSnap = await db.collection('projects')
+                .where('titleNorm', '==', titleNorm)
+                .limit(1)
+                .get();
+            if (!dupSnap.empty) {
+                showToast('A project with this title already exists in the database.', '⚠️');
+                return;
+            }
+
+            // Upload new images to Cloudinary if any
+            let finalImages = [...projectExistingImages];
+            if (projectImageFiles.length > 0) {
+                if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured()) {
+                    showToast(`Uploading ${projectImageFiles.length} image(s) to Cloudinary...`, 'ℹ️');
+                    for (let i = 0; i < projectImageFiles.length; i++) {
+                        const file = projectImageFiles[i];
+                        const card = document.getElementById(`new-image-preview-${i}`);
+                        if (card) {
+                            card.innerHTML += `
+                                <div class="image-upload-progress-overlay" id="upload-overlay-${i}">
+                                    <div class="image-progress-bar-container">
+                                        <div class="image-progress-bar-fill" id="upload-fill-${i}"></div>
+                                    </div>
+                                    <div class="image-progress-text" id="upload-text-${i}">0%</div>
+                                </div>
+                            `;
+                        }
+                        try {
+                            const uploadRes = await CloudinaryService.uploadImage(file, (percent) => {
+                                const fill = document.getElementById(`upload-fill-${i}`);
+                                const text = document.getElementById(`upload-text-${i}`);
+                                if (fill) fill.style.width = `${percent}%`;
+                                if (text) text.textContent = `${percent}%`;
+                            });
+                            finalImages.push(uploadRes.secure_url || uploadRes.url);
+                        } catch (uploadErr) {
+                            console.error(`Failed to upload ${file.name} to Cloudinary:`, uploadErr);
+                            showToast(`Image upload failed: ${uploadErr.message}`, '⚠️');
+                        }
+                    }
+                } else {
+                    showToast('Cloudinary is not configured yet. Project saved without new image uploads.', '⚠️');
+                }
+            }
+
             // Create in Firestore
             const newProject = {
                 title,
+                titleNorm: normalizeTitle(title), // shadow field for dup detection
                 authors,
                 program,
                 year,
@@ -2856,6 +3515,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 abstract,
                 topics,
                 keywords,
+                images: finalImages,
+                pineconeSynced: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -2875,6 +3536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Sync to Pinecone
+            let isPineconeSynced = false;
             try {
                 console.log('🔄 Syncing new project to Pinecone...');
                 const backendUrl = getBackendUrl();
@@ -2890,22 +3552,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 if (!syncResponse.ok) {
-                    const errorData = await syncResponse.json();
+                    const errorData = await syncResponse.json().catch(() => ({}));
                     throw new Error(errorData.error || 'Pinecone sync failed');
                 }
 
+                isPineconeSynced = true;
                 console.log('✓ New project synced to Pinecone successfully');
             } catch (pineconeErr) {
                 console.error('⚠️ Pinecone sync failed (non-critical):', pineconeErr);
                 // Don't fail the entire operation if Pinecone sync fails
-                showToast('Project created (Pinecone sync pending)', '⚠️');
+                showToast('Project created (Pinecone sync failed - click red dot to retry)', '⚠️');
             }
+
+            if (isPineconeSynced) {
+                await db.collection('projects').doc(projectId).update({ pineconeSynced: true }).catch(() => {});
+            }
+
+            // Invalidate cache so fresh sync state is rendered
+            invalidateCache();
 
             showToast('Project created successfully', '✅');
             // Clear auto-saved draft
             localStorage.removeItem('admin_project_draft');
             closeProjectModal();
-            await loadProjectsData();
+            await loadProjectsData(true);
             await loadDashboardData();
         } catch (error) {
             console.error('Error creating project:', error);
@@ -2958,7 +3628,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Check if "All" is active
         const showAll = filterValues.includes('all');
         const hasRecent = filterValues.includes('recent');
-        const programFilters = filterValues.filter(f => f !== 'all' && f !== 'recent');
+        const hasUnsynced = filterValues.includes('unsynced');
+        const programFilters = filterValues.filter(f => f !== 'all' && f !== 'recent' && f !== 'unsynced');
         
         Array.from(rows).forEach(row => {
             // Skip loading/error rows
@@ -2992,9 +3663,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         recentMatch = false;
                     }
                 }
+
+                // Check unsynced filter
+                let unsyncedMatch = true;
+                if (hasUnsynced) {
+                    const isSynced = row.getAttribute('data-synced') === 'true';
+                    unsyncedMatch = !isSynced;
+                }
                 
-                // Show row if it matches program AND recent filter (if active)
-                shouldShow = programMatch && (!hasRecent || recentMatch);
+                // Show row if it matches program AND recent filter AND unsynced filter
+                shouldShow = programMatch && (!hasRecent || recentMatch) && (!hasUnsynced || unsyncedMatch);
             }
             
             row.style.display = shouldShow ? '' : 'none';
@@ -3010,7 +3688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Show toast with active filters
         const activeFilterNames = activeFilters.map(p => p.textContent).join(', ');
-        showToast(`Showing ${visibleRows} project${visibleRows !== 1 ? 's' : ''}: ${activeFilterNames}`, 'ℹ️');
+        // showToast(`Showing ${visibleRows} project${visibleRows !== 1 ? 's' : ''}: ${activeFilterNames}`, 'ℹ️');
     }
 
     const userFilters = document.querySelectorAll('#user-filters .filter-pill');
@@ -3235,11 +3913,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         unsubscribeProjects = db.collection('projects').onSnapshot(
             (snapshot) => {
                 console.log('Projects updated in real-time');
-                const activeSection = document.querySelector('.content-section.active');
-                if (activeSection && activeSection.id === 'section-projects') {
-                    loadProjectsData();
+                if (snapshot && snapshot.docs) {
+                    const freshProjects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    freshProjects.sort((a, b) => {
+                        const dateA = getTimestamp(a.createdAt);
+                        const dateB = getTimestamp(b.createdAt);
+                        return dateB - dateA;
+                    });
+                    allProjectsData = freshProjects;
+                    try {
+                        localStorage.setItem('projectsData', JSON.stringify(freshProjects));
+                    } catch (e) {}
+
+                    const activeSection = document.querySelector('.content-section.active');
+                    if (activeSection && activeSection.id === 'section-projects') {
+                        const tbody = document.getElementById('projects-table-body');
+                        if (tbody) {
+                            renderProjectsTablePaginated(tbody);
+                            if (typeof applyProjectFilters === 'function') {
+                                applyProjectFilters();
+                            }
+                        }
+                    }
                 }
                 // Update dashboard stats if on dashboard
+                const activeSection = document.querySelector('.content-section.active');
                 if (activeSection && activeSection.id === 'section-dashboard') {
                     updateDashboardStats();
                 }
@@ -3553,7 +4251,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ===== BULK IMPORT FEATURE =====
     
-    let bulkImportData = null;
+    // State: Array of batch objects { id, batchNumber, fileName, fileSize, fileType, projects }
+    let bulkImportBatches = [];
     const bulkImportModal = document.getElementById('bulk-import-modal');
     const bulkImportBtn = document.getElementById('bulk-import-btn');
     const bulkImportModalOverlay = document.getElementById('bulk-import-modal-overlay');
@@ -3561,13 +4260,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bulkImportCancelBtn = document.getElementById('bulk-import-cancel-btn');
     const bulkImportChooseBtn = document.getElementById('bulk-import-choose-btn');
     const bulkImportFileInput = document.getElementById('bulk-import-file-input');
-    const bulkImportFileInfo = document.getElementById('bulk-import-file-info');
-    const bulkImportFilename = document.getElementById('bulk-import-filename');
-    const bulkImportRemoveFile = document.getElementById('bulk-import-remove-file');
+    const bulkImportDropzone = document.getElementById('bulk-import-dropzone');
+    const bulkDropzoneTitle = document.getElementById('bulk-dropzone-title');
+    const bulkDropzoneSubtext = document.getElementById('bulk-dropzone-subtext');
+    const bulkBatchesContainer = document.getElementById('bulk-batches-container');
+    const bulkBatchesList = document.getElementById('bulk-batches-list');
+    const bulkBatchesPill = document.getElementById('bulk-batches-pill');
+    const bulkClearAllBatchesBtn = document.getElementById('bulk-clear-all-batches-btn');
     const bulkImportPreview = document.getElementById('bulk-import-preview');
     const bulkImportPreviewList = document.getElementById('bulk-import-preview-list');
     const bulkImportCount = document.getElementById('bulk-import-count');
+    const bulkImportBatchCount = document.getElementById('bulk-import-batch-count');
     const bulkImportSubmitBtn = document.getElementById('bulk-import-submit-btn');
+    const bulkImportSubmitText = document.getElementById('bulk-import-submit-text');
     const bulkImportProgress = document.getElementById('bulk-import-progress');
     const bulkImportProgressBar = document.getElementById('bulk-import-progress-bar');
     const bulkImportProgressText = document.getElementById('bulk-import-progress-text');
@@ -3719,6 +4424,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         bulkImportBtn.addEventListener('click', () => {
             bulkImportModal.classList.add('active');
             resetBulkImportModal();
+            // Load draft after reset
+            loadBulkImportDraft();
         });
     }
     
@@ -3744,112 +4451,496 @@ document.addEventListener('DOMContentLoaded', async () => {
         bulkImportCancelBtn.addEventListener('click', closeBulkImportModal);
     }
     
-    // Choose file button
-    if (bulkImportChooseBtn) {
-        bulkImportChooseBtn.addEventListener('click', () => {
-            bulkImportFileInput.click();
+    // Guard flag: prevent drop-zone from re-triggering when file dialog is cancelled
+    let _bulkPickerOpen = false;
+
+    /**
+     * Helper: format bytes into readable string
+     */
+    function formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    /**
+     * Get all projects across all currently staged batches
+     */
+    function getAllBulkProjects() {
+        return bulkImportBatches.flatMap(b => b.projects);
+    }
+
+    /**
+     * Re-calculate batch numbers and update all related UI elements:
+     * - Staged batches pill & list
+     * - Dropzone text (inviting the next batch)
+     * - Preview list grouped by batch
+     * - Submit button status & text
+     */
+    function updateBatchesUI() {
+        // Re-index batchNumber 1..N
+        bulkImportBatches.forEach((batch, index) => {
+            batch.batchNumber = index + 1;
+        });
+
+        const totalBatches = bulkImportBatches.length;
+        const totalProjects = getAllBulkProjects().length;
+
+        if (totalBatches === 0) {
+            // Reset to clean initial state
+            if (bulkBatchesContainer) bulkBatchesContainer.style.display = 'none';
+            if (bulkImportPreview) bulkImportPreview.style.display = 'none';
+            if (bulkImportSubmitBtn) bulkImportSubmitBtn.disabled = true;
+            if (bulkImportSubmitText) bulkImportSubmitText.textContent = 'Import Projects';
+
+            if (bulkImportDropzone) {
+                bulkImportDropzone.classList.remove('has-batches', 'drag-active');
+                if (bulkDropzoneTitle) bulkDropzoneTitle.innerHTML = '<strong>Drag &amp; drop files here to add a batch</strong>';
+                if (bulkDropzoneSubtext) bulkDropzoneSubtext.style.display = 'block';
+                if (bulkImportChooseBtn) bulkImportChooseBtn.textContent = 'Browse Files';
+            }
+            return;
+        }
+
+        // Show and update batches container
+        if (bulkBatchesContainer) bulkBatchesContainer.style.display = 'block';
+        if (bulkBatchesPill) {
+            bulkBatchesPill.textContent = `${totalBatches} batch${totalBatches !== 1 ? 'es' : ''} • ${totalProjects} project${totalProjects !== 1 ? 's' : ''}`;
+        }
+
+        // Render staged batches cards
+        if (bulkBatchesList) {
+            bulkBatchesList.innerHTML = '';
+            bulkImportBatches.forEach((batch) => {
+                const item = document.createElement('div');
+                item.className = 'bulk-batch-item';
+                item.dataset.batchId = batch.id;
+                const typeClass = batch.fileType === 'Excel' ? 'excel' : 'json';
+                item.innerHTML = `
+                    <div class="bulk-batch-left">
+                        <span class="batch-badge">Batch ${batch.batchNumber}</span>
+                        <span class="batch-type-pill ${typeClass}">${batch.fileType}</span>
+                        <span class="batch-filename" title="${escapeHtml(batch.fileName)}">${escapeHtml(batch.fileName)}</span>
+                        <span class="batch-meta-info">(${batch.projects.length} project${batch.projects.length !== 1 ? 's' : ''} • ${batch.fileSize})</span>
+                    </div>
+                    <button type="button" class="bulk-batch-remove-btn" title="Remove Batch ${batch.batchNumber}" data-batch-id="${batch.id}">✕</button>
+                `;
+
+                const removeBtn = item.querySelector('.bulk-batch-remove-btn');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeBatch(batch.id);
+                });
+
+                bulkBatchesList.appendChild(item);
+            });
+        }
+
+        // Dropzone remains open and invites next batch!
+        if (bulkImportDropzone) {
+            bulkImportDropzone.classList.add('has-batches');
+            if (bulkDropzoneTitle) bulkDropzoneTitle.innerHTML = `<strong>+ Drag &amp; drop more files or Browse to add Batch ${totalBatches + 1}</strong>`;
+            if (bulkDropzoneSubtext) bulkDropzoneSubtext.style.display = 'none';
+            if (bulkImportChooseBtn) bulkImportChooseBtn.textContent = `+ Add Batch ${totalBatches + 1}`;
+        }
+
+        // Render preview grouped by batch
+        renderBulkImportPreview();
+        if (bulkImportCount) bulkImportCount.textContent = totalProjects;
+        if (bulkImportBatchCount) bulkImportBatchCount.textContent = totalBatches;
+        if (bulkImportPreview) bulkImportPreview.style.display = totalProjects > 0 ? 'block' : 'none';
+
+        // Update submit button text and enabled state
+        if (bulkImportSubmitBtn) bulkImportSubmitBtn.disabled = totalProjects === 0;
+        if (bulkImportSubmitText) {
+            bulkImportSubmitText.textContent = `Import All Batches (${totalProjects} Project${totalProjects !== 1 ? 's' : ''})`;
+        }
+    }
+
+    /**
+     * Remove a batch by ID and re-sync the UI
+     */
+    function removeBatch(batchId) {
+        const idx = bulkImportBatches.findIndex(b => b.id === batchId);
+        if (idx !== -1) {
+            const removed = bulkImportBatches.splice(idx, 1)[0];
+            showToast(`Removed Batch: "${removed.fileName}"`, '🗑️');
+            updateBatchesUI();
+            
+            // Auto-save draft after removal
+            saveBulkImportDraft();
+        }
+    }
+
+    /**
+     * Clear all staged batches button
+     */
+    if (bulkClearAllBatchesBtn) {
+        bulkClearAllBatchesBtn.addEventListener('click', () => {
+            bulkImportBatches = [];
+            bulkImportFileInput.value = '';
+            updateBatchesUI();
+            showToast('All staged batches removed', '🗑️');
+            
+            // Clear draft when all batches removed
+            clearBulkImportDraft();
         });
     }
-    
-    // File input change
-    if (bulkImportFileInput) {
-        bulkImportFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const fileName = file.name.toLowerCase();
-            const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
-            const isJSON = fileName.endsWith('.json');
-            
-            // Validate file type
-            if (!isExcel && !isJSON) {
-                showToast('Please select a valid Excel (.xlsx, .xls) or JSON file', '❌');
-                return;
+
+    /**
+     * Render the preview section with cards grouped under each Batch header
+     */
+    function renderBulkImportPreview() {
+        if (!bulkImportPreviewList) return;
+        bulkImportPreviewList.innerHTML = '';
+
+        bulkImportBatches.forEach((batch) => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'bulk-batch-group';
+            groupEl.dataset.batchId = batch.id;
+
+            const typeClass = batch.fileType === 'Excel' ? 'excel' : 'json';
+            groupEl.innerHTML = `
+                <div class="bulk-batch-group-header">
+                    <div class="bulk-batch-group-left">
+                        <span class="batch-badge">Batch ${batch.batchNumber}</span>
+                        <span class="batch-type-pill ${typeClass}">${batch.fileType}</span>
+                        <span class="bulk-batch-group-title" title="${escapeHtml(batch.fileName)}">${escapeHtml(batch.fileName)}</span>
+                        <span class="batch-meta-info">(${batch.projects.length} project${batch.projects.length !== 1 ? 's' : ''})</span>
+                    </div>
+                    <button type="button" class="bulk-batch-remove-btn" title="Remove Batch ${batch.batchNumber}">✕</button>
+                </div>
+                <div class="bulk-batch-group-items"></div>
+            `;
+
+            const groupRemoveBtn = groupEl.querySelector('.bulk-batch-remove-btn');
+            groupRemoveBtn.addEventListener('click', () => {
+                removeBatch(batch.id);
+            });
+
+            const itemsContainer = groupEl.querySelector('.bulk-batch-group-items');
+
+            batch.projects.forEach((project, pIndex) => {
+                const item = document.createElement('div');
+                item.className = 'bulk-preview-item';
+                item.dataset.batchId = batch.id;
+                item.dataset.pIndex = pIndex;
+
+                const authors = Array.isArray(project.authors) ? project.authors.join(', ') : project.authors;
+                const imgCount = (project._imageFiles || []).length;
+
+                item.innerHTML = `
+                    <div class="bulk-preview-item-header">
+                        <div>
+                            <div class="bulk-preview-item-title">${pIndex + 1}. ${escapeHtml(project.title)}</div>
+                            <div class="bulk-preview-item-meta">
+                                <span>${escapeHtml(authors)}</span>
+                                <span>${escapeHtml(project.program)}</span>
+                                <span>${project.year}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="bulk-preview-remove-btn" title="Remove this project from batch">✕</button>
+                    </div>
+                    <div class="bulk-preview-img-row">
+                        <input type="file" id="bulk-img-input-${batch.id}-${pIndex}" accept="image/png,image/jpeg,image/webp,image/jpg" multiple style="display:none;">
+                        <button type="button" class="bulk-preview-img-btn" id="bulk-img-add-btn-${batch.id}-${pIndex}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            Add Images
+                        </button>
+                        <button type="button" class="bulk-preview-toggle-imgs-btn" id="bulk-toggle-imgs-${batch.id}-${pIndex}" style="display: ${imgCount > 0 ? 'inline-flex' : 'none'};" title="Click to view and manage staged images">
+                            <span>🖼️ Review Images (<span class="imgs-count-num">${imgCount}</span>)</span>
+                            <span class="toggle-arrow">▾</span>
+                        </button>
+                        <span class="bulk-preview-img-count" id="bulk-img-count-${batch.id}-${pIndex}" style="display: ${imgCount > 0 ? 'none' : 'inline'};">No images</span>
+                    </div>
+
+                    <!-- Staged Images Dropdown Preview Tray -->
+                    <div class="bulk-project-images-tray" id="bulk-img-tray-${batch.id}-${pIndex}" style="display: none;">
+                        <div class="bulk-images-tray-header">
+                            <span class="bulk-images-tray-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                Staged Images (<span class="tray-count">${imgCount}</span>) — Review or remove wrong images
+                            </span>
+                            <button type="button" class="bulk-images-tray-add-more-btn" id="bulk-img-add-more-${batch.id}-${pIndex}">+ Add More</button>
+                        </div>
+                        <div class="bulk-images-tray-grid" id="bulk-img-grid-${batch.id}-${pIndex}"></div>
+                    </div>
+                `;
+
+                itemsContainer.appendChild(item);
+
+                // Elements
+                const imgInput = item.querySelector(`#bulk-img-input-${batch.id}-${pIndex}`);
+                const imgBtn = item.querySelector(`#bulk-img-add-btn-${batch.id}-${pIndex}`);
+                const toggleImgsBtn = item.querySelector(`#bulk-toggle-imgs-${batch.id}-${pIndex}`);
+                const imgCountSpan = item.querySelector(`#bulk-img-count-${batch.id}-${pIndex}`);
+                const imgsTray = item.querySelector(`#bulk-img-tray-${batch.id}-${pIndex}`);
+                const imgsGrid = item.querySelector(`#bulk-img-grid-${batch.id}-${pIndex}`);
+                const trayCountSpan = item.querySelector('.tray-count');
+                const addMoreBtn = item.querySelector(`#bulk-img-add-more-${batch.id}-${pIndex}`);
+                const imgsCountNum = item.querySelector('.imgs-count-num');
+
+                // Render thumbnails in tray
+                function refreshImagesTray() {
+                    const images = project._imageFiles || [];
+                    const count = images.length;
+
+                    if (count === 0) {
+                        toggleImgsBtn.style.display = 'none';
+                        toggleImgsBtn.classList.remove('open');
+                        imgCountSpan.style.display = 'inline';
+                        imgsTray.style.display = 'none';
+                        imgsGrid.innerHTML = '';
+                        return;
+                    }
+
+                    toggleImgsBtn.style.display = 'inline-flex';
+                    imgsCountNum.textContent = count;
+                    trayCountSpan.textContent = count;
+                    imgCountSpan.style.display = 'none';
+
+                    imgsGrid.innerHTML = '';
+                    images.forEach((file, imgIdx) => {
+                        const thumbCard = document.createElement('div');
+                        thumbCard.className = 'bulk-img-thumb-card';
+                        const previewUrl = URL.createObjectURL(file);
+
+                        thumbCard.innerHTML = `
+                            <img src="${previewUrl}" alt="${escapeHtml(file.name)}" title="Click to view full image in new tab: ${escapeHtml(file.name)}">
+                            <button type="button" class="bulk-img-thumb-remove" title="Remove this image" data-img-idx="${imgIdx}">✕</button>
+                            <div class="bulk-img-thumb-info">
+                                <span class="bulk-img-thumb-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+                                <span class="bulk-img-thumb-size">${formatFileSize(file.size)}</span>
+                            </div>
+                        `;
+
+                        // Clicking image opens full-size preview
+                        const imgEl = thumbCard.querySelector('img');
+                        imgEl.addEventListener('click', () => {
+                            window.open(previewUrl, '_blank');
+                        });
+
+                        // Remove single image
+                        const removeImgBtn = thumbCard.querySelector('.bulk-img-thumb-remove');
+                        removeImgBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            URL.revokeObjectURL(previewUrl);
+                            project._imageFiles.splice(imgIdx, 1);
+                            showToast(`Removed "${file.name}" from ${project.title}`, '🗑️');
+                            refreshImagesTray();
+                        });
+
+                        imgsGrid.appendChild(thumbCard);
+                    });
+                }
+
+                // Initial render of thumbnails if already staged
+                if (imgCount > 0) {
+                    refreshImagesTray();
+                }
+
+                // Toggle dropdown tray
+                toggleImgsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = imgsTray.style.display !== 'none';
+                    imgsTray.style.display = isOpen ? 'none' : 'block';
+                    toggleImgsBtn.classList.toggle('open', !isOpen);
+                });
+
+                // Browse / Add Images
+                imgBtn.addEventListener('click', () => imgInput.click());
+                if (addMoreBtn) {
+                    addMoreBtn.addEventListener('click', () => imgInput.click());
+                }
+
+                imgInput.addEventListener('change', (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (!project._imageFiles) project._imageFiles = [];
+                    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+                    let added = 0;
+                    files.forEach(f => {
+                        if (!allowed.includes(f.type)) { showToast(`Skipped ${f.name}: not a valid image`, '⚠️'); return; }
+                        if (f.size > 10 * 1024 * 1024) { showToast(`Skipped ${f.name}: exceeds 10MB`, '⚠️'); return; }
+                        project._imageFiles.push(f);
+                        added++;
+                    });
+
+                    if (added > 0) {
+                        showToast(`Added ${added} image${added > 1 ? 's' : ''} to "${project.title}"`, '🖼️');
+                        // Auto-open tray when images are added so admin can inspect immediately
+                        imgsTray.style.display = 'block';
+                        toggleImgsBtn.classList.add('open');
+                    }
+                    refreshImagesTray();
+                    imgInput.value = '';
+                });
+
+                // Wire remove individual project
+                const removeProjectBtn = item.querySelector('.bulk-preview-remove-btn');
+                removeProjectBtn.addEventListener('click', () => {
+                    batch.projects.splice(pIndex, 1);
+                    if (batch.projects.length === 0) {
+                        const bIdx = bulkImportBatches.findIndex(b => b.id === batch.id);
+                        if (bIdx !== -1) bulkImportBatches.splice(bIdx, 1);
+                    }
+                    updateBatchesUI();
+                });
+            });
+
+            bulkImportPreviewList.appendChild(groupEl);
+        });
+    }
+
+    /**
+     * Shared handler: parse, validate, and register a file as a new Batch.
+     * Can be called multiple times for single files or in a loop for multiple files.
+     */
+    async function processBulkFile(file) {
+        const fileName = file.name.toLowerCase();
+        const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+        const isJSON  = fileName.endsWith('.json');
+
+        if (!isExcel && !isJSON) {
+            showToast('Please select a valid Excel (.xlsx, .xls) or JSON file', '❌');
+            return;
+        }
+
+        try {
+            let data;
+            if (isExcel) {
+                data = await parseExcelFile(file);
+            } else {
+                const text = await file.text();
+                data = JSON.parse(text);
             }
-            
-            try {
-                let data;
-                
-                if (isExcel) {
-                    // Parse Excel file
-                    data = await parseExcelFile(file);
+
+            if (!Array.isArray(data)) { showToast(`"${file.name}" must contain an array of projects`, '❌'); return; }
+            if (data.length === 0)    { showToast(`"${file.name}" is empty`, '❌'); return; }
+
+            const fileErrors = [];
+            const validProjects = [];
+            // Track normalized titles seen in THIS file to catch intra-file duplicates immediately (no Firestore reads)
+            const seenInFile = new Set();
+
+            data.forEach((project, index) => {
+                if (project.abstract === 'None' || project.abstract === 'null' || project.abstract === null) project.abstract = '';
+                if (project.adviser  === 'None' || project.adviser  === 'null' || project.adviser  === null) project.adviser  = '';
+
+                const missing = ['title', 'authors', 'program', 'year'].filter(f => !project[f]);
+                if (missing.length > 0) {
+                    fileErrors.push(`"${project.title || 'Untitled'}" (row ${index + 1}): missing ${missing.join(', ')}`);
                 } else {
-                    // Parse JSON file
-                    const text = await file.text();
-                    data = JSON.parse(text);
-                }
-                
-                // Validate data structure
-                if (!Array.isArray(data)) {
-                    showToast('File must contain an array of projects', '❌');
-                    return;
-                }
-                
-                if (data.length === 0) {
-                    showToast('File is empty', '❌');
-                    return;
-                }
-                
-                // Validate each project
-                const errors = [];
-                const validProjects = [];
-                
-                data.forEach((project, index) => {
-                    // Clean up "None" or "null" string values
-                    if (project.abstract === "None" || project.abstract === "null" || project.abstract === null) {
-                        project.abstract = '';
-                    }
-                    if (project.adviser === "None" || project.adviser === "null" || project.adviser === null) {
-                        project.adviser = '';
-                    }
-                    
-                    // Only title, authors, program, and year are truly required
-                    const requiredFields = ['title', 'authors', 'program', 'year'];
-                    const missing = requiredFields.filter(field => !project[field]);
-                    
-                    if (missing.length > 0) {
-                        errors.push(`Project #${index + 1} "${project.title || 'Untitled'}": Missing ${missing.join(', ')}`);
+                    // Intra-file duplicate check (client-side only — zero Firestore reads)
+                    const norm = normalizeTitle(project.title);
+                    if (seenInFile.has(norm)) {
+                        fileErrors.push(`"${project.title}" (row ${index + 1}): duplicate title within this file — skipped`);
                     } else {
-                        // Ensure abstract and adviser have default values if empty
-                        if (!project.abstract || project.abstract.trim() === '') {
-                            project.abstract = 'No abstract provided.';
-                        }
-                        if (!project.adviser || project.adviser.trim() === '') {
-                            project.adviser = 'Not specified';
-                        }
+                        seenInFile.add(norm);
+                        if (!project.abstract || !project.abstract.trim()) project.abstract = 'No abstract provided.';
+                        if (!project.adviser  || !project.adviser.trim())  project.adviser  = 'Not specified';
+                        project._imageFiles = []; // per-project image staging
                         validProjects.push(project);
                     }
-                });
-                
-                if (validProjects.length === 0) {
-                    showToast('No valid projects found in file', '❌');
-                    return;
                 }
-                
-                if (errors.length > 0) {
-                    console.warn('Some projects have errors:', errors);
-                    showToast(`${validProjects.length} valid projects found (${errors.length} skipped)`, '⚠️');
-                }
-                
-                // Store valid data
-                bulkImportData = validProjects;
-                
-                // Show file info
-                bulkImportFilename.textContent = file.name;
-                bulkImportFileInfo.style.display = 'flex';
-                bulkImportChooseBtn.style.display = 'none';
-                
-                // Show preview
-                renderBulkImportPreview(validProjects);
-                bulkImportPreview.style.display = 'block';
-                bulkImportSubmitBtn.disabled = false;
-                
-                showToast(`Loaded ${validProjects.length} projects`, '✅');
-                
-            } catch (error) {
-                console.error('Error parsing file:', error);
-                showToast(isExcel ? 'Invalid Excel file format' : 'Invalid JSON file format', '❌');
+            });
+
+            if (validProjects.length === 0) {
+                showToast(`No valid projects in "${file.name}"`, '❌');
+                return;
             }
+            if (fileErrors.length > 0) {
+                console.warn('Bulk file errors:', fileErrors);
+                showToast(`${validProjects.length} valid, ${fileErrors.length} skipped from "${file.name}"`, '⚠️');
+            }
+
+            // Create new batch
+            const newBatch = {
+                id: 'batch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                batchNumber: bulkImportBatches.length + 1,
+                fileName: file.name,
+                fileSize: formatFileSize(file.size),
+                fileType: isExcel ? 'Excel' : 'JSON',
+                projects: validProjects
+            };
+
+            bulkImportBatches.push(newBatch);
+            updateBatchesUI();
+            
+            // Auto-save draft
+            saveBulkImportDraft();
+
+            showToast(`Added Batch ${newBatch.batchNumber}: "${file.name}" (${validProjects.length} projects)`, '✅');
+
+        } catch (error) {
+            console.error('Error parsing file:', error);
+            showToast(isExcel ? 'Invalid Excel file format' : 'Invalid JSON file format', '❌');
+        }
+    }
+
+    // Utility: open file picker safely (guard against cancel-vanish)
+    function openBulkFilePicker() {
+        if (_bulkPickerOpen) return;
+        _bulkPickerOpen = true;
+        bulkImportFileInput.click();
+        // Detect picker close (focus returns to window) and reset flag
+        const onFocus = () => {
+            _bulkPickerOpen = false;
+            window.removeEventListener('focus', onFocus);
+        };
+        window.addEventListener('focus', onFocus, { once: true });
+    }
+
+    // Browse button inside dropzone → open file picker
+    if (bulkImportChooseBtn) {
+        bulkImportChooseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openBulkFilePicker();
+        });
+    }
+
+    // Clicking anywhere on the dropzone also opens file picker
+    if (bulkImportDropzone) {
+        bulkImportDropzone.addEventListener('click', (e) => {
+            if (e.target.closest('#bulk-import-choose-btn')) return;
+            openBulkFilePicker();
+        });
+
+        bulkImportDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            bulkImportDropzone.classList.add('drag-active');
+        });
+
+        bulkImportDropzone.addEventListener('dragleave', (e) => {
+            if (!bulkImportDropzone.contains(e.relatedTarget)) {
+                bulkImportDropzone.classList.remove('drag-active');
+            }
+        });
+
+        // Drop supports single or multiple files (each becomes its own batch)
+        bulkImportDropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            bulkImportDropzone.classList.remove('drag-active');
+            const files = Array.from(e.dataTransfer.files);
+            for (const file of files) {
+                await processBulkFile(file);
+            }
+        });
+    }
+
+    // File input change — supports multiple files selected at once
+    if (bulkImportFileInput) {
+        bulkImportFileInput.addEventListener('change', async (e) => {
+            _bulkPickerOpen = false;
+            const files = Array.from(e.target.files || []);
+            for (const file of files) {
+                await processBulkFile(file);
+            }
+            // Reset input so the same file can be re-added if removed
+            bulkImportFileInput.value = '';
         });
     }
     
@@ -3919,62 +5010,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Remove file
-    if (bulkImportRemoveFile) {
-        bulkImportRemoveFile.addEventListener('click', () => {
-            bulkImportFileInput.value = '';
-            bulkImportData = null;
-            bulkImportFileInfo.style.display = 'none';
-            bulkImportChooseBtn.style.display = 'inline-flex';
-            bulkImportPreview.style.display = 'none';
-            bulkImportSubmitBtn.disabled = true;
-        });
-    }
-    
-    // Render preview
-    function renderBulkImportPreview(projects) {
-        bulkImportCount.textContent = projects.length;
-        bulkImportPreviewList.innerHTML = '';
-        
-        projects.slice(0, 10).forEach((project, index) => {
-            const item = document.createElement('div');
-            item.className = 'bulk-preview-item';
-            
-            const authors = Array.isArray(project.authors) 
-                ? project.authors.join(', ') 
-                : project.authors;
-            
-            item.innerHTML = `
-                <div class="bulk-preview-item-title">${index + 1}. ${escapeHtml(project.title)}</div>
-                <div class="bulk-preview-item-meta">
-                    <span>Authors: ${escapeHtml(authors)}</span>
-                    <span>Program: ${escapeHtml(project.program)}</span>
-                    <span>Year: ${project.year}</span>
-                </div>
-            `;
-            bulkImportPreviewList.appendChild(item);
-        });
-        
-        if (projects.length > 10) {
-            const moreItem = document.createElement('div');
-            moreItem.style.textAlign = 'center';
-            moreItem.style.padding = '0.5rem';
-            moreItem.style.color = 'var(--text-secondary)';
-            moreItem.textContent = `... and ${projects.length - 10} more projects`;
-            bulkImportPreviewList.appendChild(moreItem);
-        }
-    }
-    
-    // Submit bulk import
+    // Submit bulk import across all staged batches
     if (bulkImportSubmitBtn) {
         bulkImportSubmitBtn.addEventListener('click', async () => {
-            if (!bulkImportData || bulkImportData.length === 0) {
+            const allProjects = getAllBulkProjects();
+            if (bulkImportBatches.length === 0 || allProjects.length === 0) {
                 showToast('No projects to import', '❌');
                 return;
             }
             
-            // Hide preview and submit button
-            bulkImportPreview.style.display = 'none';
+            // Hide preview & staged batches, hide submit button
+            if (bulkImportPreview) bulkImportPreview.style.display = 'none';
+            if (bulkBatchesContainer) bulkBatchesContainer.style.display = 'none';
             bulkImportSubmitBtn.style.display = 'none';
             bulkImportCancelBtn.disabled = true;
             
@@ -3984,81 +5031,145 @@ document.addEventListener('DOMContentLoaded', async () => {
             let successCount = 0;
             let errorCount = 0;
             const errors = [];
-            const total = bulkImportData.length;
+            const total = allProjects.length;
+            let overallProcessed = 0;
             
-            for (let i = 0; i < bulkImportData.length; i++) {
-                const project = bulkImportData[i];
-                
-                try {
-                    // Prepare project data
-                    const projectData = {
-                        title: project.title,
-                        authors: Array.isArray(project.authors) ? project.authors : [project.authors],
-                        program: project.program,
-                        year: parseInt(project.year),
-                        adviser: project.adviser,
-                        abstract: project.abstract,
-                        keywords: project.keywords || [],
-                        topics: project.topics || [],
-                        status: project.status || 'Completed',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        uploadedBy: auth.currentUser.uid,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
+            // Set to catch duplicate titles within the same import run (zero extra Firestore reads)
+            const seenTitlesInBatch = new Set();
+
+            for (let b = 0; b < bulkImportBatches.length; b++) {
+                const currentBatch = bulkImportBatches[b];
+                const bProjects = currentBatch.projects;
+
+                for (let p = 0; p < bProjects.length; p++) {
+                    const project = bProjects[p];
                     
-                    // Add to Firestore
-                    const docRef = await db.collection('projects').add(projectData);
-                    
-                    // Sync to Pinecone (backend)
+                    // Update progress UI
+                    const progress = Math.round((overallProcessed / total) * 100);
+                    bulkImportProgressBar.style.width = `${progress}%`;
+                    bulkImportProgressBar.textContent = `${progress}%`;
+                    bulkImportProgressText.textContent = `Batch ${currentBatch.batchNumber}/${bulkImportBatches.length} (${currentBatch.fileName}) • Project ${p + 1}/${bProjects.length}: "${project.title}" (${overallProcessed + 1}/${total})`;
+
                     try {
-                        const backendUrl = getBackendUrl();
-                        const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                projectId: docRef.id,
-                                projectData: {
-                                    ...projectData,
-                                    createdAt: new Date().toISOString()
+                        // ===== Duplicate check 1: intra-import (Set, zero Firestore reads) =====
+                        const projTitleNorm = normalizeTitle(project.title);
+                        if (seenTitlesInBatch.has(projTitleNorm)) {
+                            errors.push(`[Batch ${currentBatch.batchNumber}] "${project.title}": duplicate title within this import — skipped`);
+                            errorCount++;
+                            overallProcessed++;
+                            const postProg = Math.round((overallProcessed / total) * 100);
+                            bulkImportProgressBar.style.width = `${postProg}%`;
+                            bulkImportProgressBar.textContent = `${postProg}%`;
+                            continue;
+                        }
+
+                        // ===== Duplicate check 2: against Firestore (targeted .where query — no full fetch) =====
+                        const bulkDupSnap = await db.collection('projects')
+                            .where('titleNorm', '==', projTitleNorm)
+                            .limit(1)
+                            .get();
+                        if (!bulkDupSnap.empty) {
+                            errors.push(`[Batch ${currentBatch.batchNumber}] "${project.title}": already exists in database — skipped`);
+                            errorCount++;
+                            overallProcessed++;
+                            const postProg = Math.round((overallProcessed / total) * 100);
+                            bulkImportProgressBar.style.width = `${postProg}%`;
+                            bulkImportProgressBar.textContent = `${postProg}%`;
+                            continue;
+                        }
+
+                        // Mark this title as seen for the rest of this import run
+                        seenTitlesInBatch.add(projTitleNorm);
+
+                        // Upload per-project images to Cloudinary (if any)
+                        let projectImages = [];
+                        const imageFiles = project._imageFiles || [];
+                        if (imageFiles.length > 0 && window.CloudinaryService) {
+                            for (const imgFile of imageFiles) {
+                                try {
+                                    const url = await window.CloudinaryService.uploadImage(imgFile);
+                                    if (url) projectImages.push(url);
+                                } catch (imgErr) {
+                                    console.warn('Image upload failed for', imgFile.name, imgErr);
                                 }
-                            })
-                        });
+                            }
+                        }
+
+                        // Prepare project data
+                        const projectData = {
+                            title: project.title,
+                            titleNorm: normalizeTitle(project.title), // shadow field for dup detection
+                            authors: Array.isArray(project.authors) ? project.authors : [project.authors],
+                            program: project.program,
+                            year: parseInt(project.year),
+                            adviser: project.adviser,
+                            abstract: project.abstract,
+                            keywords: project.keywords || [],
+                            topics: project.topics || [],
+                            status: project.status || 'Completed',
+                            images: projectImages,
+                            batchSource: currentBatch.fileName,
+                            pineconeSynced: false,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            uploadedBy: auth.currentUser.uid,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+
+                        // Add to Firestore
+                        const docRef = await db.collection('projects').add(projectData);
                         
-                        if (!syncResponse.ok) {
-                            console.warn(`Pinecone sync failed for project: ${project.title}`);
-                        }
-                    } catch (syncError) {
-                        console.warn('Pinecone sync error:', syncError);
-                    }
-                    
-                    // Increment RTDB counter
-                    try {
-                        if (rtdb) {
-                            const countRef = rtdb.ref('projects_document_count');
-                            await countRef.transaction((current) => (current || 0) + 1);
+                        // Sync to Pinecone (backend)
+                        try {
+                            const backendUrl = getBackendUrl();
+                            const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    projectId: docRef.id,
+                                    projectData: {
+                                        ...projectData,
+                                        createdAt: new Date().toISOString()
+                                    }
+                                })
+                            });
                             
-                            const updateCounterRef = rtdb.ref('update_counter');
-                            await updateCounterRef.transaction((current) => (current || 0) + 1);
-                        } else {
-                            console.warn('RTDB not available, skipping counter update');
+                            if (syncResponse.ok) {
+                                await docRef.update({ pineconeSynced: true }).catch(() => {});
+                            } else {
+                                console.warn(`Pinecone sync failed for project: ${project.title}`);
+                            }
+                        } catch (syncError) {
+                            console.warn('Pinecone sync error:', syncError);
                         }
-                    } catch (rtdbError) {
-                        console.warn('RTDB counter update failed:', rtdbError);
+                        
+                        // Increment RTDB counter
+                        try {
+                            if (rtdb) {
+                                const countRef = rtdb.ref('projects_document_count');
+                                await countRef.transaction((current) => (current || 0) + 1);
+                                
+                                const updateCounterRef = rtdb.ref('update_counter');
+                                await updateCounterRef.transaction((current) => (current || 0) + 1);
+                            } else {
+                                console.warn('RTDB not available, skipping counter update');
+                            }
+                        } catch (rtdbError) {
+                            console.warn('RTDB counter update failed:', rtdbError);
+                        }
+                        
+                        successCount++;
+                        
+                    } catch (error) {
+                        console.error(`Error importing project "${project.title}":`, error);
+                        errorCount++;
+                        errors.push(`[Batch ${currentBatch.batchNumber}] ${project.title}: ${error.message}`);
                     }
-                    
-                    successCount++;
-                    
-                } catch (error) {
-                    console.error(`Error importing project "${project.title}":`, error);
-                    errorCount++;
-                    errors.push(`${project.title}: ${error.message}`);
+
+                    overallProcessed++;
+                    const postProgress = Math.round((overallProcessed / total) * 100);
+                    bulkImportProgressBar.style.width = `${postProgress}%`;
+                    bulkImportProgressBar.textContent = `${postProgress}%`;
                 }
-                
-                // Update progress
-                const progress = Math.round(((i + 1) / total) * 100);
-                bulkImportProgressBar.style.width = `${progress}%`;
-                bulkImportProgressBar.textContent = `${progress}%`;
-                bulkImportProgressText.textContent = `${i + 1} / ${total} imported`;
             }
             
             // Hide progress
@@ -4084,12 +5195,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Show final toast
             if (successCount > 0) {
-                showToast(`Successfully imported ${successCount} project${successCount !== 1 ? 's' : ''}`, '✅');
+                showToast(`Successfully imported ${successCount} project${successCount !== 1 ? 's' : ''} across ${bulkImportBatches.length} batch${bulkImportBatches.length !== 1 ? 'es' : ''}!`, '✅');
             }
             
             if (errorCount > 0) {
                 showToast(`${errorCount} project${errorCount !== 1 ? 's' : ''} failed to import`, '❌');
             }
+            
+            // Clear draft after successful import
+            clearBulkImportDraft();
             
             // Enable cancel (now "Close") button
             bulkImportCancelBtn.disabled = false;
@@ -4102,13 +5216,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
+    // Save bulk import draft to localStorage
+    function saveBulkImportDraft() {
+        if (bulkImportBatches.length > 0) {
+            localStorage.setItem('admin_bulk_import_draft', JSON.stringify(bulkImportBatches));
+            console.log('💾 Bulk import draft saved');
+        }
+    }
+
+    // Load bulk import draft from localStorage
+    function loadBulkImportDraft() {
+        const draft = localStorage.getItem('admin_bulk_import_draft');
+        if (draft) {
+            try {
+                const restored = JSON.parse(draft);
+                if (Array.isArray(restored) && restored.length > 0) {
+                    bulkImportBatches = restored;
+                    updateBatchesUI();
+                    showToast('Draft restored ✨', 'ℹ️');
+                    console.log('✓ Bulk import draft loaded:', bulkImportBatches.length, 'batches');
+                }
+            } catch (error) {
+                console.warn('Failed to load bulk import draft:', error);
+                localStorage.removeItem('admin_bulk_import_draft');
+            }
+        }
+    }
+
+    // Clear bulk import draft from localStorage
+    function clearBulkImportDraft() {
+        localStorage.removeItem('admin_bulk_import_draft');
+        console.log('🗑️ Bulk import draft cleared');
+    }
+
     // Reset bulk import modal
     function resetBulkImportModal() {
         bulkImportFileInput.value = '';
-        bulkImportData = null;
-        bulkImportFileInfo.style.display = 'none';
-        bulkImportChooseBtn.style.display = 'inline-flex';
-        bulkImportPreview.style.display = 'none';
+        bulkImportBatches = [];
+        updateBatchesUI();
         bulkImportProgress.style.display = 'none';
         bulkImportResults.style.display = 'none';
         bulkImportSubmitBtn.style.display = 'inline-flex';
