@@ -208,24 +208,28 @@
   }
 
   .secondary-header-container {
-    margin-top: 0.75rem;
-    padding: 0.375rem 0.75rem;
-    gap: 0.375rem;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    gap: 0.35rem;
+    max-width: calc(100vw - 1.5rem);
   }
 
-  /* Hide labels on mobile, keep icons only */
+  /* Keep labels visible so capsule is never empty */
   .nav-label {
-    display: none;
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
   }
 
   .nav-item {
-    padding: 0.5rem;
-    min-width: 44px; /* Touch target size */
+    padding: 0.35rem 0.75rem;
+    min-width: auto;
     justify-content: center;
   }
 
   .nav-icon {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   /* Coming soon badge remains visible */
@@ -240,21 +244,40 @@
 
 /* Extra small devices */
 @media (max-width: 480px) {
-
-
   .secondary-header-container {
-    margin-top: 0.5rem;
-    padding: 0.25rem 0.5rem;
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.35rem;
     gap: 0.25rem;
   }
 
   .nav-item {
-    padding: 0.375rem;
-    min-width: 40px;
+    padding: 0.3rem 0.6rem;
+    min-width: auto;
+  }
+
+  .nav-label {
+    font-size: 0.75rem;
   }
 
   .nav-icon {
-    font-size: 1.125rem;
+    font-size: 1rem;
+  }
+}
+
+/* Very narrow devices (e.g. folded foldables <= 320px) */
+@media (max-width: 320px) {
+  .secondary-header-container {
+    margin-top: 0.25rem;
+    padding: 0.15rem 0.25rem;
+    gap: 0.2rem;
+  }
+
+  .nav-item {
+    padding: 0.25rem 0.45rem;
+  }
+
+  .nav-label {
+    font-size: 0.7rem;
   }
 }
 

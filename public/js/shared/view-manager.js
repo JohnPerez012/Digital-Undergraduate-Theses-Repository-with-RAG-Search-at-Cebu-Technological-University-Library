@@ -335,8 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <div class="sidebar-card">
                 <h3 class="sidebar-card-title">Image Provided</h3>
-                <div class="img-provided">
-                    
+                <div class="img-provided" id="project-details-images">
+                    ${renderProjectImagesGallery(project.images)}
                 </div>
             </div>
 
@@ -363,25 +363,150 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Attach event listener to the cite button
         const citeBtn = detailsSidebar.querySelector('.cite-btn');
-        console.log('Cite button found:', citeBtn);
-        console.log('Citation module available:', typeof Citation !== 'undefined');
-        
         if (citeBtn) {
             citeBtn.addEventListener('click', () => {
-                console.log('Cite button clicked!');
-                // Store current project in sessionStorage for citation modal
                 sessionStorage.setItem('currentProject', JSON.stringify(project));
-                
                 if (typeof Citation !== 'undefined') {
-                    console.log('Showing citation modal...');
                     Citation.showCitationModal();
                 } else {
-                    console.error('Citation module not loaded!');
                     alert('Citation module not available. Please refresh the page.');
                 }
             });
-        } else {
-            console.error('Cite button not found in sidebar!');
         }
+
+        // Attach click handlers to gallery thumbnails for Lightbox viewer
+        setupGalleryLightbox(project.images);
     };
+
+    /**
+     * Render the image gallery HTML in project details
+     */
+    function renderProjectImagesGallery(images) {
+        if (!images || !Array.isArray(images) || images.length === 0) {
+            return `
+                <div class="no-images-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <span>No physical book images provided</span>
+                </div>
+            `;
+        }
+
+        const maxVisible = 6;
+        const visibleImages = images.slice(0, maxVisible);
+        const extraCount = images.length - maxVisible;
+
+        return `
+            <div class="book-gallery-grid">
+                ${visibleImages.map((img, idx) => {
+                    const rawUrl = typeof img === 'string' ? img : (img.secure_url || img.url);
+                    const thumbUrl = (typeof CloudinaryService !== 'undefined' && CloudinaryService.getThumbnailUrl)
+                        ? CloudinaryService.getThumbnailUrl(rawUrl, 300, 400)
+                        : rawUrl;
+                    const isCover = idx === 0;
+                    const isLastVisible = idx === maxVisible - 1 && extraCount > 0;
+
+                    return `
+                        <div class="book-gallery-thumb ${isCover ? 'is-main-cover' : ''}" data-index="${idx}" title="${isCover ? 'Book Cover' : `Book Photo ${idx + 1}`}">
+                            <img src="${thumbUrl}" alt="Project Photo ${idx + 1}" loading="lazy">
+                            ${isCover ? '<span class="thumb-cover-tag">Cover</span>' : ''}
+                            ${isLastVisible ? `<div class="thumb-more-overlay">+${extraCount}</div>` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Setup full-screen Lightbox Modal for gallery images
+     */
+    function setupGalleryLightbox(images) {
+        if (!images || !Array.isArray(images) || images.length === 0) return;
+
+        const imageUrls = images.map(img => typeof img === 'string' ? img : (img.secure_url || img.url));
+        const thumbs = document.querySelectorAll('.book-gallery-thumb');
+        
+        let currentIndex = 0;
+        let lightbox = document.getElementById('recaps-gallery-lightbox');
+
+        if (!lightbox) {
+            lightbox = document.createElement('div');
+            lightbox.id = 'recaps-gallery-lightbox';
+            lightbox.className = 'recaps-lightbox';
+            lightbox.innerHTML = `
+                <button class="lightbox-close-btn" id="lightbox-close-btn" aria-label="Close image viewer">✕</button>
+                <button class="lightbox-nav-btn lightbox-prev-btn" id="lightbox-prev-btn" aria-label="Previous image">‹</button>
+                <div class="lightbox-content">
+                    <img id="lightbox-main-img" class="lightbox-main-img" src="" alt="Book Preview">
+                    <div id="lightbox-counter" class="lightbox-counter">1 / 1</div>
+                </div>
+                <button class="lightbox-nav-btn lightbox-next-btn" id="lightbox-next-btn" aria-label="Next image">›</button>
+            `;
+            document.body.appendChild(lightbox);
+
+            // Lightbox Event Listeners
+            const closeBtn = lightbox.querySelector('#lightbox-close-btn');
+            const prevBtn = lightbox.querySelector('#lightbox-prev-btn');
+            const nextBtn = lightbox.querySelector('#lightbox-next-btn');
+
+            const closeLightbox = () => {
+                lightbox.classList.remove('active');
+            };
+
+            closeBtn.addEventListener('click', closeLightbox);
+            lightbox.addEventListener('click', (e) => {
+                if (e.target === lightbox) closeLightbox();
+            });
+
+            prevBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (imageUrls.length <= 1) return;
+                currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;
+                updateLightboxImage();
+            });
+
+            nextBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (imageUrls.length <= 1) return;
+                currentIndex = (currentIndex + 1) % imageUrls.length;
+                updateLightboxImage();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (!lightbox.classList.contains('active')) return;
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowLeft' && imageUrls.length > 1) {
+                    currentIndex = (currentIndex - 1 + imageUrls.length) % imageUrls.length;
+                    updateLightboxImage();
+                }
+                if (e.key === 'ArrowRight' && imageUrls.length > 1) {
+                    currentIndex = (currentIndex + 1) % imageUrls.length;
+                    updateLightboxImage();
+                }
+            });
+        }
+
+        function updateLightboxImage() {
+            const imgEl = lightbox.querySelector('#lightbox-main-img');
+            const counterEl = lightbox.querySelector('#lightbox-counter');
+            if (imgEl && imageUrls[currentIndex]) {
+                imgEl.src = imageUrls[currentIndex];
+            }
+            if (counterEl) {
+                counterEl.textContent = `${currentIndex + 1} / ${imageUrls.length}`;
+            }
+        }
+
+        thumbs.forEach(thumb => {
+            thumb.addEventListener('click', () => {
+                currentIndex = parseInt(thumb.getAttribute('data-index') || '0', 10);
+                updateLightboxImage();
+                lightbox.classList.add('active');
+            });
+        });
+    }
 });

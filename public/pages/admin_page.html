@@ -18,7 +18,7 @@
     <title>Admin Dashboard - RE-CAPS</title>
     <link rel="stylesheet" href="../css/shared/style.css">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
-    <link rel="stylesheet" href="../css/admin/style.css">
+    <link rel="stylesheet" href="../css/admin/style.css?v=13">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -205,12 +205,22 @@
                 <!-- Projects Section -->
                 <section id="section-projects" class="content-section">
                     <div class="section-header">
-                        <h2>All Projects</h2>
+                        <h2>
+                            All Projects
+                            <span class="sync-legend" title="Pinecone AI Search Sync Status">
+                                <span class="sync-legend-item"><span class="sync-dot synced"></span> Synced</span>
+                                <span class="sync-legend-item"><span class="sync-dot unsynced"></span> Not Synced</span>
+                            </span>
+                        </h2>
                         <div class="section-actions">
                             <div class="search-box">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
                                 <input type="text" id="projects-search" placeholder="Search projects...">
                             </div>
+                            <button class="btn-secondary" id="refresh-projects-btn" title="Refresh projects table">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                Refresh
+                            </button>
                             <button class="btn-secondary" id="sync-pinecone-btn" title="Sync all projects to Pinecone">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                                 Sync Pinecone
@@ -226,6 +236,19 @@
                         </div>
                     </div>
 
+<!--
+BSIT
+BSFI
+BSHM
+BSIE
+BIT-Computer
+BIT-Electronics
+BIT-Automotive
+BEEd
+BSEd-Math
+BTLEd-HE 
+-->
+                    
                     <div class="filter-pills" id="project-filters">
                         <button class="filter-pill active" data-filter="all">All Projects</button>
                         <button class="filter-pill" data-filter="BSFi">BSFi</button>
@@ -239,6 +262,7 @@
                         <button class="filter-pill" data-filter="BIT-Automotive">BIT-Automotive</button>
                         <button class="filter-pill" data-filter="BTLEd-HE">BTLEd-HE</button>
                         <button class="filter-pill" data-filter="recent">Recent (30 days)</button>
+                        <button class="filter-pill" data-filter="unsynced" title="Show only projects not yet synced to Pinecone">🔴 Unsynced</button>
                     </div>
 
                     <div class="table-container">
@@ -260,6 +284,9 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Pagination Container -->
+                    <div class="pagination-container" id="projects-pagination-container"></div>
                 </section>
 
                 <!-- Users Section -->
@@ -786,6 +813,47 @@
                         </div>
                     </div>
 
+                    <!-- Section 4: Physical Book & Preview Images -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">04</div>
+                            <div>
+                                <div class="pform-section-title">Book &amp; Representation Images</div>
+                                <div class="pform-section-desc">Upload book cover, approval sheet, diagrams, or physical book photos</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-field">
+                                <label class="pform-label">
+                                    Project Images
+                                    <span class="pform-label-hint">PNG, JPG, or WEBP up to 10MB each (first image is default cover)</span>
+                                </label>
+                                
+                                <!-- Drag & Drop Zone -->
+                                <div class="image-upload-dropzone" id="project-image-dropzone">
+                                    <input type="file" id="project-images-input" multiple accept="image/png, image/jpeg, image/webp, image/jpg" style="display: none;">
+                                    <div class="dropzone-content">
+                                        <div class="dropzone-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                <polyline points="21 15 16 10 5 21"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="dropzone-text">
+                                            <strong>Click to upload</strong> or drag and drop images here
+                                        </div>
+                                        <div class="dropzone-subtext">Upload 4 to 6 photos representing the physical capstone book</div>
+                                        <button type="button" class="dropzone-browse-btn" id="project-images-browse-btn">Browse Files</button>
+                                    </div>
+                                </div>
+
+                                <!-- Image Previews Container -->
+                                <div class="project-images-preview-grid" id="project-images-preview-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Footer Actions -->
                     <div class="pmodal-footer">
                         <button type="button" class="pmodal-btn-clear" id="clear-project-btn">Clear</button>
@@ -968,20 +1036,39 @@
                 </div>
 
                 <div class="bulk-import-file-selector">
-                    <input type="file" id="bulk-import-file-input" accept=".json,.xlsx,.xls,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display: none;">
-                    <button type="button" class="btn-secondary bulk-import-choose-btn" id="bulk-import-choose-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Choose File (JSON or Excel)
-                    </button>
-                    <div class="bulk-import-file-info" id="bulk-import-file-info" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                        <span id="bulk-import-filename">No file selected</span>
-                        <button type="button" class="bulk-import-remove-file" id="bulk-import-remove-file">×</button>
+                    <!-- Hidden file input (multiple files allowed) -->
+                    <input type="file" id="bulk-import-file-input" multiple accept=".json,.xlsx,.xls,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display: none;">
+
+                    <!-- Drag & Drop Zone -->
+                    <div class="bulk-import-dropzone" id="bulk-import-dropzone">
+                        <div class="bulk-dropzone-content">
+                            <div class="bulk-dropzone-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </div>
+                            <p class="bulk-dropzone-text" id="bulk-dropzone-title"><strong>Drag &amp; drop files here to add a batch</strong></p>
+                            <p class="bulk-dropzone-subtext" id="bulk-dropzone-subtext">Supports JSON (.json) and Excel (.xlsx, .xls) &bull; Add multiple files as Batch 1, Batch 2...</p>
+                            <button type="button" class="dropzone-browse-btn" id="bulk-import-choose-btn">Browse Files</button>
+                        </div>
+                    </div>
+
+                    <!-- Staged Batches Container -->
+                    <div class="bulk-batches-container" id="bulk-batches-container" style="display: none;">
+                        <div class="bulk-batches-header">
+                            <div class="bulk-batches-header-title">
+                                <span class="bulk-batches-icon">📦</span>
+                                <strong>Staged Batches</strong>
+                                <span class="bulk-batches-pill" id="bulk-batches-pill">0 batches</span>
+                            </div>
+                            <button type="button" class="bulk-clear-all-btn" id="bulk-clear-all-batches-btn" title="Remove all staged batches">Clear All</button>
+                        </div>
+                        <div class="bulk-batches-list" id="bulk-batches-list"></div>
                     </div>
                 </div>
 
                 <div class="bulk-import-preview" id="bulk-import-preview" style="display: none;">
-                    <h4>Preview (<span id="bulk-import-count">0</span> projects)</h4>
+                    <div class="bulk-preview-heading-row">
+                        <h4>Preview (<span id="bulk-import-count">0</span> projects across <span id="bulk-import-batch-count">0</span> batches)</h4>
+                    </div>
                     <div class="bulk-import-preview-list" id="bulk-import-preview-list"></div>
                 </div>
 
@@ -1015,7 +1102,7 @@
                 <button type="button" class="btn-secondary" id="bulk-import-cancel-btn">Cancel</button>
                 <button type="button" class="btn-primary" id="bulk-import-submit-btn" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    Import Projects
+                    <span id="bulk-import-submit-text">Import Projects</span>
                 </button>
             </div>
         </div>
@@ -1111,10 +1198,11 @@
     <script src="../js/shared/firebase-config.js?v=4"></script>
     <script src="../js/core/auth-service.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/cloudinary-service.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
-    <script src="../js/admin/main.js?v=6"></script>
+    <script src="../js/admin/main.js?v=17"></script>
 </body>
 </html>
 

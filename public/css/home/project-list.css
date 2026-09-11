@@ -4,6 +4,8 @@
 .projects-list-section {
     position: relative;
     overflow: hidden;
+    padding: 4rem 5%;
+    background-color: var(--background);
 }
 
 /* Decorative Elements for Projects List */
@@ -295,6 +297,20 @@
     gap: 1rem;
 }
 
+.section-title-index {
+    font-size: clamp(1.1rem, 4vw, 1.4rem);
+    font-weight: 700;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.header-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 .view-toggles {
     display: flex;
     gap: 0.5rem;
@@ -351,7 +367,8 @@
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    min-width: 240px;
+    min-width: 220px;
+    max-width: calc(100vw - 2rem);
     z-index: 100;
     opacity: 0;
     visibility: hidden;
@@ -496,7 +513,7 @@
 /* GRID VIEW */
 .projects-container.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
 }
 
 .projects-container.grid-view .project-card {
@@ -528,12 +545,12 @@
 
 .projects-container.compact-view .project-header {
     margin-bottom: 0;
-    flex: 1 1 300px;
+    flex: 1 1 min(100%, 260px);
 }
 
 .projects-container.compact-view .project-meta {
     margin-bottom: 0;
-    flex: 1 1 200px;
+    flex: 1 1 min(100%, 180px);
 }
 
 .projects-container.compact-view .project-abstract {
@@ -687,16 +704,71 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Responsive adjustments for relevance badges */
+/* Responsive adjustments for project list and controls */
 @media (max-width: 768px) {
+    .projects-list-section {
+        padding: 2rem 1rem !important;
+    }
+
+    .projects-header-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .header-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .projects-container {
+        padding: 1rem 0;
+        gap: 1rem;
+    }
+
+    .projects-container.grid-view {
+        grid-template-columns: 1fr;
+    }
+
+    .project-card {
+        padding: 1.15rem 1rem;
+        border-radius: 10px;
+    }
+
     .project-header {
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.5rem;
     }
     
     .project-header-right {
         width: 100%;
         justify-content: space-between;
+    }
+
+    .project-title {
+        font-size: 1.05rem;
+        word-break: break-word;
+    }
+
+    .project-meta {
+        font-size: 0.8rem;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .project-abstract {
+        font-size: 0.875rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+
+    .project-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
     
     .relevance-badge {
@@ -707,6 +779,123 @@
     .relevance-badge svg {
         width: 12px;
         height: 12px;
+    }
+
+    .pagination-container {
+        margin-top: 2rem;
+        gap: 0.4rem;
+    }
+
+    .pagination-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .projects-list-section {
+        padding: 1.5rem 0.5rem !important;
+    }
+
+    .projects-header-bar {
+        gap: 0.5rem;
+    }
+
+    .section-title-index {
+        font-size: 1.1rem;
+    }
+
+    .header-controls {
+        gap: 0.35rem;
+    }
+
+    .sort-toggle-btn {
+        padding: 0.4rem 0.65rem;
+        font-size: 0.8rem;
+        gap: 0.35rem;
+    }
+
+    .sort-toggle-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .view-toggles {
+        padding: 0.2rem;
+        gap: 0.2rem;
+    }
+
+    .view-btn {
+        padding: 0.3rem;
+    }
+
+    .view-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .projects-container.compact-view .project-card {
+        padding: 0.85rem 0.75rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .projects-container.compact-view .project-header,
+    .projects-container.compact-view .project-meta,
+    .projects-container.compact-view .project-actions {
+        width: 100%;
+        flex: none;
+    }
+
+    .project-card {
+        padding: 0.875rem 0.75rem;
+    }
+
+    .project-title {
+        font-size: 0.95rem;
+    }
+
+    .project-meta {
+        font-size: 0.75rem;
+    }
+
+    .btn-save, .btn-view-details {
+        font-size: 0.78rem;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .pagination-container {
+        margin-top: 1.5rem;
+        gap: 0.3rem;
+    }
+
+    .pagination-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 320px) {
+    .sort-toggle-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .view-btn {
+        padding: 0.25rem;
+    }
+
+    .view-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .btn-save, .btn-view-details {
+        width: 100%;
+        justify-content: center;
     }
 }
 

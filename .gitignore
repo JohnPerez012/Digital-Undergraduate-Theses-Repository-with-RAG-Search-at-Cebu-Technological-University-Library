@@ -2,7 +2,7 @@
 recap-backend/
 .firebase/
 addons/
-
+editable_logo/logo.psb
 
 
 # file
@@ -14,3 +14,7 @@ localRunner.bat
 
 # git rm -r --cached folder
 # git rm --cached file
+
+
+*.md
+!README.md
