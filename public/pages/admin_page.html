@@ -922,6 +922,17 @@ BTLEd-HE
                     Delete Project
                 </button>
             </div>
+
+            <!-- Processing overlay: covers the whole modal during deletion to block all interaction -->
+            <div class="delete-processing-overlay" id="delete-processing-overlay" aria-hidden="true">
+                <div class="delete-processing-spinner">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                </div>
+                <p class="delete-processing-label">Deleting project…</p>
+                <p class="delete-processing-sublabel">Please wait, do not close this window.</p>
+            </div>
         </div>
     </div>
 

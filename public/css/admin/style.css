@@ -3423,6 +3423,79 @@ form #project-id-input {
 
 
 /* =====================================
+   DELETE PROCESSING STATE
+   Covers the modal with a blur overlay and spinner while deletion is in progress.
+   All pointer events are blocked so the user cannot click anything else.
+   ===================================== */
+
+/* The outer modal card becomes relatively positioned so the overlay can fill it */
+.secure-delete-modal-content {
+    position: relative;
+    overflow: hidden; /* keeps the overlay clipped to the rounded corners */
+}
+
+/* The processing overlay itself */
+.delete-processing-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    display: none; /* hidden by default */
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 16px; /* match .modal-content border-radius */
+    pointer-events: all; /* absorb all clicks */
+    cursor: not-allowed;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Active state — toggled by JS */
+.delete-processing-overlay.active {
+    display: flex;
+}
+
+/* Spinner SVG */
+.delete-processing-spinner svg {
+    color: #ef4444;
+    animation: spinFull 0.9s linear infinite;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+}
+
+@keyframes spinFull {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* Text labels */
+.delete-processing-label {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    text-align: center;
+    letter-spacing: 0.01em;
+}
+
+.delete-processing-sublabel {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    font-weight: 400;
+    margin: 0;
+    text-align: center;
+}
+
+/* Also block the outer backdrop click and overlay click on the modal container
+   while processing — we add a class to the .modal element */
+#secure-delete-modal.is-processing .modal-overlay {
+    pointer-events: none; /* overlay click blocked by the inner overlay already */
+    cursor: not-allowed;
+}
+
+/* =====================================
    BULK IMPORT MODAL STYLES
    ===================================== */
 
