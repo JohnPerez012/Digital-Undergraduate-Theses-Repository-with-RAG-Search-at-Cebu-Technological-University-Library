@@ -14,7 +14,8 @@ localRunner.bat
 
 # git rm -r --cached folder
 # git rm --cached file
-
+# git reset
+# git rm -r --cached .
 
 *.md
 !README.md
