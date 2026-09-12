@@ -2147,24 +2147,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         secureDeleteProjectTitle = null;
     }
     
+    // ── Processing state helpers ──────────────────────────────────────────────
+    // Shows a full-modal blur overlay with a spinner so the admin cannot
+    // accidentally click anything else while the delete is in progress.
+    function setDeleteProcessing(active) {
+        const modal    = document.getElementById('secure-delete-modal');
+        const overlay  = document.getElementById('delete-processing-overlay');
+        const closeBtn = document.getElementById('secure-delete-modal-close-btn');
+        const cancelBtn = document.getElementById('secure-delete-cancel-btn');
+        const deleteBtn = document.getElementById('secure-delete-confirm-btn');
+        const input    = document.getElementById('secure-delete-input');
+
+        if (active) {
+            // Show spinner overlay
+            overlay.classList.add('active');
+            overlay.setAttribute('aria-hidden', 'false');
+            // Add guard class to the outer modal (blocks backdrop click via CSS)
+            modal.classList.add('is-processing');
+            // Disable all interactive elements as a belt-and-suspenders measure
+            closeBtn.disabled  = true;
+            cancelBtn.disabled = true;
+            deleteBtn.disabled = true;
+            input.disabled     = true;
+        } else {
+            // Hide spinner overlay
+            overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
+            modal.classList.remove('is-processing');
+            // Re-enable close/cancel (delete btn stays disabled — it's a one-shot)
+            closeBtn.disabled  = false;
+            cancelBtn.disabled = false;
+            input.disabled     = false;
+        }
+    }
+
     async function confirmSecureDelete() {
         if (!secureDeleteProjectId || !secureDeleteProjectTitle) return;
         
-        const deleteBtn = document.getElementById('secure-delete-confirm-btn');
+        const deleteBtn  = document.getElementById('secure-delete-confirm-btn');
         const originalText = deleteBtn.innerHTML;
         
         try {
-            deleteBtn.disabled = true;
-            deleteBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="margin-right: 0.5rem; animation: spin 1s linear infinite;">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M12 6v6l4 2"></path>
-                </svg>
-                Deleting...
-            `;
-            
+            // ── Activate processing state ─────────────────────────────────────
+            // Shows blur overlay + spinner and disables all modal controls so
+            // the admin cannot accidentally click Cancel, Close, or the backdrop.
+            setDeleteProcessing(true);
             showToast('Deleting project...', 'ℹ️');
-            
+
             // Fetch project data to get image URLs before deletion
             let projectImages = [];
             try {
@@ -2200,14 +2229,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update Realtime Database counters
             try {
                 if (rtdb) {
-                    // Decrement project count
                     const countRef = rtdb.ref('projects_document_count');
                     await countRef.transaction((current) => Math.max(0, (current || 0) - 1));
-                    
-                    // Increment update counter
                     const updateCounterRef = rtdb.ref('update_counter');
                     await updateCounterRef.transaction((current) => (current || 0) + 1);
-                    
                     console.log('✓ RTDB counters updated after deletion');
                 } else {
                     console.warn('RTDB not available, skipping counter update');
@@ -2225,9 +2250,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const backendUrl = getBackendUrl();
                 const deleteResponse = await fetch(`${backendUrl}/api/projects/sync/${secureDeleteProjectId}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 if (!deleteResponse.ok) {
@@ -2238,18 +2261,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('✓ Project deleted from Pinecone successfully');
             } catch (pineconeErr) {
                 console.error('⚠️ Pinecone delete failed (non-critical):', pineconeErr);
-                // Don't fail the entire operation if Pinecone delete fails
             }
 
+            // ── Deactivate processing state before closing ────────────────────
+            setDeleteProcessing(false);
             closeSecureDeleteModal();
             showToast('Project deleted successfully', '✅');
             await loadProjectsData();
-            await loadDashboardData(); // Refresh stats
+            await loadDashboardData();
         } catch (error) {
             console.error('Error deleting project:', error);
-            showToast('Error deleting project: ' + error.message, '❌');
+            // ── Deactivate processing state on error so admin can retry/cancel ─
+            setDeleteProcessing(false);
             deleteBtn.disabled = false;
             deleteBtn.innerHTML = originalText;
+            showToast('Error deleting project: ' + error.message, '❌');
         }
     }
     
@@ -2298,15 +2324,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     document.getElementById('secure-delete-confirm-btn').addEventListener('click', confirmSecureDelete);
-    document.getElementById('secure-delete-cancel-btn').addEventListener('click', closeSecureDeleteModal);
-    document.getElementById('secure-delete-modal-close-btn').addEventListener('click', closeSecureDeleteModal);
-    document.getElementById('secure-delete-modal-overlay').addEventListener('click', closeSecureDeleteModal);
+
+    // Guard close/cancel/backdrop so they are no-ops while deletion is processing
+    const guardedClose = () => {
+        if (document.getElementById('secure-delete-modal').classList.contains('is-processing')) return;
+        closeSecureDeleteModal();
+    };
+    document.getElementById('secure-delete-cancel-btn').addEventListener('click', guardedClose);
+    document.getElementById('secure-delete-modal-close-btn').addEventListener('click', guardedClose);
+    document.getElementById('secure-delete-modal-overlay').addEventListener('click', guardedClose);
     
     // Allow Enter key to submit if valid
     document.getElementById('secure-delete-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             const deleteBtn = document.getElementById('secure-delete-confirm-btn');
-            if (!deleteBtn.disabled) {
+            const isProcessing = document.getElementById('secure-delete-modal').classList.contains('is-processing');
+            if (!deleteBtn.disabled && !isProcessing) {
                 confirmSecureDelete();
             }
         }
