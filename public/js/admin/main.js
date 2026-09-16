@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ===== Dashboard Data =====
-    async function loadDashboardData() {
+    async function loadDashboardData(forceRefresh = false) {
         // Safety check: Ensure user is authenticated
         if (!auth.currentUser) {
             console.warn('Cannot load dashboard - no authenticated user');
@@ -345,8 +345,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             let needReRender = false;
 
             // 1. Verify project cache validity
-            const cacheValid = await isCacheValid();
-            if (!cacheValid || projects.length === 0) {
+            const cacheValid = forceRefresh ? false : await isCacheValid();
+            if (!cacheValid || projects.length === 0 || forceRefresh) {
                 console.log('📡 Dashboard fetching fresh projects (cache invalid or missing)...');
                 let freshProjects = [];
                 let retryCount = 0;
@@ -373,16 +373,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 2. Verify users cache freshness (less than 5 minutes old)
             let usersCacheAgeFresh = false;
-            const cachedUsersMetadata = localStorage.getItem('usersMetadata');
-            if (cachedUsersMetadata) {
-                const metadata = JSON.parse(cachedUsersMetadata);
-                const cacheAge = Date.now() - new Date(metadata.lastCached).getTime();
-                if (cacheAge < 5 * 60 * 1000) {
-                    usersCacheAgeFresh = true;
+            if (!forceRefresh) {
+                const cachedUsersMetadata = localStorage.getItem('usersMetadata');
+                if (cachedUsersMetadata) {
+                    const metadata = JSON.parse(cachedUsersMetadata);
+                    const cacheAge = Date.now() - new Date(metadata.lastCached).getTime();
+                    if (cacheAge < 5 * 60 * 1000) {
+                        usersCacheAgeFresh = true;
+                    }
                 }
             }
 
-            if (!usersCacheAgeFresh || users.length === 0) {
+            if (!usersCacheAgeFresh || users.length === 0 || forceRefresh) {
                 console.log('📡 Dashboard fetching fresh users (cache stale or missing)...');
                 let freshUsers = [];
                 let retryCount = 0;
@@ -616,6 +618,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('🗑️ Cache invalidated');
         } catch (error) {
             console.error('Error invalidating cache:', error);
+        }
+    }
+
+    /**
+     * Invalidate users cache - clears cached user data to force fresh fetch
+     */
+    function invalidateUsersCache() {
+        try {
+            localStorage.removeItem('usersData');
+            localStorage.removeItem('usersMetadata');
+            console.log('🗑️ Users cache invalidated');
+        } catch (error) {
+            console.error('Error invalidating users cache:', error);
         }
     }
 
@@ -1067,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ===== Users Data =====
-    async function loadUsersData() {
+    async function loadUsersData(forceRefresh = false) {
         // Safety check: Ensure user is authenticated
         if (!auth.currentUser) {
             console.warn('Cannot load users - no authenticated user');
@@ -1086,9 +1101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             usersList.forEach(data => {
                 const userType = data.userType || 'N/A';
-                const badgeColor = userType === 'admin' ? '#667eea' : 
-                                  userType === 'librarian' ? '#10b981' :
-                                  userType === 'student' ? '#3b82f6' : '#94a3b8';
+                const badgeColor = userType === 'admin' ? 'linear-gradient(to right, #08D488, #FCCC56)' : 
+                                  userType === 'librarian' ? '#08D488' :
+                                  userType === 'student' ? '#fad882ff' : '#94a3b8';
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1120,8 +1135,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // 1. Try to load and render from cache immediately
-        let users = loadUsersFromCache();
+        // 1. Try to load and render from cache immediately (unless forceRefresh is true)
+        let users = forceRefresh ? null : loadUsersFromCache();
         let renderedFromCache = false;
         
         if (users && users.length > 0) {
@@ -1153,21 +1168,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             tbody.innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
         }
 
-        // 2. Asynchronously verify and update users cache
+        // 2. Asynchronously verify and update users cache (skip check if forceRefresh is true)
         try {
             let usersCacheAgeFresh = false;
-            const cachedUsersMetadata = localStorage.getItem('usersMetadata');
-            if (cachedUsersMetadata) {
-                const metadata = JSON.parse(cachedUsersMetadata);
-                const cacheAge = Date.now() - new Date(metadata.lastCached).getTime();
-                if (cacheAge < 5 * 60 * 1000) {
-                    usersCacheAgeFresh = true;
+            if (!forceRefresh) {
+                const cachedUsersMetadata = localStorage.getItem('usersMetadata');
+                if (cachedUsersMetadata) {
+                    const metadata = JSON.parse(cachedUsersMetadata);
+                    const cacheAge = Date.now() - new Date(metadata.lastCached).getTime();
+                    if (cacheAge < 5 * 60 * 1000) {
+                        usersCacheAgeFresh = true;
+                    }
                 }
-            }
 
-            if (usersCacheAgeFresh && renderedFromCache) {
-                console.log('✓ Users cache is fresh. No Firestore fetch needed.');
-                return;
+                if (usersCacheAgeFresh && renderedFromCache) {
+                    console.log('✓ Users cache is fresh. No Firestore fetch needed.');
+                    return;
+                }
             }
 
             console.log('📡 Fetching fresh users data from Firestore...');
@@ -2351,13 +2368,108 @@ document.addEventListener('DOMContentLoaded', async () => {
         // TODO: Implement user profile view modal
     };
 
+    // ===== User Deletion Logic (Auth + Firestore + Cache) =====
+
+    async function performUserDeletion(userId, userData, name) {
+        try {
+            showToast('Deleting user from database & authentication...', 'ℹ️');
+
+            // 1. Immediately remove row from the DOM table for instant feedback
+            const tbody = document.getElementById('users-table-body');
+            if (tbody) {
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.forEach(row => {
+                    const deleteBtn = row.querySelector(`button[onclick*="${userId}"]`);
+                    if (deleteBtn) {
+                        row.remove();
+                    }
+                });
+                if (tbody.querySelectorAll('tr').length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No users found</td></tr>';
+                }
+            }
+
+            // 2. Immediately update local cache to remove the deleted user
+            try {
+                const cachedUsers = loadUsersFromCache();
+                if (cachedUsers && Array.isArray(cachedUsers)) {
+                    const filtered = cachedUsers.filter(u => u.id !== userId);
+                    localStorage.setItem('usersData', JSON.stringify(filtered));
+                    localStorage.setItem('usersMetadata', JSON.stringify({
+                        userCount: filtered.length,
+                        lastCached: new Date().toISOString()
+                    }));
+                }
+            } catch (cacheErr) {
+                console.warn('Could not update user cache:', cacheErr);
+            }
+
+            // 3. Call backend to delete user from Firebase Authentication & Firestore
+            const backendUrl = getBackendUrl();
+            let authDeleted = false;
+            try {
+                const response = await fetch(`${backendUrl}/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: userData?.email || '',
+                        fullName: name || userData?.fullName || ''
+                    })
+                });
+
+                if (response.ok) {
+                    const resJson = await response.json();
+                    authDeleted = resJson.authDeleted;
+                    console.log('✓ Backend user delete success:', resJson);
+                } else {
+                    console.warn(`⚠️ Backend delete returned status ${response.status}`);
+                }
+            } catch (backendError) {
+                console.warn('⚠️ Backend user delete failed or unreachable:', backendError.message);
+            }
+
+            // 4. Also guarantee Firestore document deletion directly from client SDK
+            try {
+                await db.collection('users').doc(userId).delete();
+                console.log(`✓ Firestore document deleted for ${userId}`);
+            } catch (fsError) {
+                console.warn('⚠️ Client-side Firestore delete:', fsError.message);
+            }
+
+            // 5. Invalidate users cache completely
+            invalidateUsersCache();
+
+            showToast('User deleted successfully', '✅');
+
+            // 6. Force reload users data and dashboard stats immediately
+            await loadUsersData(true);
+            await loadDashboardData(true);
+
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showToast('Error deleting user: ' + error.message, '❌');
+            // Re-render users table on error to ensure correct state
+            await loadUsersData(true);
+        }
+    }
+
     window.deleteUser = async (userId, name) => {
         try {
             // Fetch user data to get security question
             const userDoc = await db.collection('users').doc(userId).get();
             
             if (!userDoc.exists) {
-                showToast('User not found', '❌');
+                // If doc doesn't exist in Firestore, offer to delete from Firebase Authentication directly
+                showConfirmationModal(
+                    'Delete Account',
+                    `This user does not exist in the Firestore database, but may still remain in Firebase Authentication.<br><br>Do you want to permanently delete authentication account <strong>${escapeHtml(name || userId)}</strong>?`,
+                    null,
+                    async () => {
+                        await performUserDeletion(userId, { email: '' }, name);
+                    },
+                    'Delete Auth Account',
+                    'btn-danger'
+                );
                 return;
             }
             
@@ -2365,7 +2477,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Check if user has security question/answer
             if (!userData.securityQuestion || !userData.securityAnswer) {
-                showToast('Cannot delete: User has no security question set', '⚠️');
+                // Show confirmation modal fallback for accounts without security questions
+                showConfirmationModal(
+                    'Delete User',
+                    `This user has not configured a security question.<br><br>Are you sure you want to permanently delete <strong>${escapeHtml(name || userData.fullName || userData.email)}</strong>?<br><small style="color: #ef4444;">This will delete their account from both Firebase Authentication and Firestore.</small>`,
+                    null,
+                    async () => {
+                        await performUserDeletion(userId, userData, name);
+                    },
+                    'Delete User',
+                    'btn-danger'
+                );
                 return;
             }
             
@@ -2439,18 +2561,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 // Case-insensitive comparison
                 if (enteredAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                    // Correct answer - proceed with deletion
-                    try {
-                        closeModal();
-                        showToast('Deleting user...', 'ℹ️');
-                        await db.collection('users').doc(userId).delete();
-                        showToast('User deleted successfully', '✅');
-                        await loadUsersData();
-                        await loadDashboardData(); // Refresh stats
-                    } catch (error) {
-                        console.error('Error deleting user:', error);
-                        showToast('Error deleting user: ' + error.message, '❌');
-                    }
+                    closeModal();
+                    await performUserDeletion(userId, userData, name);
                 } else {
                     // Incorrect answer
                     errorEl.style.display = 'block';
@@ -2572,79 +2684,342 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addKeywordBtn = document.getElementById('add-keyword-btn');
     if (addKeywordBtn) addKeywordBtn.addEventListener('click', () => createDynamicRow('keywords-container', 'e.g., Python'));
 
-    // ===== Sync Pinecone Button =====
-    const syncPineconeBtn = document.getElementById('sync-pinecone-btn');
-    if (syncPineconeBtn) {
-        syncPineconeBtn.addEventListener('click', async () => {
-            const confirmed = confirm(
-                '🔄 SYNC TO PINECONE\n\n' +
-                'This will sync ALL projects from Firestore to Pinecone.\n' +
-                'This may take a few minutes depending on the number of projects.\n\n' +
-                'Continue?'
-            );
-            
-            if (!confirmed) return;
+    // ===== Pinecone Vector Sync Modal Controller =====
+    const syncPineconeBtn              = document.getElementById('sync-pinecone-btn');
+    const pineconeSyncModal            = document.getElementById('pinecone-sync-modal');
+    const pineconeSyncModalOverlay     = document.getElementById('pinecone-sync-modal-overlay');
+    const pineconeSyncCloseBtn         = document.getElementById('pinecone-sync-modal-close-btn');
+    const pineconeSyncCancelBtn        = document.getElementById('pinecone-sync-cancel-btn');
+    const pineconeSyncConfirmBtn       = document.getElementById('pinecone-sync-confirm-btn');
+    const pineconeSyncDoneBtn          = document.getElementById('pinecone-sync-done-btn');
+    const pineconeSyncRetryFailedBtn   = document.getElementById('pinecone-sync-retry-failed-btn');
 
-            // Disable button and show loading state
-            syncPineconeBtn.disabled = true;
-            const originalHTML = syncPineconeBtn.innerHTML;
-            syncPineconeBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
-                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                </svg>
-                Syncing...
-            `;
+    // Views
+    const pineconeSyncReadyView        = document.getElementById('pinecone-sync-ready-view');
+    const pineconeSyncProgressView     = document.getElementById('pinecone-sync-progress-view');
+    const pineconeSyncResultView       = document.getElementById('pinecone-sync-result-view');
 
-            try {
-                showToast('Starting Pinecone sync...', 'ℹ️');
-                
-                const backendUrl = getBackendUrl();
-                const response = await fetch(`${backendUrl}/api/projects/sync-all`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+    // Option cards & inputs
+    const pineconeOptionUnsyncedCard   = document.getElementById('pinecone-option-unsynced-card');
+    const pineconeOptionAllCard        = document.getElementById('pinecone-option-all-card');
+    const pineconeModeUnsynced         = document.getElementById('pinecone-sync-mode-unsynced');
+    const pineconeModeAll              = document.getElementById('pinecone-sync-mode-all');
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Sync failed');
-                }
+    // Live stat elements
+    const pineconeStatTotal            = document.getElementById('pinecone-stat-total');
+    const pineconeStatSynced           = document.getElementById('pinecone-stat-synced');
+    const pineconeStatUnsynced         = document.getElementById('pinecone-stat-unsynced');
+    const pineconeOptionUnsyncedDesc   = document.getElementById('pinecone-option-unsynced-desc');
 
-                const result = await response.json();
-                
-                console.log('✓ Pinecone sync completed:', result);
-                
-                // Show detailed results
-                let message = `✅ Sync completed!\n\n`;
-                message += `Total: ${result.totalProjects} projects\n`;
-                message += `Synced: ${result.synced}\n`;
-                message += `Failed: ${result.failed}`;
-                
-                if (result.failed > 0 && result.errors.length > 0) {
-                    message += `\n\nErrors:\n`;
-                    result.errors.slice(0, 3).forEach(err => {
-                        message += `- ${err.projectId}: ${err.error}\n`;
-                    });
-                    if (result.errors.length > 3) {
-                        message += `... and ${result.errors.length - 3} more`;
-                    }
-                }
-                
-                alert(message);
-                showToast(`Pinecone sync completed: ${result.synced}/${result.totalProjects}`, '✅');
-                await loadProjectsData();
+    // Progress elements
+    const pineconeProgressBarFill      = document.getElementById('pinecone-progress-bar-fill');
+    const pineconeProgressPercent      = document.getElementById('pinecone-progress-percent');
+    const pineconeProgressCounter      = document.getElementById('pinecone-progress-counter');
+    const pineconeProgressStatusText   = document.getElementById('pinecone-progress-status-text');
+    const pineconeCurrentProjectTitle  = document.getElementById('pinecone-current-project-title');
 
-            } catch (error) {
-                console.error('❌ Pinecone sync error:', error);
-                showToast('Pinecone sync failed: ' + error.message, '❌');
-                alert('❌ Sync Failed\n\n' + error.message);
-            } finally {
-                // Re-enable button and restore original state
-                syncPineconeBtn.disabled = false;
-                syncPineconeBtn.innerHTML = originalHTML;
+    // Result elements
+    const pineconeResultHero           = document.getElementById('pinecone-result-hero');
+    const pineconeResultIcon           = document.getElementById('pinecone-result-icon');
+    const pineconeResultTitle          = document.getElementById('pinecone-result-title');
+    const pineconeResultSubtitle       = document.getElementById('pinecone-result-subtitle');
+    const pineconeResultSuccessCount   = document.getElementById('pinecone-result-success-count');
+    const pineconeResultFailedCount    = document.getElementById('pinecone-result-failed-count');
+    const pineconeResultTotalCount     = document.getElementById('pinecone-result-total-count');
+    const pineconeResultFailedCard     = document.getElementById('pinecone-result-failed-card');
+    const pineconeResultErrorsContainer = document.getElementById('pinecone-result-errors-container');
+    const pineconeResultErrorsCount    = document.getElementById('pinecone-result-errors-count');
+    const pineconeResultErrorsList     = document.getElementById('pinecone-result-errors-list');
+
+    let isPineconeSyncRunning = false;
+    let lastPineconeFailedProjects = [];
+
+    // Open Pinecone Sync Modal
+    function openPineconeSyncModal() {
+        if (!pineconeSyncModal) return;
+
+        const totalProjects = (allProjectsData || []).length;
+        const syncedProjects = (allProjectsData || []).filter(p => p.pineconeSynced === true).length;
+        const unsyncedProjects = (allProjectsData || []).filter(p => p.pineconeSynced !== true);
+
+        // Update live stats
+        if (pineconeStatTotal) pineconeStatTotal.textContent = totalProjects;
+        if (pineconeStatSynced) pineconeStatSynced.textContent = syncedProjects;
+        if (pineconeStatUnsynced) pineconeStatUnsynced.textContent = unsyncedProjects.length;
+
+        // Auto-select mode based on unsynced count
+        if (unsyncedProjects.length > 0) {
+            if (pineconeModeUnsynced) pineconeModeUnsynced.checked = true;
+            if (pineconeOptionUnsyncedCard) pineconeOptionUnsyncedCard.classList.add('active');
+            if (pineconeOptionAllCard) pineconeOptionAllCard.classList.remove('active');
+            if (pineconeOptionUnsyncedDesc) {
+                pineconeOptionUnsyncedDesc.textContent = `Quickly uploads and generates vector embeddings only for the ${unsyncedProjects.length} pending project(s).`;
+            }
+        } else {
+            if (pineconeModeAll) pineconeModeAll.checked = true;
+            if (pineconeOptionAllCard) pineconeOptionAllCard.classList.add('active');
+            if (pineconeOptionUnsyncedCard) pineconeOptionUnsyncedCard.classList.remove('active');
+            if (pineconeOptionUnsyncedDesc) {
+                pineconeOptionUnsyncedDesc.textContent = `All ${totalProjects} projects are currently synced with Pinecone. Choose Full Re-Sync if you need to re-index.`;
+            }
+        }
+
+        // Show Ready view, reset progress/results
+        if (pineconeSyncReadyView) pineconeSyncReadyView.style.display = 'block';
+        if (pineconeSyncProgressView) pineconeSyncProgressView.style.display = 'none';
+        if (pineconeSyncResultView) pineconeSyncResultView.style.display = 'none';
+
+        if (pineconeSyncCancelBtn) pineconeSyncCancelBtn.style.display = 'inline-flex';
+        if (pineconeSyncConfirmBtn) pineconeSyncConfirmBtn.style.display = 'inline-flex';
+        if (pineconeSyncDoneBtn) pineconeSyncDoneBtn.style.display = 'none';
+        if (pineconeSyncRetryFailedBtn) pineconeSyncRetryFailedBtn.style.display = 'none';
+
+        if (pineconeSyncCloseBtn) pineconeSyncCloseBtn.disabled = false;
+        if (pineconeSyncCancelBtn) pineconeSyncCancelBtn.disabled = false;
+        if (pineconeSyncConfirmBtn) pineconeSyncConfirmBtn.disabled = false;
+
+        pineconeSyncModal.classList.add('active');
+    }
+
+    // Close modal safely (guarded against closing while sync is active)
+    function closePineconeSyncModal() {
+        if (isPineconeSyncRunning) return;
+        if (pineconeSyncModal) {
+            pineconeSyncModal.classList.remove('active');
+        }
+    }
+
+    // Option cards selection handlers
+    if (pineconeOptionUnsyncedCard) {
+        pineconeOptionUnsyncedCard.addEventListener('click', () => {
+            if (pineconeModeUnsynced) pineconeModeUnsynced.checked = true;
+            pineconeOptionUnsyncedCard.classList.add('active');
+            if (pineconeOptionAllCard) pineconeOptionAllCard.classList.remove('active');
+        });
+    }
+
+    if (pineconeOptionAllCard) {
+        pineconeOptionAllCard.addEventListener('click', () => {
+            if (pineconeModeAll) pineconeModeAll.checked = true;
+            pineconeOptionAllCard.classList.add('active');
+            if (pineconeOptionUnsyncedCard) pineconeOptionUnsyncedCard.classList.remove('active');
+        });
+    }
+
+    // Modal close buttons
+    if (pineconeSyncCloseBtn) {
+        pineconeSyncCloseBtn.addEventListener('click', closePineconeSyncModal);
+    }
+    if (pineconeSyncCancelBtn) {
+        pineconeSyncCancelBtn.addEventListener('click', closePineconeSyncModal);
+    }
+    if (pineconeSyncDoneBtn) {
+        pineconeSyncDoneBtn.addEventListener('click', closePineconeSyncModal);
+    }
+    if (pineconeSyncModalOverlay) {
+        pineconeSyncModalOverlay.addEventListener('click', (e) => {
+            if (e.target === pineconeSyncModalOverlay) {
+                closePineconeSyncModal();
             }
         });
+    }
+
+    // Execute Pinecone Sync loop with live progress
+    async function executePineconeSync(projectsToSync) {
+        if (!projectsToSync || projectsToSync.length === 0) {
+            showToast('No projects to sync.', 'ℹ️');
+            return;
+        }
+
+        isPineconeSyncRunning = true;
+        lastPineconeFailedProjects = [];
+
+        // Switch to progress view
+        if (pineconeSyncReadyView) pineconeSyncReadyView.style.display = 'none';
+        if (pineconeSyncResultView) pineconeSyncResultView.style.display = 'none';
+        if (pineconeSyncProgressView) pineconeSyncProgressView.style.display = 'block';
+
+        if (pineconeSyncConfirmBtn) pineconeSyncConfirmBtn.style.display = 'none';
+        if (pineconeSyncCancelBtn) pineconeSyncCancelBtn.style.display = 'none';
+        if (pineconeSyncDoneBtn) pineconeSyncDoneBtn.style.display = 'none';
+        if (pineconeSyncRetryFailedBtn) pineconeSyncRetryFailedBtn.style.display = 'none';
+        if (pineconeSyncCloseBtn) pineconeSyncCloseBtn.disabled = true;
+
+        if (pineconeProgressBarFill) pineconeProgressBarFill.style.width = '0%';
+        if (pineconeProgressPercent) pineconeProgressPercent.textContent = '0%';
+        if (pineconeProgressCounter) pineconeProgressCounter.textContent = `0 of ${projectsToSync.length} processed`;
+        if (pineconeProgressStatusText) pineconeProgressStatusText.textContent = 'Connecting to Pinecone Inference API…';
+        if (pineconeCurrentProjectTitle) pineconeCurrentProjectTitle.textContent = projectsToSync[0].title || 'Starting sync…';
+
+        let successCount = 0;
+        let failedCount = 0;
+        const failedProjects = [];
+        const backendUrl = getBackendUrl();
+
+        for (let i = 0; i < projectsToSync.length; i++) {
+            const project = projectsToSync[i];
+            const currentPct = Math.round((i / projectsToSync.length) * 100);
+
+            if (pineconeProgressBarFill) pineconeProgressBarFill.style.width = `${currentPct}%`;
+            if (pineconeProgressPercent) pineconeProgressPercent.textContent = `${currentPct}%`;
+            if (pineconeProgressCounter) pineconeProgressCounter.textContent = `${i + 1} of ${projectsToSync.length} processed`;
+            if (pineconeProgressStatusText) pineconeProgressStatusText.textContent = `Embedding & indexing (${i + 1} of ${projectsToSync.length})…`;
+            if (pineconeCurrentProjectTitle) pineconeCurrentProjectTitle.textContent = project.title || project.id;
+
+            try {
+                const response = await fetch(`${backendUrl}/api/projects/sync`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: project.id,
+                        projectData: project
+                    })
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Sync request failed');
+                }
+
+                successCount++;
+                project.pineconeSynced = true;
+
+                // Update table row indicator if visible in current table page
+                const row = document.querySelector(`tr[data-project-id="${project.id}"]`);
+                if (row) {
+                    row.setAttribute('data-synced', 'true');
+                    const dot = row.querySelector('.sync-dot');
+                    if (dot) dot.className = 'sync-dot synced';
+                    const btn = row.querySelector('.sync-indicator-btn');
+                    if (btn) {
+                        btn.className = 'sync-indicator-btn synced';
+                        btn.title = 'Synced with Pinecone (AI Search active) - Click to re-sync';
+                    }
+                }
+            } catch (err) {
+                console.warn(`Pinecone sync error for "${project.title}":`, err.message);
+                failedCount++;
+                failedProjects.push({
+                    project,
+                    error: err.message || 'Sync failed'
+                });
+                project.pineconeSynced = false;
+
+                const row = document.querySelector(`tr[data-project-id="${project.id}"]`);
+                if (row) {
+                    row.setAttribute('data-synced', 'false');
+                    const dot = row.querySelector('.sync-dot');
+                    if (dot) dot.className = 'sync-dot unsynced';
+                    const btn = row.querySelector('.sync-indicator-btn');
+                    if (btn) {
+                        btn.className = 'sync-indicator-btn unsynced';
+                        btn.title = 'Not synced with Pinecone - Click to sync now';
+                    }
+                }
+            }
+
+            const postPct = Math.round(((i + 1) / projectsToSync.length) * 100);
+            if (pineconeProgressBarFill) pineconeProgressBarFill.style.width = `${postPct}%`;
+            if (pineconeProgressPercent) pineconeProgressPercent.textContent = `${postPct}%`;
+        }
+
+        // Sync complete: save cache
+        if (typeof saveToCache === 'function') {
+            await saveToCache(allProjectsData).catch(() => {});
+        }
+
+        // Re-render table paginated
+        const tbody = document.getElementById('projects-table-body');
+        if (tbody && typeof renderProjectsTablePaginated === 'function') {
+            renderProjectsTablePaginated(tbody);
+            if (typeof applyProjectFilters === 'function') {
+                applyProjectFilters();
+            }
+        }
+
+        // Switch to Result View
+        isPineconeSyncRunning = false;
+        lastPineconeFailedProjects = failedProjects.map(f => f.project);
+        if (pineconeSyncCloseBtn) pineconeSyncCloseBtn.disabled = false;
+
+        if (pineconeSyncProgressView) pineconeSyncProgressView.style.display = 'none';
+        if (pineconeSyncResultView) pineconeSyncResultView.style.display = 'block';
+
+        if (pineconeResultSuccessCount) pineconeResultSuccessCount.textContent = successCount;
+        if (pineconeResultFailedCount) pineconeResultFailedCount.textContent = failedCount;
+        if (pineconeResultTotalCount) pineconeResultTotalCount.textContent = projectsToSync.length;
+
+        if (failedCount === 0) {
+            if (pineconeResultHero) pineconeResultHero.classList.remove('has-errors');
+            if (pineconeResultIcon) {
+                pineconeResultIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+            }
+            if (pineconeResultTitle) pineconeResultTitle.textContent = 'Vector Synchronization Complete!';
+            if (pineconeResultSubtitle) pineconeResultSubtitle.textContent = `All ${successCount} project(s) are now active in the Pinecone vector database.`;
+            if (pineconeResultErrorsContainer) pineconeResultErrorsContainer.style.display = 'none';
+            if (pineconeSyncRetryFailedBtn) pineconeSyncRetryFailedBtn.style.display = 'none';
+            showToast(`Pinecone sync completed: ${successCount} project(s) indexed`, '✅');
+        } else {
+            if (pineconeResultHero) pineconeResultHero.classList.add('has-errors');
+            if (pineconeResultIcon) {
+                pineconeResultIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+            }
+            if (pineconeResultTitle) pineconeResultTitle.textContent = 'Sync Finished with Issues';
+            if (pineconeResultSubtitle) pineconeResultSubtitle.textContent = `${successCount} project(s) synced, ${failedCount} project(s) failed.`;
+
+            if (pineconeResultErrorsCount) pineconeResultErrorsCount.textContent = failedCount;
+            if (pineconeResultErrorsList) {
+                pineconeResultErrorsList.innerHTML = '';
+                failedProjects.forEach(fp => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<strong>${escapeHtml(fp.project.title || fp.project.id)}</strong>: ${escapeHtml(fp.error)}`;
+                    pineconeResultErrorsList.appendChild(li);
+                });
+            }
+            if (pineconeResultErrorsContainer) pineconeResultErrorsContainer.style.display = 'block';
+            if (pineconeSyncRetryFailedBtn) pineconeSyncRetryFailedBtn.style.display = 'inline-flex';
+            showToast(`Pinecone sync finished: ${successCount} synced, ${failedCount} failed`, '⚠️');
+        }
+
+        if (pineconeSyncDoneBtn) pineconeSyncDoneBtn.style.display = 'inline-flex';
+    }
+
+    // Confirm button in Ready View -> trigger sync
+    if (pineconeSyncConfirmBtn) {
+        pineconeSyncConfirmBtn.addEventListener('click', () => {
+            const isUnsyncedOnly = pineconeModeUnsynced && pineconeModeUnsynced.checked;
+            let projectsToSync = [];
+
+            if (isUnsyncedOnly) {
+                projectsToSync = (allProjectsData || []).filter(p => p.pineconeSynced !== true);
+                if (projectsToSync.length === 0) {
+                    showToast('All projects are already synced! Choose "Full Index Re-Sync" to re-index all.', 'ℹ️');
+                    return;
+                }
+            } else {
+                projectsToSync = [...(allProjectsData || [])];
+                if (projectsToSync.length === 0) {
+                    showToast('No projects available to sync.', 'ℹ️');
+                    return;
+                }
+            }
+
+            executePineconeSync(projectsToSync);
+        });
+    }
+
+    // Retry button for failed projects
+    if (pineconeSyncRetryFailedBtn) {
+        pineconeSyncRetryFailedBtn.addEventListener('click', () => {
+            if (lastPineconeFailedProjects.length > 0) {
+                executePineconeSync(lastPineconeFailedProjects);
+            }
+        });
+    }
+
+    // Attach open handler to "Sync Pinecone" button in header
+    if (syncPineconeBtn) {
+        syncPineconeBtn.addEventListener('click', openPineconeSyncModal);
     }
 
     // ===== Sync Single Project to Pinecone =====
@@ -3187,7 +3562,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize form monitoring
     setupFormChangeMonitoring();
 
+    // ── Save Processing state helper ─────────────────────────────────────────
+    // Activates a blurred overlay over the project modal while create/update
+    // is running so the admin cannot click Cancel, Close, or the backdrop.
+    function setSaveProcessing(active, label) {
+        const modal      = document.getElementById('project-modal');
+        const overlay    = document.getElementById('save-processing-overlay');
+        const labelEl    = document.getElementById('save-processing-label');
+        const closeBtn   = document.getElementById('project-modal-close-btn');
+        const cancelBtn  = document.getElementById('cancel-project-btn');
+        const submitBtn  = document.getElementById('submit-project-btn');
+        const clearBtn   = document.getElementById('clear-project-btn');
+
+        if (active) {
+            if (labelEl && label) labelEl.textContent = label;
+            overlay && overlay.classList.add('active');
+            overlay && overlay.setAttribute('aria-hidden', 'false');
+            modal   && modal.classList.add('is-saving');
+            if (closeBtn)  closeBtn.disabled  = true;
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (submitBtn) submitBtn.disabled = true;
+            if (clearBtn)  clearBtn.disabled  = true;
+        } else {
+            overlay && overlay.classList.remove('active');
+            overlay && overlay.setAttribute('aria-hidden', 'true');
+            modal   && modal.classList.remove('is-saving');
+            if (closeBtn)  closeBtn.disabled  = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+            if (clearBtn)  clearBtn.disabled  = false;
+            // submitBtn visibility is managed by updateButtonVisibility — do not touch
+        }
+    }
+
+    // Guard closeProjectModal against running while saving
     const closeProjectModal = () => {
+        const modal = document.getElementById('project-modal');
+        if (modal && modal.classList.contains('is-saving')) {
+            return; // Interaction locked while save is processing
+        }
         if (projectModal) {
             projectModal.classList.remove('active');
             if (projectForm) projectForm.reset();
@@ -3317,6 +3729,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Separate function for performing project update
     async function performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords) {
+        setSaveProcessing(true, 'Updating project…');
         try {
             // ===== Duplicate title check (skip if title belongs to this same doc) =====
             const titleNorm = normalizeTitle(title);
@@ -3326,6 +3739,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .get();
             if (!dupSnap.empty && dupSnap.docs[0].id !== projectId) {
                 showToast('Another project with this title already exists in the database.', '⚠️');
+                setSaveProcessing(false);
                 return;
             }
 
@@ -3333,6 +3747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentDoc = await db.collection('projects').doc(projectId).get();
             if (!currentDoc.exists) {
                 showToast('Project not found to update', '❌');
+                setSaveProcessing(false);
                 return;
             }
             const oldData = currentDoc.data();
@@ -3477,10 +3892,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).catch(() => {});
 
             showToast('Project updated successfully', '✅');
+            setSaveProcessing(false);
             closeProjectModal();
             await loadProjectsData();
             await loadDashboardData();
         } catch (error) {
+            setSaveProcessing(false);
             console.error('Error updating project:', error);
             showToast('Error updating project: ' + error.message, '❌');
         }
@@ -3488,6 +3905,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Separate function for performing project creation
     async function performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords) {
+        setSaveProcessing(true, 'Creating project…');
         try {
             // ===== Duplicate title check (targeted query — no full collection fetch) =====
             const titleNorm = normalizeTitle(title);
@@ -3497,6 +3915,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .get();
             if (!dupSnap.empty) {
                 showToast('A project with this title already exists in the database.', '⚠️');
+                setSaveProcessing(false);
                 return;
             }
 
@@ -3607,10 +4026,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('Project created successfully', '✅');
             // Clear auto-saved draft
             localStorage.removeItem('admin_project_draft');
+            setSaveProcessing(false);
             closeProjectModal();
             await loadProjectsData(true);
             await loadDashboardData();
         } catch (error) {
+            setSaveProcessing(false);
             console.error('Error creating project:', error);
             showToast('Error creating project: ' + error.message, '❌');
         }
@@ -3985,9 +4406,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         unsubscribeUsers = db.collection('users').onSnapshot(
             (snapshot) => {
                 console.log('Users updated in real-time');
+                const freshUsers = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                freshUsers.sort((a, b) => {
+                    const dateA = getTimestamp(a.createdAt);
+                    const dateB = getTimestamp(b.createdAt);
+                    return dateB - dateA;
+                });
+                try {
+                    localStorage.setItem('usersData', JSON.stringify(freshUsers));
+                    localStorage.setItem('usersMetadata', JSON.stringify({
+                        userCount: freshUsers.length,
+                        lastCached: new Date().toISOString()
+                    }));
+                } catch (e) {}
+
                 const activeSection = document.querySelector('.content-section.active');
                 if (activeSection && activeSection.id === 'section-users') {
-                    loadUsersData();
+                    loadUsersData(true);
                 }
                 // Update dashboard stats if on dashboard
                 if (activeSection && activeSection.id === 'section-dashboard') {
@@ -4198,8 +4633,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Disable submit button
+            // Disable submit and action buttons to prevent disruption
+            const cancelBtn = document.getElementById('cancel-librarian-btn');
+            const clearBtn = document.getElementById('clear-librarian-btn');
+            const librarianModalContent = document.querySelector('.librarian-modal-content');
+
             submitBtn.disabled = true;
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (clearBtn) clearBtn.disabled = true;
+            if (librarianModalContent) librarianModalContent.style.pointerEvents = 'none';
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.innerHTML = 'Creating...';
 
@@ -4229,6 +4671,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast('✅ Librarian account created successfully!', '✅');
                 
                 // Close modal and reset form
+                if (librarianModalContent) librarianModalContent.style.pointerEvents = '';
+                if (cancelBtn) cancelBtn.disabled = false;
+                if (clearBtn) clearBtn.disabled = false;
                 closeLibrarianModal();
                 
                 // Reload users table if on users section
@@ -4268,7 +4713,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 showToast(errorMessage, '❌');
 
-                // Re-enable submit button
+                // Re-enable action buttons
+                if (librarianModalContent) librarianModalContent.style.pointerEvents = '';
+                if (cancelBtn) cancelBtn.disabled = false;
+                if (clearBtn) clearBtn.disabled = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
             }
@@ -4462,8 +4910,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
+    // Bulk Import Processing state helper
+    function setBulkImportProcessing(active, label, sublabel) {
+        const modal      = document.getElementById('bulk-import-modal');
+        const overlay    = document.getElementById('bulk-processing-overlay');
+        const labelEl    = document.getElementById('bulk-processing-label');
+        const sublabelEl = document.getElementById('bulk-processing-sublabel');
+        const closeBtn   = document.getElementById('bulk-import-modal-close-btn');
+        const cancelBtn  = document.getElementById('bulk-import-cancel-btn');
+        const submitBtn  = document.getElementById('bulk-import-submit-btn');
+
+        if (active) {
+            const bodyEl = modal ? modal.querySelector('.modal-body') : null;
+            if (bodyEl) bodyEl.scrollTop = 0;
+            if (labelEl && label) labelEl.textContent = label;
+            if (sublabelEl && sublabel) sublabelEl.textContent = sublabel;
+            overlay && overlay.classList.add('active');
+            overlay && overlay.setAttribute('aria-hidden', 'false');
+            modal   && modal.classList.add('is-importing');
+            if (closeBtn)  closeBtn.disabled  = true;
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (submitBtn) submitBtn.disabled = true;
+        } else {
+            overlay && overlay.classList.remove('active');
+            overlay && overlay.setAttribute('aria-hidden', 'true');
+            modal   && modal.classList.remove('is-importing');
+            if (closeBtn)  closeBtn.disabled  = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+        }
+    }
+
     // Close bulk import modal
     function closeBulkImportModal() {
+        if (bulkImportModal && bulkImportModal.classList.contains('is-importing')) {
+            return; // Interaction locked while bulk import is running
+        }
         bulkImportModal.classList.remove('active');
         resetBulkImportModal();
     }
@@ -5051,6 +5532,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast('No projects to import', '❌');
                 return;
             }
+
+            const total = allProjects.length;
             
             // Hide preview & staged batches, hide submit button
             if (bulkImportPreview) bulkImportPreview.style.display = 'none';
@@ -5060,149 +5543,170 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Show progress
             bulkImportProgress.style.display = 'block';
+
+            // Activate processing blur state: blocks close, cancel, backdrop, and all interaction
+            setBulkImportProcessing(true, 'Importing projects…', `Processing 0 of ${total} projects…`);
+            const overlayBar = document.getElementById('bulk-overlay-progress-bar');
+            const overlayText = document.getElementById('bulk-overlay-progress-text');
+            const overlaySublabel = document.getElementById('bulk-processing-sublabel');
+            if (overlayBar) overlayBar.style.width = '0%';
+            if (overlayText) overlayText.textContent = '0%';
             
             let successCount = 0;
             let errorCount = 0;
             const errors = [];
-            const total = allProjects.length;
             let overallProcessed = 0;
             
             // Set to catch duplicate titles within the same import run (zero extra Firestore reads)
             const seenTitlesInBatch = new Set();
 
-            for (let b = 0; b < bulkImportBatches.length; b++) {
-                const currentBatch = bulkImportBatches[b];
-                const bProjects = currentBatch.projects;
+            try {
+                for (let b = 0; b < bulkImportBatches.length; b++) {
+                    const currentBatch = bulkImportBatches[b];
+                    const bProjects = currentBatch.projects;
 
-                for (let p = 0; p < bProjects.length; p++) {
-                    const project = bProjects[p];
-                    
-                    // Update progress UI
-                    const progress = Math.round((overallProcessed / total) * 100);
-                    bulkImportProgressBar.style.width = `${progress}%`;
-                    bulkImportProgressBar.textContent = `${progress}%`;
-                    bulkImportProgressText.textContent = `Batch ${currentBatch.batchNumber}/${bulkImportBatches.length} (${currentBatch.fileName}) • Project ${p + 1}/${bProjects.length}: "${project.title}" (${overallProcessed + 1}/${total})`;
+                    for (let p = 0; p < bProjects.length; p++) {
+                        const project = bProjects[p];
+                        
+                        // Update progress UI & overlay
+                        const progress = Math.round((overallProcessed / total) * 100);
+                        bulkImportProgressBar.style.width = `${progress}%`;
+                        bulkImportProgressBar.textContent = `${progress}%`;
+                        bulkImportProgressText.textContent = `Batch ${currentBatch.batchNumber}/${bulkImportBatches.length} (${currentBatch.fileName}) • Project ${p + 1}/${bProjects.length}: "${project.title}" (${overallProcessed + 1}/${total})`;
+                        if (overlayBar) overlayBar.style.width = `${progress}%`;
+                        if (overlayText) overlayText.textContent = `${progress}% (${overallProcessed + 1}/${total})`;
+                        if (overlaySublabel) overlaySublabel.textContent = `Batch ${currentBatch.batchNumber}/${bulkImportBatches.length} • "${project.title.substring(0, 45)}${project.title.length > 45 ? '…' : ''}"`;
 
-                    try {
-                        // ===== Duplicate check 1: intra-import (Set, zero Firestore reads) =====
-                        const projTitleNorm = normalizeTitle(project.title);
-                        if (seenTitlesInBatch.has(projTitleNorm)) {
-                            errors.push(`[Batch ${currentBatch.batchNumber}] "${project.title}": duplicate title within this import — skipped`);
-                            errorCount++;
-                            overallProcessed++;
-                            const postProg = Math.round((overallProcessed / total) * 100);
-                            bulkImportProgressBar.style.width = `${postProg}%`;
-                            bulkImportProgressBar.textContent = `${postProg}%`;
-                            continue;
-                        }
+                        try {
+                            // ===== Duplicate check 1: intra-import (Set, zero Firestore reads) =====
+                            const projTitleNorm = normalizeTitle(project.title);
+                            if (seenTitlesInBatch.has(projTitleNorm)) {
+                                errors.push(`[Batch ${currentBatch.batchNumber}] "${project.title}": duplicate title within this import — skipped`);
+                                errorCount++;
+                                overallProcessed++;
+                                const postProg = Math.round((overallProcessed / total) * 100);
+                                bulkImportProgressBar.style.width = `${postProg}%`;
+                                bulkImportProgressBar.textContent = `${postProg}%`;
+                                if (overlayBar) overlayBar.style.width = `${postProg}%`;
+                                if (overlayText) overlayText.textContent = `${postProg}% (${overallProcessed}/${total})`;
+                                continue;
+                            }
 
-                        // ===== Duplicate check 2: against Firestore (targeted .where query — no full fetch) =====
-                        const bulkDupSnap = await db.collection('projects')
-                            .where('titleNorm', '==', projTitleNorm)
-                            .limit(1)
-                            .get();
-                        if (!bulkDupSnap.empty) {
-                            errors.push(`[Batch ${currentBatch.batchNumber}] "${project.title}": already exists in database — skipped`);
-                            errorCount++;
-                            overallProcessed++;
-                            const postProg = Math.round((overallProcessed / total) * 100);
-                            bulkImportProgressBar.style.width = `${postProg}%`;
-                            bulkImportProgressBar.textContent = `${postProg}%`;
-                            continue;
-                        }
+                            // ===== Duplicate check 2: against Firestore (targeted .where query — no full fetch) =====
+                            const bulkDupSnap = await db.collection('projects')
+                                .where('titleNorm', '==', projTitleNorm)
+                                .limit(1)
+                                .get();
+                            if (!bulkDupSnap.empty) {
+                                errors.push(`[Batch ${currentBatch.batchNumber}] "${project.title}": already exists in database — skipped`);
+                                errorCount++;
+                                overallProcessed++;
+                                const postProg = Math.round((overallProcessed / total) * 100);
+                                bulkImportProgressBar.style.width = `${postProg}%`;
+                                bulkImportProgressBar.textContent = `${postProg}%`;
+                                if (overlayBar) overlayBar.style.width = `${postProg}%`;
+                                if (overlayText) overlayText.textContent = `${postProg}% (${overallProcessed}/${total})`;
+                                continue;
+                            }
 
-                        // Mark this title as seen for the rest of this import run
-                        seenTitlesInBatch.add(projTitleNorm);
+                            // Mark this title as seen for the rest of this import run
+                            seenTitlesInBatch.add(projTitleNorm);
 
-                        // Upload per-project images to Cloudinary (if any)
-                        let projectImages = [];
-                        const imageFiles = project._imageFiles || [];
-                        if (imageFiles.length > 0 && window.CloudinaryService) {
-                            for (const imgFile of imageFiles) {
-                                try {
-                                    const url = await window.CloudinaryService.uploadImage(imgFile);
-                                    if (url) projectImages.push(url);
-                                } catch (imgErr) {
-                                    console.warn('Image upload failed for', imgFile.name, imgErr);
+                            // Upload per-project images to Cloudinary (if any)
+                            let projectImages = [];
+                            const imageFiles = project._imageFiles || [];
+                            if (imageFiles.length > 0 && window.CloudinaryService) {
+                                for (const imgFile of imageFiles) {
+                                    try {
+                                        const url = await window.CloudinaryService.uploadImage(imgFile);
+                                        if (url) projectImages.push(url);
+                                    } catch (imgErr) {
+                                        console.warn('Image upload failed for', imgFile.name, imgErr);
+                                    }
                                 }
                             }
-                        }
 
-                        // Prepare project data
-                        const projectData = {
-                            title: project.title,
-                            titleNorm: normalizeTitle(project.title), // shadow field for dup detection
-                            authors: Array.isArray(project.authors) ? project.authors : [project.authors],
-                            program: project.program,
-                            year: parseInt(project.year),
-                            adviser: project.adviser,
-                            abstract: project.abstract,
-                            keywords: project.keywords || [],
-                            topics: project.topics || [],
-                            status: project.status || 'Completed',
-                            images: projectImages,
-                            batchSource: currentBatch.fileName,
-                            pineconeSynced: false,
-                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            uploadedBy: auth.currentUser.uid,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        };
+                            // Prepare project data
+                            const projectData = {
+                                title: project.title,
+                                titleNorm: normalizeTitle(project.title), // shadow field for dup detection
+                                authors: Array.isArray(project.authors) ? project.authors : [project.authors],
+                                program: project.program,
+                                year: parseInt(project.year),
+                                adviser: project.adviser,
+                                abstract: project.abstract,
+                                keywords: project.keywords || [],
+                                topics: project.topics || [],
+                                status: project.status || 'Completed',
+                                images: projectImages,
+                                batchSource: currentBatch.fileName,
+                                pineconeSynced: false,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                uploadedBy: auth.currentUser.uid,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            };
 
-                        // Add to Firestore
-                        const docRef = await db.collection('projects').add(projectData);
-                        
-                        // Sync to Pinecone (backend)
-                        try {
-                            const backendUrl = getBackendUrl();
-                            const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    projectId: docRef.id,
-                                    projectData: {
-                                        ...projectData,
-                                        createdAt: new Date().toISOString()
-                                    }
-                                })
-                            });
+                            // Add to Firestore
+                            const docRef = await db.collection('projects').add(projectData);
                             
-                            if (syncResponse.ok) {
-                                await docRef.update({ pineconeSynced: true }).catch(() => {});
-                            } else {
-                                console.warn(`Pinecone sync failed for project: ${project.title}`);
-                            }
-                        } catch (syncError) {
-                            console.warn('Pinecone sync error:', syncError);
-                        }
-                        
-                        // Increment RTDB counter
-                        try {
-                            if (rtdb) {
-                                const countRef = rtdb.ref('projects_document_count');
-                                await countRef.transaction((current) => (current || 0) + 1);
+                            // Sync to Pinecone (backend)
+                            try {
+                                const backendUrl = getBackendUrl();
+                                const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        projectId: docRef.id,
+                                        projectData: {
+                                            ...projectData,
+                                            createdAt: new Date().toISOString()
+                                        }
+                                    })
+                                });
                                 
-                                const updateCounterRef = rtdb.ref('update_counter');
-                                await updateCounterRef.transaction((current) => (current || 0) + 1);
-                            } else {
-                                console.warn('RTDB not available, skipping counter update');
+                                if (syncResponse.ok) {
+                                    await docRef.update({ pineconeSynced: true }).catch(() => {});
+                                } else {
+                                    console.warn(`Pinecone sync failed for project: ${project.title}`);
+                                }
+                            } catch (syncError) {
+                                console.warn('Pinecone sync error:', syncError);
                             }
-                        } catch (rtdbError) {
-                            console.warn('RTDB counter update failed:', rtdbError);
+                            
+                            // Increment RTDB counter
+                            try {
+                                if (rtdb) {
+                                    const countRef = rtdb.ref('projects_document_count');
+                                    await countRef.transaction((current) => (current || 0) + 1);
+                                    
+                                    const updateCounterRef = rtdb.ref('update_counter');
+                                    await updateCounterRef.transaction((current) => (current || 0) + 1);
+                                } else {
+                                    console.warn('RTDB not available, skipping counter update');
+                                }
+                            } catch (rtdbError) {
+                                console.warn('RTDB counter update failed:', rtdbError);
+                            }
+                            
+                            successCount++;
+                            
+                        } catch (error) {
+                            console.error(`Error importing project "${project.title}":`, error);
+                            errorCount++;
+                            errors.push(`[Batch ${currentBatch.batchNumber}] ${project.title}: ${error.message}`);
                         }
-                        
-                        successCount++;
-                        
-                    } catch (error) {
-                        console.error(`Error importing project "${project.title}":`, error);
-                        errorCount++;
-                        errors.push(`[Batch ${currentBatch.batchNumber}] ${project.title}: ${error.message}`);
-                    }
 
-                    overallProcessed++;
-                    const postProgress = Math.round((overallProcessed / total) * 100);
-                    bulkImportProgressBar.style.width = `${postProgress}%`;
-                    bulkImportProgressBar.textContent = `${postProgress}%`;
+                        overallProcessed++;
+                        const postProgress = Math.round((overallProcessed / total) * 100);
+                        bulkImportProgressBar.style.width = `${postProgress}%`;
+                        bulkImportProgressBar.textContent = `${postProgress}%`;
+                        if (overlayBar) overlayBar.style.width = `${postProgress}%`;
+                        if (overlayText) overlayText.textContent = `${postProgress}% (${overallProcessed}/${total})`;
+                    }
                 }
+            } finally {
+                // Deactivate blur overlay so results are visible and usable
+                setBulkImportProcessing(false);
             }
             
             // Hide progress
@@ -5211,6 +5715,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Show results
             bulkSuccessCount.textContent = successCount;
             bulkErrorCount.textContent = errorCount;
+            bulkImportResults.classList.remove('is-success', 'is-error');
+            const resultsTitle = bulkImportResults.querySelector('h4');
+            if (resultsTitle) {
+                if (errorCount === 0 && successCount > 0) {
+                    bulkImportResults.classList.add('is-success');
+                    resultsTitle.innerHTML = '<span>✅</span> Import Completed Successfully';
+                } else if (successCount === 0 && errorCount > 0) {
+                    bulkImportResults.classList.add('is-error');
+                    resultsTitle.innerHTML = '<span>❌</span> Import Failed';
+                } else {
+                    resultsTitle.innerHTML = '<span>📊</span> Import Summary';
+                }
+            }
             bulkImportResults.style.display = 'block';
             
             if (errors.length > 0) {
@@ -5284,6 +5801,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Reset bulk import modal
     function resetBulkImportModal() {
+        setBulkImportProcessing(false);
+        const overlayBar = document.getElementById('bulk-overlay-progress-bar');
+        const overlayText = document.getElementById('bulk-overlay-progress-text');
+        if (overlayBar) overlayBar.style.width = '0%';
+        if (overlayText) overlayText.textContent = '0%';
         bulkImportFileInput.value = '';
         bulkImportBatches = [];
         updateBatchesUI();

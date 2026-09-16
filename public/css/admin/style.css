@@ -12,6 +12,8 @@
     --admin-success: #08D488;
     --admin-warning: #FCCC56;
     --admin-info: #1AD28F;
+    --success-color: #08D488;
+    --danger-color: #ef4444;
 }
 
 /* Reset */
@@ -1724,6 +1726,81 @@ body {
 /* Custom Wide Modal Content for Project Modal */
 .project-modal-content {
     max-width: 850px !important;
+    position: relative; /* needed so the overlay can be positioned inside */
+    overflow: hidden;   /* clips overlay to rounded corners */
+}
+
+/* Bulk import modal also needs relative + overflow for its overlay */
+.bulk-import-modal-content {
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Save / Bulk-Import Processing Overlay ─────────────────────────────────
+   Shown while an async project create/update or bulk import is running.
+   Blurs & dims the entire modal card so no buttons can be clicked.
+   ──────────────────────────────────────────────────────────────────────── */
+.save-processing-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 16px;
+    pointer-events: all;
+    cursor: not-allowed;
+    animation: fadeIn 0.2s ease;
+}
+
+.save-processing-overlay.active {
+    display: flex;
+}
+
+/* Primary (blue/accent) spinner for save — distinct from delete's red */
+.save-processing-spinner svg {
+    color: var(--admin-primary, #667eea);
+    animation: spinFull 0.9s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.7));
+}
+
+/* Bulk import spinner — keep same accent */
+.bulk-import-processing-overlay .save-processing-spinner svg {
+    color: var(--admin-primary, #667eea);
+    filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.7));
+}
+
+.bulk-import-processing-overlay {
+    border-radius: inherit;
+}
+
+.save-processing-label {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    text-align: center;
+    letter-spacing: 0.01em;
+}
+
+.save-processing-sublabel {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    font-weight: 400;
+    margin: 0;
+    text-align: center;
+}
+
+/* Block backdrop click when modal is in saving state */
+#project-modal.is-saving .modal-overlay,
+#bulk-import-modal.is-importing .modal-overlay {
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
 /* Auto-save Switch Toggle */
@@ -2416,6 +2493,54 @@ body {
     overflow: hidden !important;
 }
 
+/* ---- Librarian modal: wider, richer layout ---- */
+.librarian-modal-content {
+    max-width: 640px !important;
+    width: 94% !important;
+    border: 1px solid rgba(8, 212, 136, 0.18) !important;
+    box-shadow:
+        0 32px 80px rgba(0,0,0,0.65),
+        0 0 0 1px rgba(8,212,136,0.06),
+        0 0 40px rgba(8,212,136,0.07) !important;
+}
+
+/* Librarian-specific header: teal-green accent gradient */
+.librarian-modal-content .pmodal-header {
+    background: linear-gradient(135deg,
+        #0a2a1a 0%,
+        #0f2d20 40%,
+        #152b28 70%,
+        #1a2f30 100%) !important;
+    border-bottom: 1px solid rgba(8,212,136,0.25) !important;
+    padding: 1.75rem 2rem !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative top accent line */
+.librarian-modal-content .pmodal-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #08D488 0%, #FCCC56 60%, #08D488 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+/* Subtle glow orb in header bg */
+.librarian-modal-content .pmodal-header::after {
+    content: '';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(circle, rgba(8,212,136,0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
+
 /* Header: never scrolls, always visible at top */
 .pmodal-header {
     flex-shrink: 0;
@@ -2521,6 +2646,17 @@ body {
     box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.3);
     background: var(--surface);
     border-top-color: rgba(102, 126, 234, 0.2);
+}
+
+/* Librarian modal footer — teal accent border */
+.librarian-modal-content .pmodal-footer {
+    padding: 1.125rem 2rem;
+    border-top-color: rgba(8, 212, 136, 0.2);
+    background: linear-gradient(
+        to right,
+        rgba(8, 212, 136, 0.03) 0%,
+        var(--surface) 50%
+    );
 }
 
 /* Last section: add extra bottom padding so it clears the fade edge */
@@ -3501,24 +3637,49 @@ form #project-id-input {
 
 .bulk-import-modal-content {
     max-width: 760px;
-    max-height: 90vh;
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 90vh !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+.bulk-import-modal-content .modal-header {
+    flex-shrink: 0;
+}
+
+.bulk-import-modal-content .modal-body {
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.04);
 }
 
-.bulk-import-modal-content::-webkit-scrollbar {
+.bulk-import-modal-content .modal-body::-webkit-scrollbar {
     width: 8px;
 }
 
-.bulk-import-modal-content::-webkit-scrollbar-track {
+.bulk-import-modal-content .modal-body::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.04);
     border-radius: 4px;
 }
 
-.bulk-import-modal-content::-webkit-scrollbar-thumb {
+.bulk-import-modal-content .modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.25);
     border-radius: 4px;
+}
+
+.bulk-import-modal-content .modal-actions {
+    flex-shrink: 0;
+    padding: 1.25rem 1.75rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.875rem;
+    margin-top: 0;
 }
 
 .bulk-import-instructions {
@@ -4324,15 +4485,27 @@ form #project-id-input {
 .bulk-import-results {
     background: var(--surface-secondary);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 1.5rem;
+    color: var(--text-primary);
 }
 
 .bulk-import-results h4 {
-    font-size: 1rem;
+    color: var(--text-primary);
+    font-size: 1.05rem;
     font-weight: 700;
     margin-bottom: 1rem;
-    color: var(--success-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bulk-import-results.is-success h4 {
+    color: var(--admin-success, #08D488);
+}
+
+.bulk-import-results.is-error h4 {
+    color: var(--admin-danger, #ef4444);
 }
 
 .bulk-import-stats {
@@ -4344,32 +4517,53 @@ form #project-id-input {
 
 .bulk-stat {
     background: var(--surface);
-    border: 2px solid;
-    border-radius: 8px;
-    padding: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1rem;
     text-align: center;
+    transition: all 0.2s ease;
 }
 
+/* SUCCESS: Green border, green background tint, green value and label */
 .bulk-stat.success {
-    border-color: var(--success-color);
-}
-
-.bulk-stat.error {
-    border-color: var(--danger-color);
-}
-
-.bulk-stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
+    border-color: var(--admin-success, #08D488);
+    background: rgba(8, 212, 136, 0.08);
+    box-shadow: 0 4px 14px rgba(8, 212, 136, 0.12);
 }
 
 .bulk-stat.success .bulk-stat-value {
-    color: var(--success-color);
+    color: var(--admin-success, #08D488);
 }
 
-.bulk-stat.error .bulk-stat-value {
-    color: var(--danger-color);
+.bulk-stat.success .bulk-stat-label {
+    color: var(--admin-success, #08D488);
+    font-weight: 700;
+}
+
+/* FAILED / ERROR: Red border, red background tint, red value and label */
+.bulk-stat.error,
+.bulk-stat.failed {
+    border-color: var(--admin-danger, #ef4444);
+    background: rgba(239, 68, 68, 0.08);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);
+}
+
+.bulk-stat.error .bulk-stat-value,
+.bulk-stat.failed .bulk-stat-value {
+    color: var(--admin-danger, #ef4444);
+}
+
+.bulk-stat.error .bulk-stat-label,
+.bulk-stat.failed .bulk-stat-label {
+    color: var(--admin-danger, #ef4444);
+    font-weight: 700;
+}
+
+.bulk-stat-value {
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
 }
 
 .bulk-stat-label {
@@ -4925,4 +5119,570 @@ form #project-id-input {
     align-items: center;
     gap: 0.4rem;
 }
+
+/* =====================================
+   PINECONE VECTOR SYNC MODAL STYLES
+   ===================================== */
+
+.pinecone-sync-modal-content {
+    max-width: 680px;
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 90vh !important;
+    overflow: hidden !important;
+    position: relative !important;
+    border: 1px solid rgba(8, 212, 136, 0.2);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(8, 212, 136, 0.08);
+}
+
+.pinecone-sync-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+.pinecone-modal-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pinecone-modal-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(8, 212, 136, 0.12);
+    color: var(--admin-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(8, 212, 136, 0.25);
+    box-shadow: 0 0 15px rgba(8, 212, 136, 0.15);
+    flex-shrink: 0;
+}
+
+.pinecone-modal-subtitle {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    margin: 0.2rem 0 0;
+    font-weight: 400;
+}
+
+.pinecone-sync-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.75rem;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.04);
+}
+
+.pinecone-sync-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.pinecone-sync-modal-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+}
+
+.pinecone-sync-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+}
+
+/* Stat Cards Grid */
+.pinecone-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.pinecone-stat-card {
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.875rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    min-width: 0;
+}
+
+.pinecone-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.pinecone-stat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pinecone-stat-icon.total-icon {
+    background: rgba(102, 126, 234, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.pinecone-stat-icon.synced-icon {
+    background: rgba(8, 212, 136, 0.15);
+    color: #08D488;
+    border: 1px solid rgba(8, 212, 136, 0.3);
+}
+
+.pinecone-stat-icon.unsynced-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.pinecone-stat-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.pinecone-stat-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.pinecone-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-top: 0.15rem;
+}
+
+/* Informative Explainer Box */
+.pinecone-info-box {
+    background: rgba(8, 212, 136, 0.04);
+    border: 1px solid rgba(8, 212, 136, 0.18);
+    border-radius: 12px;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.pinecone-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pinecone-info-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--admin-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pinecone-index-pill {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--border);
+}
+
+.pinecone-info-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.pinecone-info-text strong {
+    color: var(--text-primary);
+}
+
+/* Sync Mode Option Cards */
+.pinecone-sync-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pinecone-option-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.1rem 1.25rem;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.02));
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.pinecone-option-card:hover {
+    border-color: rgba(8, 212, 136, 0.4);
+    background: rgba(8, 212, 136, 0.03);
+    transform: translateY(-1px);
+}
+
+.pinecone-option-card.active {
+    border-color: var(--admin-primary);
+    background: rgba(8, 212, 136, 0.07);
+    box-shadow: 0 0 16px rgba(8, 212, 136, 0.12);
+}
+
+.pinecone-option-card input[type="radio"] {
+    margin-top: 0.2rem;
+    accent-color: var(--admin-primary);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.pinecone-option-content {
+    flex: 1;
+}
+
+.pinecone-option-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.3rem;
+}
+
+.pinecone-option-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.pinecone-option-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #08D488;
+    background: rgba(8, 212, 136, 0.15);
+    border: 1px solid rgba(8, 212, 136, 0.35);
+    border-radius: 4px;
+    padding: 2px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.pinecone-option-desc {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* Progress State */
+.pinecone-progress-hero {
+    text-align: center;
+    padding: 1rem 0 1.25rem;
+}
+
+.pinecone-sync-pulse-wrapper {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pinecone-sync-pulse-ring {
+    position: absolute;
+    inset: -6px;
+    border: 2px solid var(--admin-primary);
+    border-radius: 50%;
+    animation: pineconePulse 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.6;
+}
+
+@keyframes pineconePulse {
+    0% {
+        transform: scale(0.85);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.35);
+        opacity: 0;
+    }
+}
+
+.pinecone-sync-pulse-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(8, 212, 136, 0.2), rgba(6, 159, 102, 0.3));
+    color: var(--admin-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(8, 212, 136, 0.35);
+    border: 1px solid rgba(8, 212, 136, 0.4);
+}
+
+.pinecone-sync-pulse-icon svg {
+    animation: spin 1.4s linear infinite;
+}
+
+.pinecone-progress-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.pinecone-progress-status {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.pinecone-progress-bar-container {
+    margin: 1.25rem 0;
+}
+
+.pinecone-progress-bar-track {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.pinecone-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--admin-primary), #1AD28F);
+    border-radius: 6px;
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pinecone-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+}
+
+.pinecone-sync-current-card {
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-top: 1rem;
+}
+
+.pinecone-current-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.pinecone-current-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pinecone-progress-hint {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 1.25rem;
+    opacity: 0.75;
+}
+
+/* Result State */
+.pinecone-result-hero {
+    text-align: center;
+    padding: 0.75rem 0 1.25rem;
+}
+
+.pinecone-result-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(8, 212, 136, 0.15);
+    color: #08D488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    box-shadow: 0 0 25px rgba(8, 212, 136, 0.25);
+    border: 1px solid rgba(8, 212, 136, 0.35);
+}
+
+.pinecone-result-hero.has-errors .pinecone-result-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.pinecone-result-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.pinecone-result-subtitle {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.pinecone-result-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.85rem;
+    margin: 1.25rem 0;
+}
+
+.pinecone-result-stat {
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.03));
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.pinecone-result-stat.success {
+    border-color: rgba(8, 212, 136, 0.35);
+    background: rgba(8, 212, 136, 0.04);
+}
+
+.pinecone-result-stat.failed {
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.pinecone-result-stat-val {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    color: var(--text-primary);
+}
+
+.pinecone-result-stat.success .pinecone-result-stat-val {
+    color: #08D488;
+}
+
+.pinecone-result-stat.failed .pinecone-result-stat-val {
+    color: #ef4444;
+}
+
+.pinecone-result-stat-lbl {
+    font-size: 0.725rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pinecone-result-errors-container {
+    margin-top: 1rem;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 10px;
+    padding: 1rem;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.pinecone-result-errors-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ef4444;
+    margin: 0;
+}
+
+.pinecone-result-errors-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+    font-size: 0.82rem;
+}
+
+.pinecone-result-errors-list li {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    line-height: 1.4;
+}
+
+.pinecone-result-errors-list li strong {
+    color: #fee2e2;
+}
+
+.pinecone-result-footer-tip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    margin-top: 1rem;
+    line-height: 1.5;
+}
+
+.pinecone-result-footer-tip strong {
+    color: var(--text-primary);
+}
+
+.pinecone-sync-modal-actions {
+    flex-shrink: 0;
+    padding: 1.25rem 1.75rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.875rem;
+}
+
+@media (max-width: 640px) {
+    .pinecone-stats-grid,
+    .pinecone-result-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 

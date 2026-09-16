@@ -150,6 +150,7 @@
         let userType = null; // 'student' or 'teacher'
         const completedSteps = new Set();
         let registrationCompleted = false; // True once account is successfully created
+        let isCreatingAccount = false; // True during final account creation & credentials linking
         
         // Dynamic custom cursor tooltip element
         const cursorTooltip = document.createElement('div');
@@ -179,6 +180,10 @@
         // Handle main back button click
         if (mainBackButton) {
             mainBackButton.addEventListener('click', function(e) {
+                if (isCreatingAccount) {
+                    e.preventDefault();
+                    return;
+                }
                 // Check if user has any filled data
                 const hasData = hasRegistrationData();
                 
@@ -197,6 +202,11 @@
         
         // Handle page unload - sign out if registration incomplete
         window.addEventListener('beforeunload', function(e) {
+            if (isCreatingAccount) {
+                e.preventDefault();
+                e.returnValue = 'Your account is being created. Please wait and do not close or reload this page.';
+                return e.returnValue;
+            }
             if (googleUser !== null && !isRegistrationComplete()) {
                 // Sign out to prevent incomplete registration
                 auth.signOut().catch(err => console.error('Sign out error:', err));
@@ -471,7 +481,7 @@
                             }
                         }
 
-                        // Tamper protection: Restrict step 7 trigger
+                        // Tamper protection: Restrict step 7 trigger only when Continue is clicked (not Skip)
                         if (target.id === 'next-to-step-7') {
                             const enteredPassword = passwordTestInput.value;
                             if (enteredPassword !== savedPassword && !target.disabled) {
@@ -1151,6 +1161,7 @@
 
         // Navigation visual updates
         function showStep(stepNumber) {
+            if (isCreatingAccount) return;
             const step8 = document.getElementById('step-8');
             
             step1.classList.remove('active');
@@ -1378,8 +1389,14 @@
         });
         
         backToStep5Btn.addEventListener('click', () => showStep(5));
-        
-        // Skip button removed - security question is now required
+
+        // Skip button - step 6 is optional, skip directly to step 7
+        if (skipToStep7Btn) {
+            skipToStep7Btn.addEventListener('click', () => {
+                markStepCompleted(6);
+                showStep(7);
+            });
+        }
         
         nextToStep7Btn.addEventListener('click', () => {
             markStepCompleted(6);
@@ -1489,6 +1506,7 @@
             stepNumbers.forEach(stepEl => {
                 const stepNum = parseInt(stepEl.getAttribute('data-step'));
                 stepEl.addEventListener('click', function() {
+                    if (isCreatingAccount) return;
                     if (completedSteps.has(stepNum)) {
                         showStep(stepNum);
                     }
@@ -1508,8 +1526,64 @@
             }, 100);
         });
 
+        // Account creation loading overlay controls
+        function showCreatingAccountOverlay(statusText, progressPct, activeStepIndex) {
+            const overlay = document.getElementById('registrationLoadingOverlay');
+            const statusEl = document.getElementById('registrationLoadingStatus');
+            const barEl = document.getElementById('registrationLoadingBar');
+            const chipAuth = document.getElementById('loadingStepAuth');
+            const chipDb = document.getElementById('loadingStepFirestore');
+            const chipFinal = document.getElementById('loadingStepFinalize');
+
+            if (!overlay) return;
+
+            overlay.classList.add('active');
+            overlay.setAttribute('aria-hidden', 'false');
+
+            if (statusEl && statusText) statusEl.textContent = statusText;
+            if (barEl && typeof progressPct === 'number') barEl.style.width = progressPct + '%';
+
+            const chips = [chipAuth, chipDb, chipFinal];
+            chips.forEach((chip, idx) => {
+                if (!chip) return;
+                chip.classList.remove('active', 'completed');
+                if (idx < activeStepIndex) {
+                    chip.classList.add('completed');
+                } else if (idx === activeStepIndex) {
+                    chip.classList.add('active');
+                }
+            });
+        }
+
+        function hideCreatingAccountOverlay() {
+            const overlay = document.getElementById('registrationLoadingOverlay');
+            if (!overlay) return;
+            overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+
+        function resetCompleteAccountButton() {
+            const completeBtn = document.getElementById('complete-registration');
+            const backToStep7Btn = document.getElementById('back-to-step-7');
+            if (backToStep7Btn) backToStep7Btn.disabled = false;
+            if (completeBtn) {
+                completeBtn.disabled = false;
+                completeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; vertical-align: middle;">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Create Account
+                `;
+            }
+        }
+
         // 3. Final Submission, Security Validation & Simulated Mock Database Hashing
         completeBtn.addEventListener('click', async function() {
+            if (isCreatingAccount) return;
+
             try {
                 // Check if terms have been accepted (Step 8)
                 const termsCheckbox = document.getElementById('terms-agreement-checkbox');
@@ -1522,42 +1596,29 @@
                     showToast('⚠️ Please read the complete Terms and Conditions first', '⛔');
                     return;
                 }
-                
-                completeBtn.disabled = true;
-                completeBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; animation: spin 1s linear infinite;">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 6v6l4 2"></path>
-                    </svg>
-                    Creating Account...
-                `;
-                
+
                 // 3.1 Immutable-like Session Cryptographic Token Check (closure protected)
                 if (!activeSessionToken || activeSessionToken !== expectedHash) {
                     showToast('⛔ Security Check Failed: Verification token is invalid or missing.', '❌');
-                    completeBtn.disabled = false;
-                    completeBtn.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem;">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                        </svg>
-                        Complete Registration
-                    `;
                     return;
                 }
 
                 if (!googleUser || !verifiedEmail) {
                     showToast('Please complete Google authentication first', '⚠️');
-                    completeBtn.disabled = false;
-                    completeBtn.textContent = 'Complete';
                     return;
                 }
                 
                 const userPassword = savedPassword;
                 if (!userPassword) {
                     showToast('Password is required. Please go back to Step 5.', '⚠️');
-                    completeBtn.disabled = false;
-                    completeBtn.textContent = 'Complete';
+                    return;
+                }
+
+                // Security question is now REQUIRED
+                const securityQuestion = document.getElementById('security-question').value;
+                const securityAnswer = document.getElementById('security-answer').value.trim();
+                if (!securityQuestion || !securityAnswer) {
+                    showToast('⚠️ Security question and answer are required', '❌');
                     return;
                 }
                 
@@ -1565,8 +1626,6 @@
                 const firstName = firstNameInput.value.trim();
                 const middleName = document.getElementById('middle-name').value.trim();
                 const lastName = lastNameInput.value.trim();
-                
-                // Combined fullName variable as specified by request
                 const fullName = firstName + " " + middleName + " " + lastName;
                 
                 let registeredId = '';
@@ -1581,6 +1640,37 @@
                     registeredId = teacherIdInput.value.trim();
                     college = teacherCollegeInput.value;
                 }
+
+                // Account De-duplication Check against local Simulated Database
+                const mockDb = JSON.parse(localStorage.getItem('reCapsMockUsers')) || [];
+                const idExists = mockDb.some(u => {
+                    if (u.uid === googleUser.uid || (u.email && u.email.toLowerCase() === verifiedEmail.toLowerCase())) {
+                        return false;
+                    }
+                    const existingId = u.studentId || u.teacherId;
+                    return existingId && existingId.toLowerCase() === registeredId.toLowerCase();
+                });
+
+                if (idExists) {
+                    showToast(`⚠️ Validation Error: ID number (${registeredId}) is already taken.`, '❌');
+                    return;
+                }
+
+                // --- ENTER SECURE BLUR & LOCKDOWN STATE ---
+                isCreatingAccount = true;
+                const backToStep7Btn = document.getElementById('back-to-step-7');
+                if (backToStep7Btn) backToStep7Btn.disabled = true;
+                completeBtn.disabled = true;
+                completeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; animation: spin 1s linear infinite;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                    Creating Account...
+                `;
+
+                // Display modern blur loading overlay
+                showCreatingAccountOverlay('Connecting credentials and securing account session...', 30, 0);
 
                 // 3.2 Provider verification: Check if account already has BOTH Google and Password providers
                 const providerIds = (googleUser.providerData || []).map(p => p.providerId);
@@ -1598,26 +1688,10 @@
                                           (signInMethods.includes('google.com') && signInMethods.includes('password'));
 
                 if (isFullyRegistered) {
+                    isCreatingAccount = false;
+                    hideCreatingAccountOverlay();
+                    resetCompleteAccountButton();
                     showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
-                    completeBtn.disabled = false;
-                    completeBtn.textContent = 'Complete';
-                    return;
-                }
-
-                // 3.2 Account De-duplication Check against local Simulated Database (ID collisions with other users)
-                const mockDb = JSON.parse(localStorage.getItem('reCapsMockUsers')) || [];
-                const idExists = mockDb.some(u => {
-                    if (u.uid === googleUser.uid || (u.email && u.email.toLowerCase() === verifiedEmail.toLowerCase())) {
-                        return false;
-                    }
-                    const existingId = u.studentId || u.teacherId;
-                    return existingId && existingId.toLowerCase() === registeredId.toLowerCase();
-                });
-
-                if (idExists) {
-                    showToast(`⚠️ Validation Error: ID number (${registeredId}) is already taken.`, '❌');
-                    completeBtn.disabled = false;
-                    completeBtn.textContent = 'Complete';
                     return;
                 }
 
@@ -1629,6 +1703,8 @@
                     fullName: fullName,
                     email: verifiedEmail,
                     photoURL: googleUser.photoURL || null,
+                    securityQuestion: securityQuestion,
+                    securityAnswer: securityAnswer,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     termsAcceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     termsAccepted: true
@@ -1642,23 +1718,11 @@
                     userData.teacherId = registeredId;
                     userData.college = college;
                 }
-                
-                // Security question is now REQUIRED
-                const securityQuestion = document.getElementById('security-question').value;
-                const securityAnswer = document.getElementById('security-answer').value.trim();
-                if (!securityQuestion || !securityAnswer) {
-                    throw new Error('Security question and answer are required');
-                }
-                userData.securityQuestion = securityQuestion;
-                userData.securityAnswer = securityAnswer;
-                
+
                 const user = googleUser;
                 
-                // Link credential to existing Google account on Firebase
+                // Step 1: Link credential to existing Google account on Firebase
                 try {
-                    // Re-authenticate with Google first to satisfy Firebase's
-                    // "requires-recent-login" requirement for sensitive operations.
-                    // The multi-step form can take long enough to expire the session token.
                     const googleProvider = new firebase.auth.GoogleAuthProvider();
                     googleProvider.setCustomParameters({ login_hint: verifiedEmail });
                     await user.reauthenticateWithPopup(googleProvider);
@@ -1671,23 +1735,25 @@
                     if (linkError.code === 'auth/provider-already-linked') {
                         console.log('Password provider already linked');
                     } else if (linkError.code === 'auth/email-already-in-use' || linkError.code === 'auth/credential-already-in-use') {
+                        isCreatingAccount = false;
+                        hideCreatingAccountOverlay();
+                        resetCompleteAccountButton();
                         showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
-                        completeBtn.disabled = false;
-                        completeBtn.textContent = 'Complete';
                         return;
                     } else {
                         throw linkError;
                     }
                 }
                 
-                // Update Firebase display name if needed
+                // Step 2: Update Firebase display name if needed & save to Firestore
+                showCreatingAccountOverlay('Saving profile to institutional database...', 65, 1);
+
                 if (user.displayName !== fullName) {
                     await user.updateProfile({
                         displayName: fullName
                     });
                 }
                 
-                // Save user metadata to Firestore
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     userType: userData.userType,
@@ -1708,7 +1774,9 @@
                     lastLogin: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
-                // 3.3 Secure Storage (Web Crypto SHA-256 Hashing of password for Simulated Database)
+                // Step 3: Local secure storage hash & finalize
+                showCreatingAccountOverlay('Finalizing account and preparing dashboard...', 95, 2);
+
                 const hashedPassword = await hashPasswordSHA256(userPassword);
                 
                 const localUserRecord = {
@@ -1727,19 +1795,24 @@
                     createdAt: new Date().toISOString()
                 };
 
-                // Commit to simulated local database (replacing any stale/unlinked entry for this uid/email)
                 const updatedMockDb = mockDb.filter(u => u.uid !== user.uid && u.email.toLowerCase() !== verifiedEmail.toLowerCase());
                 updatedMockDb.push(localUserRecord);
                 localStorage.setItem('reCapsMockUsers', JSON.stringify(updatedMockDb));
 
-                // Success - trigger modal display
-                showSuccessModal(user);
+                showCreatingAccountOverlay('Account created successfully!', 100, 2);
+
+                setTimeout(() => {
+                    isCreatingAccount = false;
+                    hideCreatingAccountOverlay();
+                    showSuccessModal(user);
+                }, 600);
                 
             } catch (error) {
                 console.error('Registration error:', error);
-                completeBtn.disabled = false;
-                completeBtn.textContent = 'Complete';
-                showToast('Registration failed: ' + error.message);
+                isCreatingAccount = false;
+                hideCreatingAccountOverlay();
+                resetCompleteAccountButton();
+                showToast('Registration failed: ' + (error.message || 'Please try again'), '❌');
             }
         });
         

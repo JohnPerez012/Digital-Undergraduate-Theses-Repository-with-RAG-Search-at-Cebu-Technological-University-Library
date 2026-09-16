@@ -177,11 +177,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateSavedCount(savedProjects.length);
 
         if (savedProjects.length === 0) {
+            const isInPagesFolder = window.location.pathname.includes('/pages/');
+            const homeLink = isInPagesFolder ? '../index.html' : 'index.html';
             savedProjectsList.innerHTML = `
                 <div class="saved-empty-state">
                     <span class="saved-empty-icon">🔖</span>
                     <p>No saved projects yet.</p>
-                    <a href="index.html" class="saved-empty-link">Explore Projects →</a>
+                    <a href="${homeLink}" class="saved-empty-link">Explore Projects →</a>
                 </div>
             `;
             return;
