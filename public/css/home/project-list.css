@@ -782,6 +782,7 @@
     }
 
     .pagination-container {
+        margin-bottom: 3rem;
         margin-top: 2rem;
         gap: 0.4rem;
     }
@@ -958,4 +959,189 @@
 
 [data-theme="dark"] .project-title .search-highlight {
     background-color: rgba(26, 210, 143, 0.3);
+}
+
+/* ==========================================================================
+   Semantic Relevance Score Group Dividers (RAG Search)
+   ========================================================================== */
+.rag-relevance-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    margin: 1.75rem 0 0.75rem 0;
+    user-select: none;
+    transition: all 0.3s ease;
+}
+
+.rag-relevance-divider:first-child {
+    margin-top: 0.25rem;
+}
+
+.projects-container.grid-view .rag-relevance-divider {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+.projects-container.grid-view .rag-relevance-divider:first-child {
+    margin-top: 0;
+}
+
+.projects-container.compact-view .rag-relevance-divider {
+    margin: 1.25rem 0 0.5rem 0;
+}
+
+.rag-relevance-divider .divider-line {
+    flex: 1;
+    height: 2px;
+    border-radius: 999px;
+    opacity: 0.85;
+}
+
+.rag-relevance-divider.high .divider-line.left {
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.45));
+}
+
+.rag-relevance-divider.high .divider-line.right {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.45), transparent);
+}
+
+.rag-relevance-divider.moderate .divider-line.left {
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.4));
+}
+
+.rag-relevance-divider.moderate .divider-line.right {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.4), transparent);
+}
+
+.rag-relevance-divider .divider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 1.15rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rag-relevance-divider .divider-badge:hover {
+    transform: translateY(-1px);
+}
+
+/* High Relevance (80% and Above) */
+.rag-relevance-divider.high .divider-badge {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.06));
+    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    color: #047857;
+}
+
+[data-theme="dark"] .rag-relevance-divider.high .divider-badge,
+.dark-mode .rag-relevance-divider.high .divider-badge {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));
+    border-color: rgba(52, 211, 153, 0.4);
+    color: #34d399;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.12);
+}
+
+/* Moderate Relevance (Below 80%) */
+.rag-relevance-divider.moderate .divider-badge {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05));
+    border: 1.5px solid rgba(59, 130, 246, 0.32);
+    color: #1d4ed8;
+}
+
+[data-theme="dark"] .rag-relevance-divider.moderate .divider-badge,
+.dark-mode .rag-relevance-divider.moderate .divider-badge {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1));
+    border-color: rgba(96, 165, 250, 0.4);
+    color: #60a5fa;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
+}
+
+.rag-relevance-divider .divider-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rag-relevance-divider.high .divider-icon {
+    color: #10b981;
+}
+
+[data-theme="dark"] .rag-relevance-divider.high .divider-icon,
+.dark-mode .rag-relevance-divider.high .divider-icon {
+    color: #34d399;
+}
+
+.rag-relevance-divider.moderate .divider-icon {
+    color: #3b82f6;
+}
+
+[data-theme="dark"] .rag-relevance-divider.moderate .divider-icon,
+.dark-mode .rag-relevance-divider.moderate .divider-icon {
+    color: #60a5fa;
+}
+
+.rag-relevance-divider .divider-title {
+    font-weight: 700;
+}
+
+.rag-relevance-divider .divider-sublabel {
+    font-size: 0.78rem;
+    font-weight: 500;
+    opacity: 0.85;
+    padding-left: 0.4rem;
+    border-left: 1px solid currentColor;
+}
+
+.rag-relevance-divider .divider-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.06);
+    margin-left: 0.25rem;
+}
+
+[data-theme="dark"] .rag-relevance-divider .divider-count,
+.dark-mode .rag-relevance-divider .divider-count {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Card left border accents for the tiers */
+.project-card.relevance-tier-high {
+    border-left: 4px solid #10b981;
+}
+
+[data-theme="dark"] .project-card.relevance-tier-high,
+.dark-mode .project-card.relevance-tier-high {
+    border-left: 4px solid #34d399;
+}
+
+.project-card.relevance-tier-moderate {
+    border-left: 4px solid #3b82f6;
+}
+
+[data-theme="dark"] .project-card.relevance-tier-moderate,
+.dark-mode .project-card.relevance-tier-moderate {
+    border-left: 4px solid #60a5fa;
+}
+
+@media (max-width: 640px) {
+    .rag-relevance-divider {
+        gap: 0.5rem;
+    }
+    .rag-relevance-divider .divider-badge {
+        font-size: 0.78rem;
+        padding: 0.35rem 0.85rem;
+        gap: 0.4rem;
+    }
+    .rag-relevance-divider .divider-sublabel {
+        display: none;
+    }
 }

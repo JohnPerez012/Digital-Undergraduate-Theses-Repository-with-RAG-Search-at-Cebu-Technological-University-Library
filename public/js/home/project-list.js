@@ -217,6 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
         isRAGResults = isRAG;
         currentPage = 1;
         
+        // Ensure RAG semantic search results are sorted by relevanceScore descending
+        if (isRAG) {
+            allProjects.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+        }
+
         // Update total count
         const countElement = document.getElementById('total-projects-count');
         if (countElement) {
@@ -258,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortOrder = orderRadio.value; // 'asc' or 'desc'
         const modifier = sortOrder === 'asc' ? 1 : -1;
 
-        allProjects.sort((a, b) => {
+        const compareProjects = (a, b) => {
             if (sortField === 'createdAt') {
                 // Handle both Firestore Timestamps and cached dates
                 let dateA = 0;
@@ -266,13 +271,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (a.createdAt) {
                     if (typeof a.createdAt.toMillis === 'function') {
-                        // Firestore Timestamp
                         dateA = a.createdAt.toMillis();
                     } else if (typeof a.createdAt === 'object' && a.createdAt.seconds) {
-                        // Cached Firestore Timestamp
                         dateA = a.createdAt.seconds * 1000;
                     } else {
-                        // String or number
                         dateA = new Date(a.createdAt).getTime();
                     }
                 }
@@ -290,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return (dateA - dateB) * modifier;
             } 
             else if (sortField === 'updatedAt') {
-                // Handle both Firestore Timestamps and cached dates
                 let dateA = 0;
                 let dateB = 0;
                 
@@ -348,7 +349,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return (countA - countB) * modifier;
             }
             return 0;
-        });
+        };
+
+        if (isRAGResults) {
+            // Keep the 80%+ and <80% tiers grouped, while sorting by the selected field within each tier
+            const highTier = allProjects.filter(p => (p.relevanceScore || 0) >= 0.8);
+            const moderateTier = allProjects.filter(p => (p.relevanceScore || 0) < 0.8);
+            highTier.sort(compareProjects);
+            moderateTier.sort(compareProjects);
+            allProjects = [...highTier, ...moderateTier];
+        } else {
+            allProjects.sort(compareProjects);
+        }
 
         renderPage(1);
     }
@@ -512,6 +524,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Create a visual section divider for Semantic Relevance tiers (RAG Search)
+     * @param {'high' | 'moderate'} type - 'high' (>=80%) or 'moderate' (<80%)
+     * @param {number} count - Total projects in this tier
+     * @returns {HTMLElement} - The divider DOM element
+     */
+    function createRelevanceDivider(type, count) {
+        const divider = document.createElement('div');
+        divider.className = `rag-relevance-divider ${type}`;
+        
+        const isHigh = type === 'high';
+        const titleText = isHigh ? '80% and Above Match' : 'Below 80% Match';
+        const sublabel = isHigh ? 'Highly Relevant' : 'Moderate Relevance';
+        const countText = count > 0 ? `${count} ${count === 1 ? 'project' : 'projects'}` : '';
+
+        const iconSvg = isHigh
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+               </svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+               </svg>`;
+
+        divider.innerHTML = `
+            <div class="divider-line left"></div>
+            <div class="divider-badge ${type}">
+                <span class="divider-icon">${iconSvg}</span>
+                <span class="divider-title">${titleText}</span>
+                <span class="divider-sublabel">${sublabel}</span>
+                ${countText ? `<span class="divider-count">${countText}</span>` : ''}
+            </div>
+            <div class="divider-line right"></div>
+        `;
+        
+        return divider;
+    }
+
     function renderPage(page) {
         currentPage = page;
         projectsContainer.innerHTML = ''; 
@@ -520,7 +571,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const endIndex = startIndex + PROJECTS_PER_PAGE;
         const projectsToShow = allProjects.slice(startIndex, endIndex);
 
+        // Section divider tracking for RAG semantic search relevance grouping
+        let hasShownHighDivider = false;
+        let hasShownModerateDivider = false;
+
+        const highCount = isRAGResults 
+            ? allProjects.filter(p => typeof p.relevanceScore === 'number' && p.relevanceScore >= 0.8).length 
+            : 0;
+        const moderateCount = isRAGResults 
+            ? allProjects.filter(p => typeof p.relevanceScore === 'number' && p.relevanceScore < 0.8).length 
+            : 0;
+
         projectsToShow.forEach(data => {
+            // Check if we should insert category divider for RAG semantic search results
+            if (isRAGResults && typeof data.relevanceScore === 'number') {
+                if (data.relevanceScore >= 0.8) {
+                    if (!hasShownHighDivider) {
+                        projectsContainer.appendChild(createRelevanceDivider('high', highCount));
+                        hasShownHighDivider = true;
+                    }
+                } else {
+                    if (!hasShownModerateDivider) {
+                        projectsContainer.appendChild(createRelevanceDivider('moderate', moderateCount));
+                        hasShownModerateDivider = true;
+                    }
+                }
+            }
+
             const title = data.title || 'Untitled Project';
             const year = data.year || 'N/A';
             const projectId = data.id || title; // Fallback to title if id is missing
@@ -546,13 +623,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const saveBtnClass = isSaved ? 'btn-save saved' : 'btn-save';
             const saveBtnText = isSaved ? 'Saved' : 'Save';
 
-            // Generate relevance badge if this is a RAG result
+            // Generate relevance badge & tier styling if this is a RAG result
             let relevanceBadge = '';
+            let cardTierClass = '';
             if (isRAGResults && typeof data.relevanceScore === 'number') {
                 const relevancePercent = (data.relevanceScore * 100).toFixed(0);
-                const badgeClass = data.relevanceScore >= 0.7 ? 'high' : data.relevanceScore >= 0.5 ? 'medium' : 'low';
+                const isHighTier = data.relevanceScore >= 0.8;
+                const badgeClass = isHighTier ? 'high' : (data.relevanceScore >= 0.6 ? 'medium' : 'low');
+                cardTierClass = isHighTier ? 'relevance-tier-high' : 'relevance-tier-moderate';
+
                 relevanceBadge = `
-                    <div class="relevance-badge ${badgeClass}" title="Semantic relevance score">
+                    <div class="relevance-badge ${badgeClass}" title="Semantic relevance score: ${relevancePercent}%">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
                             <path d="M12 6v6l4 2"></path>
@@ -563,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const card = document.createElement('div');
-            card.className = 'project-card';
+            card.className = `project-card ${cardTierClass}`.trim();
             
             card.innerHTML = `
                 <div class="project-header">

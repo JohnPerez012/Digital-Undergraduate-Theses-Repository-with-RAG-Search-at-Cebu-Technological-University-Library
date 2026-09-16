@@ -18,7 +18,7 @@
     <title>Admin Dashboard - RE-CAPS</title>
     <link rel="stylesheet" href="../css/shared/style.css">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
-    <link rel="stylesheet" href="../css/admin/style.css?v=13">
+    <link rel="stylesheet" href="../css/admin/style.css?v=18">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -861,6 +861,17 @@ BTLEd-HE
                         <button type="submit" class="pmodal-btn-submit" id="submit-project-btn">Save Project</button>
                     </div>
                 </form>
+
+                <!-- Save Processing overlay: blocks all interaction while saving/updating -->
+                <div class="save-processing-overlay" id="save-processing-overlay" aria-hidden="true">
+                    <div class="save-processing-spinner">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                    </div>
+                    <p class="save-processing-label" id="save-processing-label">Saving project…</p>
+                    <p class="save-processing-sublabel">Please wait, do not close this window.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -1116,6 +1127,222 @@ BTLEd-HE
                     <span id="bulk-import-submit-text">Import Projects</span>
                 </button>
             </div>
+
+            <!-- Bulk Import Processing overlay: shown during the import operation -->
+            <div class="save-processing-overlay bulk-import-processing-overlay" id="bulk-processing-overlay" aria-hidden="true">
+                <div class="save-processing-spinner">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                </div>
+                <p class="save-processing-label" id="bulk-processing-label">Importing projects…</p>
+                <p class="save-processing-sublabel" id="bulk-processing-sublabel">Please wait, do not close this window.</p>
+                <div style="width: 82%; max-width: 380px; margin-top: 0.5rem; text-align: center;">
+                    <div style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 0.5rem;">
+                        <div id="bulk-overlay-progress-bar" style="width: 0%; height: 100%; background: var(--admin-primary, #667eea); transition: width 0.2s;"></div>
+                    </div>
+                    <div id="bulk-overlay-progress-text" style="color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 500;">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pinecone AI Vector Sync Modal -->
+    <div class="modal" id="pinecone-sync-modal">
+        <div class="modal-overlay" id="pinecone-sync-modal-overlay"></div>
+        <div class="modal-content pinecone-sync-modal-content">
+            
+            <!-- Modal Header -->
+            <div class="modal-header pinecone-sync-modal-header">
+                <div class="pinecone-modal-header-left">
+                    <div class="pinecone-modal-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 id="pinecone-sync-modal-title">Pinecone Vector Sync</h3>
+                        <p class="pinecone-modal-subtitle">AI Semantic Search &amp; RAG Knowledge Base Synchronization</p>
+                    </div>
+                </div>
+                <button class="modal-close-btn" id="pinecone-sync-modal-close-btn" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body pinecone-sync-modal-body" id="pinecone-sync-modal-body">
+                
+                <!-- State 1: Ready / Preparation View -->
+                <div id="pinecone-sync-ready-view" class="pinecone-sync-view">
+                    
+                    <!-- Live Sync Status Cards -->
+                    <div class="pinecone-stats-grid">
+                        <div class="pinecone-stat-card">
+                            <div class="pinecone-stat-icon total-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            </div>
+                            <div class="pinecone-stat-info">
+                                <span class="pinecone-stat-label">Total Projects</span>
+                                <span class="pinecone-stat-value" id="pinecone-stat-total">0</span>
+                            </div>
+                        </div>
+                        <div class="pinecone-stat-card">
+                            <div class="pinecone-stat-icon synced-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                            <div class="pinecone-stat-info">
+                                <span class="pinecone-stat-label">Indexed in Pinecone</span>
+                                <span class="pinecone-stat-value" id="pinecone-stat-synced">0</span>
+                            </div>
+                        </div>
+                        <div class="pinecone-stat-card">
+                            <div class="pinecone-stat-icon unsynced-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            </div>
+                            <div class="pinecone-stat-info">
+                                <span class="pinecone-stat-label">Unsynced / Pending</span>
+                                <span class="pinecone-stat-value" id="pinecone-stat-unsynced">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Explainer / Educational Box -->
+                    <div class="pinecone-info-box">
+                        <div class="pinecone-info-header">
+                            <span class="pinecone-info-badge">How Pinecone AI Works</span>
+                            <span class="pinecone-index-pill"><span class="sync-dot synced"></span> Index: recaps-projects-search</span>
+                        </div>
+                        <p class="pinecone-info-text">
+                            Pinecone converts project titles, abstracts, authors, and keywords into high-dimensional vector embeddings. This powers the <strong>RE-CAPS AI Chatbot</strong> and <strong>Semantic Search</strong>, allowing users to find conceptual research matches using natural language.
+                        </p>
+                    </div>
+
+                    <!-- Sync Mode Selection -->
+                    <div class="pinecone-sync-options">
+                        <label class="pinecone-option-card active" id="pinecone-option-unsynced-card">
+                            <input type="radio" name="pinecone-sync-mode" value="unsynced" checked id="pinecone-sync-mode-unsynced">
+                            <div class="pinecone-option-content">
+                                <div class="pinecone-option-title-row">
+                                    <span class="pinecone-option-title">Sync Only Unsynced Projects</span>
+                                    <span class="pinecone-option-badge">Recommended</span>
+                                </div>
+                                <p class="pinecone-option-desc" id="pinecone-option-unsynced-desc">
+                                    Quickly uploads and generates vector embeddings only for projects missing from the Pinecone vector index.
+                                </p>
+                            </div>
+                        </label>
+
+                        <label class="pinecone-option-card" id="pinecone-option-all-card">
+                            <input type="radio" name="pinecone-sync-mode" value="all" id="pinecone-sync-mode-all">
+                            <div class="pinecone-option-content">
+                                <div class="pinecone-option-title-row">
+                                    <span class="pinecone-option-title">Full Index Re-Sync (All Projects)</span>
+                                </div>
+                                <p class="pinecone-option-desc">
+                                    Re-embeds and updates vector records for every project in the repository to ensure 100% data consistency.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- State 2: In-Progress View -->
+                <div id="pinecone-sync-progress-view" class="pinecone-sync-view" style="display: none;">
+                    <div class="pinecone-progress-hero">
+                        <div class="pinecone-sync-pulse-wrapper">
+                            <div class="pinecone-sync-pulse-ring"></div>
+                            <div class="pinecone-sync-pulse-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h4 class="pinecone-progress-title">Synchronizing Vector Embeddings…</h4>
+                        <p class="pinecone-progress-status" id="pinecone-progress-status-text">Preparing projects for Pinecone…</p>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="pinecone-progress-bar-container">
+                        <div class="pinecone-progress-bar-track">
+                            <div class="pinecone-progress-bar-fill" id="pinecone-progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+                        <div class="pinecone-progress-meta">
+                            <span id="pinecone-progress-counter">0 of 0 processed</span>
+                            <span id="pinecone-progress-percent" style="font-weight: 700;">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Current Project Card -->
+                    <div class="pinecone-sync-current-card" id="pinecone-current-project-card">
+                        <span class="pinecone-current-label">Currently Processing</span>
+                        <div class="pinecone-current-title" id="pinecone-current-project-title">—</div>
+                    </div>
+
+                    <p class="pinecone-progress-hint">
+                        ⏳ Please keep this window open while vectors are being embedded and upserted.
+                    </p>
+                </div>
+
+                <!-- State 3: Results / Complete View -->
+                <div id="pinecone-sync-result-view" class="pinecone-sync-view" style="display: none;">
+                    <div class="pinecone-result-hero" id="pinecone-result-hero">
+                        <div class="pinecone-result-icon" id="pinecone-result-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </div>
+                        <h4 class="pinecone-result-title" id="pinecone-result-title">Vector Synchronization Complete!</h4>
+                        <p class="pinecone-result-subtitle" id="pinecone-result-subtitle">All targeted project vectors and metadata are now indexed in Pinecone.</p>
+                    </div>
+
+                    <!-- Result Stats Breakdown -->
+                    <div class="pinecone-result-stats-grid">
+                        <div class="pinecone-result-stat success">
+                            <div class="pinecone-result-stat-val" id="pinecone-result-success-count">0</div>
+                            <div class="pinecone-result-stat-lbl">Successfully Synced</div>
+                        </div>
+                        <div class="pinecone-result-stat failed" id="pinecone-result-failed-card">
+                            <div class="pinecone-result-stat-val" id="pinecone-result-failed-count">0</div>
+                            <div class="pinecone-result-stat-lbl">Failed</div>
+                        </div>
+                        <div class="pinecone-result-stat index">
+                            <div class="pinecone-result-stat-val" id="pinecone-result-total-count">0</div>
+                            <div class="pinecone-result-stat-lbl">Total Processed</div>
+                        </div>
+                    </div>
+
+                    <!-- Errors Section (collapsible/scrollable if any failures) -->
+                    <div class="pinecone-result-errors-container" id="pinecone-result-errors-container" style="display: none;">
+                        <h5 class="pinecone-result-errors-title">Failed Sync Details (<span id="pinecone-result-errors-count">0</span>)</h5>
+                        <ul class="pinecone-result-errors-list" id="pinecone-result-errors-list"></ul>
+                    </div>
+
+                    <div class="pinecone-result-footer-tip">
+                        💡 <strong>Tip:</strong> Users can immediately search for these capstone projects using natural language in the Search Bar and RE-CAPS AI Chatbot.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Actions Footer -->
+            <div class="modal-actions pinecone-sync-modal-actions" id="pinecone-sync-actions">
+                <button type="button" class="btn-secondary" id="pinecone-sync-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="pinecone-sync-confirm-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    <span id="pinecone-sync-confirm-text">Start Pinecone Sync</span>
+                </button>
+                
+                <!-- Action set 2: Done / Close (shown in result state) -->
+                <button type="button" class="btn-primary" id="pinecone-sync-done-btn" style="display: none;">
+                    Done
+                </button>
+                <!-- Optional retry button for failed projects -->
+                <button type="button" class="btn-secondary" id="pinecone-sync-retry-failed-btn" style="display: none;">
+                    Re-sync Failed Only
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -1213,7 +1440,7 @@ BTLEd-HE
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
-    <script src="../js/admin/main.js?v=17"></script>
+    <script src="../js/admin/main.js?v=21"></script>
 </body>
 </html>
 

@@ -451,6 +451,7 @@
                     
                     <div class="button-group">
                         <button id="back-to-step-5" class="btn btn-secondary btn-large">Back</button>
+                        <button id="skip-to-step-7" class="btn btn-secondary btn-large">Skip</button>
                         <button id="next-to-step-7" class="btn btn-primary btn-large" disabled>Continue</button>
                     </div>
                 </div>
@@ -769,8 +770,13 @@
                     <div class="button-group">
                         <button id="back-to-step-7" class="btn btn-secondary btn-large">Back</button>
                         <button id="complete-registration" class="btn btn-primary btn-large" disabled>
-
-                            Complete Registration
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; vertical-align: middle;">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                            Create Account
                         </button>
                     </div>
                 </div>
@@ -787,6 +793,52 @@
             <div class="deco-particle-2"></div>
             <div class="deco-particle-3"></div>
             <div class="deco-particle-4"></div>
+        </div>
+    </div>
+
+    <!-- Account Creation Loading / Blur Overlay to prevent disruptions and going back -->
+    <div class="registration-loading-overlay" id="registrationLoadingOverlay" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="registration-loading-backdrop"></div>
+        <div class="registration-loading-card">
+            <div class="registration-loading-spinner">
+                <div class="spinner-pulse-glow"></div>
+                <div class="spinner-orbit-ring"></div>
+                <div class="spinner-icon-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+            </div>
+            <h2 class="registration-loading-title">Creating Your Account</h2>
+            <p class="registration-loading-desc" id="registrationLoadingStatus">Connecting credentials and establishing secure session...</p>
+            
+            <div class="registration-loading-bar-track">
+                <div class="registration-loading-bar-fill" id="registrationLoadingBar"></div>
+            </div>
+
+            <div class="registration-loading-steps">
+                <div class="loading-step-chip active" id="loadingStepAuth">
+                    <span class="step-chip-dot"></span>
+                    <span>Credentials</span>
+                </div>
+                <div class="loading-step-chip" id="loadingStepFirestore">
+                    <span class="step-chip-dot"></span>
+                    <span>Profile Data</span>
+                </div>
+                <div class="loading-step-chip" id="loadingStepFinalize">
+                    <span class="step-chip-dot"></span>
+                    <span>Finalizing</span>
+                </div>
+            </div>
+
+            <div class="registration-loading-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>Please wait. Do not click back, refresh, or leave this page.</span>
+            </div>
         </div>
     </div>
 
@@ -831,7 +883,7 @@
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
     <script src="../js/registration/registration.js"></script>
-    <script src="../js/shared/smooth-scroll.js"></script>
+    <script src="../js/shared/smooth-scroll.js?v=2"></script>
     <!-- <script src="js/secondary-header.js"></script> -->
 </body>
 </html>
