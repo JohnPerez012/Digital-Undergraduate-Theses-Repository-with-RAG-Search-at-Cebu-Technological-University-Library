@@ -868,6 +868,7 @@
     }
 
     .pagination-container {
+        margin-bottom: 3rem;
         margin-top: 1.5rem;
         gap: 0.3rem;
     }

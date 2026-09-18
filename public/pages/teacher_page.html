@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
     <link rel="stylesheet" href="../css/pages/teacher_page.css">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
+    <link rel="stylesheet" href="../css/shared/password-change.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
@@ -87,6 +88,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
                         </span>
                         <span class="rail-nav-text">Analytics</span>
+                    </a>
+                    
+                    <a href="#settings" class="rail-nav-item" data-section="settings">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l-4.2 4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m-6 0l-4.2 4.2"></path></svg>
+                        </span>
+                        <span class="rail-nav-text">Settings</span>
                     </a>
                 </div>
             </nav>
@@ -351,6 +359,44 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Settings Section -->
+                <section id="section-settings" class="content-section">
+                    <div class="section-header">
+                        <h2>Settings</h2>
+                    </div>
+                    
+                    <!-- Account Settings -->
+                    <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account</h3>
+                                <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account information</p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; gap: 1rem;">
+                            <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
+                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Email</div>
+                                <div style="font-weight: 600; color: var(--text-primary);" id="settings-user-email">Loading...</div>
+                            </div>
+                            <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
+                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Account Type</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">Teacher</div>
+                            </div>
+                            <button id="change-password-btn" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Change Password</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -371,6 +417,7 @@
     <script src="../js/shared/toast.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
+    <script src="../js/shared/password-change.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
     <script src="../js/pages/teacher_page.js"></script>
 </body>

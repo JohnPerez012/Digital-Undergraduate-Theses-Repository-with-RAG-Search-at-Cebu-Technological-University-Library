@@ -66,3 +66,58 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+
+
+
+
+
+
+const terms = ["capstone", "research", "thesis"];
+let termIndex = 0;
+const termElement = document.getElementById("dynamic-term");
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+function scrambleWithBlur(targetWord, callback) {
+    // Step 1: Add the blur/glitch effect class
+    termElement.classList.add("glitching");
+
+    let iteration = 0;
+    const maxIterations = targetWord.length * 3; // Controls how long it scrambles
+
+    // Step 2: Run the letter shuffle while blurred
+    const interval = setInterval(() => {
+        termElement.textContent = targetWord
+            .split("")
+            .map((letter, index) => {
+                if (index < iteration / 3) {
+                    return targetWord[index];
+                }
+                return alphabet[Math.floor(Math.random() * alphabet.length)];
+            })
+            .join("");
+
+        if (iteration >= maxIterations) {
+            clearInterval(interval);
+            
+            // Step 3: Ensure the exact word is set, then remove blur to snap into focus
+            termElement.textContent = targetWord;
+            termElement.classList.remove("glitching");
+
+            if (callback) callback();
+        }
+
+        iteration++;
+    }, 35); // Speed of the scramble ticks
+}
+
+function startRotation() {
+    termIndex = (termIndex + 1) % terms.length;
+    scrambleWithBlur(terms[termIndex], () => {
+        // Wait 3 seconds before triggering the next scramble/blur cycle
+        setTimeout(startRotation, 3000);
+    });
+}
+
+// Start the loop after an initial 3-second delay
+setTimeout(startRotation, 3000);

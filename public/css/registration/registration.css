@@ -2273,3 +2273,12 @@ body.dark-mode .account-exists-error {
     0%, 100% { opacity: 0.4; transform: scale(0.95); }
     50% { opacity: 0.85; transform: scale(1.08); }
 }
+
+
+#student-id::-webkit-outer-spin-button,
+#student-id::-webkit-inner-spin-button,
+#teacher-id::-webkit-outer-spin-button,
+#teacher-id::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

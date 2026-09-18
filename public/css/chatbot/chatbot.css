@@ -658,7 +658,7 @@
     font-weight: 700;
     margin-bottom: 1rem;
     color: var(--text-color);
-    background: linear-gradient(135deg, #08D488, #FCCC56);
+    background: var(--text-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -691,7 +691,8 @@
 .guest-dialog-modal .nav-link {
     display: inline-flex;
     align-items: center;
-    background: linear-gradient(135deg, #08D488, #FCCC56);
+    /* background: linear-gradient(135deg, #08D488, #FCCC56); */
+      background: linear-gradient(135deg, var(--yellow-400) 0%, var(--yellow-700) 100%);
     color: white !important;
     padding: 0.875rem 2rem;
     border-radius: 12px;

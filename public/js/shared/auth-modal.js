@@ -21,6 +21,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Open modal
         function openModal() {
             loginModal.classList.add('active');
+            // Reset and replay text animations
+            restartLoginAnimations();
+        }
+
+        // Restart login panel animations
+        function restartLoginAnimations() {
+            // Get all animated elements
+            const welcomeLine = loginModal.querySelector('.welcome-line');
+            const letters = loginModal.querySelectorAll('.letter');
+            const tagline = loginModal.querySelector('.tagline-animated');
+            
+            // Remove all animated elements temporarily
+            const elementsToAnimate = [welcomeLine, ...letters, tagline].filter(el => el);
+            
+            elementsToAnimate.forEach(element => {
+                // Clone the element to reset its animation
+                const clone = element.cloneNode(true);
+                element.parentNode.replaceChild(clone, element);
+            });
         }
 
         // Close modal

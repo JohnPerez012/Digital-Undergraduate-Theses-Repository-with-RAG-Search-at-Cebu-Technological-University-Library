@@ -17,12 +17,26 @@
     function initCinematicSlider() {
         console.log('🎬 Initializing cinematic slider...');
         
+        // Check user preference for background images
+        const bgMode = localStorage.getItem('bgImageMode') || 'random';
+        const staticImage = localStorage.getItem('bgStaticImage');
+        
+        console.log('[Cinematic Slider] Mode:', bgMode);
+        console.log('[Cinematic Slider] Static image:', staticImage);
+        
         // Check if we have the correct number of images (use actual filenames with spaces)
         const baseImages = [
             '/assets/library_images/img (1).jpg',
             '/assets/library_images/img (2).jpg',
             '/assets/library_images/img (3).jpg',
-            '/assets/library_images/img (4).jpg'
+            '/assets/library_images/img (4).jpg',
+            '/assets/library_images/img (5).jpg',
+            '/assets/library_images/img (6).jpg',
+            '/assets/library_images/img (7).jpg',
+            '/assets/library_images/img (8).jpg',
+            '/assets/library_images/img (9).jpg',
+            '/assets/library_images/img (10).jpg',
+            '/assets/library_images/img (11).jpg'
         ];
 
         const slideTrack = document.getElementById('slideTrack');
@@ -33,6 +47,30 @@
             return;
         }
         
+        // If static mode and user has selected an image, show only that image
+        if (bgMode === 'static' && staticImage) {
+            console.log('[Cinematic Slider] Using STATIC mode with:', staticImage);
+            
+            const img = document.createElement('img');
+            img.src = staticImage;
+            img.className = 'slide active-focus static-mode';
+            img.alt = 'Selected Background';
+            img.loading = 'eager';
+            img.style.width = '100%';
+            img.style.position = 'absolute';
+            img.style.top = '0';
+            img.style.left = '0';
+            
+            slideTrack.innerHTML = ''; // Clear any existing slides
+            slideTrack.appendChild(img);
+            slideTrack.style.transform = 'translateX(0)'; // No animation needed
+            
+            console.log('✓ Static background loaded');
+            return; // Exit - no animation needed
+        }
+        
+        // Otherwise, proceed with RANDOM animated slider
+        console.log('[Cinematic Slider] Using RANDOM animated mode');
         console.log('🎯 slideTrack found:', slideTrack);
         console.log('🎯 slideTrack parent:', slideTrack.parentElement);
         console.log('🎯 Parent computed style:', window.getComputedStyle(slideTrack.parentElement));

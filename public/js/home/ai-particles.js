@@ -170,20 +170,53 @@
             return;
         }
         
+        // Listen to toggle change events
         toggle.addEventListener('change', (e) => {
-            if (e.target.checked) {
+            // Evaluate the actual state: only activate if toggle is checked AND stays checked
+            // Use setTimeout to check if the toggle state is stable (not reverted by login check)
+            setTimeout(() => {
+                evaluateParticleState();
+            }, 100); // Delay to let login check complete
+        });
+        
+        // Listen to custom events from SearchHandler
+        window.addEventListener('aiSearchStateChange', (e) => {
+            const shouldBeActive = e.detail.enabled;
+            console.log(`[AI Particles] Received state change event: ${shouldBeActive}`);
+            
+            if (shouldBeActive && !isActive) {
                 startParticles();
-            } else {
+            } else if (!shouldBeActive && isActive) {
                 stopParticles();
             }
         });
         
-        // Check initial state
-        if (toggle.checked) {
-            startParticles();
-        }
+        // Initial state evaluation
+        evaluateParticleState();
         
         console.log('[AI Particles] Toggle listener attached');
+    }
+    
+    /**
+     * Evaluate if particles should be active based on actual toggle state
+     * Only activate if toggle is truly checked (not reverted by login requirement)
+     */
+    function evaluateParticleState() {
+        const toggle = document.querySelector('.ai-toggle-input');
+        if (!toggle) return;
+        
+        // Check actual toggle state after any login checks
+        const shouldBeActive = toggle.checked;
+        
+        if (shouldBeActive && !isActive) {
+            // Toggle is ON and stable - start particles
+            startParticles();
+        } else if (!shouldBeActive && isActive) {
+            // Toggle is OFF - stop particles
+            stopParticles();
+        }
+        
+        console.log(`[AI Particles] State evaluated - Toggle: ${shouldBeActive}, Active: ${isActive}`);
     }
     
     function init() {
