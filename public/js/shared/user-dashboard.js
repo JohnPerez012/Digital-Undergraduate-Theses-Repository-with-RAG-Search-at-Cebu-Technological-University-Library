@@ -236,7 +236,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Remove button
             card.querySelector('.saved-card-remove-btn').addEventListener('click', async () => {
                 if (currentUserId) {
-                    await removeProjectFromFirestore(currentUserId, project.id);
+                    showDeleteConfirmationModal(project.title, async () => {
+                        await removeProjectFromFirestore(currentUserId, project.id);
+                    });
                 }
             });
 
@@ -248,6 +250,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         return String(text || '').replace(/[&<>"']/g, match => {
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
             return map[match] || match;
+        });
+    }
+
+    // Show delete confirmation modal
+    function showDeleteConfirmationModal(projectTitle, onConfirm) {
+        // Check if modal already exists, remove it
+        const existingModal = document.getElementById('delete-saved-project-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Create modal HTML
+        const modalHTML = `
+            <div class="logout-modal active" id="delete-saved-project-modal">
+                <div class="logout-modal-overlay"></div>
+                <div class="logout-modal-content">
+                    <div class="logout-modal-header">
+                        <div class="logout-modal-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                        </div>
+                        <h3 class="logout-modal-title">Delete Saved Project?</h3>
+                        <p class="logout-modal-description">
+                            Are you sure you want to remove <strong style="color: #e93232 ">"${escapeHtml(projectTitle)}"</strong> from your saved projects?
+                        </p>
+                    </div>
+                    <div class="logout-modal-actions">
+                        <button class="logout-modal-btn logout-modal-btn-abort" id="delete-cancel-btn">
+                            Cancel
+                        </button>
+                        <button class="logout-modal-btn logout-modal-btn-confirm" id="delete-confirm-btn">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        const modal = document.getElementById('delete-saved-project-modal');
+        const overlay = modal.querySelector('.logout-modal-overlay');
+        const cancelBtn = document.getElementById('delete-cancel-btn');
+        const confirmBtn = document.getElementById('delete-confirm-btn');
+
+        // Close modal function
+        function closeModal() {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
+
+        // Cancel button
+        cancelBtn.addEventListener('click', closeModal);
+
+        // Overlay click to close
+        overlay.addEventListener('click', closeModal);
+
+        // Confirm button
+        confirmBtn.addEventListener('click', async () => {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+            
+            try {
+                await onConfirm();
+                closeModal();
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete';
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function escapeHandler(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
         });
     }
 

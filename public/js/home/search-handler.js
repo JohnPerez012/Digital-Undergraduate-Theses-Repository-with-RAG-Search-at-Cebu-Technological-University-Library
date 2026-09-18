@@ -65,16 +65,100 @@ const SearchHandler = {
     
     // Handle AI toggle
     if (aiToggle) {
-      // Check localStorage for saved preference
-      const savedPreference = localStorage.getItem('aiSearchEnabled');
-      if (savedPreference === 'true') {
-        aiToggle.checked = true;
-        this.useAISearch = true;
+      // Always default to OFF (no localStorage)
+      aiToggle.checked = false;
+      this.useAISearch = false;
+      
+      // Add login-required indicator for non-logged-in users
+      this.setupLoginRequiredTooltip(aiToggle);
+      
+      // Make entire ai-search-toggle container clickable
+      const aiToggleContainer = aiToggle.closest('.ai-search-toggle');
+      if (aiToggleContainer) {
+        aiToggleContainer.style.cursor = 'pointer';
+        
+        // Remove default label behavior
+        aiToggleContainer.addEventListener('click', (e) => {
+          console.log('[SearchHandler] Container clicked, target:', e.target.className);
+          
+          // If clicking the checkbox input itself, let it handle naturally
+          if (e.target === aiToggle) {
+            console.log('[SearchHandler] Direct checkbox click - allowing default');
+            return;
+          }
+          
+          // For any other click on the label, manually toggle
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Get current state
+          const currentState = aiToggle.checked;
+          console.log('[SearchHandler] Current state:', currentState);
+          
+          // Check if user is logged in BEFORE toggling
+          const isLoggedIn = this.checkUserLoggedIn();
+          console.log('[SearchHandler] Is logged in:', isLoggedIn);
+          
+          // If trying to turn ON but not logged in, show login
+          if (!currentState && !isLoggedIn) {
+            console.log('[SearchHandler] Attempting to enable without login - opening modal');
+            // Pulse the tooltip
+            this.pulseLoginTooltip();
+            
+            // Open login modal
+            setTimeout(() => {
+              const loginLink = document.getElementById('login-nav-link');
+              if (loginLink) {
+                loginLink.click();
+              }
+            }, 800);
+            return;
+          }
+          
+          // Otherwise, toggle the checkbox
+          aiToggle.checked = !currentState;
+          console.log('[SearchHandler] Toggled to:', aiToggle.checked);
+          
+          // Dispatch change event
+          const changeEvent = new Event('change', { bubbles: true });
+          aiToggle.dispatchEvent(changeEvent);
+        });
       }
       
       aiToggle.addEventListener('change', (e) => {
+        // Check if user is logged in
+        const isLoggedIn = this.checkUserLoggedIn();
+        
+        if (e.target.checked && !isLoggedIn) {
+          // User is trying to enable AI search but not logged in
+          e.preventDefault();
+          aiToggle.checked = false; // Revert toggle
+          this.useAISearch = false;
+          
+          // Notify particle system that toggle was reverted
+          this.notifyParticleSystem(false);
+          
+          // Pulse the tooltip to draw attention
+          this.pulseLoginTooltip();
+          
+          // Open login modal after a brief delay
+          setTimeout(() => {
+            const loginLink = document.getElementById('login-nav-link');
+            if (loginLink) {
+              loginLink.click();
+            }
+          }, 800);
+          
+          console.log('⚠️ AI Search requires login');
+          return;
+        }
+        
+        // User is logged in or turning OFF - allow the change
         this.useAISearch = e.target.checked;
-        localStorage.setItem('aiSearchEnabled', this.useAISearch);
+        // No localStorage - preference is NOT saved
+        
+        // Notify particle system of actual state
+        this.notifyParticleSystem(this.useAISearch);
         
         if (this.useAISearch) {
           console.log('🤖 AI Semantic Search ENABLED');
@@ -85,15 +169,159 @@ const SearchHandler = {
         }
       });
       
-      // Set initial placeholder
-      if (this.useAISearch) {
-        searchInput.placeholder = 'Try: "projects about machine learning in agriculture" or "IoT systems for monitoring" (Press Enter)';
-      } else {
-        searchInput.placeholder = 'Search by title, author, or keyword... (Press Enter)';
-      }
+      // Set initial placeholder (always traditional since default is OFF)
+      searchInput.placeholder = 'Search by title, author, or keyword... (Press Enter)';
     }
     
     console.log('✓ Search handler initialized with AI semantic search support');
+  },
+  
+  /**
+   * Setup hover-aware login-required tooltip
+   */
+  setupLoginRequiredTooltip(aiToggle) {
+    const aiToggleLabel = aiToggle.closest('.ai-search-toggle');
+    if (!aiToggleLabel) return;
+    
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'login-required-tooltip';
+    tooltip.style.cssText = `
+      position: absolute;
+      bottom: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: linear-gradient(135deg, var(--yellow-400) 0%, var(--yellow-700) 100%);
+      color: white;
+      padding: 0.875rem 1.25rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px var(--yellow-400), 0 0 0 1px var(--yellow-700);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      white-space: nowrap;
+      font-size: 0.875rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    `;
+    
+    tooltip.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <span>Login required</span>
+      <span style="margin-left: 0.25rem; padding: 0.25rem 0.5rem; background: rgba(0, 0, 0, 0.3); border-radius: 6px; font-size: 0.75rem; animation: clickPulse 2s ease-in-out infinite;">
+        Click to login
+      </span>
+    `;
+    
+    // Arrow pointer
+    const arrow = document.createElement('div');
+    arrow.style.cssText = `
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid var(--yellow-300);
+    `;
+    tooltip.appendChild(arrow);
+    
+    // Make tooltip position relative container
+    aiToggleLabel.style.position = 'relative';
+    aiToggleLabel.appendChild(tooltip);
+    
+    // Store tooltip reference
+    this.loginTooltip = tooltip;
+    
+    // Show/hide tooltip on hover (only when not logged in)
+    const showTooltip = () => {
+      if (!this.checkUserLoggedIn()) {
+        tooltip.style.opacity = '1';
+        tooltip.style.transform = 'translateX(-50%) scale(1)';
+        tooltip.style.pointerEvents = 'auto';
+      }
+    };
+    
+    const hideTooltip = () => {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateX(-50%) scale(0.9)';
+      tooltip.style.pointerEvents = 'none';
+    };
+    
+    aiToggleLabel.addEventListener('mouseenter', showTooltip);
+    aiToggleLabel.addEventListener('mouseleave', hideTooltip);
+    
+    // Click tooltip to open login
+    tooltip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const loginLink = document.getElementById('login-nav-link');
+      if (loginLink) {
+        loginLink.click();
+      }
+    });
+    
+    // Hide tooltip when user logs in
+    this.onLoginStateChange = () => {
+      if (this.checkUserLoggedIn()) {
+        hideTooltip();
+        aiToggleLabel.removeEventListener('mouseenter', showTooltip);
+      } else {
+        aiToggleLabel.addEventListener('mouseenter', showTooltip);
+      }
+    };
+  },
+  
+  /**
+   * Pulse the tooltip to draw attention
+   */
+  pulseLoginTooltip() {
+    if (this.loginTooltip) {
+      this.loginTooltip.style.animation = 'tooltipPulse 0.6s ease-in-out';
+      setTimeout(() => {
+        if (this.loginTooltip) {
+          this.loginTooltip.style.animation = '';
+        }
+      }, 600);
+    }
+  },
+  
+  /**
+   * Notify particle system of AI search state
+   */
+  notifyParticleSystem(isEnabled) {
+    // Dispatch custom event for particle system
+    const event = new CustomEvent('aiSearchStateChange', {
+      detail: { enabled: isEnabled }
+    });
+    window.dispatchEvent(event);
+    console.log(`[SearchHandler] Notified particle system: ${isEnabled}`);
+  },
+  
+  /**
+   * Check if user is currently logged in
+   */
+  checkUserLoggedIn() {
+    // Check if Firebase auth is available and user is logged in
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+      return true;
+    }
+    
+    // Fallback: Check if profile link is visible (indicates logged in)
+    const profileLink = document.getElementById('profile-link');
+    if (profileLink && profileLink.style.display !== 'none') {
+      return true;
+    }
+    
+    return false;
   },
   
   /**
@@ -443,8 +671,14 @@ const SearchHandler = {
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => SearchHandler.init());
+  document.addEventListener('DOMContentLoaded', () => {
+    // Clean up any old localStorage for AI search preference
+    localStorage.removeItem('aiSearchEnabled');
+    SearchHandler.init();
+  });
 } else {
+  // Clean up any old localStorage for AI search preference
+  localStorage.removeItem('aiSearchEnabled');
   SearchHandler.init();
 }
 
@@ -457,6 +691,37 @@ style.textContent = `
   @keyframes loadingPulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+  }
+  @keyframes clickPulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.9;
+    }
+  }
+  @keyframes tooltipPulse {
+    0%, 100% {
+      transform: translateX(-50%) scale(1);
+    }
+    25% {
+      transform: translateX(-50%) scale(1.1);
+    }
+    50% {
+      transform: translateX(-50%) scale(0.95);
+    }
+    75% {
+      transform: translateX(-50%) scale(1.05);
+    }
+  }
+  
+  /* Hover effect for login tooltip */
+  .login-required-tooltip:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%) !important;
+    box-shadow: 0 12px 32px rgba(217, 119, 6, 0.6), 0 0 0 1px rgba(251, 191, 36, 0.5) !important;
+    transform: translateX(-50%) scale(1.05) !important;
   }
 `;
 document.head.appendChild(style);

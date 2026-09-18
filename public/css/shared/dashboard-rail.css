@@ -42,6 +42,9 @@ body {
     width: 100%;
     margin: 0;
     padding: 0;
+    min-width: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* ===== SIDEBAR RAIL ===== */
@@ -318,6 +321,8 @@ body {
 /* ===== MAIN CONTENT AREA ===== */
 .dashboard-main {
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
     margin-left: var(--content-shift);
     min-height: 100vh;
     display: flex;
@@ -407,12 +412,16 @@ body {
 /* ===== CONTENT AREA ===== */
 .dashboard-content {
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
     padding: 2rem;
     background: var(--background);
 }
 
 .content-section {
     display: none;
+    min-width: 0;
+    max-width: 100%;
     animation: fadeInContent 0.3s ease;
 }
 
@@ -846,7 +855,28 @@ body {
     background: var(--surface);
     border-radius: 16px;
     border: 1px solid var(--border);
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+}
+
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: var(--surface);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 .data-table {
@@ -1205,17 +1235,25 @@ body {
 
 /* Responsive adjustments for dashboard components */
 @media (max-width: 768px) {
+    .dashboard-content {
+        padding: 1.25rem 1rem 5rem 1rem; /* Extra bottom padding so mobile floating button doesn't obstruct content */
+    }
+
     .section-header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 1rem;
     }
 
     .section-actions {
         width: 100%;
+        max-width: 100%;
     }
 
     .search-box input {
-        min-width: 100%;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .stats-grid {
@@ -1233,4 +1271,177 @@ body {
     .settings-container {
         grid-template-columns: 1fr;
     }
+}
+
+
+/* ===================================== 
+   SETTINGS TOGGLE SWITCH
+   ===================================== */
+.settings-toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.settings-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.settings-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(148, 163, 184, 0.3);
+    transition: 0.3s;
+    border-radius: 34px;
+}
+
+.settings-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+}
+
+.settings-toggle input:checked + .settings-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.settings-toggle-slider:hover {
+    box-shadow: 0 0 8px rgba(8, 212, 136, 0.3);
+}
+
+/* Settings button hover effects */
+#clear-search-history-btn:hover,
+#export-saved-projects-btn:hover {
+    background: var(--surface);
+    border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+#clear-search-history-btn:active,
+#export-saved-projects-btn:active {
+    transform: translateX(4px) scale(0.98);
+}
+
+
+/* ===================================== 
+   BACKGROUND IMAGE PREFERENCE
+   ===================================== */
+.bg-mode-option {
+    cursor: pointer;
+}
+
+.bg-mode-option input[type="radio"] {
+    display: none;
+}
+
+.bg-mode-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--background);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.bg-mode-option:hover .bg-mode-card {
+    border-color: var(--primary-color);
+    background: var(--surface);
+}
+
+.bg-mode-option input[type="radio"]:checked + .bg-mode-card {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(8, 212, 136, 0.1), rgba(8, 212, 136, 0.05));
+    box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.bg-mode-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border-radius: 8px;
+}
+
+.bg-mode-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.bg-mode-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Image Gallery */
+.bg-image-item {
+    position: relative;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    border: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.bg-image-item:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.bg-image-item.selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.bg-image-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.bg-image-item .selected-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.2s ease;
+}
+
+.bg-image-item.selected .selected-badge {
+    opacity: 1;
+    transform: scale(1);
 }

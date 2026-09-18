@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="../css/shared/style.css">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
+    <link rel="stylesheet" href="../css/shared/password-change.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
@@ -72,6 +73,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         </span>
                         <span class="rail-nav-text">Citations</span>
+                    </a>
+                    
+                    <a href="#settings" class="rail-nav-item" data-section="settings">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l-4.2 4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m-6 0l-4.2 4.2"></path></svg>
+                        </span>
+                        <span class="rail-nav-text">Settings</span>
                     </a>
                 </div>
             </nav>
@@ -246,6 +254,172 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Settings Section -->
+                <section id="section-settings" class="content-section">
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">Settings</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.9375rem;">Manage your account preferences and application settings.</p>
+                    </div>
+
+                    <!-- Settings Grid -->
+                    <div style="display: grid; gap: 1.5rem;">
+                        
+                        <!-- Appearance Settings -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Appearance</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Customize how RE-CAPS looks</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 12px;">
+                                <div>
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Dark Mode</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Toggle between light and dark themes</div>
+                                </div>
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="settings-theme-toggle">
+                                    <span class="settings-toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Account Settings -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account information</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
+                                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Email</div>
+                                    <div style="font-weight: 600; color: var(--text-primary);" id="settings-user-email">Loading...</div>
+                                </div>
+                                <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
+                                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Account Type</div>
+                                    <div style="font-weight: 600; color: var(--text-primary);">Student</div>
+                                </div>
+                                <button id="change-password-btn" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Change Password</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Settings -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Notifications</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Control notification preferences</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 12px;">
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Toast Notifications</div>
+                                        <div style="font-size: 0.875rem; color: var(--text-secondary);">Show success/error messages</div>
+                                    </div>
+                                    <label class="settings-toggle">
+                                        <input type="checkbox" id="settings-toast-toggle" checked>
+                                        <span class="settings-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Management -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Data Management</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your saved data</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <button id="clear-search-history-btn" style="padding: 1rem; background: var(--background); border: 1px solid var(--border); border-radius: 12px; font-weight: 600; color: var(--text-primary); cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Clear Search History</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                                <button id="export-saved-projects-btn" style="padding: 1rem; background: var(--background); border: 1px solid var(--border); border-radius: 12px; font-weight: 600; color: var(--text-primary); cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Export Saved Projects</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Background Image Preference -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Background Images</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Choose your cinematic slider preference</p>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">Image Mode</label>
+                                <div style="display: grid; gap: 0.75rem;">
+                                    <label class="bg-mode-option">
+                                        <input type="radio" name="bg-mode" value="random" id="bg-mode-random" checked>
+                                        <div class="bg-mode-card">
+                                            <div class="bg-mode-icon">🎲</div>
+                                            <div>
+                                                <div class="bg-mode-title">Random</div>
+                                                <div class="bg-mode-desc">Show different images each time</div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="bg-mode-option">
+                                        <input type="radio" name="bg-mode" value="static" id="bg-mode-static">
+                                        <div class="bg-mode-card">
+                                            <div class="bg-mode-icon">📌</div>
+                                            <div>
+                                                <div class="bg-mode-title">Static</div>
+                                                <div class="bg-mode-desc">Use one selected image only</div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Image Gallery (shown when Static is selected) -->
+                            <div id="bg-image-gallery" style="display: none;">
+                                <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">Select Your Image</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; max-height: 400px; overflow-y: auto; padding: 1rem; background: var(--background); border-radius: 12px; border: 1px solid var(--border);">
+                                    <!-- Images will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -265,8 +439,10 @@
     <script src="../js/shared/toast.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
+    <script src="../js/shared/password-change.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
     <script src="../js/shared/user-dashboard.js"></script>
+    <script src="../js/pages/settings-handler.js"></script>
     <script src="../js/pages/student_page.js"></script>
 </body>
 </html>

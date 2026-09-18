@@ -776,15 +776,25 @@ html.auth-cached-logged-in #profile-link {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 1.5rem;
+    padding: 0;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
 }
 
 .saved-project-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     border-color: var(--primary-color);
+}
+
+.saved-card-body {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .saved-card-meta {
@@ -808,7 +818,6 @@ html.auth-cached-logged-in #profile-link {
     font-size: 0.875rem;
     color: var(--text-secondary);
     line-height: 1.5;
-    margin-bottom: 1rem;
 }
 
 .saved-card-actions {
@@ -816,6 +825,10 @@ html.auth-cached-logged-in #profile-link {
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--background);
+    border-radius: 0 0 16px 16px;
     margin-top: auto;
 }
 
@@ -1130,6 +1143,19 @@ html.auth-cached-logged-in #profile-link {
     gap: 0.75rem;
     user-select: none;
     /* Prevent text selection */
+    cursor: pointer;
+    /* Make entire container clickable */
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.ai-search-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.ai-search-toggle:active {
+    transform: scale(0.98);
 }
 
 .ai-toggle-input {
@@ -1144,8 +1170,8 @@ html.auth-cached-logged-in #profile-link {
     border-radius: 999px;
     transition: background-color 0.3s ease-out;
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    /* Only slider is clickable */
+    pointer-events: none;
+    /* Prevent direct clicking - parent handles it */
 }
 
 .ai-toggle-slider::after {
@@ -1174,8 +1200,9 @@ html.auth-cached-logged-in #profile-link {
     font-size: 0.95rem;
     font-weight: 500;
     pointer-events: none;
-    /* Label not clickable */
+    /* Parent handles clicks */
 }
+
 
 .ai-badge {
     background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
@@ -2128,3 +2155,37 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
   font-style: normal;
 }
 
+
+/* .word-rotator {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    height: 1.2em;
+}
+
+.word-rotator span {
+    display: block;
+    animation: spinWords 6s infinite;
+}
+
+@keyframes spinWords {
+    0% { transform: translateY(0%); }
+    27% { transform: translateY(-100%); }
+    66% { transform: translateY(-200%); }
+    100% { transform: translateY(0%); }
+} */
+
+.glitch-shuffle {
+    display: inline-block;
+    transition: filter 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
+    filter: blur(0px);
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* The active blur/glitch state during the transition */
+.glitch-shuffle.glitching {
+    filter: blur(1.5px);
+    opacity: 0.7;
+    transform: scale(1.07);
+}

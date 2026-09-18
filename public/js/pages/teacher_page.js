@@ -621,3 +621,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== Initial Load =====
     await loadDashboardData();
 });
+
+// ===== Load User Email in Settings =====
+if (typeof auth !== 'undefined') {
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            const emailElement = document.getElementById('settings-user-email');
+            if (emailElement) {
+                emailElement.textContent = user.email || 'N/A';
+            }
+        }
+    });
+}
