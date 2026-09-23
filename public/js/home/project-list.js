@@ -518,7 +518,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const querySnapshot = await db.collection('projects').get();
+            // Gentle indicator if Firestore takes longer than 5 seconds
+            const slowTimer = setTimeout(() => {
+                const currentText = projectsContainer.querySelector('.loading-text');
+                if (currentText && !projectsContainer.querySelector('.firestore-offline-card')) {
+                    currentText.innerHTML = '<span class="loading-pulse-dot"></span> Connecting to Cloud Firestore (taking longer than usual)...';
+                }
+            }, 5000);
+
+            let querySnapshot;
+            try {
+                querySnapshot = await db.collection('projects').get();
+            } finally {
+                clearTimeout(slowTimer);
+            }
             
             allProjects = [];
             querySnapshot.forEach(doc => {
@@ -528,8 +541,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (allProjects.length === 0) {
-                projectsContainer.innerHTML = '<p class="loading-text">No capstone projects found.</p>';
-                if(paginationContainer) paginationContainer.innerHTML = '';
+                const totalProjectsCountElement = document.getElementById('total-projects-count');
+                const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
+                const isFromCache = querySnapshot.metadata && querySnapshot.metadata.fromCache;
+                const isOfflineIssue = isFromCache || window.firestoreConnectionTrouble || (knownCount > 0);
+
+                if (isOfflineIssue) {
+                    renderFirestoreOfflineState(projectsContainer, knownCount);
+                } else {
+                    projectsContainer.innerHTML = '<p class="loading-text">No capstone projects found.</p>';
+                }
+                if (paginationContainer) paginationContainer.innerHTML = '';
                 return;
             }
             
@@ -541,7 +563,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Error fetching projects: ", error);
-            projectsContainer.innerHTML = '<p class="loading-text" style="color: #ef4444;">Error loading projects. Please try again later.</p>';
+            const totalProjectsCountElement = document.getElementById('total-projects-count');
+            const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
+            renderFirestoreOfflineState(projectsContainer, knownCount, error);
+        }
+    }
+
+    /**
+     * Render a friendly, actionable offline/connection error card
+     */
+    function renderFirestoreOfflineState(container, knownCount = 0, error = null) {
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="firestore-offline-card">
+                <div class="offline-icon-box">
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+                        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+                        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+                        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+                    </svg>
+                </div>
+                <h3 class="offline-card-title">Cloud Firestore Connection Notice</h3>
+                <p class="offline-card-desc">
+                    The database backend did not respond within 10 seconds. The client is operating in offline mode. Please check your internet connection or try reconnecting below.
+                </p>
+                ${knownCount > 0 ? `
+                    <div class="offline-count-badge">
+                        <span class="pulse-dot"></span>
+                        <span><strong>${knownCount}</strong> published capstone projects awaiting sync</span>
+                    </div>
+                ` : ''}
+                <div class="offline-card-actions">
+                    <button id="btn-retry-firestore-fetch" class="btn-retry-firestore" type="button">
+                        <svg class="retry-spin-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        <span>Retry Connection</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const retryBtn = container.querySelector('#btn-retry-firestore-fetch');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', async () => {
+                retryBtn.disabled = true;
+                retryBtn.classList.add('loading');
+                const btnSpan = retryBtn.querySelector('span');
+                if (btnSpan) btnSpan.textContent = 'Reconnecting...';
+
+                if (window.NetworkMonitor && typeof window.NetworkMonitor.retryFirestore === 'function') {
+                    await window.NetworkMonitor.retryFirestore();
+                } else if (typeof db !== 'undefined' && db && db.enableNetwork) {
+                    try {
+                        await db.enableNetwork();
+                    } catch (e) {
+                        console.warn('Network enable error:', e);
+                    }
+                }
+
+                setTimeout(() => {
+                    fetchProjects();
+                }, 600);
+            });
         }
     }
 
@@ -912,6 +1003,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentUser && window.GuestSavedProjects) {
                 savedProjectIds = window.GuestSavedProjects.getIds();
                 renderPage(currentPage);
+            }
+        // Listen for Firestore auto-reconnect event
+        window.addEventListener('firestore:reconnected', () => {
+            if (!allProjects || allProjects.length === 0) {
+                console.log('🔄 Reconnected to Firestore, re-fetching projects...');
+                fetchProjects();
             }
         });
     } else {

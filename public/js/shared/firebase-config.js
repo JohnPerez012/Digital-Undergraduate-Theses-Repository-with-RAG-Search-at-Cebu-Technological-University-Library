@@ -18,6 +18,16 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Configure Firestore with auto-detect long polling to prevent 10s WebSocket timeouts on restricted networks
+try {
+    db.settings({
+        experimentalAutoDetectLongPolling: true,
+        merge: true
+    });
+} catch (e) {
+    // Ignore if settings were already locked or applied
+}
+
 // Initialize Realtime Database (get existing instance instead of creating new one)
 let rtdb;
 if (typeof firebase.database === 'function') {
