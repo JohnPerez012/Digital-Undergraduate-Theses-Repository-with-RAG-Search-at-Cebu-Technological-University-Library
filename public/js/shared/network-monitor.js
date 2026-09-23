@@ -20,11 +20,62 @@ class NetworkMonitor {
         window.addEventListener('online', () => this.handleOnline());
         window.addEventListener('offline', () => this.handleOffline());
         
+        // Listen and intercept Cloud Firestore connection issues
+        this.initFirestoreMonitoring();
+
         // Check connection quality periodically when online
         this.startConnectionQualityCheck();
         
         // Initial check
         this.checkConnectionStatus();
+    }
+
+    initFirestoreMonitoring() {
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        const self = this;
+
+        const checkAndHandle = (args) => {
+            try {
+                const combined = args.map(a => {
+                    if (typeof a === 'string') return a;
+                    if (a instanceof Error) return a.message + ' ' + (a.stack || '');
+                    try { return JSON.stringify(a); } catch (e) { return String(a); }
+                }).join(' ');
+
+                if (combined.includes('@firebase/firestore') || combined.includes('Could not reach Cloud Firestore backend') || combined.includes("Backend didn't respond within 10 seconds")) {
+                    window.firestoreConnectionTrouble = true;
+                    window.firestoreLastOfflineNotice = Date.now();
+
+                    // Cooldown 10s between friendly toast notices
+                    if (!self._lastFirestoreToast || (Date.now() - self._lastFirestoreToast > 10000)) {
+                        self._lastFirestoreToast = Date.now();
+                        self.showToast(
+                            '⚠️ Database Notice: Could not reach Cloud Firestore backend within 10 seconds. The app is operating in offline mode.',
+                            'warning',
+                            9000
+                        );
+                    }
+
+                    // Dispatch custom event for UI components (e.g. project-list retry card)
+                    window.dispatchEvent(new CustomEvent('firestore:offline', {
+                        detail: { message: combined, timestamp: Date.now() }
+                    }));
+                }
+            } catch (err) {
+                // Safeguard logging interception
+            }
+        };
+
+        console.warn = function(...args) {
+            checkAndHandle(args);
+            originalWarn.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            checkAndHandle(args);
+            originalError.apply(console, args);
+        };
     }
 
     handleOnline() {
@@ -38,6 +89,16 @@ class NetworkMonitor {
         }
         
         this.showToast('🌐 You\'re back online!', 'success', 3000);
+        
+        // If Firestore previously had trouble, attempt auto-reconnect
+        if (window.firestoreConnectionTrouble) {
+            this.retryFirestore().then(success => {
+                if (success) {
+                    this.showToast('✓ Cloud Firestore reconnected successfully.', 'success', 4000);
+                }
+            });
+        }
+
         this.startConnectionQualityCheck();
     }
 
@@ -180,15 +241,20 @@ class NetworkMonitor {
     }
 
     showToast(message, type = 'info', duration = 5000) {
-        // Create toast container if it doesn't exist
+        // Preferred: Use universal unified toast system if present
+        if (typeof window.showToast === 'function') {
+            const toastEl = window.showToast(message, type, { important: false, duration });
+            return toastEl;
+        }
+
+        // Fallback toast container if window.showToast is not yet loaded
         let container = document.querySelector('.toast-container');
         if (!container) {
             container = document.createElement('div');
-            container.className = 'toast-container';
+            container.className = 'toast-container toast-container-corner';
             document.body.appendChild(container);
         }
 
-        // Create toast element
         const toast = document.createElement('div');
         const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         toast.className = `toast toast-${type}`;
@@ -199,19 +265,18 @@ class NetworkMonitor {
             <button class="toast-close" aria-label="Close notification">&times;</button>
         `;
 
-        // Add close button handler
         const closeBtn = toast.querySelector('.toast-close');
-        closeBtn.addEventListener('click', () => {
-            this.removeToast(toastId);
-            if (this.toastId === toastId) {
-                this.toastId = null;
-            }
-        });
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.removeToast(toastId);
+                if (this.toastId === toastId) {
+                    this.toastId = null;
+                }
+            });
+        }
 
-        // Add to container
         container.appendChild(toast);
 
-        // Auto remove after duration (if specified)
         if (duration) {
             setTimeout(() => {
                 this.removeToast(toastId);
@@ -234,6 +299,22 @@ class NetworkMonitor {
         }
     }
 
+    // Public method to retry Firestore connection
+    async retryFirestore() {
+        if (typeof db !== 'undefined' && db && typeof db.enableNetwork === 'function') {
+            try {
+                window.firestoreConnectionTrouble = false;
+                await db.disableNetwork();
+                await db.enableNetwork();
+                window.dispatchEvent(new CustomEvent('firestore:reconnected'));
+                return true;
+            } catch (err) {
+                console.warn('Error enabling Firestore network:', err);
+            }
+        }
+        return false;
+    }
+
     // Public method to manually check connection
     checkNow() {
         this.checkConnectionStatus();
@@ -243,7 +324,8 @@ class NetworkMonitor {
     getStatus() {
         return {
             isOnline: this.isOnline,
-            quality: this.connectionQuality
+            quality: this.connectionQuality,
+            firestoreTrouble: Boolean(window.firestoreConnectionTrouble)
         };
     }
 }
