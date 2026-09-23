@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
         focusBtn.addEventListener('click', () => {
             document.body.classList.toggle('focus-mode');
             if (document.body.classList.contains('focus-mode')) {
-                focusBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Exit Focus`;
+                focusBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('focus-exit') : ''} Exit Focus`;
             } else {
-                focusBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Focus Mode`;
+                focusBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('focus-enter') : ''} Focus Mode`;
             }
         });
     }
@@ -63,6 +63,43 @@ document.addEventListener('DOMContentLoaded', () => {
         hoverables.forEach(el => {
             el.addEventListener('mouseenter', () => cursorDot.classList.add('active'));
             el.addEventListener('mouseleave', () => cursorDot.classList.remove('active'));
+        });
+    }
+
+    // Citation Generator Implementation
+    const genCitationBtn = document.getElementById('generate-citation-btn');
+    if (genCitationBtn) {
+        genCitationBtn.addEventListener('click', () => {
+            const format = (document.getElementById('citation-format')?.value || 'apa').toLowerCase();
+            const title = document.getElementById('citation-title')?.value.trim() || 'Untitled Research Project';
+            const authors = document.getElementById('citation-authors')?.value.trim() || 'Author Unknown';
+            const year = document.getElementById('citation-year')?.value.trim() || new Date().getFullYear().toString();
+            const outputBox = document.getElementById('citation-output');
+
+            let result = '';
+            if (format === 'apa') {
+                result = `${authors} (${year}). ${title}. Cebu Technological University Library Repository.`;
+            } else if (format === 'mla') {
+                result = `${authors}. "${title}." Cebu Technological University, ${year}.`;
+            } else if (format === 'chicago') {
+                result = `${authors}. "${title}." Undergraduate thesis, Cebu Technological University, ${year}.`;
+            } else if (format === 'ieee') {
+                result = `${authors}, "${title}," CTU Undergraduate Thesis, Cebu, Philippines, ${year}.`;
+            }
+
+            if (outputBox) {
+                outputBox.style.display = 'block';
+                outputBox.textContent = result;
+            }
+
+            // Log activity
+            if (window.ActivityService && typeof window.ActivityService.logCitation === 'function') {
+                window.ActivityService.logCitation(format.toUpperCase(), title);
+            }
+
+            if (typeof showToast === 'function') {
+                showToast(`Generated ${format.toUpperCase()} citation!`, 'success');
+            }
         });
     }
 });

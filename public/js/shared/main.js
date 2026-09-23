@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const terms = ["capstone", "research", "thesis"];
 let termIndex = 0;
 const termElement = document.getElementById("dynamic-term");
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 function scrambleWithBlur(targetWord, callback) {
     // Step 1: Add the blur/glitch effect class

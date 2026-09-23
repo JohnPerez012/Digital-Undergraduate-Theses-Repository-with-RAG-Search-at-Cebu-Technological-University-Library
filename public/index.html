@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
 
 
-    <link rel="stylesheet" href="css/shared/style.css?v=2.1">
+    <link rel="stylesheet" href="css/shared/style.css?v=2.2">
     <link rel="stylesheet" href="css/home/project-list.css?v=2.1">
     <link rel="stylesheet" href="css/shared/toast.css">
     <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.1">
@@ -28,6 +28,7 @@
     <link rel="stylesheet" href="css/chatbot/chatbot.css">
     <link rel="stylesheet" href="css/shared/dramatic-intro.css">
     <link rel="stylesheet" href="css/shared/modern-login.css">
+    <link rel="stylesheet" href="css/shared/text-protection.css">
 
     <!-- GSAP loaded early in head so it's ready before DOMContentLoaded -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -73,11 +74,7 @@
                             <nav class="nav-menu">
 
                                 <button id="theme-toggle" class="theme-toggle-btn" aria-label="Switch to light mode">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" fill="white">
-                                        <path
-                                            d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708">
-                                        </path>
-                                    </svg>
+                                    <!-- Theme icons loaded dynamically via SVGLoader -->
                                 </button>
 
                                 <!-- About button - shown when logged out -->
@@ -105,17 +102,10 @@
                                         <!-- Dashboard Row -->
                                         <div class="pd-row" id="pd-dashboard-row" style="cursor:pointer;">
                                             <span class="pd-row-label">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                                </svg>
+                                                <span id="pd-dashboard-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
                                                 Dashboard
                                             </span>
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4">
-                                                <polyline points="9 18 15 12 9 6"/>
-                                            </svg>
+                                            <span id="pd-dashboard-arrow" style="display:inline-flex;"></span>
                                         </div>
 
                                         <div class="pd-divider"></div>
@@ -123,16 +113,10 @@
                                         <!-- About Row -->
                                         <div class="pd-row" id="pd-about-row" style="cursor:pointer;" onclick="window.location.href='pages/about_page.html'">
                                             <span class="pd-row-label">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <circle cx="12" cy="12" r="10"/>
-                                                    <line x1="12" y1="8" x2="12" y2="12"/>
-                                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                                                </svg>
+                                                <span id="pd-about-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
                                                 About
                                             </span>
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4">
-                                                <polyline points="9 18 15 12 9 6"/>
-                                            </svg>
+                                            <span id="pd-about-arrow" style="display:inline-flex;"></span>
                                         </div>
 
                                         <div class="pd-divider"></div>
@@ -140,11 +124,7 @@
                                         <!-- Theme Toggle Row -->
                                         <div class="pd-row">
                                             <span class="pd-row-label">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
-                                                    fill="currentColor" viewBox="0 0 16 16">
-                                                    <path
-                                                        d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708" />
-                                                </svg>
+                                            <span id="pd-moon-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
                                                 Dark Mode
                                             </span>
                                             <button class="pd-theme-toggle" id="pd-theme-toggle"
@@ -156,11 +136,7 @@
                                         <!-- Logout Row -->
                                         <div class="pd-logout-row">
                                             <button class="pd-logout-btn" id="pd-logout-btn">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none"
-                                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-                                                    stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                                                </svg>
+                                                <span id="pd-logout-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
                                                 Log out
                                             </button>
                                         </div>
@@ -190,8 +166,8 @@
     </script>
 
     
-    <script src="js/shared/scroll-aware-header.js"></script>
-    <script src="js/shared/scroll-state-manager.js"></script>
+    <script src="js/shared/svg/svg-loader.js"></script>
+    <script src="js/shared/svg/svg-registry.js"></script>
     <script src="js/home/ai-particles.js"></script>
     <script src="js/home/cinematic-slider.js"></script>
     
@@ -308,19 +284,10 @@
                                 <input type="text" class="search-input"
                                     placeholder="Try: &quot;projects about machine learning in agriculture&quot; or &quot;IoT systems for monitoring&quot;">
                                 <button class="search-clear-btn" aria-label="Clear search" style="display: none;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="15" y1="9" x2="9" y2="15"></line>
-                                        <line x1="9" y1="9" x2="15" y2="15"></line>
-                                    </svg>
+                                    <span id="search-clear-icon"></span>
                                 </button>
                                 <button class="search-btn">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <circle cx="11" cy="11" r="8"></circle>
-                                        <path d="m21 21-4.3-4.3"></path>
-                                    </svg>
+                                    <span id="search-btn-icon"></span>
                                 </button>
                             </div>
                         </div>
@@ -361,12 +328,7 @@
                         <div class="header-controls">
                             <div class="sort-control dropdown">
                                 <button class="sort-toggle-btn" id="sort-toggle-btn">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <polyline points="19 12 12 19 5 12"></polyline>
-                                    </svg>
+                                    <span id="sort-toggle-icon"></span>
                                     Sort Projects
                                 </button>
                                 <div class="sort-dropdown-menu" id="sort-dropdown-menu">
@@ -416,35 +378,13 @@
                             </div>
                             <div class="view-toggles">
                                 <button class="view-btn active" data-view="list" title="List View">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                                    </svg>
+                                    <span id="view-list-icon"></span>
                                 </button>
                                 <button class="view-btn" data-view="grid" title="Grid View">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <rect x="3" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="14" width="7" height="7"></rect>
-                                        <rect x="3" y="14" width="7" height="7"></rect>
-                                    </svg>
+                                    <span id="view-grid-icon"></span>
                                 </button>
                                 <button class="view-btn" data-view="compact" title="Compact View">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <line x1="4" y1="6" x2="20" y2="6"></line>
-                                        <line x1="4" y1="12" x2="20" y2="12"></line>
-                                        <line x1="4" y1="18" x2="20" y2="18"></line>
-                                    </svg>
+                                    <span id="view-compact-icon"></span>
                                 </button>
                             </div>
                         </div>
@@ -462,9 +402,7 @@
             <div class="details-page-new">
                 <div class="details-top-actions" style="margin-bottom: 2rem;">
                     <a href="#" class="back-btn" id="back-to-search">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-                        </svg>
+                        <span id="back-btn-icon"></span>
                         Back to Search
                     </a>
                 </div>
@@ -499,24 +437,16 @@
                 <!-- Floating Actions -->
                 <div class="floating-actions">
                     <button class="floating-btn" id="history-btn" aria-label="View chat history">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
-                        </svg>
+                        <span id="history-btn-icon"></span>
                     </button>
                     <button class="floating-btn" id="clear-btn" aria-label="Clear conversation" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        <span id="clear-btn-icon"></span>
                     </button>
                     <button class="floating-btn" id="export-btn" aria-label="Export conversation" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
+                        <span id="export-btn-icon"></span>
                     </button>
                     <button class="floating-btn" id="settings-btn" aria-label="Chatbot settings">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24m-4.24-12.48L18.36 5.64m-12.48 4.24L1.64 5.64"/>
-                        </svg>
+                        <span id="settings-btn-icon"></span>
                     </button>
                 </div>
 
@@ -551,10 +481,7 @@
                             <div class="input-footer">
                                 <span class="char-counter" id="char-counter">0 / 500</span>
                                 <button class="send-btn" id="send-btn" disabled aria-label="Send message">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="19" x2="12" y2="5"></line>
-                                        <polyline points="5 12 12 5 19 12"></polyline>
-                                    </svg>
+                                    <span id="send-btn-icon"></span>
                                 </button>
                             </div>
                         </div>
@@ -611,10 +538,7 @@
                     <div class="form-group modern-input-group">
                         <label class="form-label modern-label">Email</label>
                         <div class="input-with-icon">
-                            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
+                            <span id="login-email-icon" class="input-icon"></span>
                             <input type="email" id="login-email" class="form-input modern-input" placeholder="your@email.com">
                         </div>
                         <div class="field-error" id="email-error"></div>
@@ -623,20 +547,10 @@
                     <div class="form-group modern-input-group">
                         <label class="form-label modern-label">Password</label>
                         <div class="input-with-icon">
-                            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            <span id="login-password-icon" class="input-icon"></span>
                             <input type="password" id="login-password" class="form-input modern-input" placeholder="••••••••">
                             <button type="button" class="toggle-password-btn modern-toggle-password" data-target="login-password" aria-label="Toggle password visibility">
-                                <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="display: none;">
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                                </svg>
+                                <!-- Password toggle icons loaded dynamically -->
                             </button>
                         </div>
                         <div class="field-error" id="password-error"></div>
@@ -652,10 +566,7 @@
 
                     <button id="login-btn" class="btn btn-primary modern-login-btn btn-flex">
                         <span>Login</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="12 5 19 12 12 19"></polyline>
-                        </svg>
+                        <span id="login-btn-icon"></span>
                     </button>
 
                     <div class="divider-with-text">
@@ -663,12 +574,7 @@
                     </div>
 
                     <button type="button" id="google-login-btn" class="btn-google modern-google-btn">
-                        <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        </svg>
+                        <span id="google-logo-icon"></span>
                         <span>Sign in with Google</span>
                     </button>
 
@@ -689,9 +595,7 @@
             
             <!-- New Conversation Button (shown only if < 3 conversations) -->
             <button class="btn btn-primary btn-full" id="new-conversation-modal-btn" style="display: none; margin-bottom: 1rem;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 0.5rem;">
-                    <path d="M12 5v14M5 12h14"/>
-                </svg>
+                <span id="new-conversation-icon"></span>
                 New Conversation
             </button>
             
@@ -730,10 +634,7 @@
         <div class="modal-content">
             <h2 class="modal-title">Export Successful</h2>
             <div style="text-align: center; margin-bottom: 2rem;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem;">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
+                <span id="export-success-icon"></span>
                 <p style="color: var(--text-secondary); font-size: 1.05rem;" id="export-modal-body">Your conversation has been successfully exported as a markdown file.</p>
             </div>
             <button class="btn btn-primary btn-full" onclick="closeChatbotModal('export-modal')">Awesome</button>
@@ -813,10 +714,7 @@
             
             <div style="display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary btn-flex" onclick="Citation.copyCitation()" data-action="copy-citation">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
+                    <span id="citation-copy-icon"></span>
                     Copy Citation
                 </button>
                 <button class="btn btn-secondary btn-flex" onclick="Citation.closeCitationModal()">Close</button>
@@ -837,10 +735,18 @@
     <script src="js/shared/firebase-config.js"></script>
     <script src="js/core/auth-service.js"></script>
 
+    <!-- SVG Architecture -->
+    <script src="js/shared/svg/svg-loader.js"></script>
+    <script src="js/shared/svg/svg-registry.js"></script>
+    <script src="js/shared/svg/svg-init.js"></script>
+
     <script src="js/shared/toast.js"  ></script>
+    <script src="js/shared/text-protection.js"></script>
     <script src="js/shared/network-monitor.js"  ></script>
     <script src="js/shared/main.js"  ></script>
     <script src="js/shared/theme-toggle.js"  ></script>
+    <script src="js/shared/activity-service.js"></script>
+    <script src="js/shared/guest-storage.js"></script>
     <script src="js/shared/auth-modal.js"  ></script>
     <script src="js/shared/smooth-scroll.js?v=2"></script>
 
@@ -849,7 +755,6 @@
     
     <script src="js/home/project-list.js"  ></script>
     <script src="js/home/search-handler.js"  ></script>
-    <script src="js/shared/secondary-header.js"  ></script>
     <script src="js/shared/user-dashboard.js"  ></script>
     
     <!-- Chatbot Scripts -->
@@ -864,6 +769,10 @@
     <!-- Cloudinary Image Service -->
     <script src="js/shared/cloudinary-service.js"></script>
     
+    <!-- Header Scroll & View Scroll State Managers -->
+    <script src="js/shared/scroll-aware-header.js"></script>
+    <script src="js/shared/scroll-state-manager.js"></script>
+
     <!-- Unified View Controller -->
     <script src="js/shared/view-manager.js"></script>
 
@@ -1190,9 +1099,16 @@
                                     <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">${msgCount} message${msgCount !== 1 ? 's' : ''} &middot; ${dateStr}</div>
                                 </div>
                                 <button data-id="${conv.id}" title="Delete" style="background:transparent; border:none; cursor:pointer; color:var(--text-secondary); padding:0.25rem; border-radius:6px; display:flex; align-items:center; flex-shrink:0; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-secondary)'">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                    <span id="delete-conv-${conv.id}" style="display:inline-flex;"></span>
                                 </button>
                             `;
+
+                            // Load delete icon for this conversation
+                            if (typeof loadIcon === 'function') {
+                                setTimeout(() => {
+                                    loadIcon('delete', `delete-conv-${conv.id}`, '', { width: 16, height: 16 });
+                                }, 0);
+                            }
 
                             li.querySelector('[data-id]').addEventListener('click', async (e) => {
                                 e.stopPropagation();

@@ -96,10 +96,7 @@
                     <!-- Header -->
                     <div class="password-change-header">
                         <div class="password-change-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
+                            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-lg') : ''}
                         </div>
                         <h3 class="password-change-title">Change Password</h3>
                         <p class="password-change-description">
@@ -140,9 +137,7 @@
                     <!-- New Password Step (hidden initially) -->
                     <div class="password-change-step" id="password-step" style="display: none;">
                         <div class="password-change-success-indicator">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-success') : ''}
                             <span style="color: #27ae60; font-weight: 600;">Security Question Verified</span>
                         </div>
 
@@ -160,10 +155,7 @@
                                         autocomplete="new-password"
                                     >
                                     <button type="button" class="password-toggle-btn" id="toggle-new-password">
-                                        <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
+                                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
                                     </button>
                                 </div>
                             </div>
@@ -181,10 +173,7 @@
                                         autocomplete="new-password"
                                     >
                                     <button type="button" class="password-toggle-btn" id="toggle-confirm-password">
-                                        <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                            <circle cx="12" cy="12" r="3"></circle>
-                                        </svg>
+                                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
                                     </button>
                                 </div>
                                 <div class="password-change-error" id="password-error" style="display: none;"></div>
@@ -192,24 +181,17 @@
 
                             <div class="password-requirements">
                                 <div class="password-requirement" id="req-length">
-                                    <svg class="req-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                    </svg>
+                                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : ''}
                                     At least 6 characters
                                 </div>
                                 <div class="password-requirement" id="req-match">
-                                    <svg class="req-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                    </svg>
+                                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : ''}
                                     Passwords match
                                 </div>
                             </div>
 
                             <button class="password-change-btn primary" id="update-password-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
+                                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
                                 Update Password
                             </button>
                         </div>
@@ -350,15 +332,17 @@
         // Disable button and show loading
         updateBtn.disabled = true;
         updateBtn.innerHTML = `
-            <svg class="spinner" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-            Updating...
-        `;
+            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''}
+            Updating...`;
 
         try {
             // Update password in Firebase Auth
             await user.updatePassword(newPassword);
+
+            // Log activity
+            if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
+                window.ActivityService.logAuth('password_change', 'Account password successfully updated');
+            }
 
             // Success
             showToast('✅ Password updated successfully!', 'success');
@@ -380,10 +364,7 @@
             // Re-enable button
             updateBtn.disabled = false;
             updateBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
+                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
                 Update Password
             `;
         }

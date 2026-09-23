@@ -173,15 +173,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.setItem('userEmail', user.email);
                     sessionStorage.setItem('userName', user.displayName);
                     sessionStorage.setItem('userType', userData.userType);
+
+                    if (typeof window.ActivityService !== 'undefined') {
+                        window.ActivityService.logAuth('login', `Signed in via email as ${userData.userType || 'user'}`);
+                    }
                     
                     closeModal();
                     
-                    // Use AuthService for role-based redirect
-                    AuthService.redirectAfterLogin(
-                        userData.userType, 
-                        user.displayName || email.split('@')[0], 
-                        showWelcomeModal
-                    );
+                    const proceedWithLogin = () => {
+                        AuthService.redirectAfterLogin(
+                            userData.userType, 
+                            user.displayName || email.split('@')[0], 
+                            showWelcomeModal
+                        );
+                    };
+
+                    // Check if local device has guest saved projects
+                    if (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                        showSyncPromptModal(user, userData, proceedWithLogin);
+                    } else {
+                        proceedWithLogin();
+                    }
                     
                 } catch (error) {
                     console.error('Login error:', error);
@@ -225,14 +237,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!userDoc.exists) {
                         await auth.signOut();
                         googleLoginBtn.disabled = false;
-                        googleLoginBtn.innerHTML = `
-                            <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                                <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                                <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                                <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                                <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                            </svg>
-                        `;
+                        googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+
                         showNoAccountModal();
                         return;
                     }
@@ -247,27 +253,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.setItem('userEmail', user.email);
                     sessionStorage.setItem('userName', user.displayName);
                     sessionStorage.setItem('userType', userData.userType);
+
+                    if (typeof window.ActivityService !== 'undefined') {
+                        window.ActivityService.logAuth('login', `Signed in via Google as ${userData.userType || 'user'}`);
+                    }
                     
                     closeModal();
                     
-                    // Use AuthService for role-based redirect
-                    AuthService.redirectAfterLogin(
-                        userData.userType,
-                        user.displayName || user.email.split('@')[0],
-                        showWelcomeModal
-                    );
+                    const proceedWithLogin = () => {
+                        AuthService.redirectAfterLogin(
+                            userData.userType,
+                            user.displayName || user.email.split('@')[0],
+                            showWelcomeModal
+                        );
+                    };
+
+                    // Check if local device has guest saved projects
+                    if (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                        showSyncPromptModal(user, userData, proceedWithLogin);
+                    } else {
+                        proceedWithLogin();
+                    }
                     
                 } catch (error) {
                     console.error('Google Sign-In error:', error);
                     googleLoginBtn.disabled = false;
-                    googleLoginBtn.innerHTML = `
-                        <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        </svg>
-                    `;
+                    googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+
                     showToast('Sign-in failed: ' + error.message, '❌');
                 }
             });
@@ -493,4 +505,99 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 400);
         });
     }
+
+    // Modal to sync local device saved projects on login (ONLY DELETE OR CONTINUE)
+    function showSyncPromptModal(user, userData, onFinished) {
+        const guestProjects = (typeof window.GuestSavedProjects !== 'undefined') ? window.GuestSavedProjects.getAll() : [];
+        const count = guestProjects.length;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'welcome-modal-overlay';
+        overlay.id = 'sync-prompt-overlay';
+
+        overlay.innerHTML = `
+            <div class="sync-modal-content">
+                <div class="sync-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="sync-modal-title">Sync Local Saved Data?</h2>
+                <p class="sync-modal-text">Your device has local saved data. Do you want to sync to your account or not?</p>
+                <div class="sync-data-pill">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>${count} project${count === 1 ? '' : 's'} saved on this device</span>
+                </div>
+                <div class="sync-modal-actions">
+                    <button class="btn-sync-delete" id="sync-btn-delete">DELETE</button>
+                    <button class="btn-sync-continue" id="sync-btn-continue">CONTINUE</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        setTimeout(() => {
+            overlay.classList.add('active');
+        }, 10);
+
+        // DELETE: Delete the local data regarding to the save projects locally
+        const deleteBtn = document.getElementById('sync-btn-delete');
+        deleteBtn.addEventListener('click', () => {
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'DELETING...';
+
+            if (typeof window.GuestSavedProjects !== 'undefined') {
+                window.GuestSavedProjects.clear();
+            }
+
+            if (typeof showToast === 'function') {
+                showToast('Locally saved projects deleted', 'info');
+            }
+
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                if (typeof onFinished === 'function') {
+                    onFinished();
+                }
+            }, 350);
+        });
+
+        // CONTINUE: Save data to user project save in firebase firestore and delete local data
+        const continueBtn = document.getElementById('sync-btn-continue');
+        continueBtn.addEventListener('click', async () => {
+            continueBtn.disabled = true;
+            continueBtn.textContent = 'SYNCING...';
+
+            try {
+                if (typeof window.GuestSavedProjects !== 'undefined') {
+                    await window.GuestSavedProjects.syncToFirestore(user.uid, db);
+                }
+
+                if (typeof showToast === 'function') {
+                    showToast('Projects synced to your account successfully', 'success');
+                }
+            } catch (err) {
+                console.error('Error syncing projects to Firestore:', err);
+                if (typeof window.GuestSavedProjects !== 'undefined') {
+                    window.GuestSavedProjects.clear();
+                }
+            }
+
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                if (typeof onFinished === 'function') {
+                    onFinished();
+                }
+            }, 350);
+        });
+    }
+
+    window.showSyncPromptModal = showSyncPromptModal;
 });

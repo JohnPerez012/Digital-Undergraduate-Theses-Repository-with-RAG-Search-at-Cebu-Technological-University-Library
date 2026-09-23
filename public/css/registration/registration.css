@@ -344,9 +344,11 @@
 /* Role Selection Cards - Compact Horizontal Layout */
 .role-selection-container {
     display: flex;
-    align-items: center;
+    align-items: stretch;
+    justify-content: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
+    width: 100%;
 }
 
 .role-card {
@@ -451,9 +453,11 @@
 /* College Selection Cards - Same style as role selection */
 .college-selection-container {
     display: flex;
-    align-items: center;
+    align-items: stretch;
+    justify-content: center;
     gap: 1rem;
     margin-bottom: 1.5rem;
+    width: 100%;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -891,6 +895,17 @@
     outline: none;
 }
 
+.form-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.75;
+}
+
+[data-theme="dark"] .form-input::placeholder,
+body.dark-mode .form-input::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+    opacity: 1;
+}
+
 .form-input:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
@@ -1193,6 +1208,30 @@
     flex: 1;
 }
 
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-back .btn-back-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    color: inherit;
+    flex-shrink: 0;
+}
+
+.btn-back .btn-back-icon svg {
+    width: 100%;
+    height: 100%;
+    color: inherit;
+    fill: currentColor;
+}
+
 /* Button States and Cursor Tooltip */
 .btn:disabled {
     opacity: 0.5;
@@ -1250,101 +1289,182 @@
 
 /* Responsive Design */
 @media (max-width: 640px) {
+    .back-button {
+        display: none !important;
+    }
+
+    .registration-container {
+        padding: 1rem;
+    }
+
     .registration-content {
-        padding: 2rem 1.5rem;
+        padding: 1.5rem 1rem;
+        margin-top: 1rem;
     }
     
     .step-title {
         font-size: 1.5rem;
+        text-align: center;
+    }
+
+    .step-subtitle {
+        font-size: 0.95rem;
+        text-align: center;
     }
     
+    .step-indicator {
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 2.5rem;
+        flex-wrap: wrap; /* Allow wrapping to 2 rows */
+        overflow-x: visible;
+        padding: 0.5rem 0;
+        max-width: 280px; /* Fits exactly 5 circles: 5*44px + 4*12px gap = 268px */
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* This will naturally wrap after 5 items due to max-width constraint */
+    
     .step-divider {
-        width: 60px;
-        margin: 0 1rem;
+        display: none; /* Hide dividers on mobile for cleaner look */
     }
     
     .step-number {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
+        width: 44px;
+        height: 44px;
+        font-size: 1.1rem;
+        flex-shrink: 0;
     }
     
     .button-group {
-        flex-direction: column;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .button-group .btn-back {
+        flex: 0 0 52px;
+        width: 52px;
+        min-width: 52px;
+        height: 48px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md, 8px);
+    }
+
+    .button-group .btn-back .btn-back-text {
+        display: none;
+    }
+
+    .button-group .btn-back .btn-back-icon {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+    }
+
+    .button-group .btn-primary,
+    .button-group #complete-registration {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+        height: 48px;
+        justify-content: center;
+    }
+
+    .button-group #skip-to-step-7 {
+        flex: 0 0 auto;
+        width: auto;
+        height: 48px;
+        padding: 0 1.25rem;
+        justify-content: center;
     }
     
     .role-selection-container,
     .college-selection-container {
         flex-direction: column;
+        gap: 1rem;
+        width: 100%;
     }
     
     .role-card,
     .college-card {
-        padding: 1.5rem 1.25rem;
-        min-height: 130px;
+        padding: 1.5rem;
+        min-height: 140px;
+        width: 100%;
+        max-width: 100%;
     }
     
     .role-icon,
     .college-icon {
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         margin-bottom: 0.75rem;
     }
     
     .role-title,
     .college-title {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
     }
     
     .role-description,
     .college-description {
-        font-size: 0.85rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
     }
     
     .role-divider,
     .college-divider {
-        margin: 0.5rem 0;
+        margin: 1rem 0;
+        width: 80px;
+        align-self: center;
     }
     
     .program-card {
-        width: 200px;
-        min-height: 110px;
-        padding: 1.25rem 1rem;
+        width: 180px;
+        min-height: 120px;
+        padding: 1rem;
     }
     
     .program-card .program-code {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
     }
     
     .program-card .program-name {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
     
     .carousel-arrow {
-        width: 36px;
-        height: 36px;
+        width: 40px;
+        height: 40px;
     }
     
     .carousel-arrow svg {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
     }
     
     /* Wider fade on mobile for better visibility */
     .program-carousel-viewport::before,
     .program-carousel-viewport::after {
-        width: 60px;
+        width: 80px;
     }
     
     /* Reduce decorative elements on mobile */
     .registration-bg::before {
         width: 120px;
         height: 120px;
+        opacity: 0.5;
     }
     
     .registration-bg::after {
         width: 100px;
         height: 100px;
+        opacity: 0.5;
     }
     
     .deco-blob-1 {
@@ -1371,6 +1491,125 @@
     .deco-particle-4 {
         width: 50px;
         height: 50px;
+    }
+}
+
+/* Extra small mobile screens */
+@media (max-width: 480px) {
+    .back-button {
+        display: none !important;
+    }
+
+    .registration-container {
+        padding: 0.5rem;
+    }
+
+    .registration-content {
+        padding: 1.25rem 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    .step-title {
+        font-size: 1.35rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .step-subtitle {
+        font-size: 0.875rem;
+    }
+
+    .step-indicator {
+        justify-content: center;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        max-width: 240px; /* Fits exactly 5 circles: 5*40px + 4*8px gap = 232px */
+    }
+
+    .step-number {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .role-selection-container,
+    .college-selection-container {
+        gap: 0.875rem;
+    }
+
+    .role-card,
+    .college-card {
+        padding: 1.25rem 1rem;
+        min-height: 130px;
+    }
+
+    .role-icon,
+    .college-icon {
+        width: 42px;
+        height: 42px;
+        margin-bottom: 0.65rem;
+    }
+
+    .role-title,
+    .college-title {
+        font-size: 1.15rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .role-description,
+    .college-description {
+        font-size: 0.825rem;
+        line-height: 1.4;
+    }
+
+    .role-divider,
+    .college-divider {
+        margin: 0.75rem 0;
+        width: 70px;
+        height: 1.5px;
+    }
+
+    .btn-primary,
+    .btn-secondary:not(.btn-back) {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.95rem;
+    }
+
+    .button-group {
+        gap: 0.5rem;
+    }
+
+    .button-group .btn-back {
+        flex: 0 0 48px;
+        width: 48px;
+        min-width: 48px;
+        height: 46px;
+        padding: 0;
+    }
+
+    .button-group .btn-back .btn-back-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .button-group .btn-primary,
+    .button-group #complete-registration {
+        height: 46px;
+    }
+
+    .button-group #skip-to-step-7 {
+        height: 46px;
+        padding: 0 1rem;
+    }
+
+    /* Form fields */
+    .form-input {
+        padding: 0.875rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    /* Terms scroll area */
+    .terms-scroll-wrapper {
+        height: 300px;
     }
 }
 
@@ -1984,14 +2223,17 @@ body.dark-mode .account-exists-error {
 }
 
 .terms-checkbox:checked + .terms-checkbox-custom::after {
-    content: '✓';
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: white;
-    font-size: 1rem;
-    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 12.6111L8.92308 17.5L20 6.5' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .terms-checkbox-label:hover .terms-checkbox-custom {

@@ -25,6 +25,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
+    <link rel="stylesheet" href="../css/shared/text-protection.css">
+    <link rel="stylesheet" href="../css/shared/activity-log.css">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
@@ -77,6 +79,12 @@
 
                 <div class="rail-nav-section">
                     <div class="rail-nav-label">System</div>
+                    <a href="#activity" class="rail-nav-item" data-section="activity">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </span>
+                        <span class="rail-nav-text">Activity</span>
+                    </a>
                     <a href="#settings" class="rail-nav-item" data-section="settings">
                         <span class="rail-nav-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -580,6 +588,11 @@ BTLEd-HE
                             </div>
                         </div>
                     </div>
+                </section>
+
+                <!-- Activity Section -->
+                <section id="section-activity" class="content-section">
+                    <!-- Populated dynamically by ActivityUI -->
                 </section>
             </div>
         </main>
@@ -1440,12 +1453,19 @@ BTLEd-HE
 
     <script src="../js/shared/firebase-config.js?v=4"></script>
     <script src="../js/core/auth-service.js"></script>
+    <script src="../js/shared/svg/svg-loader.js"></script>
+    <script src="../js/shared/svg/svg-registry.js"></script>
+    <script src="../js/shared/svg/svg-init.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/text-protection.js"></script>
     <script src="../js/shared/cloudinary-service.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/password-change.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
+    <script src="../js/shared/guest-storage.js"></script>
+    <script src="../js/shared/activity-service.js"></script>
+    <script src="../js/shared/activity-ui.js"></script>
     <script src="../js/admin/main.js?v=21"></script>
 </body>
 </html>

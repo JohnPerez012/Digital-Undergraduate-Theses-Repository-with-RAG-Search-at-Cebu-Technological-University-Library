@@ -2,229 +2,169 @@
  * Per-View Scroll State Manager
  * 
  * Manages independent scroll positions for each view in the application.
- * Each view maintains its own scroll state that is saved, preserved, and restored independently.
+ * Each view maintains its own scroll state that is saved, preserved, and restored
+ * seamlessly without layout conflicts or jarring delays.
  * 
  * Features:
- * - Independent scroll storage per view
- * - Automatic save on view change
- * - Automatic restore on view activation with smooth scroll animation
- * - Works with different DOM structures and content lengths
- * - Prevents cross-view scroll interference
+ * - Dynamic scroll storage supporting any view identifier
+ * - Zero-conflict synchronization with SmoothScroll (window.smoothScroller)
+ * - Lightweight, high-performance scroll tracking without redundant DOM querying
+ * - Safe restoration when switching between search, project details, and chatbot
  */
 
 const ScrollStateManager = (function() {
-    // Storage for scroll positions (per view)
-    const scrollStates = {
-        'index': 0,           // Home view
-        'project-detail': 0,  // Project details view
-        'ai-chatbot': 0       // AI Chatbot view
-    };
-    
+    "use strict";
+
+    // Dynamic storage for scroll positions per view ID
+    const scrollStates = new Map();
     let currentActiveView = null;
     let isRestoring = false;
-    
+
+    /**
+     * Resolve the current view ID from DOM if not explicitly set
+     */
+    function resolveActiveViewId() {
+        if (currentActiveView) return currentActiveView;
+        const activeContainer = document.querySelector('.view-mode-container.active');
+        if (activeContainer && activeContainer.id) {
+            if (activeContainer.id === 'home-view') return 'index';
+            if (activeContainer.id === 'details-view') return 'project-detail';
+            if (activeContainer.id === 'chatbot-view') return 'ai-chatbot';
+            return activeContainer.id;
+        }
+        return 'index';
+    }
+
     /**
      * Save the current scroll position for a specific view
-     * @param {string} viewId - The view identifier (e.g., 'index', 'project-detail', 'ai-chatbot')
+     * @param {string} [viewId] - Optional view identifier (defaults to active view)
      */
     function saveScrollPosition(viewId) {
-        if (!viewId || isRestoring) return;
-        
-        const scrollY = window.scrollY || window.pageYOffset;
-        scrollStates[viewId] = scrollY;
-        
-        // console.log(`[ScrollStateManager] Saved scroll for "${viewId}": ${scrollY}px`);
+        if (isRestoring) return;
+        const targetView = viewId || resolveActiveViewId();
+        if (!targetView) return;
+
+        const scrollY = Math.max(0, window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0);
+        scrollStates.set(targetView, scrollY);
     }
-    
+
     /**
-     * Restore the saved scroll position for a specific view with smooth animation
-     * Fast at first, smooth at last (ease-in-out)
+     * Restore the saved scroll position for a specific view
      * @param {string} viewId - The view identifier to restore
+     * @param {boolean} [smooth=false] - Whether to use smooth scrolling
      */
-    function restoreScrollPosition(viewId) {
+    function restoreScrollPosition(viewId, smooth = false) {
         if (!viewId) return;
-        
-        const savedScroll = scrollStates[viewId] || 0;
-        const currentScroll = window.scrollY || window.pageYOffset;
-        
-        // console.log(`[ScrollStateManager] Restoring scroll for "${viewId}": ${savedScroll}px (from ${currentScroll}px)`);
-        
-        // Set flag to prevent saving during restoration
+
+        const savedScroll = scrollStates.get(viewId) || 0;
         isRestoring = true;
-        
-        const scrollDistance = Math.abs(savedScroll - currentScroll);
-        const duration = Math.min(800, Math.max(400, scrollDistance * 0.3)); // Dynamic duration
-        
-        // Custom ease-in-out animation: fast at start, smooth at end
-        const startTime = performance.now();
-        const startScroll = currentScroll;
-        
-        function easeInOutCubic(t) {
-            // Fast at first (ease-in), smooth at last (ease-out)
-            return t < 0.5
-                ? 4 * t * t * t // Fast acceleration at start
-                : 1 - Math.pow(-2 * t + 2, 3) / 2; // Smooth deceleration at end
-        }
-        
-        function animateScroll(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-                
-            // Apply easing function
-            const easedProgress = easeInOutCubic(progress);
-            
-            // Calculate current position
-            const currentPosition = startScroll + (savedScroll - startScroll) * easedProgress;
-            
-            // Scroll to position
-            window.scrollTo(0, currentPosition);
-            
-            // Continue animation if not complete
-            if (progress < 1) {
-                requestAnimationFrame(animateScroll);
-            } else {
-                // Animation complete
-                isRestoring = false;
-                // console.log(`[ScrollStateManager] Scroll animation complete`);
+
+        if (smooth && window.smoothScroller && typeof window.smoothScroller.scrollTo === 'function') {
+            window.smoothScroller.scrollTo(savedScroll);
+            setTimeout(() => { isRestoring = false; }, 300);
+        } else {
+            // Instant scroll to prevent visual jumping/sliding during view transition
+            window.scrollTo(0, savedScroll);
+
+            // Synchronize SmoothScroll internal state if available
+            if (window.smoothScroller) {
+                window.smoothScroller.currentY = savedScroll;
+                window.smoothScroller.targetY = savedScroll;
             }
+
+            // Allow DOM to settle before re-enabling scroll saves
+            requestAnimationFrame(() => {
+                isRestoring = false;
+            });
         }
-        
-        // Start animation
-        requestAnimationFrame(animateScroll);
     }
-    
+
     /**
-     * Handle view switch
-     * @param {string} fromViewId - The view we're leaving
-     * @param {string} toViewId - The view we're entering
+     * Handle view switch: saves previous view's position and restores target view
+     * @param {string} fromViewId - The view we are leaving
+     * @param {string} toViewId - The view we are entering
      */
     function handleViewSwitch(fromViewId, toViewId) {
-        // console.log(`[ScrollStateManager] View switch: "${fromViewId}" → "${toViewId}"`);
-        
-        // Save scroll position of the view we're leaving
         if (fromViewId) {
             saveScrollPosition(fromViewId);
         }
-        
-        // Update current active view
+
         currentActiveView = toViewId;
-        
-        // Restore scroll position of the view we're entering
+
         if (toViewId) {
-            // Small delay to ensure view is fully rendered before scrolling
-            setTimeout(() => {
+            // Execute on next frame to ensure the new view container is displayed in the DOM
+            requestAnimationFrame(() => {
                 restoreScrollPosition(toViewId);
-            }, 100);
+            });
         }
     }
-    
+
     /**
-     * Get the current active view ID
-     * @returns {string|null} The ID of the currently active view
+     * Explicitly set the active view identifier
+     * @param {string} viewId
      */
-    function getCurrentActiveView() {
-        // Try to find active view by checking for .active class
-        const activeView = document.querySelector('.view-mode-container.active');
-        
-        if (activeView) {
-            const viewId = activeView.id;
-            
-            // Map view container IDs to our view identifiers
-            if (viewId === 'home-view') return 'index';
-            if (viewId === 'details-view') return 'project-detail';
-            if (viewId === 'chatbot-view') return 'ai-chatbot';
-        }
-        
-        return null;
+    function setActiveView(viewId) {
+        currentActiveView = viewId;
     }
-    
+
     /**
-     * Initialize scroll state manager
+     * Reset saved scroll position for a specific view or all views
+     * @param {string} [viewId] - Optional view to reset; if omitted, resets all
+     */
+    function reset(viewId) {
+        if (viewId) {
+            scrollStates.delete(viewId);
+        } else {
+            scrollStates.clear();
+        }
+    }
+
+    /**
+     * Initialize listeners
      */
     function init() {
-        // console.log('[ScrollStateManager] Initializing...');
-        
-        // Detect initial active view
-        currentActiveView = getCurrentActiveView();
-        
-        if (currentActiveView) {
-            // console.`log(`[ScrollStateManager] Initial view: "${currentActiveView}"`);
-        }
-        
-        // Auto-save scroll position periodically for current view
-        let scrollSaveTimeout;
+        currentActiveView = resolveActiveViewId();
+
+        // Passive scroll listener to keep the active view's position up-to-date
+        let scrollTimer = null;
         window.addEventListener('scroll', () => {
             if (isRestoring) return;
-            
-            clearTimeout(scrollSaveTimeout);
-            scrollSaveTimeout = setTimeout(() => {
-                const activeView = getCurrentActiveView();
-                if (activeView) {
-                    saveScrollPosition(activeView);
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(() => {
+                if (!isRestoring && currentActiveView) {
+                    saveScrollPosition(currentActiveView);
                 }
-            }, 150); // Debounce scroll saves
+            }, 100);
         }, { passive: true });
-        
-        // Save scroll before page unload
+
+        // Save on unload
         window.addEventListener('beforeunload', () => {
-            const activeView = getCurrentActiveView();
-            if (activeView) {
-                saveScrollPosition(activeView);
+            if (currentActiveView) {
+                saveScrollPosition(currentActiveView);
             }
         });
-        
-        // console.log('[ScrollStateManager] Initialized successfully');
     }
-    
-    /**
-     * Get all saved scroll states (for debugging)
-     */
-    function getScrollStates() {
-        return { ...scrollStates };
+
+    // Auto-init
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
-    
-    /**
-     * Reset all scroll states
-     */
-    function resetAllScrollStates() {
-        Object.keys(scrollStates).forEach(key => {
-            scrollStates[key] = 0;
-        });
-        // console.log('[ScrollStateManager] All scroll states reset');
-    }
-    
-    /**
-     * Reset scroll state for a specific view
-     * @param {string} viewId - The view to reset
-     */
-    function resetScrollState(viewId) {
-        if (scrollStates.hasOwnProperty(viewId)) {
-            scrollStates[viewId] = 0;
-            // console.log(`[ScrollStateManager] Reset scroll state for "${viewId}"`);
-        }
-    }
-    
-    // Public API
+
     return {
         init,
         handleViewSwitch,
         saveScrollPosition,
         restoreScrollPosition,
-        getCurrentActiveView,
-        getScrollStates,
-        resetAllScrollStates,
-        resetScrollState
+        setActiveView,
+        getCurrentActiveView: resolveActiveViewId,
+        reset,
+        // Backward compatibility
+        resetScrollState: reset,
+        resetAllScrollStates: () => reset()
     };
 })();
 
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        ScrollStateManager.init();
-    });
-} else {
-    ScrollStateManager.init();
-}
-
-// Export for use in other modules
+// Export globally
 window.ScrollStateManager = ScrollStateManager;

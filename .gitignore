@@ -19,3 +19,5 @@ localRunner.bat
 
 *.md
 !README.md
+
+*.txt

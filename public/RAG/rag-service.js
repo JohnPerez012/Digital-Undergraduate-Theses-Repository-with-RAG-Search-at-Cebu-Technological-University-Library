@@ -4,7 +4,7 @@
  * Adapted for RE-CAPS home page search functionality
  */
 const RAGService = {
-  backendUrl: window.location.hostname === 'localhost' 
+  backendUrl: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3001'
     : 'https://recap-backend-jy5b.onrender.com',
 

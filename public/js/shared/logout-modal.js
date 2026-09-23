@@ -20,11 +20,7 @@ class LogoutModal {
                 <div class="logout-modal-content">
                     <div class="logout-modal-header">
                         <div class="logout-modal-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16 17 21 12 16 7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
+                            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('logout-lg') : ''}
                         </div>
                         <h3 class="logout-modal-title">Confirm Logout</h3>
                         <p class="logout-modal-description">Are you sure you want to log out? You will need to sign in again to access your account.</p>
@@ -36,9 +32,7 @@ class LogoutModal {
                         <button type="button" class="logout-modal-btn logout-modal-btn-confirm" id="logout-confirm-btn">
                             <span class="btn-text">Logout</span>
                             <span class="btn-spinner" style="display: none;">
-                                <svg class="spinner-icon" viewBox="0 0 24 24">
-                                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="3"></circle>
-                                </svg>
+                                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner-sm') : ''}
                             </span>
                         </button>
                     </div>

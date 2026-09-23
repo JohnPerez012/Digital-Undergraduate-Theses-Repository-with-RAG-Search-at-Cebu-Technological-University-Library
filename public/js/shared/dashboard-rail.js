@@ -161,6 +161,11 @@
                 // Clear local storage
                 localStorage.removeItem('cachedAuthState');
                 
+                // Log activity before signing out
+                if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
+                    await window.ActivityService.logAuth('logout', 'User signed out from dashboard rail');
+                }
+
                 // If Firebase auth is available
                 if (window.firebase && firebase.auth) {
                     await firebase.auth().signOut();

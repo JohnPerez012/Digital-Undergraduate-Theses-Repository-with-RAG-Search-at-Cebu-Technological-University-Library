@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginationContainer = document.getElementById('pagination-container');
     
     // Saved projects state
-    let savedProjectIds = []; // Store only project IDs from Firestore
+    let savedProjectIds = (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
+        ? window.GuestSavedProjects.getIds()
+        : [];
     let savedProjectsFull = []; // Store full project data for localStorage
     
     // Sort Dropdown UI Logic
@@ -189,6 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             syncSavedProjectsWithLocalStorage();
+
+            // Log activity
+            if (window.ActivityService && typeof window.ActivityService.logBookmark === 'function') {
+                const project = allProjects.find(p => p.id === projectId);
+                window.ActivityService.logBookmark(projectId, project ? project.title : 'Capstone Project', 'saved');
+            }
         } catch (error) {
             console.error('Error saving project to Firestore:', error);
         }
@@ -206,6 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
             savedProjectIds = savedProjectIds.filter(id => id !== projectId);
             
             syncSavedProjectsWithLocalStorage();
+
+            // Log activity
+            if (window.ActivityService && typeof window.ActivityService.logBookmark === 'function') {
+                const project = allProjects.find(p => p.id === projectId);
+                window.ActivityService.logBookmark(projectId, project ? project.title : 'Capstone Project', 'removed');
+            }
         } catch (error) {
             console.error('Error removing project from Firestore:', error);
         }
@@ -235,6 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function openProjectDetails(project) {
         try {
             sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
+
+            // Log project view
+            if (window.ActivityService && typeof window.ActivityService.logViewProject === 'function') {
+                const authorsStr = Array.isArray(project.authors) ? project.authors.join(', ') : (project.authors || '');
+                window.ActivityService.logViewProject(project.id, project.title, authorsStr, project.program);
+            }
+
             // Check if ViewManager exists (we're on index.html)
             if (window.ViewManager && typeof window.ViewManager.switchView === 'function') {
                 // We're already on index.html, just switch view
@@ -540,14 +561,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const countText = count > 0 ? `${count} ${count === 1 ? 'project' : 'projects'}` : '';
 
         const iconSvg = isHigh
-            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-               </svg>`
-            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-               </svg>`;
+            ? ((typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('bookmark-saved') : '&#9733;')
+            : ((typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : '&#9432;');
 
         divider.innerHTML = `
             <div class="divider-line left"></div>
@@ -655,9 +670,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="project-meta">
-                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span class="meta-icon" id="user-icon-${projectId}"></span>
                     <span class="authors">${displayAuthors}</span>
-                    <svg class="meta-icon program-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                    <span class="meta-icon program-icon" id="program-icon-${projectId}"></span>
                     <span class="program">${displayProgram}</span>
                 </div>
                 <div class="project-abstract">
@@ -665,12 +680,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="project-actions">
                     <button class="${saveBtnClass}" type="button" data-id="${projectId}">
-                        <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        <span id="save-icon-${projectId}"></span>
                         <span class="btn-text">${saveBtnText}</span>
                     </button>
                     <button class="btn-view-details" type="button">View Details &rarr;</button>
                 </div>
             `;
+            
+            projectsContainer.appendChild(card);
+
+            // Load SVG icons dynamically for this card
+            if (typeof loadIcon === 'function') {
+                loadIcon('user', `user-icon-${projectId}`, 'meta-icon', { width: 16, height: 16 });
+                loadIcon('program', `program-icon-${projectId}`, 'meta-icon', { width: 16, height: 16 });
+                loadIcon('save', `save-icon-${projectId}`, '', { width: 16, height: 16 });
+            }
             
             projectsContainer.appendChild(card);
 
@@ -688,8 +712,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Get current user
                     const user = firebase.auth().currentUser;
                     if (!user) {
-                        // If user not logged in, maybe show login prompt?
-                        console.warn('User not logged in, cannot save project');
+                        // User not logged in: save/unsave ONLY on local device
+                        if (isCurrentlySaved) {
+                            if (window.GuestSavedProjects) {
+                                window.GuestSavedProjects.remove(projectId);
+                            }
+                            savedProjectIds = savedProjectIds.filter(id => id !== projectId);
+                            saveButton.classList.remove('saved');
+                            const btnText = saveButton.querySelector('.btn-text');
+                            if (btnText) btnText.textContent = 'Save';
+                            if (typeof showToast === 'function') {
+                                showToast('Project removed from this device', 'info');
+                            }
+                        } else {
+                            if (window.GuestSavedProjects) {
+                                window.GuestSavedProjects.save(data);
+                            }
+                            if (!savedProjectIds.includes(projectId)) {
+                                savedProjectIds.push(projectId);
+                            }
+                            saveButton.classList.add('saved');
+                            const btnText = saveButton.querySelector('.btn-text');
+                            if (btnText) btnText.textContent = 'Saved';
+                            if (typeof showToast === 'function') {
+                                showToast('Project saved locally on this device. Sign in to sync to your account.', 'success');
+                            }
+                        }
+                        window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
                         return;
                     }
                     
@@ -845,10 +894,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Load saved projects from Firestore
                 loadSavedProjectsFromFirestore(user.uid);
             } else {
-                // User logged out, clear saved projects
-                savedProjectIds = [];
+                // User logged out: restore guest saved projects from local device
+                if (window.GuestSavedProjects) {
+                    savedProjectIds = window.GuestSavedProjects.getIds();
+                } else {
+                    savedProjectIds = [];
+                }
                 savedProjectsFull = [];
                 localStorage.removeItem('savedProjects');
+                renderPage(currentPage);
+            }
+        });
+
+        // Listen for guest storage updates (e.g. after sync or delete)
+        window.addEventListener('guestSavedProjectsChanged', () => {
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser && window.GuestSavedProjects) {
+                savedProjectIds = window.GuestSavedProjects.getIds();
                 renderPage(currentPage);
             }
         });
