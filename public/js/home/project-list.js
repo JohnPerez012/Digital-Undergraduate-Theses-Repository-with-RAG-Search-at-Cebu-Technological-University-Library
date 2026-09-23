@@ -1004,14 +1004,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 savedProjectIds = window.GuestSavedProjects.getIds();
                 renderPage(currentPage);
             }
-        // Listen for Firestore auto-reconnect event
-        window.addEventListener('firestore:reconnected', () => {
-            if (!allProjects || allProjects.length === 0) {
-                console.log('🔄 Reconnected to Firestore, re-fetching projects...');
-                fetchProjects();
-            }
         });
     } else {
         console.warn('Firebase Auth is not available, skipping users cache fetch');
     }
+
+    // Listen for Firestore auto-reconnect event
+    window.addEventListener('firestore:reconnected', () => {
+        if (!allProjects || allProjects.length === 0) {
+            console.log('🔄 Reconnected to Firestore, re-fetching projects...');
+            fetchProjects();
+        }
+    });
 });
