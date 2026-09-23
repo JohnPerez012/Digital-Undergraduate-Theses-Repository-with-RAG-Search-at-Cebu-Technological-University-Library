@@ -257,10 +257,7 @@ const FeedbackModule = (() => {
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = `
-                    <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display:inline-block;vertical-align:middle;margin-right:8px;">
-                        <circle cx="12" cy="12" r="10" stroke-width="4" stroke-opacity="0.25"/>
-                        <path d="M12 2a10 10 0 0 1 10 10" stroke-width="4" stroke-linecap="round"/>
-                    </svg>
+                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner-feedback') : ''}
                     Sending...
                 `;
             }
@@ -514,10 +511,7 @@ const FeedbackModule = (() => {
                 <div class="feedback-modal-overlay"></div>
                 <div class="feedback-modal-content">
                     <div class="feedback-modal-icon-wrapper">
-                        <svg class="feedback-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                            <circle class="feedback-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
-                            <path class="feedback-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('checkmark-animated') : ''}
                     </div>
                     <h2 class="feedback-modal-title">Thank You!</h2>
                     <p class="feedback-modal-greeting">Hi <span class="feedback-user-name"></span>! 👋</p>
@@ -527,24 +521,16 @@ const FeedbackModule = (() => {
                     </p>
                     <div class="feedback-modal-info">
                         <div class="feedback-info-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                            </svg>
+                            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-circle') : ''}
                             <span>Our team will review your message</span>
                         </div>
                         <div class="feedback-info-item">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
+                            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('mail-sm') : ''}
                             <span>We'll get back to you soon</span>
                         </div>
                     </div>
                     <button class="btn btn-primary feedback-modal-close">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-sm') : ''}
                         Got it, thanks!
                     </button>
                 </div>

@@ -130,6 +130,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             savedProjectIds = savedProjectIds.filter(id => id !== projectId);
             
             syncSavedProjectsWithLocalStorage();
+
+            if (window.ActivityService && typeof window.ActivityService.logBookmark === 'function') {
+                const project = allProjects.find(p => p.id === projectId);
+                window.ActivityService.logBookmark(projectId, project ? project.title : 'Capstone Project', 'removed');
+            }
+
             renderSavedProjects();
             window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
         } catch (error) {
@@ -209,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="saved-card-actions">
                     <button class="saved-card-view-btn" data-id="${project.id}">View Details →</button>
                     <button class="saved-card-remove-btn" title="Remove" data-id="${project.id}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('close') : '✕'}
                     </button>
                 </div>
             `;
@@ -268,12 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="logout-modal-content">
                     <div class="logout-modal-header">
                         <div class="logout-modal-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                <line x1="10" y1="11" x2="10" y2="17"></line>
-                                <line x1="14" y1="11" x2="14" y2="17"></line>
-                            </svg>
+                            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('trash-lg') : ''}
                         </div>
                         <h3 class="logout-modal-title">Delete Saved Project?</h3>
                         <p class="logout-modal-description">
@@ -362,13 +363,101 @@ document.addEventListener('DOMContentLoaded', async () => {
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
                 currentUserId = user.uid;
-                await loadSavedProjectsFromFirestore(user.uid);
+                
+                // If local device still has guest saved projects, prompt to sync or delete
+                if (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                    promptSyncModalOnDashboard(user);
+                } else {
+                    await loadSavedProjectsFromFirestore(user.uid);
+                }
             } else {
                 currentUserId = null;
                 savedProjectIds = [];
                 localStorage.removeItem('savedProjects');
                 renderSavedProjects();
             }
+        });
+    }
+
+    // Fallback sync modal on role dashboard (ONLY DELETE OR CONTINUE)
+    function promptSyncModalOnDashboard(user) {
+        const guestProjects = (typeof window.GuestSavedProjects !== 'undefined') ? window.GuestSavedProjects.getAll() : [];
+        const count = guestProjects.length;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'welcome-modal-overlay';
+        overlay.id = 'dashboard-sync-overlay';
+
+        overlay.innerHTML = `
+            <div class="sync-modal-content">
+                <div class="sync-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="sync-modal-title">Sync Local Saved Data?</h2>
+                <p class="sync-modal-text">Your device has local saved data. Do you want to sync to your account or not?</p>
+                <div class="sync-data-pill">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>${count} project${count === 1 ? '' : 's'} saved on this device</span>
+                </div>
+                <div class="sync-modal-actions">
+                    <button class="btn-sync-delete" id="dash-sync-btn-delete">DELETE</button>
+                    <button class="btn-sync-continue" id="dash-sync-btn-continue">CONTINUE</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        setTimeout(() => {
+            overlay.classList.add('active');
+        }, 10);
+
+        // DELETE
+        document.getElementById('dash-sync-btn-delete').addEventListener('click', () => {
+            if (typeof window.GuestSavedProjects !== 'undefined') {
+                window.GuestSavedProjects.clear();
+            }
+            if (typeof showToast === 'function') {
+                showToast('Locally saved projects deleted', 'info');
+            }
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                loadSavedProjectsFromFirestore(user.uid);
+            }, 350);
+        });
+
+        // CONTINUE
+        document.getElementById('dash-sync-btn-continue').addEventListener('click', async () => {
+            const btn = document.getElementById('dash-sync-btn-continue');
+            btn.disabled = true;
+            btn.textContent = 'SYNCING...';
+
+            try {
+                if (typeof window.GuestSavedProjects !== 'undefined') {
+                    await window.GuestSavedProjects.syncToFirestore(user.uid, db);
+                }
+                if (typeof showToast === 'function') {
+                    showToast('Projects synced to your account successfully', 'success');
+                }
+            } catch (err) {
+                console.error('Error syncing projects on dashboard:', err);
+                if (typeof window.GuestSavedProjects !== 'undefined') {
+                    window.GuestSavedProjects.clear();
+                }
+            }
+
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.remove();
+                loadSavedProjectsFromFirestore(user.uid);
+            }, 350);
         });
     }
 });

@@ -27,6 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`Switched to ${newTheme} mode`, 'success');
             }
             
+            // Log setting change
+            if (window.ActivityService && typeof window.ActivityService.logSetting === 'function') {
+                window.ActivityService.logSetting('theme', newTheme);
+            }
+            
             console.log(`[Settings] Theme changed to: ${newTheme}`);
         });
     }
@@ -44,6 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (enabled && typeof showToast === 'function') {
                 showToast('Toast notifications enabled', 'success');
+            }
+            
+            // Log setting change
+            if (window.ActivityService && typeof window.ActivityService.logSetting === 'function') {
+                window.ActivityService.logSetting('toast_notifications', enabled ? 'enabled' : 'disabled');
             }
             
             console.log(`[Settings] Toast notifications: ${enabled ? 'enabled' : 'disabled'}`);

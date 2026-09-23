@@ -2284,6 +2284,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             setDeleteProcessing(false);
             closeSecureDeleteModal();
             showToast('Project deleted successfully', '✅');
+            
+            // Log admin activity
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin('project_deleted', secureDeleteProjectTitle, `Permanently deleted project: "${secureDeleteProjectTitle}"`);
+            }
+            
             await loadProjectsData();
             await loadDashboardData();
         } catch (error) {
@@ -2440,6 +2446,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             invalidateUsersCache();
 
             showToast('User deleted successfully', '✅');
+
+            // Log admin activity
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                const displayName = userData?.fullName || userData?.email || name || userId;
+                window.ActivityService.logAdmin('user_deleted', displayName, `Deleted user account: ${displayName} (${userData?.userType || 'unknown role'})`);
+            }
 
             // 6. Force reload users data and dashboard stats immediately
             await loadUsersData(true);
@@ -3892,6 +3904,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             }).catch(() => {});
 
             showToast('Project updated successfully', '✅');
+            
+            // Log admin activity
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                const changedFieldNames = changedFields.join(', ');
+                window.ActivityService.logAdmin('project_updated', title, `Updated project "${title}" — changed: ${changedFieldNames || 'metadata'}`);
+            }
+            
             setSaveProcessing(false);
             closeProjectModal();
             await loadProjectsData();
@@ -4026,6 +4045,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('Project created successfully', '✅');
             // Clear auto-saved draft
             localStorage.removeItem('admin_project_draft');
+            
+            // Log admin activity
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin('project_created', title, `Created new project: ${title} by ${authors.join(', ')} (${program}, ${year})`);
+            }
+            
             setSaveProcessing(false);
             closeProjectModal();
             await loadProjectsData(true);

@@ -25,6 +25,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
+    <link rel="stylesheet" href="../css/shared/text-protection.css">
+    <link rel="stylesheet" href="../css/shared/activity-log.css">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
@@ -88,6 +90,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
                         </span>
                         <span class="rail-nav-text">Analytics</span>
+                    </a>
+                    
+                    <a href="#activity" class="rail-nav-item" data-section="activity">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </span>
+                        <span class="rail-nav-text">Activity</span>
                     </a>
                     
                     <a href="#settings" class="rail-nav-item" data-section="settings">
@@ -397,6 +406,11 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Activity Section -->
+                <section id="section-activity" class="content-section">
+                    <!-- Populated dynamically by ActivityUI -->
+                </section>
             </div>
         </main>
     </div>
@@ -414,11 +428,18 @@
     <!-- App Scripts -->
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
+    <script src="../js/shared/svg/svg-loader.js"></script>
+    <script src="../js/shared/svg/svg-registry.js"></script>
+    <script src="../js/shared/svg/svg-init.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/text-protection.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/password-change.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
+    <script src="../js/shared/guest-storage.js"></script>
+    <script src="../js/shared/activity-service.js"></script>
+    <script src="../js/shared/activity-ui.js"></script>
     <script src="../js/pages/teacher_page.js"></script>
 </body>
 </html>

@@ -569,6 +569,131 @@ html.auth-cached-logged-in #profile-link {
     transform: translateY(-2px);
 }
 
+/* ==========================================================================
+   Sync Local Data Modal (DELETE or CONTINUE only)
+   ========================================================================== */
+.sync-modal-content {
+    background: var(--surface);
+    padding: 2.5rem 2rem;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 440px;
+    width: 90%;
+    border: 1px solid var(--border);
+}
+
+.welcome-modal-overlay.active .sync-modal-content {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.sync-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.2));
+    border: 2px solid rgba(59, 130, 246, 0.3);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);
+    color: var(--primary-color);
+}
+
+.sync-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.sync-modal-text {
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+    font-size: 0.98rem;
+}
+
+.sync-data-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 1.75rem;
+}
+
+.sync-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.btn-sync-delete {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1.5px solid rgba(239, 68, 68, 0.35);
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 750;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-sync-delete:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35);
+}
+
+.btn-sync-continue {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #ffffff;
+    border: none;
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 750;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 6px 16px rgba(8, 212, 136, 0.3);
+}
+
+.btn-sync-continue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(8, 212, 136, 0.45);
+}
+
+@media (max-width: 480px) {
+    .sync-modal-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
 
 .nav-link.active::after {
     content: '';
@@ -834,9 +959,9 @@ html.auth-cached-logged-in #profile-link {
 
 .saved-card-view-btn {
     padding: 0.625rem 1.25rem;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
     border-radius: 10px;
     font-weight: 600;
     font-size: 0.875rem;
@@ -1041,6 +1166,17 @@ html.auth-cached-logged-in #profile-link {
     padding: 0 0.5rem;
 }
 
+.search-subtitle #dynamic-term,
+#dynamic-term {
+    display: inline-block;
+    text-align: center;
+    width: 4.5em;
+    min-width: 4.5em;
+    max-width: 4.5em;
+    vertical-align: baseline;
+    white-space: nowrap;
+}
+
 .search-bar-wrapper {
     margin-bottom: 1.5rem;
     width: 100%;
@@ -1075,8 +1211,27 @@ html.auth-cached-logged-in #profile-link {
     background: transparent;
 }
 
+/* Universal Input Placeholder Styling */
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder,
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+    opacity: 1;
+}
+
 .search-input::placeholder {
     color: var(--text-secondary);
+}
+
+[data-theme="dark"] .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.65);
 }
 
 
@@ -1658,13 +1813,12 @@ html.auth-cached-logged-in #profile-link {
 .checkbox-input:checked+.checkbox-custom::after {
     content: '';
     position: absolute;
-    left: 5px;
-    top: 2px;
-    width: 4px;
-    height: 8px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    width: 12px;
+    height: 12px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 12.6111L8.92308 17.5L20 6.5' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 /* Responsive Design */
@@ -2177,6 +2331,10 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
 
 .glitch-shuffle {
     display: inline-block;
+    text-align: center;
+    width: 4.25em;
+    vertical-align: baseline;
+    white-space: nowrap;
     transition: filter 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
     filter: blur(0px);
     opacity: 1;
@@ -2188,4 +2346,32 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
     filter: blur(1.5px);
     opacity: 0.7;
     transform: scale(1.07);
+}
+
+/* SVG Icon Containers - Ensure proper display and theme adaptation */
+span[id$="-icon"], 
+span[id*="icon-"],
+.icon-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+}
+
+/* Ensure SVGs inherit parent color for theme adaptation */
+span[id$="-icon"] svg,
+span[id*="icon-"] svg,
+.icon-container svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    color: currentColor;
+}
+
+/* Button icons should inherit button color */
+button span[id$="-icon"] svg,
+button .icon-container svg,
+a span[id$="-icon"] svg,
+a .icon-container svg {
+    color: inherit;
 }

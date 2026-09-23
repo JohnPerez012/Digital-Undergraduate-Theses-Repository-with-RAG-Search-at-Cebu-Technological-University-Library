@@ -741,22 +741,41 @@
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.65);
     pointer-events: none;
     z-index: 2;
+    display: inline-flex;
+}
+
+[data-theme="light"] .input-icon {
+    color: var(--text-secondary);
+}
+
+.input-icon svg {
+    color: inherit;
 }
 
 .modern-input {
     padding-left: 3rem !important;
     height: 52px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: var(--radius-lg);
     font-size: 1rem;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
     color: var(--text-primary);
     width: 100%;
+}
+
+.modern-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+    opacity: 1;
+}
+
+[data-theme="dark"] .modern-input::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+    opacity: 1;
 }
 
 [data-theme="light"] .modern-input {
@@ -764,10 +783,15 @@
     border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="light"] .modern-input::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+    opacity: 1;
+}
+
 .modern-input:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 4px rgba(8, 212, 136, 0.2);
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
     outline: none;
 }
 
@@ -784,9 +808,13 @@
     border: none;
     padding: 0.5rem;
     cursor: pointer;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.65);
     transition: color 0.3s ease;
     z-index: 2;
+}
+
+[data-theme="light"] .modern-toggle-password {
+    color: var(--text-secondary);
 }
 
 .modern-toggle-password:hover {
@@ -834,9 +862,14 @@
 }
 
 .checkbox-input:checked + .modern-checkbox-custom::after {
-    content: '✓';
-    color: white;
-    font-size: 0.75rem;
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 12.6111L8.92308 17.5L20 6.5' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 /* Modern Login Button */

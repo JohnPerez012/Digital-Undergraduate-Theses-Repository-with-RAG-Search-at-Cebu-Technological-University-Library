@@ -177,27 +177,35 @@
         initSliderVerify();
         setupTamperEvidentObservers();
         
-        // Handle main back button click
+        // Handle main back button click and Step 1 back-to-index button
+        function handleLeaveRegistration(e) {
+            if (isCreatingAccount) {
+                if (e) e.preventDefault();
+                return;
+            }
+            // Check if user has any filled data
+            const hasData = hasRegistrationData();
+            
+            if (hasData) {
+                if (e) e.preventDefault();
+                showLeaveConfirmationDialog();
+            } else if (googleUser !== null) {
+                // No data filled, check if authenticated with Google
+                if (e) e.preventDefault();
+                showAuthWarningDialog();
+            } else if (e && e.currentTarget && e.currentTarget.tagName !== 'A') {
+                // Non-anchor button, navigate explicitly
+                window.location.href = '../index.html';
+            }
+        }
+
         if (mainBackButton) {
-            mainBackButton.addEventListener('click', function(e) {
-                if (isCreatingAccount) {
-                    e.preventDefault();
-                    return;
-                }
-                // Check if user has any filled data
-                const hasData = hasRegistrationData();
-                
-                if (hasData) {
-                    e.preventDefault();
-                    showLeaveConfirmationDialog();
-                } else {
-                    // No data filled, check if authenticated with Google
-                    if (googleUser !== null) {
-                        e.preventDefault();
-                        showAuthWarningDialog();
-                    }
-                }
-            });
+            mainBackButton.addEventListener('click', handleLeaveRegistration);
+        }
+
+        const backToIndexBtn = document.getElementById('back-to-index');
+        if (backToIndexBtn) {
+            backToIndexBtn.addEventListener('click', handleLeaveRegistration);
         }
         
         // Handle page unload - sign out if registration incomplete
@@ -651,12 +659,7 @@
                     console.error('Google Sign-In error:', error);
                     googleSignInBtn.disabled = false;
                     googleSignInBtn.innerHTML = `
-                        <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : ''}
                         <span>Sign in with Google</span>
                     `;
                     if (error.code === 'auth/popup-closed-by-user') {
@@ -683,12 +686,7 @@
                     googleSignInBtn.style.display = 'flex';
                     googleSignInBtn.disabled = false;
                     googleSignInBtn.innerHTML = `
-                        <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : ''}
                         <span>Sign in with Google</span>
                     `;
                     nextToStep4Btn.disabled = true;
@@ -707,12 +705,7 @@
                 googleSignInBtn.style.display = 'flex';
                 googleSignInBtn.disabled = false;
                 googleSignInBtn.innerHTML = `
-                    <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                    </svg>
+                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : ''}
                     <span>Sign in with Google</span>
                 `;
                 setTimeout(() => googleSignInBtn.click(), 100);
@@ -884,6 +877,22 @@
                     nextToStep7Btn.disabled = true;
                 }
             });
+        }
+        
+        // Step 6: Validation and tooltip
+        function validateStep6() {
+            const enteredPassword = passwordTestInput.value;
+            const isValid = enteredPassword === savedPassword;
+            nextToStep7Btn.disabled = !isValid;
+            if (!isValid) {
+                attachTooltipToButton(nextToStep7Btn, 'Please enter the correct password to verify');
+            }
+        }
+        
+        // Initialize Step 6 validation
+        if (nextToStep7Btn) {
+            validateStep6();
+            attachTooltipToButton(nextToStep7Btn, 'Please enter the correct password to verify');
         }
         
         // Step 4: Academic profile logic
@@ -1308,12 +1317,7 @@
                     googleSignInBtn.style.display = 'flex';
                     googleSignInBtn.disabled = false;
                     googleSignInBtn.innerHTML = `
-                        <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : ''}
                         <span>Sign in with Google</span>
                     `;
                     nextToStep4Btn.disabled = true;
@@ -1409,7 +1413,35 @@
         const nextToStep8Btn = document.getElementById('next-to-step-8');
         const backToStep7Btn = document.getElementById('back-to-step-7');
         
+        // Step 7: Security Question Validation
+        function validateStep7() {
+            const securityQuestion = document.getElementById('security-question').value;
+            const securityAnswer = document.getElementById('security-answer').value.trim();
+            const isValid = securityQuestion && securityAnswer && securityAnswer.length >= 2;
+            
+            nextToStep8Btn.disabled = !isValid;
+            
+            if (!isValid) {
+                if (!securityQuestion) {
+                    attachTooltipToButton(nextToStep8Btn, 'Please select a security question');
+                } else if (!securityAnswer || securityAnswer.length < 2) {
+                    attachTooltipToButton(nextToStep8Btn, 'Please provide an answer (minimum 2 characters)');
+                }
+            }
+        }
+        
+        // Initialize Step 7 validation
         if (nextToStep8Btn) {
+            const securityQuestionInput = document.getElementById('security-question');
+            const securityAnswerInput = document.getElementById('security-answer');
+            
+            if (securityQuestionInput && securityAnswerInput) {
+                securityQuestionInput.addEventListener('change', validateStep7);
+                securityAnswerInput.addEventListener('input', validateStep7);
+                validateStep7();
+                attachTooltipToButton(nextToStep8Btn, 'Please select a security question and provide an answer');
+            }
+            
             nextToStep8Btn.addEventListener('click', () => {
                 // Validate security question and answer are filled
                 const securityQuestion = document.getElementById('security-question').value;
@@ -1463,18 +1495,13 @@
                 
                 if (scrollPercentage < 100) {
                     termsProgressText.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: middle;">
-                            <path d="M12 5v14M5 12l7 7 7-7"/>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('arrow-down-sm') : ''}
                         Please scroll down to read all terms (${Math.floor(scrollPercentage)}% complete)
                     `;
                     termsProgressText.classList.remove('complete');
                 } else {
                     termsProgressText.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: middle;">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                        </svg>
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-circle') : ''}
                         You have read all terms. Please check the box below to agree.
                     `;
                     termsProgressText.classList.add('complete');
@@ -1569,12 +1596,7 @@
             if (completeBtn) {
                 completeBtn.disabled = false;
                 completeBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; vertical-align: middle;">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="8.5" cy="7" r="4"></circle>
-                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                    </svg>
+                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('user-plus') : ''}
                     Create Account
                 `;
             }
@@ -1662,10 +1684,7 @@
                 if (backToStep7Btn) backToStep7Btn.disabled = true;
                 completeBtn.disabled = true;
                 completeBtn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; animation: spin 1s linear infinite;">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M12 6v6l4 2"></path>
-                    </svg>
+                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('clock-spin') : ''}
                     Creating Account...
                 `;
 

@@ -24,6 +24,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
+    <link rel="stylesheet" href="../css/shared/text-protection.css">
+    <link rel="stylesheet" href="../css/shared/activity-log.css">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
@@ -73,6 +75,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         </span>
                         <span class="rail-nav-text">Citations</span>
+                    </a>
+                    
+                    <a href="#activity" class="rail-nav-item" data-section="activity">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        </span>
+                        <span class="rail-nav-text">Activity</span>
                     </a>
                     
                     <a href="#settings" class="rail-nav-item" data-section="settings">
@@ -268,7 +277,7 @@
                         <!-- Appearance Settings -->
                         <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                <div style="width: 48px; height: 48px;border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
                                 </div>
                                 <div>
@@ -292,7 +301,7 @@
                         <!-- Account Settings -->
                         <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                <div style="width: 48px; height: 48px;border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                                 </div>
                                 <div>
@@ -310,8 +319,8 @@
                                     <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Account Type</div>
                                     <div style="font-weight: 600; color: var(--text-primary);">Student</div>
                                 </div>
-                                <button id="change-password-btn" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-                                    <span>Change Password</span>
+                                <button id="change-password-btn" style="padding: 1rem; background: transparent; border: 2px solid var(--border); border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Click me to Change Password</span>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -323,7 +332,7 @@
                         <!-- Notifications Settings -->
                         <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                <div style="width: 48px; height: 48px;border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                                 </div>
                                 <div>
@@ -349,7 +358,7 @@
                         <!-- Data Management -->
                         <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                <div style="width: 48px; height: 48px;border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                                 </div>
                                 <div>
@@ -373,7 +382,7 @@
                         <!-- Background Image Preference -->
                         <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                                 </div>
                                 <div>
@@ -420,6 +429,11 @@
 
                     </div>
                 </section>
+
+                <!-- Activity Section -->
+                <section id="section-activity" class="content-section">
+                    <!-- Populated dynamically by ActivityUI -->
+                </section>
             </div>
         </main>
     </div>
@@ -436,12 +450,19 @@
 
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
+    <script src="../js/shared/svg/svg-loader.js"></script>
+    <script src="../js/shared/svg/svg-registry.js"></script>
+    <script src="../js/shared/svg/svg-init.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/text-protection.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/password-change.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
+    <script src="../js/shared/guest-storage.js"></script>
     <script src="../js/shared/user-dashboard.js"></script>
+    <script src="../js/shared/activity-service.js"></script>
+    <script src="../js/shared/activity-ui.js"></script>
     <script src="../js/pages/settings-handler.js"></script>
     <script src="../js/pages/student_page.js"></script>
 </body>

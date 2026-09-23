@@ -20,6 +20,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
+    <link rel="stylesheet" href="../css/shared/text-protection.css">
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -32,9 +33,9 @@
 </head>
 <body>
     <!-- Insecure Context Warning Banner -->
-    <div id="insecure-warning" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #f59e0b; color: #000; padding: 0.75rem; text-align: center; z-index: 10000; font-size: 0.875rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <!-- <div id="insecure-warning" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #f59e0b; color: #000; padding: 0.75rem; text-align: center; z-index: 10000; font-size: 0.875rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         ⚠️ <strong>Insecure Connection:</strong> You're accessing this page via HTTP. Some security features are using fallback methods. For production, use HTTPS.
-    </div>
+    </div> -->
     <script>
         // Show warning if not in secure context
         if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
@@ -122,7 +123,15 @@
                     
                     <input type="hidden" id="user-type" value="">
                     
-                    <button id="next-to-step-2" class="btn btn-primary btn-large btn-full" disabled>Next</button>
+                    <div class="button-group">
+                        <button type="button" id="back-to-index" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
+                        <button id="next-to-step-2" class="btn btn-primary btn-large" disabled>Next</button>
+                    </div>
                 </div>
 
                 <!-- Step 2: Name -->
@@ -146,7 +155,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-1" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-1" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="next-to-step-3" class="btn btn-primary btn-large">Next</button>
                     </div>
                 </div>
@@ -216,7 +230,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-2" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-2" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="next-to-step-4" class="btn btn-primary btn-large" disabled>Next</button>
                     </div>
                 </div>
@@ -364,7 +383,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-3" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-3" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="next-to-step-5" class="btn btn-primary btn-large">Next</button>
                     </div>
                 </div>
@@ -417,7 +441,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-4" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-4" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="next-to-step-6" class="btn btn-primary btn-large">Next</button>
                     </div>
                 </div>
@@ -452,7 +481,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-5" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-5" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="skip-to-step-7" class="btn btn-secondary btn-large">Skip</button>
                         <button id="next-to-step-7" class="btn btn-primary btn-large" disabled>Continue</button>
                     </div>
@@ -481,7 +515,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-6" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-6" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="next-to-step-8" class="btn btn-primary btn-large">Next</button>
                     </div>
                 </div>
@@ -729,7 +768,7 @@
                                 <div class="contact-info">
                                     <p><strong>RE-CAPS Platform Administration</strong><br>
                                     Cebu Technological University - Daanbantayan Campus<br>
-                                    Email: <a href="mailto:recap@ctu.edu.ph">recap@ctu.edu.ph</a><br>
+                                    Email: <a href="mailto:recap@ctu.edu.ph">support@recaps.cebutech.digital</a><br>
                                     Data Privacy Officer: <a href="mailto:dpo@ctu.edu.ph">dpo@ctu.edu.ph</a></p>
                                 </div>
                                 
@@ -770,7 +809,12 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="back-to-step-7" class="btn btn-secondary btn-large">Back</button>
+                        <button type="button" id="back-to-step-7" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                            <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
+                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                            </svg>
+                            <span class="btn-back-text">Back</span>
+                        </button>
                         <button id="complete-registration" class="btn btn-primary btn-large" disabled>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; vertical-align: middle;">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -880,7 +924,11 @@
     </div>
 
     <script src="../js/shared/theme-toggle.js"></script>
+    <script src="../js/shared/svg/svg-loader.js"></script>
+    <script src="../js/shared/svg/svg-registry.js"></script>
+    <script src="../js/shared/svg/svg-init.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/text-protection.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>

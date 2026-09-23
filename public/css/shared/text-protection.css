@@ -1,0 +1,250 @@
+/* ==========================================================================
+   TEXT PROTECTION INDICATION SYSTEM
+   Informs users why research titles, abstracts, citations, and project bodies
+   cannot be highlighted or copied (Data Privacy Act & Anti-Plagiarism Policy)
+   ========================================================================== */
+
+/* Protected elements baseline */
+.project-title,
+.project-abstract,
+.project-title-large,
+.section-text,
+#citation-text,
+.protected-text,
+[data-protected="true"] {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* Subtle protection indicator on hover for users who hover over protected research content */
+.protected-hover-cue {
+    position: relative;
+}
+
+/* ---------- FLOATING PROTECTION CALLOUT ---------- */
+.text-protection-callout {
+    position: fixed;
+    z-index: 100000;
+    max-width: 320px;
+    background: rgba(20, 24, 30, 0.94);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 3.5px solid #08D488;
+    border-radius: 12px;
+    padding: 11px 14px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45),
+                0 0 24px rgba(8, 212, 136, 0.18),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+    pointer-events: auto;
+    transform-origin: center bottom;
+    animation: protectionPopIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    will-change: transform, opacity;
+}
+
+/* Light Theme Support */
+[data-theme="light"] .text-protection-callout {
+    background: rgba(255, 255, 255, 0.96);
+    color: #0f172a;
+    border-color: rgba(0, 0, 0, 0.1);
+    border-left-color: #069F66;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18),
+                0 0 20px rgba(6, 159, 102, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Header with Icon and Tag */
+.protection-callout-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.protection-icon-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(8, 212, 136, 0.16);
+    color: #08D488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(8, 212, 136, 0.25);
+}
+
+[data-theme="light"] .protection-icon-badge {
+    background: rgba(6, 159, 102, 0.12);
+    color: #069F66;
+}
+
+.protection-icon-badge svg {
+    width: 14px;
+    height: 14px;
+}
+
+.protection-callout-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+}
+
+[data-theme="light"] .protection-callout-title {
+    color: #0f172a;
+}
+
+.protection-callout-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background: rgba(8, 212, 136, 0.15);
+    color: #08D488;
+    border: 1px solid rgba(8, 212, 136, 0.3);
+    padding: 1px 6px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+/* Close Button */
+.protection-close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #94a3b8;
+    cursor: pointer;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: auto;
+    font-size: 13px;
+    line-height: 1;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.protection-close-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
+    transform: rotate(90deg) scale(1.1);
+}
+
+[data-theme="light"] .protection-close-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #64748b;
+}
+
+[data-theme="light"] .protection-close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="light"] .protection-callout-badge {
+    background: rgba(6, 159, 102, 0.1);
+    color: #069F66;
+    border-color: rgba(6, 159, 102, 0.25);
+}
+
+/* Callout Body / Message */
+.protection-callout-message {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+    margin: 0;
+}
+
+[data-theme="light"] .protection-callout-message {
+    color: #475569;
+}
+
+.protection-callout-message strong {
+    color: #f1f5f9;
+    font-weight: 600;
+}
+
+[data-theme="light"] .protection-callout-message strong {
+    color: #1e293b;
+}
+
+/* Legal Rationale Highlights */
+.protection-callout-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.protection-mini-pill {
+    font-size: 0.64rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+[data-theme="light"] .protection-mini-pill {
+    color: #64748b;
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Animations */
+@keyframes protectionPopIn {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.88);
+        filter: blur(4px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+.text-protection-callout.shake {
+    animation: protectionShake 0.35s ease-in-out forwards;
+}
+
+@keyframes protectionShake {
+    0%, 100% { transform: translateY(0) scale(1) translateX(0); }
+    20% { transform: translateY(0) scale(1) translateX(-4px); }
+    40% { transform: translateY(0) scale(1) translateX(4px); }
+    60% { transform: translateY(0) scale(1) translateX(-3px); }
+    80% { transform: translateY(0) scale(1) translateX(2px); }
+}
+
+.text-protection-callout.fade-out {
+    animation: protectionPopOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes protectionPopOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.92);
+        filter: blur(6px);
+    }
+}

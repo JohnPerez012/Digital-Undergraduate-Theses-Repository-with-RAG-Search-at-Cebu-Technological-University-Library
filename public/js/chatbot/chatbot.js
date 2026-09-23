@@ -37,7 +37,7 @@ const Chatbot = {
           <span class="disclaimer">*AI API tokens are limited and cost money. Please log in to continue.</span>
           <nav class="nav-menu">
             <a href="index.html" class="nav-link secondary" id="back-to-search-btn">
-              <svg class="back-to-search-icon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('chevron-left') : ''}
               Back to Search
             </a>
             <button class="nav-link" id="guest-login-btn">Log In to Continue</button>
@@ -571,9 +571,7 @@ const Chatbot = {
             const ragBadge = document.createElement('div');
             ragBadge.style.cssText = 'display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;';
             ragBadge.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-              </svg>
+              ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
               ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
             `;
             const contentDiv = botMessageDiv.querySelector('.message-content');
@@ -585,10 +583,7 @@ const Chatbot = {
           actionsDiv.className = 'message-actions';
           actionsDiv.innerHTML = `
             <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
+              ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
               Copy
             </button>
           `;
@@ -614,6 +609,12 @@ const Chatbot = {
             }
           }
 
+          // Log AI chat activity
+          if (window.ActivityService && typeof window.ActivityService.logAIChat === 'function') {
+            const snippet = cleanMessage.length > 80 ? cleanMessage.substring(0, 80) + '…' : cleanMessage;
+            window.ActivityService.logAIChat(snippet);
+          }
+
           this.scrollToBottom();
         },
         onError: (err) => {
@@ -624,11 +625,7 @@ const Chatbot = {
           } else if (bubbleDiv) {
             bubbleDiv.innerHTML += `
               <div class="error-message" style="margin-top: 0.75rem;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
+                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : ''}
                 <div>${this.escapeHtml(err.message || 'Stream interrupted. Please try again.')}</div>
               </div>
             `;
@@ -668,11 +665,7 @@ const Chatbot = {
       <div class="message-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">⚠️</div>
       <div class="message-content">
         <div class="error-message">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+          ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : ''}
           <div>
             <strong>Conversation limit reached (3/3)</strong><br>
             You can only have <strong>3 saved conversations</strong>. Please open
@@ -700,9 +693,7 @@ const Chatbot = {
     const userPhotoURL = firebase.auth().currentUser?.photoURL || null;
     const userAvatar = userPhotoURL 
       ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
-           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-         </svg>`;
+      : ((typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('avatar-user') : '');
     
     messageDiv.innerHTML = `
       <div class="message-avatar">
@@ -782,9 +773,7 @@ const Chatbot = {
       if (usedProjects) {
         ragBadge = `
           <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-            </svg>
+            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
             ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
           </div>
         `;
@@ -806,10 +795,7 @@ const Chatbot = {
         // {ragBadge}
         <div class="message-actions">
           <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
+            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
             Copy
           </button>
         </div>
@@ -870,11 +856,7 @@ const Chatbot = {
       <div class="message-avatar">🤖</div>
       <div class="message-content">
         <div class="error-message">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+          ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : ''}
           <div>
             <strong>Sorry, I'm having trouble right now.</strong><br>
             All AI providers are temporarily unavailable. Please try again in a moment.
@@ -898,7 +880,7 @@ const Chatbot = {
       if (typingAvatar) {
         typingAvatar.style.background = 'white';
         typingAvatar.style.padding = '4px';
-        typingAvatar.innerHTML = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 40 40'><rect width='40' height='40' rx='20' fill='%23667eea'/><text x='50%' y='54%' font-family='Inter,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>AI</text></svg>`;
+        typingAvatar.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('ai-avatar') : '';
       }
       
       this.typingIndicator.classList.add('active');
@@ -924,18 +906,13 @@ const Chatbot = {
     
     navigator.clipboard.writeText(text).then(() => {
       button.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
+        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-success') : ''}
         Copied!
       `;
       
       setTimeout(() => {
         button.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
+          ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
           Copy
         `;
       }, 2000);
@@ -1013,9 +990,7 @@ const Chatbot = {
       : null;
     const userAvatar = userPhotoURL
       ? `<img src="${userPhotoURL}" alt="User" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
-      : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
-           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-         </svg>`;
+      : ((typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('avatar-user') : '');
     messageDiv.innerHTML = `
       <div class="message-avatar">${userAvatar}</div>
       <div class="message-content">
@@ -1047,10 +1022,7 @@ const Chatbot = {
         <div class="message-time">${time || ''}</div>
         <div class="message-actions">
           <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
+            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
             Copy
           </button>
         </div>

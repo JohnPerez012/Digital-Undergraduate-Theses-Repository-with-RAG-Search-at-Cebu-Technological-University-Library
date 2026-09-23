@@ -262,6 +262,11 @@ const Citation = {
     
     try {
       await navigator.clipboard.writeText(citationText);
+
+      // Log activity
+      if (window.ActivityService && typeof window.ActivityService.logCitation === 'function') {
+        window.ActivityService.logCitation(this.currentFormat, this.currentProject ? this.currentProject.title : '');
+      }
       
       // Show success feedback
       const button = document.querySelector('[data-action="copy-citation"]');

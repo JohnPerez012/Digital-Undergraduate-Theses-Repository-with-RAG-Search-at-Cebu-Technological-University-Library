@@ -210,10 +210,7 @@ const SearchHandler = {
     `;
     
     tooltip.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
+      ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
       <span>Login required</span>
       <span style="margin-left: 0.25rem; padding: 0.25rem 0.5rem; background: rgba(0, 0, 0, 0.3); border-radius: 6px; font-size: 0.75rem; animation: clickPulse 2s ease-in-out infinite;">
         Click to login
@@ -495,6 +492,11 @@ const SearchHandler = {
       
       console.log(`✓ Found ${result.filteredCount} relevant projects (from ${result.totalMatches} matches)`);
       
+      // Log activity
+      if (window.ActivityService && typeof window.ActivityService.logSearch === 'function') {
+        window.ActivityService.logSearch(query, result.filteredCount, true);
+      }
+
       // Display results using ProjectList if available
       if (typeof window.ProjectList !== 'undefined') {
         window.ProjectList.displaySearchResults(result.projects, query, true); // true = isRAGSearch
@@ -553,6 +555,11 @@ const SearchHandler = {
       
       console.log(`✓ Found ${filteredProjects.length} matching projects`);
       
+      // Log activity
+      if (window.ActivityService && typeof window.ActivityService.logSearch === 'function') {
+        window.ActivityService.logSearch(query, filteredProjects.length, false);
+      }
+
       if (filteredProjects.length === 0) {
         this.showNoResults(query);
         return;
@@ -612,10 +619,7 @@ const SearchHandler = {
       const searchType = this.useAISearch ? 'AI semantic search' : 'search';
       container.innerHTML = `
         <div class="empty-state" style="text-align: center; padding: 3rem;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 1rem;">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
+          ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('search-lg') : ''}
           <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem;">No Results Found</h3>
           <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
             No projects found matching "${this.escapeHtml(query)}" using ${searchType}.
