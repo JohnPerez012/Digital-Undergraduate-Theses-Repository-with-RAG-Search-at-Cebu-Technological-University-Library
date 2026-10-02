@@ -338,13 +338,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td><span class="badge ${statusClass}">${status}</span></td>
                     <td>
                         <div class="table-actions">
-                            <button class="action-btn action-view" onclick="viewProject('${doc.id}')" title="View details">
+                            <button class="action-btn action-view" onclick="viewProject('${doc.id}')" title="View details" aria-label="View details">
                                 ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('view-sm') : ''}
-                                View
+                                <span class="action-btn-text">View</span>
                             </button>
-                            <button class="action-btn action-edit" onclick="editProject('${doc.id}')" title="Edit project">
+                            <button class="action-btn action-edit" onclick="editProject('${doc.id}')" title="Edit project" aria-label="Edit project">
                                 ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('edit-sm') : ''}
-                                Edit
+                                <span class="action-btn-text">Edit</span>
                             </button>
                         </div>
                     </td>
@@ -399,13 +399,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ${escapeHtml(data.program || 'N/A')} · ${escapeHtml(data.year || 'N/A')}
                     </div>
                     <div class="catalog-item-actions">
-                        <button class="action-btn action-view" onclick="viewProject('${doc.id}')">
+                        <button class="action-btn action-view" onclick="viewProject('${doc.id}')" title="View details" aria-label="View details">
                             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('view-sm') : ''}
-                            View
+                            <span class="action-btn-text">View</span>
                         </button>
-                        <button class="action-btn action-edit" onclick="editProject('${doc.id}')">
+                        <button class="action-btn action-edit" onclick="editProject('${doc.id}')" title="Edit project" aria-label="Edit project">
                             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('edit-sm') : ''}
-                            Edit
+                            <span class="action-btn-text">Edit</span>
                         </button>
                     </div>
                 `;

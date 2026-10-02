@@ -18,7 +18,17 @@ const Citation = {
     console.log('Project data:', projectData);
     
     if (!projectData) {
-      alert('No project data available. Please select a project first.');
+      if (typeof showToast === 'function') {
+        showToast('No project data available. Please select a project first.', 'warning');
+      } else if (window.ModalDialog) {
+        ModalDialog.alert({
+          title: 'Project Data Missing',
+          message: 'No project data available. Please select a project first.',
+          type: 'warning'
+        });
+      } else {
+        alert('No project data available. Please select a project first.');
+      }
       return;
     }
 
@@ -27,7 +37,17 @@ const Citation = {
       console.log('Parsed project:', this.currentProject);
     } catch (error) {
       console.error('Error parsing project data:', error);
-      alert('Error loading project data.');
+      if (typeof showToast === 'function') {
+        showToast('Error loading project data.', 'error');
+      } else if (window.ModalDialog) {
+        ModalDialog.alert({
+          title: 'Data Parsing Error',
+          message: 'Failed to load project details for citation.',
+          type: 'danger'
+        });
+      } else {
+        alert('Error loading project data.');
+      }
       return;
     }
 
@@ -290,7 +310,17 @@ const Citation = {
       selection.removeAllRanges();
       selection.addRange(range);
       
-      alert('Citation text selected. Press Ctrl+C (or Cmd+C on Mac) to copy.');
+      if (window.ModalDialog) {
+        ModalDialog.alert({
+          title: 'Copy Citation',
+          message: 'Citation text has been selected. Press Ctrl+C (or Cmd+C on Mac) to copy it to your clipboard.',
+          type: 'info'
+        });
+      } else if (typeof showToast === 'function') {
+        showToast('Press Ctrl+C to copy selected citation', 'info');
+      } else {
+        alert('Citation text selected. Press Ctrl+C (or Cmd+C on Mac) to copy.');
+      }
     }
   },
 

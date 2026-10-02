@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -16,12 +16,15 @@
     <title>RE-CAPS - Home</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap"
+        rel="stylesheet">
 
 
-    <link rel="stylesheet" href="css/shared/style.css?v=2.2">
+    <link rel="stylesheet" href="css/shared/style.css?v=2.3">
     <link rel="stylesheet" href="css/home/project-list.css?v=2.1">
     <link rel="stylesheet" href="css/shared/toast.css">
+    <link rel="stylesheet" href="css/shared/modal-dialog.css">
     <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.1">
     <link rel="stylesheet" href="css/home/rag-styles.css">
     <link rel="stylesheet" href="css/projectDetails/view_project_details.css?v=2.1">
@@ -48,10 +51,12 @@
             align-items: center;
             overflow: hidden;
         }
+
         /* Respect data-theme light mode */
         [data-theme="light"] #recaps-static-intro {
             background-color: #f8fafc;
         }
+
         /* Respect OS-level light preference when no data-theme is set yet */
         @media (prefers-color-scheme: light) {
             :root:not([data-theme]) #recaps-static-intro {
@@ -59,16 +64,17 @@
             }
         }
     </style>
-    
+
     <!-- Inline Header Injection -->
     <script>
-        (function() {
+        (function () {
             const headerHTML = `
                 <div class="container">
                     <div class="header-content">
-                        <div class="logo-container">
+                        <a href="index.html" class="logo-container" aria-label="RECAPS Home">
                             <img src="assets/logo.png" alt="RE-CAPS Logo" class="logo-img">
-                        </div>
+                            <span class="logo-text">RECAPS</span>
+                        </a>
 
                         <div class="nav-container">
                             <nav class="nav-menu">
@@ -165,44 +171,67 @@
         })();
     </script>
 
-    
+
     <script src="js/shared/svg/svg-loader.js"></script>
     <script src="js/shared/svg/svg-registry.js"></script>
     <script src="js/home/ai-particles.js"></script>
     <script src="js/home/cinematic-slider.js"></script>
-    
+
     <style>
         /* Unified View Styles with Smooth Transitions */
         .view-mode-container {
             display: none;
             opacity: 0;
             transform: translateY(20px);
-            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .view-mode-container.active {
             display: block;
             animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
-        
+
+        /* Crucial: Prevent #chatbot-view from creating a CSS transform containing block
+           so that .floating-actions remains statically fixed to the exact vertical middle of the viewport */
+        #chatbot-view.view-mode-container {
+            transform: none !important;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #chatbot-view.view-mode-container.active {
+            display: block !important;
+            transform: none !important;
+            animation: chatbotViewFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+        }
+
+        @keyframes chatbotViewFadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         /* AI Semantic Search Particle Effect */
         .search-section {
             position: relative;
             overflow: hidden;
         }
-        
+
         .ai-particles-canvas {
             position: absolute;
             top: 0;
@@ -214,23 +243,84 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        
+
         .ai-particles-canvas.active {
             opacity: 1;
         }
-        
+
         .search-container {
             position: relative;
             z-index: 2;
         }
-        
+
         /* Particle glow animation */
         @keyframes particleGlow {
-            0%, 100% {
+
+            0%,
+            100% {
                 filter: brightness(1) blur(0px);
             }
+
             50% {
                 filter: brightness(1.5) blur(1px);
+            }
+        }
+        /* Logo and Website Title */
+        .logo-container {
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .logo-container:hover {
+            opacity: 0.92;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.04em;
+            font-family: var(--font-primary);
+            line-height: 1;
+            transition: color 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .logo-container:hover .logo-text {
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .logo-img {
+                height: 34px;
+            }
+            .logo-text {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-container {
+                gap: 0.5rem;
+            }
+            .logo-img {
+                height: 30px;
+            }
+            .logo-text {
+                font-size: 1.05rem;
             }
         }
     </style>
@@ -242,7 +332,66 @@
          JS will take ownership of this element and animate it. -->
     <div id="recaps-static-intro" aria-hidden="true"></div>
     <div class="header-wrapper">
-        <header class="header"></header>
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <a href="index.html" class="logo-container" aria-label="RECAPS Home">
+                        <img src="assets/logo.png" alt="RE-CAPS Logo" class="logo-img">
+                        <span class="logo-text">RECAPS</span>
+                    </a>
+
+                    <div class="nav-container">
+                        <nav class="nav-menu">
+                            <button id="theme-toggle" class="theme-toggle-btn" aria-label="Switch to light mode">
+                            </button>
+                            <a href="pages/about_page.html" class="nav-link" id="about-nav-link">About</a>
+                            <a href="#" class="nav-link" id="login-nav-link">Login</a>
+                            <div class="profile-dropdown-wrapper" id="profile-link" style="display: none;">
+                                <div class="profile-img-trigger" id="profile-img-trigger" role="button" aria-haspopup="true" aria-expanded="false">
+                                    <img id="profile-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="Profile">
+                                </div>
+                                <div class="profile-dropdown-panel" id="profile-dropdown-panel">
+                                    <div class="pd-avatar">
+                                        <img id="pd-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="Profile">
+                                    </div>
+                                    <div class="pd-divider"></div>
+                                    <div class="pd-row" id="pd-dashboard-row" style="cursor:pointer;">
+                                        <span class="pd-row-label">
+                                            <span id="pd-dashboard-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
+                                            Dashboard
+                                        </span>
+                                        <span id="pd-dashboard-arrow" style="display:inline-flex;"></span>
+                                    </div>
+                                    <div class="pd-divider"></div>
+                                    <div class="pd-row" id="pd-about-row" style="cursor:pointer;" onclick="window.location.href='pages/about_page.html'">
+                                        <span class="pd-row-label">
+                                            <span id="pd-about-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
+                                            About
+                                        </span>
+                                        <span id="pd-about-arrow" style="display:inline-flex;"></span>
+                                    </div>
+                                    <div class="pd-divider"></div>
+                                    <div class="pd-row">
+                                        <span class="pd-row-label">
+                                            <span id="pd-moon-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
+                                            Dark Mode
+                                        </span>
+                                        <button class="pd-theme-toggle" id="pd-theme-toggle" aria-label="Toggle dark mode"></button>
+                                    </div>
+                                    <div class="pd-divider"></div>
+                                    <div class="pd-logout-row">
+                                        <button class="pd-logout-btn" id="pd-logout-btn">
+                                            <span id="pd-logout-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
+                                            Log out
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </header>
 
         <!-- Secondary Sticky Header -->
         <nav class="secondary-header secondary-inside-header" aria-label="Secondary navigation">
@@ -260,7 +409,7 @@
         </nav>
     </div>
 
-    <main >
+    <main>
         <!-- Home/Search View -->
         <div id="home-view" class="view-mode-container active">
             <section class="search-section">
@@ -268,16 +417,17 @@
                 <div class="slider-background">
                     <div class="slide-track" id="slideTrack"></div>
                 </div>
-                
+
                 <canvas class="ai-particles-canvas" id="ai-particles-canvas"></canvas>
                 <div class="container">
                     <div class="search-container">
                         <h1 class="search-title">Find Your Next Research Breakthrough</h1>
                         <!-- <p class="search-subtitle">Search thousands of capstone projects from CTU Daanbantayan Campus</p> -->
 
-<p class="search-subtitle">
-    Search thousands of undergraduate <span id="dynamic-term" class="glitch-shuffle">capstone</span> projects from CTU Daanbantayan Campus
-</p>
+                        <p class="search-subtitle">
+                            Search thousands of undergraduate <span id="dynamic-term"
+                                class="glitch-shuffle">capstone</span> projects from CTU Daanbantayan Campus
+                        </p>
 
                         <div class="search-bar-wrapper">
                             <div class="search-bar">
@@ -411,7 +561,7 @@
                     <h2>No project selected yet</h2>
                     <p>Go back to the search page and select a project to view its details.</p>
                 </div>
-                
+
                 <div class="details-grid-new" id="details-grid" hidden>
                     <div class="details-main-content" id="details-left">
                         <!-- Main content injected via JS -->
@@ -434,18 +584,22 @@
                     <div class="deco-circle deco-circle-4"></div>
                 </div>
 
-                <!-- Floating Actions -->
-                <div class="floating-actions">
-                    <button class="floating-btn" id="history-btn" aria-label="View chat history">
+                <!-- Floating Action Dock -->
+                <div class="floating-actions" role="toolbar" aria-label="Chatbot quick tools">
+                    <button class="floating-btn" id="new-chat-dock-btn" aria-label="Start new conversation" data-tooltip="New Chat">
+                        <span id="new-chat-dock-icon"></span>
+                    </button>
+                    <button class="floating-btn" id="history-btn" aria-label="View chat history" data-tooltip="Chat History">
                         <span id="history-btn-icon"></span>
                     </button>
-                    <button class="floating-btn" id="clear-btn" aria-label="Clear conversation" style="display: none;">
+                    <button class="floating-btn" id="clear-btn" aria-label="Clear conversation" style="display: none;" data-tooltip="Clear Chat">
                         <span id="clear-btn-icon"></span>
                     </button>
-                    <button class="floating-btn" id="export-btn" aria-label="Export conversation" style="display: none;">
+                    <button class="floating-btn" id="export-btn" aria-label="Export conversation"
+                        style="display: none;" data-tooltip="Export Chat">
                         <span id="export-btn-icon"></span>
                     </button>
-                    <button class="floating-btn" id="settings-btn" aria-label="Chatbot settings">
+                    <button class="floating-btn" id="settings-btn" aria-label="Chatbot settings" data-tooltip="Settings">
                         <span id="settings-btn-icon"></span>
                     </button>
                 </div>
@@ -455,16 +609,68 @@
                     <div class="messages-container" id="messages-container">
                         <!-- Welcome Screen -->
                         <div class="welcome-screen" id="welcome-screen">
-                            <h2>Here's your chatbot assistant, <span id="user-name-display">Guest</span>!</h2>
+
+                            <h2 class="welcome-title">Here's your chatbot assistant, <span class="welcome-user-gradient" id="user-name-display">Guest</span>!</h2>
+                            <p class="welcome-subtitle">Explore undergraduate capstone projects, brainstorm research topics, analyze projects, or get academic citation help.</p>
+
+                            <!-- Interactive Prompt Starter Cards -->
+                            <div class="prompt-suggestions-grid">
+                                <button type="button" class="prompt-card" data-prompt="Search for recent capstone projects about IoT-based smart agriculture or environmental monitoring systems">
+                                    <div class="prompt-card-header">
+                                        <span class="prompt-card-icon">🔍</span>
+                                        <span class="prompt-card-tag">Literature</span>
+                                    </div>
+                                    <div class="prompt-card-title">Explore Capstones</div>
+                                    <div class="prompt-card-text">"Find capstones about smart IoT or monitoring systems"</div>
+                                    <span class="prompt-card-arrow">↗</span>
+                                </button>
+
+                                <button type="button" class="prompt-card" data-prompt="Suggest 3 innovative and feasible capstone project ideas for Information Technology students">
+                                    <div class="prompt-card-header">
+                                        <span class="prompt-card-icon">💡</span>
+                                        <span class="prompt-card-tag">Ideation</span>
+                                    </div>
+                                    <div class="prompt-card-title">Brainstorm Ideas</div>
+                                    <div class="prompt-card-text">"Suggest 3 feasible capstone ideas for IT students"</div>
+                                    <span class="prompt-card-arrow">↗</span>
+                                </button>
+
+                                <button type="button" class="prompt-card" data-prompt="What are the essential components and best practices for writing a Capstone Methodology chapter?">
+                                    <div class="prompt-card-header">
+                                        <span class="prompt-card-icon">📊</span>
+                                        <span class="prompt-card-tag">Writing</span>
+                                    </div>
+                                    <div class="prompt-card-title">Methodology Guide</div>
+                                    <div class="prompt-card-text">"How do I write an effective Capstone methodology?"</div>
+                                    <span class="prompt-card-arrow">↗</span>
+                                </button>
+
+                                <button type="button" class="prompt-card" data-prompt="How do I format an APA 7th edition citation for an undergraduate capstone thesis?">
+                                    <div class="prompt-card-header">
+                                        <span class="prompt-card-icon">📝</span>
+                                        <span class="prompt-card-tag">Citing</span>
+                                    </div>
+                                    <div class="prompt-card-title">Citation Helper</div>
+                                    <div class="prompt-card-text">"Format an APA 7th citation for a thesis"</div>
+                                    <span class="prompt-card-arrow">↗</span>
+                                </button>
+                            </div>
+
                         </div>
 
                         <!-- Typing Indicator -->
                         <div class="typing-indicator" id="typing-indicator">
                             <div class="message-avatar">🤖</div>
                             <div class="typing-bubble">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
+                                <div class="typing-provider-status">
+                                    <span class="typing-provider-name" id="typing-provider-name">Mistral</span>
+                                    <span class="typing-status-text">is thinking</span>
+                                </div>
+                                <div class="typing-dots-wrap">
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -472,18 +678,23 @@
                     <!-- Input Area -->
                     <div class="input-container">
                         <div class="input-wrapper">
-                            <textarea 
-                                class="input-field" 
-                                id="user-input" 
-                                placeholder="Type your message here..."
-                                rows="1"
-                            ></textarea>
+                            <textarea class="input-field" id="user-input" placeholder="Ask anything about capstones, methodologies, authors, or research topics... (Enter to send)"
+                                rows="1"></textarea>
                             <div class="input-footer">
-                                <span class="char-counter" id="char-counter">0 / 500</span>
-                                <button class="send-btn" id="send-btn" disabled aria-label="Send message">
-                                    <span id="send-btn-icon"></span>
-                                </button>
+                                <div class="input-shortcuts-hint">
+                                    <span><kbd>Enter ↵</kbd> Send</span>
+                                    <span><kbd>Shift + Enter</kbd> New line</span>
+                                </div>
+                                <div class="input-controls-right">
+                                    <span class="char-counter" id="char-counter">0 / 500</span>
+                                    <button class="send-btn btn-hidden" id="send-btn" disabled aria-label="Send message">
+                                        <span id="send-btn-icon"></span>
+                                    </button>
+                                </div>
                             </div>
+                        </div>
+                        <div class="chat-input-disclaimer">
+                            RE-CAPS AI references archived undergraduate research papers. Please verify details with your academic adviser.
                         </div>
                     </div>
                 </main>
@@ -530,7 +741,7 @@
             <!-- Right Side - Login Form -->
             <div class="login-right-panel">
                 <button class="modal-close login-modal-close">&times;</button>
-                
+
                 <div class="login-form-wrapper">
                     <h2 class="login-title">Login to RE-CAPS</h2>
                     <p class="login-subtitle">Enter your credentials to continue</p>
@@ -539,7 +750,8 @@
                         <label class="form-label modern-label">Email</label>
                         <div class="input-with-icon">
                             <span id="login-email-icon" class="input-icon"></span>
-                            <input type="email" id="login-email" class="form-input modern-input" placeholder="your@email.com">
+                            <input type="email" id="login-email" class="form-input modern-input"
+                                placeholder="your@email.com">
                         </div>
                         <div class="field-error" id="email-error"></div>
                     </div>
@@ -548,8 +760,10 @@
                         <label class="form-label modern-label">Password</label>
                         <div class="input-with-icon">
                             <span id="login-password-icon" class="input-icon"></span>
-                            <input type="password" id="login-password" class="form-input modern-input" placeholder="••••••••">
-                            <button type="button" class="toggle-password-btn modern-toggle-password" data-target="login-password" aria-label="Toggle password visibility">
+                            <input type="password" id="login-password" class="form-input modern-input"
+                                placeholder="••••••••">
+                            <button type="button" class="toggle-password-btn modern-toggle-password"
+                                data-target="login-password" aria-label="Toggle password visibility">
                                 <!-- Password toggle icons loaded dynamically -->
                             </button>
                         </div>
@@ -579,7 +793,7 @@
                     </button>
 
                     <p class="signup-link">
-                        Don't have an account? 
+                        Don't have an account?
                         <a href="pages/account_registration.html" class="link-animated">Register here</a>
                     </p>
                 </div>
@@ -592,17 +806,17 @@
         <div class="modal-backdrop" onclick="closeChatbotModal('history-modal')"></div>
         <div class="modal-content" style="max-width: 560px; width: 95%;">
             <h2 class="modal-title">Chat History</h2>
-            
+
             <!-- New Conversation Button (shown only if < 3 conversations) -->
-            <button class="btn btn-primary btn-full" id="new-conversation-modal-btn" style="display: none; margin-bottom: 1rem;">
+            <button class="btn btn-primary btn-full" id="new-conversation-modal-btn"
+                style="display: none; margin-bottom: 1rem;">
                 <span id="new-conversation-icon"></span>
                 New Conversation
             </button>
-            
+
             <div id="history-modal-body" style="min-height: 120px; margin-bottom: 1.5rem;">
                 <p style="text-align:center; color:var(--text-secondary);">Loading…</p>
             </div>
-            <button class="btn btn-primary btn-full" onclick="closeChatbotModal('history-modal')">Close</button>
             <button class="modal-close" onclick="closeChatbotModal('history-modal')">&times;</button>
         </div>
     </div>
@@ -615,49 +829,189 @@
             <div id="countdown-badge" class="countdown-badge" style="display: none;">
                 <span id="countdown-number">5</span>
             </div>
-            
+
             <h2 class="modal-title">Clear Conversation</h2>
             <p style="text-align: center; color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 2rem;">
                 Are you sure you want to delete the conversation? This action cannot be undone.
             </p>
             <div class="login-buttons-row">
                 <button class="btn btn-secondary btn-flex" onclick="closeChatbotModal('clear-modal')">Cancel</button>
-                <button class="btn btn-danger btn-flex" id="delete-confirm-btn" onclick="handleDeleteClick()" disabled>Yes, Delete</button>
+                <button class="btn btn-danger btn-flex" id="delete-confirm-btn" onclick="handleDeleteClick()"
+                    disabled>Yes, Delete</button>
             </div>
             <button class="modal-close" onclick="closeChatbotModal('clear-modal')">&times;</button>
         </div>
     </div>
 
     <!-- Export Modal -->
-    <div id="export-modal" class="modal">
+    <div id="export-modal" class="modal export-modal-modern">
         <div class="modal-backdrop" onclick="closeChatbotModal('export-modal')"></div>
-        <div class="modal-content">
-            <h2 class="modal-title">Export Successful</h2>
-            <div style="text-align: center; margin-bottom: 2rem;">
-                <span id="export-success-icon"></span>
-                <p style="color: var(--text-secondary); font-size: 1.05rem;" id="export-modal-body">Your conversation has been successfully exported as a markdown file.</p>
+        <div class="modal-content" style="max-width: 520px; width: 95%;">
+            <div class="export-modal-header">
+                <div class="export-modal-icon-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </div>
+                <div>
+                    <h2 class="modal-title" style="margin: 0; text-align: left;">Export Conversation</h2>
+                    <p style="margin: 0.25rem 0 0; color: var(--text-secondary); font-size: 0.88rem;">Review conversation metrics and customize your export filename.</p>
+                </div>
             </div>
-            <button class="btn btn-primary btn-full" onclick="closeChatbotModal('export-modal')">Awesome</button>
+
+            <!-- Transparency / Conversation Metrics Card -->
+            <div class="export-metrics-card">
+                <div class="export-metric-item">
+                    <span class="export-metric-label">Estimated Size</span>
+                    <span class="export-metric-value" id="export-metric-size">0 KB</span>
+                </div>
+                <div class="export-metric-item">
+                    <span class="export-metric-label">Total Messages</span>
+                    <span class="export-metric-value" id="export-metric-count">0 messages</span>
+                </div>
+                <div class="export-metric-item">
+                    <span class="export-metric-label">Word Count</span>
+                    <span class="export-metric-value" id="export-metric-words">~0 words</span>
+                </div>
+                <div class="export-metric-item">
+                    <span class="export-metric-label">Export Format</span>
+                    <span class="export-metric-value" id="export-metric-format">Markdown (.md)</span>
+                </div>
+            </div>
+
+            <!-- Filename Input -->
+            <div class="export-field-group">
+                <div class="export-field-label-row">
+                    <label for="export-filename-input" class="export-field-label">Custom File Name</label>
+                    <span class="export-optional-badge">Optional</span>
+                </div>
+                <div class="export-input-wrap">
+                    <input type="text" id="export-filename-input" class="export-text-input" placeholder="recap-chat-2026-09-30" autocomplete="off">
+                    <span class="export-extension-badge" id="export-extension-label">.md</span>
+                </div>
+                <span class="export-field-hint">Leave blank to use default: <code id="export-default-preview">recap-chat-...md</code></span>
+            </div>
+
+            <!-- Format Selector -->
+            <div class="export-format-selector">
+                <label class="export-format-option">
+                    <input type="radio" name="export-file-format" value="md" checked>
+                    <span>Markdown (.md)</span>
+                </label>
+                <label class="export-format-option">
+                    <input type="radio" name="export-file-format" value="txt">
+                    <span>Plain Text (.txt)</span>
+                </label>
+            </div>
+
+            <!-- Actions -->
+            <div class="export-modal-actions">
+                <button type="button" class="btn btn-secondary btn-flex" onclick="closeChatbotModal('export-modal')">Cancel</button>
+                <button type="button" class="btn btn-primary btn-flex" id="export-confirm-download-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Download File</span>
+                </button>
+            </div>
             <button class="modal-close" onclick="closeChatbotModal('export-modal')">&times;</button>
         </div>
     </div>
 
     <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
+    <div id="settings-modal" class="modal chatbot-settings-modal">
         <div class="modal-backdrop" onclick="closeChatbotModal('settings-modal')"></div>
-        <div class="modal-content">
-            <h2 class="modal-title">Settings</h2>
-            <div style="color: var(--text-primary); margin-bottom: 2rem;">
-                <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary);">Current Configuration:</p>
-                <ul style="list-style-type: disc; padding-left: 1.5rem; line-height: 1.8;">
-                    <li><strong>AI Providers:</strong> 4 (Mistral → Groq → Gemini → OpenRouter)</li>
-                    <li><strong>RAG Search:</strong> Enabled</li>
-                    <li><strong>Min Relevance Score:</strong> 0.3</li>
-                </ul>
-                <div class="divider"></div>
-                <p style="text-align: center; font-style: italic;">Full Settings panel coming soon!</p>
+        <div class="modal-content" style="max-width: 540px; width: 95%;">
+            <div class="settings-modal-header">
+                <div class="settings-modal-icon-wrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </div>
+                <div>
+                    <h2 class="modal-title" style="margin: 0; text-align: left;">AI Chatbot Settings</h2>
+                    <p style="margin: 0.25rem 0 0; color: var(--text-secondary); font-size: 0.88rem;">Customize provider preferences, repository search, and response style.</p>
+                </div>
             </div>
-            <button class="btn btn-primary btn-full" onclick="closeChatbotModal('settings-modal')">Got it</button>
+
+            <div class="settings-modal-body">
+                <!-- Setting 1: Primary AI Engine -->
+                <div class="setting-item-card">
+                    <div class="setting-item-info">
+                        <label class="setting-item-label" for="setting-preferred-provider">Preferred Primary AI</label>
+                        <p class="setting-item-desc">First engine attempted. If busy, auto-falls back down the 4-tier chain.</p>
+                    </div>
+                    <div class="setting-item-control">
+                        <select id="setting-preferred-provider" class="setting-select">
+                            <option value="Mistral">Mistral AI (Recommended)</option>
+                            <option value="Groq">Groq AI (Llama 3.3 70B)</option>
+                            <option value="Gemini">Google Gemini</option>
+                            <option value="OpenRouter">OpenRouter (Multi-Model)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Setting 2: RAG Semantic Search Toggle -->
+                <div class="setting-item-card">
+                    <div class="setting-item-info">
+                        <span class="setting-item-label">Campus Thesis Search (RAG)</span>
+                        <p class="setting-item-desc">Ground AI answers using CTU Daanbantayan Capstone vector database.</p>
+                    </div>
+                    <div class="setting-item-control">
+                        <label class="setting-toggle-switch">
+                            <input type="checkbox" id="setting-rag-enabled" checked>
+                            <span class="setting-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Setting 3: Response Detail Depth -->
+                <div class="setting-item-card">
+                    <div class="setting-item-info">
+                        <span class="setting-item-label">Response Detail Depth</span>
+                        <p class="setting-item-desc">Select how structured and comprehensive responses should be.</p>
+                    </div>
+                    <div class="setting-style-pills" role="radiogroup" id="setting-response-style-group">
+                        <button type="button" class="setting-style-pill" data-style="concise">Concise</button>
+                        <button type="button" class="setting-style-pill active" data-style="balanced">Balanced</button>
+                        <button type="button" class="setting-style-pill" data-style="detailed">Detailed</button>
+                    </div>
+                </div>
+
+                <!-- Setting 4: Automatic Citations -->
+                <div class="setting-item-card">
+                    <div class="setting-item-info">
+                        <span class="setting-item-label">Auto-Format Academic Citations</span>
+                        <p class="setting-item-desc">Automatically append formatted references when projects are cited.</p>
+                    </div>
+                    <div class="setting-item-control">
+                        <label class="setting-toggle-switch">
+                            <input type="checkbox" id="setting-auto-citation" checked>
+                            <span class="setting-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Setting 5: Streaming Typewriter Animation -->
+                <div class="setting-item-card">
+                    <div class="setting-item-info">
+                        <span class="setting-item-label">Real-time Streaming Animation</span>
+                        <p class="setting-item-desc">Display smooth typewriter text generation token by token.</p>
+                    </div>
+                    <div class="setting-item-control">
+                        <label class="setting-toggle-switch">
+                            <input type="checkbox" id="setting-streaming-enabled" checked>
+                            <span class="setting-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Active Fallback Chain Visualizer -->
+                <div class="settings-cascade-badge">
+                    <span class="cascade-badge-icon">🛡️</span>
+                    <span class="cascade-badge-text"><strong>4-Tier High Availability Active:</strong> <span id="cascade-order-preview">Mistral → Groq → Gemini → OpenRouter</span></span>
+                </div>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="settings-modal-actions">
+                <button type="button" class="btn btn-secondary btn-flex" id="setting-reset-defaults-btn">Reset Defaults</button>
+                <button type="button" class="btn btn-primary btn-flex" id="setting-save-btn">Save Changes</button>
+            </div>
             <button class="modal-close" onclick="closeChatbotModal('settings-modal')">&times;</button>
         </div>
     </div>
@@ -666,18 +1020,15 @@
     <div id="delete-history-modal" class="modal">
         <div class="modal-backdrop" onclick="closeChatbotModal('delete-history-modal')"></div>
         <div class="modal-content" style="position: relative;">
-            <!-- Countdown Badge (Top Right Corner) -->
-            <div id="delete-history-countdown-badge" class="countdown-badge" style="display: none;">
-                <span id="delete-history-countdown-number">5</span>
-            </div>
-            
             <h2 class="modal-title">Delete Conversation</h2>
             <p style="text-align: center; color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 2rem;">
                 Are you sure you want to delete this conversation? This action cannot be undone.
             </p>
             <div class="login-buttons-row">
-                <button class="btn btn-secondary btn-flex" onclick="closeChatbotModal('delete-history-modal')">Cancel</button>
-                <button class="btn btn-danger btn-flex" id="delete-history-confirm-btn" onclick="handleDeleteHistoryClick()" disabled>Yes, Delete</button>
+                <button class="btn btn-secondary btn-flex"
+                    onclick="closeChatbotModal('delete-history-modal')">Cancel</button>
+                <button class="btn btn-danger btn-flex" id="delete-history-confirm-btn"
+                    onclick="executeDeleteHistory()">Yes, Delete</button>
             </div>
             <button class="modal-close" onclick="closeChatbotModal('delete-history-modal')">&times;</button>
         </div>
@@ -691,27 +1042,33 @@
             <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1.5rem;">
                 Select a citation format and copy to your clipboard:
             </p>
-            
-            <div class="citation-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border);">
-                <button class="citation-tab active" data-format="apa" onclick="Citation.switchFormat('apa')" style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
+
+            <div class="citation-tabs"
+                style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border);">
+                <button class="citation-tab active" data-format="apa" onclick="Citation.switchFormat('apa')"
+                    style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
                     APA 7th
                 </button>
-                <button class="citation-tab" data-format="mla" onclick="Citation.switchFormat('mla')" style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
+                <button class="citation-tab" data-format="mla" onclick="Citation.switchFormat('mla')"
+                    style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
                     MLA 9th
                 </button>
-                <button class="citation-tab" data-format="chicago" onclick="Citation.switchFormat('chicago')" style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
+                <button class="citation-tab" data-format="chicago" onclick="Citation.switchFormat('chicago')"
+                    style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
                     Chicago
                 </button>
-                <button class="citation-tab" data-format="ieee" onclick="Citation.switchFormat('ieee')" style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
+                <button class="citation-tab" data-format="ieee" onclick="Citation.switchFormat('ieee')"
+                    style="flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text-primary); font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;">
                     IEEE
                 </button>
             </div>
-            
-    
-            <div id="citation-text" style=" user-select: none; background: var(--surface); padding: 1.5rem; border-radius: 12px; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.7; color: var(--text-primary); margin-bottom: 1.5rem; border: 1px solid var(--border); min-height: 120px;">
+
+
+            <div id="citation-text"
+                style=" user-select: none; background: var(--surface); padding: 1.5rem; border-radius: 12px; font-family: 'Georgia', serif; font-size: 0.95rem; line-height: 1.7; color: var(--text-primary); margin-bottom: 1.5rem; border: 1px solid var(--border); min-height: 120px;">
                 <!-- Citation text will be generated here -->
             </div>
-            
+
             <div style="display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary btn-flex" onclick="Citation.copyCitation()" data-action="copy-citation">
                     <span id="citation-copy-icon"></span>
@@ -719,11 +1076,12 @@
                 </button>
                 <button class="btn btn-secondary btn-flex" onclick="Citation.closeCitationModal()">Close</button>
             </div>
-            
+
             <p style="font-size: 0.8rem; color: red; text-align: center; margin-top: 1rem;">
-                <strong>Note:</strong> This citation is automatically generated. Please verify formatting according CTU guidelines.
+                <strong>Note:</strong> This citation is automatically generated. Please verify formatting according CTU
+                guidelines.
             </p>
-            
+
             <button class="modal-close" onclick="Citation.closeCitationModal()">&times;</button>
         </div>
     </div>
@@ -740,35 +1098,36 @@
     <script src="js/shared/svg/svg-registry.js"></script>
     <script src="js/shared/svg/svg-init.js"></script>
 
-    <script src="js/shared/toast.js"  ></script>
+    <script src="js/shared/toast.js"></script>
+    <script src="js/shared/modal-dialog.js"></script>
     <script src="js/shared/text-protection.js"></script>
-    <script src="js/shared/network-monitor.js"  ></script>
-    <script src="js/shared/main.js"  ></script>
-    <script src="js/shared/theme-toggle.js"  ></script>
+    <script src="js/shared/network-monitor.js"></script>
+    <script src="js/shared/main.js"></script>
+    <script src="js/shared/theme-toggle.js"></script>
     <script src="js/shared/activity-service.js"></script>
     <script src="js/shared/guest-storage.js"></script>
-    <script src="js/shared/auth-modal.js"  ></script>
+    <script src="js/shared/auth-modal.js"></script>
     <script src="js/shared/smooth-scroll.js?v=2"></script>
 
     <!-- RAG Service for AI Semantic Search -->
-    <script src="RAG/rag-service.js"  ></script>
-    
-    <script src="js/home/project-list.js"  ></script>
-    <script src="js/home/search-handler.js"  ></script>
-    <script src="js/shared/user-dashboard.js"  ></script>
-    
+    <script src="RAG/rag-service.js"></script>
+
+    <script src="js/home/project-list.js"></script>
+    <script src="js/home/search-handler.js"></script>
+    <script src="js/shared/user-dashboard.js"></script>
+
     <!-- Chatbot Scripts -->
-    <script src="js/chatbot/ai-service.js"  ></script>
-    <script src="js/chatbot/chat-service.js"  ></script>
-    <script src="js/chatbot/message-formatter.js"  ></script>
-    <script src="js/chatbot/chatbot.js"  ></script>
-    
+    <script src="js/chatbot/ai-service.js"></script>
+    <script src="js/chatbot/chat-service.js"></script>
+    <script src="js/chatbot/message-formatter.js"></script>
+    <script src="js/chatbot/chatbot.js"></script>
+
     <!-- Citation Module -->
     <script src="js/projectDetails/citation.js"></script>
-    
+
     <!-- Cloudinary Image Service -->
     <script src="js/shared/cloudinary-service.js"></script>
-    
+
     <!-- Header Scroll & View Scroll State Managers -->
     <script src="js/shared/scroll-aware-header.js"></script>
     <script src="js/shared/scroll-state-manager.js"></script>
@@ -778,7 +1137,7 @@
 
     <!-- Chatbot Modal Functions -->
     <script>
-         if (typeof firebase !== 'undefined' && firebase.auth) {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
             firebase.auth().onAuthStateChanged((user) => {
                 const userNameDisplay = document.getElementById('user-name-display');
                 if (userNameDisplay) {
@@ -798,30 +1157,25 @@
         function showChatbotModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.add('active');
-            
+
             // Special handling for clear-modal: start countdown
             if (modalId === 'clear-modal') {
                 startDeleteCountdown();
-            }
-            
-            // Special handling for delete-history-modal: start countdown
-            if (modalId === 'delete-history-modal') {
-                startDeleteHistoryCountdown();
             }
         }
 
         function closeChatbotModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.remove('active');
-            
+
             // Special handling for clear-modal: stop countdown
             if (modalId === 'clear-modal') {
                 stopDeleteCountdown();
             }
-            
-            // Special handling for delete-history-modal: stop countdown
+
             if (modalId === 'delete-history-modal') {
-                stopDeleteHistoryCountdown();
+                pendingDeleteConversationId = null;
+                pendingDeleteConversationElement = null;
             }
         }
 
@@ -832,7 +1186,7 @@
 
         function handleDeleteClick() {
             const deleteBtn = document.getElementById('delete-confirm-btn');
-            
+
             // If button is enabled and countdown is between 1-4, execute deletion
             if (!deleteBtn.disabled && deleteCountdownValue > 0 && deleteCountdownValue < 5) {
                 if (typeof Chatbot !== 'undefined' && typeof Chatbot.executeClearConversation === 'function') {
@@ -849,29 +1203,29 @@
             const badge = document.getElementById('countdown-badge');
             const numberSpan = document.getElementById('countdown-number');
             const deleteBtn = document.getElementById('delete-confirm-btn');
-            
+
             // Reset values
             deleteCountdownValue = 5;
             numberSpan.textContent = deleteCountdownValue;
             badge.style.display = 'flex';
             deleteBtn.disabled = true;
             countdownActive = true;
-            
+
             // Clear any existing interval
             if (deleteCountdownInterval) {
                 clearInterval(deleteCountdownInterval);
             }
-            
+
             // Start countdown
             deleteCountdownInterval = setInterval(() => {
                 deleteCountdownValue--;
                 numberSpan.textContent = deleteCountdownValue;
-                
+
                 // Enable button when countdown is between 1-4
                 if (deleteCountdownValue > 0 && deleteCountdownValue < 5) {
                     deleteBtn.disabled = false;
                 }
-                
+
                 if (deleteCountdownValue <= 0) {
                     // Countdown finished - disable button
                     clearInterval(deleteCountdownInterval);
@@ -887,52 +1241,36 @@
                 clearInterval(deleteCountdownInterval);
                 deleteCountdownInterval = null;
             }
-            
+
             const badge = document.getElementById('countdown-badge');
             const deleteBtn = document.getElementById('delete-confirm-btn');
-            
+
             badge.style.display = 'none';
             deleteBtn.disabled = true;
             deleteCountdownValue = 5;
             countdownActive = false;
         }
 
-        // Countdown timer for delete history confirmation
-        let deleteHistoryCountdownInterval = null;
-        let deleteHistoryCountdownValue = 5;
-        let deleteHistoryCountdownActive = false;
+        // Pending delete conversation references
         let pendingDeleteConversationId = null;
         let pendingDeleteConversationElement = null;
 
-        function handleDeleteHistoryClick() {
-            const deleteBtn = document.getElementById('delete-history-confirm-btn');
-            
-            // If button is enabled and countdown is between 1-4, execute deletion
-            if (!deleteBtn.disabled && deleteHistoryCountdownValue > 0 && deleteHistoryCountdownValue < 5) {
-                executeDeleteHistory();
-            }
-            // If countdown reached 0, restart it
-            else if (deleteHistoryCountdownValue === 0) {
-                startDeleteHistoryCountdown();
-            }
-        }
-
         async function executeDeleteHistory() {
             if (!pendingDeleteConversationId) return;
-            
+
             const conversationIdToDelete = pendingDeleteConversationId;
             const elementToRemove = pendingDeleteConversationElement;
-            
+
             closeChatbotModal('delete-history-modal');
-            
+
             try {
                 if (typeof ChatService !== 'undefined') {
                     await ChatService.deleteConversation(conversationIdToDelete);
                 }
-                
+
                 if (typeof Chatbot !== 'undefined') {
                     Chatbot.invalidateConversationCache();
-                    
+
                     // If the deleted conversation was the active one, start a fresh conversation
                     if (sessionStorage.getItem('lastViewedConversation') === conversationIdToDelete) {
                         sessionStorage.removeItem('lastViewedConversation');
@@ -941,19 +1279,19 @@
                         }
                     }
                 }
-                
+
                 // Remove the conversation element from the list
                 if (elementToRemove) {
                     elementToRemove.remove();
                 }
-                
+
                 // Check if history is now empty
                 const historyBody = document.getElementById('history-modal-body');
                 const list = historyBody ? historyBody.querySelector('ul') : null;
                 if (list && list.children.length === 0) {
                     historyBody.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">No saved conversations yet.</p>';
                 }
-                
+
                 // Update "New Conversation" button visibility
                 const newConvModalBtn = document.getElementById('new-conversation-modal-btn');
                 if (newConvModalBtn && list) {
@@ -962,7 +1300,7 @@
                         newConvModalBtn.style.display = 'block';
                     }
                 }
-                
+
                 if (typeof showToast === 'function') {
                     showToast('Conversation deleted successfully', 'success');
                 }
@@ -970,67 +1308,19 @@
                 console.error('Failed to delete conversation:', error);
                 if (typeof showToast === 'function') {
                     showToast('Failed to delete conversation', 'error');
+                } else if (window.ModalDialog) {
+                    await ModalDialog.alert({
+                        title: 'Delete Failed',
+                        message: 'Failed to delete conversation. Please try again.',
+                        type: 'danger'
+                    });
                 } else {
                     alert('Failed to delete conversation. Please try again.');
                 }
             }
         }
 
-        function startDeleteHistoryCountdown() {
-            const badge = document.getElementById('delete-history-countdown-badge');
-            const numberSpan = document.getElementById('delete-history-countdown-number');
-            const deleteBtn = document.getElementById('delete-history-confirm-btn');
-            
-            // Reset values
-            deleteHistoryCountdownValue = 5;
-            numberSpan.textContent = deleteHistoryCountdownValue;
-            badge.style.display = 'flex';
-            deleteBtn.disabled = true;
-            deleteHistoryCountdownActive = true;
-            
-            // Clear any existing interval
-            if (deleteHistoryCountdownInterval) {
-                clearInterval(deleteHistoryCountdownInterval);
-            }
-            
-            // Start countdown
-            deleteHistoryCountdownInterval = setInterval(() => {
-                deleteHistoryCountdownValue--;
-                numberSpan.textContent = deleteHistoryCountdownValue;
-                
-                // Enable button when countdown is between 1-4
-                if (deleteHistoryCountdownValue > 0 && deleteHistoryCountdownValue < 5) {
-                    deleteBtn.disabled = false;
-                }
-                
-                if (deleteHistoryCountdownValue <= 0) {
-                    // Countdown finished - disable button
-                    clearInterval(deleteHistoryCountdownInterval);
-                    deleteHistoryCountdownInterval = null;
-                    deleteHistoryCountdownActive = false;
-                    deleteBtn.disabled = true;
-                }
-            }, 1000);
-        }
 
-        function stopDeleteHistoryCountdown() {
-            if (deleteHistoryCountdownInterval) {
-                clearInterval(deleteHistoryCountdownInterval);
-                deleteHistoryCountdownInterval = null;
-            }
-            
-            const badge = document.getElementById('delete-history-countdown-badge');
-            const deleteBtn = document.getElementById('delete-history-confirm-btn');
-            
-            badge.style.display = 'none';
-            deleteBtn.disabled = true;
-            deleteHistoryCountdownValue = 5;
-            deleteHistoryCountdownActive = false;
-            
-            // Clean up pending deletion
-            pendingDeleteConversationId = null;
-            pendingDeleteConversationElement = null;
-        }
 
         // Floating action buttons initialization
         document.addEventListener('DOMContentLoaded', () => {
@@ -1041,10 +1331,10 @@
                     const body = document.getElementById('history-modal-body');
                     const newConvModalBtn = document.getElementById('new-conversation-modal-btn');
                     showChatbotModal('history-modal');
-                    
+
                     const user = (typeof firebase !== 'undefined' && firebase.auth)
                         ? firebase.auth().currentUser : null;
-                    
+
                     if (!user) {
                         body.innerHTML = `
                             <div style="text-align:center; color:var(--text-secondary);">
@@ -1067,11 +1357,11 @@
 
                         const conversations = await Chatbot.getConversations();
                         const conversationCount = conversations.length;
-                        
+
                         if (newConvModalBtn) {
                             newConvModalBtn.style.display = conversationCount < 3 ? 'block' : 'none';
                         }
-                        
+
                         if (conversations.length === 0) {
                             body.innerHTML = `
                                 <div style="text-align:center; color:var(--text-secondary);">
@@ -1113,11 +1403,11 @@
                             li.querySelector('[data-id]').addEventListener('click', async (e) => {
                                 e.stopPropagation();
                                 const id = e.currentTarget.dataset.id;
-                                
+
                                 // Store the conversation ID and element for deletion
                                 pendingDeleteConversationId = id;
                                 pendingDeleteConversationElement = li;
-                                
+
                                 // Close history modal and show delete confirmation modal
                                 closeChatbotModal('history-modal');
                                 showChatbotModal('delete-history-modal');
@@ -1157,55 +1447,281 @@
                 });
             }
 
-            // Export conversation button
+            // --- EXPORT CONVERSATION FLOW ---
+            let currentExportData = null;
+
+            // Format radio changes update extension badge
+            document.querySelectorAll('input[name="export-file-format"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const extLabel = document.getElementById('export-extension-label');
+                    const defaultPreview = document.getElementById('export-default-preview');
+                    const format = e.target.value;
+                    const formatText = format === 'md' ? 'Markdown (.md)' : 'Plain Text (.txt)';
+                    const formatMetric = document.getElementById('export-metric-format');
+
+                    if (extLabel) extLabel.textContent = `.${format}`;
+                    if (formatMetric) formatMetric.textContent = formatText;
+                    if (defaultPreview) {
+                        const todayStr = new Date().toISOString().slice(0, 10);
+                        defaultPreview.textContent = `recap-chat-${todayStr}.${format}`;
+                    }
+                });
+            });
+
+            // Open Export Modal
             const exportBtn = document.getElementById('export-btn');
             if (exportBtn) {
                 exportBtn.addEventListener('click', () => {
                     const messages = document.querySelectorAll('.message:not(.typing-indicator)');
-                    const exportBody = document.getElementById('export-modal-body');
-                    
                     if (messages.length === 0) {
-                        exportBody.innerHTML = 'No messages to export yet.<br>Start chatting to export your conversation!';
-                        showChatbotModal('export-modal');
+                        if (typeof showToast === 'function') {
+                            showToast('No messages to export yet. Start chatting first!', 'info');
+                        } else {
+                            alert('No messages to export yet. Start chatting first!');
+                        }
                         return;
                     }
 
-                    let exportText = '# RECAP AI Chatbot Conversation\n';
-                    exportText += `Exported: ${new Date().toLocaleString()}\n\n`;
-                    exportText += '---\n\n';
+                    let userCount = 0;
+                    let botCount = 0;
+                    let totalWords = 0;
+                    let rawBuffer = '';
 
                     messages.forEach((msg) => {
                         const isUser = msg.classList.contains('user');
                         const bubble = msg.querySelector('.message-bubble');
                         const time = msg.querySelector('.message-time');
-                        
                         if (bubble) {
-                            const text = bubble.textContent || bubble.innerText;
-                            const timeText = time ? time.textContent : '';
-                            
-                            exportText += `${isUser ? 'USER' : 'AI'} [${timeText}]:\n${text}\n\n`;
+                            const text = (bubble.textContent || bubble.innerText || '').trim();
+                            const timeText = time ? time.textContent.trim() : '';
+                            rawBuffer += `${isUser ? 'USER' : 'AI'} [${timeText}]:\n${text}\n\n`;
+                            if (isUser) userCount++; else botCount++;
+                            const words = text.split(/\s+/).filter(Boolean);
+                            totalWords += words.length;
                         }
                     });
 
-                    const blob = new Blob([exportText], { type: 'text/markdown' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `recap-chat-${Date.now()}.md`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    
-                    console.log('✅ Conversation exported');
-                    exportBody.innerHTML = 'Your conversation has been successfully exported as a markdown file.';
+                    currentExportData = {
+                        messages,
+                        userCount,
+                        botCount,
+                        totalWords,
+                        rawBuffer
+                    };
+
+                    const byteSize = new Blob([rawBuffer]).size;
+                    const formattedSize = byteSize < 1024 
+                        ? `${byteSize} B` 
+                        : `${(byteSize / 1024).toFixed(1)} KB`;
+
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    const defaultBaseName = `recap-chat-${todayStr}`;
+
+                    // Populate transparency metrics in UI
+                    const sizeEl = document.getElementById('export-metric-size');
+                    const countEl = document.getElementById('export-metric-count');
+                    const wordsEl = document.getElementById('export-metric-words');
+                    const defaultPreviewEl = document.getElementById('export-default-preview');
+                    const filenameInput = document.getElementById('export-filename-input');
+
+                    if (sizeEl) sizeEl.textContent = formattedSize;
+                    if (countEl) countEl.textContent = `${messages.length} (${userCount} user, ${botCount} AI)`;
+                    if (wordsEl) wordsEl.textContent = `~${totalWords.toLocaleString()} words`;
+                    if (defaultPreviewEl) defaultPreviewEl.textContent = `${defaultBaseName}.md`;
+                    if (filenameInput) {
+                        filenameInput.value = '';
+                        filenameInput.placeholder = defaultBaseName;
+                    }
+
                     showChatbotModal('export-modal');
                 });
             }
 
-            // Settings button
+            // Confirm & Download Export
+            const confirmExportBtn = document.getElementById('export-confirm-download-btn');
+            if (confirmExportBtn) {
+                confirmExportBtn.addEventListener('click', () => {
+                    if (!currentExportData || !currentExportData.messages || currentExportData.messages.length === 0) {
+                        closeChatbotModal('export-modal');
+                        return;
+                    }
+
+                    const selectedFormat = document.querySelector('input[name="export-file-format"]:checked')?.value || 'md';
+                    const filenameInput = document.getElementById('export-filename-input');
+                    const rawName = filenameInput ? filenameInput.value.trim() : '';
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    let finalFileName = rawName || `recap-chat-${todayStr}`;
+
+                    // Sanitize filename
+                    finalFileName = finalFileName.replace(/[<>:"/\\|?*]/g, '-').replace(/\s+/g, '-');
+                    if (finalFileName.endsWith('.md') || finalFileName.endsWith('.txt')) {
+                        finalFileName = finalFileName.substring(0, finalFileName.lastIndexOf('.'));
+                    }
+                    finalFileName = `${finalFileName}.${selectedFormat}`;
+
+                    let exportContent = '';
+                    if (selectedFormat === 'md') {
+                        exportContent = `# RE-CAPS AI Chatbot Conversation\n\n`;
+                        exportContent += `**Export Date:** ${new Date().toLocaleString()}\n`;
+                        exportContent += `**Total Messages:** ${currentExportData.messages.length} (${currentExportData.userCount} user, ${currentExportData.botCount} AI)\n`;
+                        exportContent += `**Word Count:** ~${currentExportData.totalWords.toLocaleString()} words\n\n`;
+                        exportContent += `---\n\n`;
+
+                        currentExportData.messages.forEach((msg) => {
+                            const isUser = msg.classList.contains('user');
+                            const bubble = msg.querySelector('.message-bubble');
+                            const time = msg.querySelector('.message-time');
+                            if (bubble) {
+                                const text = (bubble.textContent || bubble.innerText || '').trim();
+                                const timeText = time ? time.textContent.trim() : '';
+                                exportContent += `### ${isUser ? '👤 User' : '🤖 RE-CAPS AI'} *(${timeText})*\n\n${text}\n\n---\n\n`;
+                            }
+                        });
+                    } else {
+                        exportContent = `RE-CAPS AI Chatbot Conversation\n`;
+                        exportContent += `Export Date: ${new Date().toLocaleString()}\n`;
+                        exportContent += `Messages: ${currentExportData.messages.length}\n`;
+                        exportContent += `========================================================\n\n`;
+
+                        currentExportData.messages.forEach((msg) => {
+                            const isUser = msg.classList.contains('user');
+                            const bubble = msg.querySelector('.message-bubble');
+                            const time = msg.querySelector('.message-time');
+                            if (bubble) {
+                                const text = (bubble.textContent || bubble.innerText || '').trim();
+                                const timeText = time ? time.textContent.trim() : '';
+                                exportContent += `[${timeText}] ${isUser ? 'USER' : 'AI'}:\n${text}\n\n--------------------------------------------------------\n\n`;
+                            }
+                        });
+                    }
+
+                    const mimeType = selectedFormat === 'md' ? 'text/markdown' : 'text/plain';
+                    const blob = new Blob([exportContent], { type: `${mimeType};charset=utf-8` });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = finalFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    closeChatbotModal('export-modal');
+                    if (typeof showToast === 'function') {
+                        showToast(`Conversation exported as "${finalFileName}"`, 'success');
+                    }
+                });
+            }
+
+            // --- CHATBOT SETTINGS FLOW ---
+            function loadChatbotSettingsUI() {
+                const defaults = {
+                    preferredProvider: 'Mistral',
+                    ragEnabled: true,
+                    responseStyle: 'balanced',
+                    autoCitation: true,
+                    streamingEnabled: true
+                };
+
+                let saved = {};
+                try {
+                    saved = JSON.parse(localStorage.getItem('recaps_chatbot_settings') || '{}');
+                } catch (e) {}
+
+                const config = { ...defaults, ...saved };
+
+                const providerSelect = document.getElementById('setting-preferred-provider');
+                const ragToggle = document.getElementById('setting-rag-enabled');
+                const autoCitationToggle = document.getElementById('setting-auto-citation');
+                const streamingToggle = document.getElementById('setting-streaming-enabled');
+
+                if (providerSelect) providerSelect.value = config.preferredProvider;
+                if (ragToggle) ragToggle.checked = config.ragEnabled !== false;
+                if (autoCitationToggle) autoCitationToggle.checked = config.autoCitation !== false;
+                if (streamingToggle) streamingToggle.checked = config.streamingEnabled !== false;
+
+                // Update Style Pills
+                document.querySelectorAll('#setting-response-style-group .setting-style-pill').forEach(pill => {
+                    pill.classList.toggle('active', pill.dataset.style === config.responseStyle);
+                });
+
+                // Update Cascade preview
+                updateCascadeOrderPreview(config.preferredProvider);
+            }
+
+            function updateCascadeOrderPreview(selected) {
+                const cascadePreview = document.getElementById('cascade-order-preview');
+                if (!cascadePreview) return;
+                const all = ['Mistral', 'Groq', 'Gemini', 'OpenRouter'];
+                const reordered = [selected, ...all.filter(p => p !== selected)];
+                cascadePreview.textContent = reordered.join(' → ');
+            }
+
+            const providerSelectEl = document.getElementById('setting-preferred-provider');
+            if (providerSelectEl) {
+                providerSelectEl.addEventListener('change', (e) => {
+                    updateCascadeOrderPreview(e.target.value);
+                });
+            }
+
+            // Style pills click handler
+            document.querySelectorAll('#setting-response-style-group .setting-style-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    document.querySelectorAll('#setting-response-style-group .setting-style-pill').forEach(p => p.classList.remove('active'));
+                    pill.classList.add('active');
+                });
+            });
+
+            // Settings button click opens modal and loads settings
             const settingsBtn = document.getElementById('settings-btn');
             if (settingsBtn) {
                 settingsBtn.addEventListener('click', () => {
+                    loadChatbotSettingsUI();
                     showChatbotModal('settings-modal');
+                });
+            }
+
+            // Reset Defaults button
+            const resetDefaultsBtn = document.getElementById('setting-reset-defaults-btn');
+            if (resetDefaultsBtn) {
+                resetDefaultsBtn.addEventListener('click', () => {
+                    localStorage.removeItem('recaps_chatbot_settings');
+                    loadChatbotSettingsUI();
+                    if (typeof showToast === 'function') {
+                        showToast('Settings reset to defaults', 'info');
+                    }
+                });
+            }
+
+            // Save Settings button
+            const saveSettingsBtn = document.getElementById('setting-save-btn');
+            if (saveSettingsBtn) {
+                saveSettingsBtn.addEventListener('click', () => {
+                    const provider = document.getElementById('setting-preferred-provider')?.value || 'Mistral';
+                    const ragEnabled = document.getElementById('setting-rag-enabled')?.checked !== false;
+                    const autoCitation = document.getElementById('setting-auto-citation')?.checked !== false;
+                    const streamingEnabled = document.getElementById('setting-streaming-enabled')?.checked !== false;
+                    const responseStyle = document.querySelector('#setting-response-style-group .setting-style-pill.active')?.dataset.style || 'balanced';
+
+                    const newSettings = {
+                        preferredProvider: provider,
+                        ragEnabled,
+                        responseStyle,
+                        autoCitation,
+                        streamingEnabled
+                    };
+
+                    localStorage.setItem('recaps_chatbot_settings', JSON.stringify(newSettings));
+                    closeChatbotModal('settings-modal');
+
+                    // If Chatbot is initialized, notify it
+                    if (typeof Chatbot !== 'undefined' && typeof Chatbot.applySettings === 'function') {
+                        Chatbot.applySettings(newSettings);
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast(`Settings saved! Defaulting to ${provider}.`, 'success');
+                    }
                 });
             }
 
@@ -1215,15 +1731,23 @@
                 newConvModalBtn.addEventListener('click', async () => {
                     if (typeof ChatService !== 'undefined') {
                         const count = await ChatService.getConversationCount();
-                        
+
                         if (count >= 3) {
-                            alert('You have reached the maximum of 3 saved conversations. Please delete an old conversation first.');
+                            if (window.ModalDialog) {
+                                await ModalDialog.alert({
+                                    title: 'Conversation Limit Reached',
+                                    message: 'You have reached the maximum of 3 saved conversations. Please delete an old conversation first.',
+                                    type: 'warning'
+                                });
+                            } else {
+                                alert('You have reached the maximum of 3 saved conversations. Please delete an old conversation first.');
+                            }
                             return;
                         }
                     }
-                    
+
                     closeChatbotModal('history-modal');
-                    
+
                     if (typeof Chatbot !== 'undefined' && Chatbot.startNewConversation) {
                         await Chatbot.startNewConversation();
                     }
@@ -1233,7 +1757,7 @@
     </script>
     <!-- Initialize Dramatic Intro - runs on DOMContentLoaded (before images/assets load) -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const staticIntro = document.getElementById('recaps-static-intro');
             const showIntro = !sessionStorage.getItem('recaps-intro-shown');
 
@@ -1244,7 +1768,7 @@
                 window.recapsIntro = new DramaticIntro({
                     text: 'RECAPS',
                     autoStart: true,
-                    onComplete: function() {
+                    onComplete: function () {
                         console.log('RE-CAPS intro animation completed!');
                         sessionStorage.setItem('recaps-intro-shown', 'true');
                     }

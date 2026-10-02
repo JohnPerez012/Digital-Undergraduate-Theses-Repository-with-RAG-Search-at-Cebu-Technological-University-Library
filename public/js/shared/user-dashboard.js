@@ -5,11 +5,14 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     const savedProjectsList = document.getElementById('saved-projects-list');
-    const clearSavedBtn = document.getElementById('clear-saved-btn');
+    const clearSavedBtn = document.getElementById('clear-all-saved-btn') || document.getElementById('clear-saved-btn');
     const viewToggleBtns = document.querySelectorAll('.view-toggle-btn');
 
     // Only run if the saved projects section is present (i.e., on student_page.html)
     if (!savedProjectsList) return;
+
+    // RBAC check: Administrators cannot access or operate saved projects
+    if (sessionStorage.getItem('userType') === 'admin') return;
 
     // Saved projects state
     let savedProjectIds = [];
@@ -70,6 +73,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const querySnapshot = await db.collection('projects').get();
                     allProjects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 }
+            }
+
+            // Expose globally for student dashboard widgets
+            window.__allProjectsData = allProjects;
+            window.dispatchEvent(new CustomEvent('allProjectsLoaded', { detail: { count: allProjects.length, projects: allProjects } }));
+
+            // Update truthful available projects count
+            const availableCountEl = document.getElementById('available-projects-count');
+            if (availableCountEl) {
+                availableCountEl.textContent = allProjects.length;
             }
         } catch (error) {
             console.error('Error loading all projects:', error);
@@ -164,8 +177,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateSavedCount(count) {
         const savedCountBadge = document.getElementById('saved-count');
         const savedProjectsStats = document.getElementById('saved-projects-count');
+        const launchpadSaved = document.getElementById('launchpad-saved-count');
         if (savedCountBadge) savedCountBadge.textContent = count;
         if (savedProjectsStats) savedProjectsStats.textContent = count;
+        if (launchpadSaved) launchpadSaved.textContent = count;
     }
 
     // Render Saved Projects as cards on the dashboard
@@ -181,6 +196,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update the count badges
         updateSavedCount(savedProjects.length);
+
+        if (clearSavedBtn) {
+            clearSavedBtn.disabled = savedProjects.length === 0;
+            clearSavedBtn.style.opacity = savedProjects.length === 0 ? '0.5' : '1';
+            clearSavedBtn.style.cursor = savedProjects.length === 0 ? 'not-allowed' : 'pointer';
+        }
 
         if (savedProjects.length === 0) {
             const isInPagesFolder = window.location.pathname.includes('/pages/');
@@ -339,15 +360,157 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Show clear all confirmation modal with brief statement and list of project titles
+    function showClearAllConfirmationModal(projects, onConfirm) {
+        // Check if modal already exists, remove it
+        const existingModal = document.getElementById('clear-all-saved-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const count = projects.length;
+        const countText = count === 1 ? '1 project' : `${count} projects`;
+
+        // Create modal HTML
+        const modalHTML = `
+            <div class="logout-modal active" id="clear-all-saved-modal" role="dialog" aria-modal="true" aria-labelledby="clear-all-title">
+                <div class="logout-modal-overlay"></div>
+                <div class="logout-modal-content clear-all-modal-content">
+                    <div class="logout-modal-header" style="margin-bottom: 1.25rem;">
+                        <div class="logout-modal-icon">
+                            ${(typeof SVGRegistry !== 'undefined' && SVGRegistry.get('trash-lg')) ? SVGRegistry.get('trash-lg') : `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            `}
+                        </div>
+                        <h3 class="logout-modal-title" id="clear-all-title">Clear All Saved Projects?</h3>
+                        <p class="logout-modal-description">
+                            Are you sure you want to remove all <strong style="color: #ef4444;">${countText}</strong> from your saved list? This action cannot be undone and will delete the following:
+                        </p>
+                    </div>
+
+                    <div class="clear-all-projects-list-container">
+                        <div class="clear-all-projects-list-header">
+                            <span>Projects to be removed</span>
+                            <span class="clear-all-count-tag">${count} Total</span>
+                        </div>
+                        <ul class="clear-all-projects-list">
+                            ${projects.map((p, idx) => `
+                                <li class="clear-all-project-item">
+                                    <span class="clear-all-project-number">${idx + 1}</span>
+                                    <div class="clear-all-project-info">
+                                        <span class="clear-all-project-title" title="${escapeHtml(p.title || 'Untitled Project')}">${escapeHtml(p.title || 'Untitled Project')}</span>
+                                        ${(p.program || p.year) ? `<span class="clear-all-project-meta">${[p.program, p.year].filter(Boolean).map(escapeHtml).join(' · ')}</span>` : ''}
+                                    </div>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="logout-modal-actions">
+                        <button class="logout-modal-btn logout-modal-btn-abort" id="clear-all-cancel-btn">
+                            Cancel
+                        </button>
+                        <button class="logout-modal-btn logout-modal-btn-confirm" id="clear-all-confirm-btn">
+                            Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        const modal = document.getElementById('clear-all-saved-modal');
+        const overlay = modal.querySelector('.logout-modal-overlay');
+        const cancelBtn = document.getElementById('clear-all-cancel-btn');
+        const confirmBtn = document.getElementById('clear-all-confirm-btn');
+
+        function closeModal() {
+            document.removeEventListener('keydown', escapeHandler);
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
+
+        function escapeHandler(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        }
+
+        cancelBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', closeModal);
+        document.addEventListener('keydown', escapeHandler);
+
+        confirmBtn.addEventListener('click', async () => {
+            confirmBtn.disabled = true;
+            cancelBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <span class="btn-spinner">
+                    <svg class="spinner-icon" viewBox="0 0 50 50">
+                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"></circle>
+                    </svg>
+                </span> Clearing...
+            `;
+
+            try {
+                await onConfirm();
+                closeModal();
+            } catch (error) {
+                console.error('Error clearing projects:', error);
+                confirmBtn.disabled = false;
+                cancelBtn.disabled = false;
+                confirmBtn.textContent = 'Clear All';
+            }
+        });
+    }
+
     // Load initial data
     await loadAllProjects();
 
     // Clear All button
     if (clearSavedBtn) {
-        clearSavedBtn.addEventListener('click', async () => {
-            if (currentUserId) {
-                await clearAllSavedProjects(currentUserId);
+        clearSavedBtn.addEventListener('click', () => {
+            if (!currentUserId) return;
+
+            let savedProjects = [];
+            try {
+                savedProjects = JSON.parse(localStorage.getItem('savedProjects')) || [];
+            } catch (e) {}
+
+            // Fallback to resolve from savedProjectIds and allProjects
+            if (savedProjects.length === 0 && savedProjectIds.length > 0) {
+                savedProjects = savedProjectIds.map(id => {
+                    const found = allProjects.find(p => p.id === id);
+                    return {
+                        id,
+                        title: found ? found.title : 'Untitled Project',
+                        year: found ? found.year : '',
+                        program: found ? found.program : ''
+                    };
+                });
             }
+
+            if (savedProjects.length === 0) {
+                if (typeof showToast === 'function') {
+                    showToast('You have no saved projects to clear.', 'info');
+                }
+                return;
+            }
+
+            showClearAllConfirmationModal(savedProjects, async () => {
+                await clearAllSavedProjects(currentUserId);
+                if (typeof showToast === 'function') {
+                    showToast('All saved projects have been cleared.', 'success');
+                }
+            });
         });
     }
 
@@ -362,6 +525,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
+                // If user is admin, do not load or sync saved projects
+                if (sessionStorage.getItem('userType') === 'admin') return;
+
                 currentUserId = user.uid;
                 
                 // If local device still has guest saved projects, prompt to sync or delete

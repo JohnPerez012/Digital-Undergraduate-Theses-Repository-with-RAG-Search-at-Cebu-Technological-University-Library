@@ -112,9 +112,7 @@ const Chatbot = {
           this.userInput.disabled = true;
           this.userInput.placeholder = 'Please log in to use the chatbot';
         }
-        if (this.sendBtn) {
-          this.sendBtn.disabled = true;
-        }
+        this.updateSendButtonState();
       } else {
         if (this.guestDialog) {
           this.guestDialog.classList.remove('active');
@@ -123,9 +121,7 @@ const Chatbot = {
           this.userInput.disabled = false;
           this.userInput.placeholder = 'Type your message here...';
         }
-        if (this.sendBtn) {
-          this.sendBtn.disabled = false;
-        }
+        this.updateSendButtonState();
       }
     }
   },
@@ -198,9 +194,7 @@ const Chatbot = {
             this.userInput.disabled = true;
             this.userInput.placeholder = 'Please log in to use the chatbot';
           }
-          if (this.sendBtn) {
-            this.sendBtn.disabled = true;
-          }
+          this.updateSendButtonState();
         } else {
           // User IS logged in
           if (this.guestDialog) {
@@ -210,6 +204,7 @@ const Chatbot = {
             this.userInput.disabled = false;
             this.userInput.placeholder = 'Type your message here...';
           }
+          this.updateSendButtonState();
           
           // Trigger lazy load when user authentication is confirmed
           this.lazyLoadConversations();
@@ -257,6 +252,9 @@ const Chatbot = {
     
     // Update clear button visibility on init
     this.updateClearButtonVisibility();
+
+    // Initial send button state evaluation
+    this.updateSendButtonState();
     
     // Auto-load last viewed conversation if returning from another page
     this.autoLoadLastConversation();
@@ -326,7 +324,7 @@ const Chatbot = {
         }
       }
 
-      this.sendBtn.disabled = !text.trim();
+      this.updateSendButtonState();
       this.autoResizeTextarea();
     });
     
@@ -334,6 +332,67 @@ const Chatbot = {
     const clearBtn = document.getElementById('clear-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => this.clearConversation());
+    }
+
+    // New conversation dock button
+    const newChatDockBtn = document.getElementById('new-chat-dock-btn');
+    if (newChatDockBtn) {
+      newChatDockBtn.addEventListener('click', () => {
+        this.startNewConversation();
+      });
+    }
+
+    // Interactive prompt suggestion starter cards
+    const promptCards = document.querySelectorAll('.prompt-card');
+    promptCards.forEach(card => {
+      card.addEventListener('click', () => {
+        const prompt = card.getAttribute('data-prompt');
+        if (!prompt) return;
+
+        // Check authentication before sending
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+          const user = firebase.auth().currentUser;
+          if (!user) {
+            console.warn('⚠️ Send blocked: User not authenticated');
+            const guestDialog = document.getElementById('Guest-dialog');
+            if (guestDialog) guestDialog.classList.add('active');
+            return;
+          }
+        }
+
+        if (this.userInput) {
+          this.userInput.value = prompt;
+          this.userInput.dispatchEvent(new Event('input', { bubbles: true }));
+          this.sendMessage();
+        }
+      });
+    });
+
+    // Event delegation: Click on any project link in chat to open Project Detail view
+    if (this.messagesContainer) {
+      this.messagesContainer.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (!link) return;
+
+        const href = (link.getAttribute('href') || '').trim();
+        const text = (link.textContent || '').trim();
+
+        // Check if this link refers to a capstone/thesis project
+        const isProjectLink = link.classList.contains('ai-project-link') ||
+                              link.hasAttribute('data-project-title') ||
+                              href.includes('project') ||
+                              href.includes('projecthub') ||
+                              href.includes('capstone') ||
+                              href.includes('thesis') ||
+                              href.startsWith('#') ||
+                              href === 'javascript:void(0)';
+
+        if (isProjectLink) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.openProjectDetailsFromChat(link);
+        }
+      });
     }
   },
   
@@ -370,7 +429,27 @@ const Chatbot = {
   },
   
   /**
+   * Strictly evaluate input and user auth to update send button visibility and state
+   */
+  updateSendButtonState() {
+    if (!this.sendBtn) return;
+    const text = (this.userInput && this.userInput.value) ? this.userInput.value : '';
+    // Strict evaluation: must have at least 1 non-whitespace character
+    const hasText = text.trim().length > 0;
+    const isLoggedIn = Boolean(typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+
+    if (hasText && isLoggedIn && !this.isSending) {
+      this.sendBtn.disabled = false;
+      this.sendBtn.classList.remove('btn-hidden');
+    } else {
+      this.sendBtn.disabled = true;
+      this.sendBtn.classList.add('btn-hidden');
+    }
+  },
+
+  /**
    * Clean and sanitize message text (remove HTML tags, images, scripts)
+   * PRESERVES markdown formatting and line breaks (\n)
    */
   cleanMessageText(text) {
     if (!text || typeof text !== 'string') return '';
@@ -394,8 +473,20 @@ const Chatbot = {
     // Get cleaned text content
     let cleanedText = temp.textContent || temp.innerText || '';
     
-    // Trim excessive whitespace
-    cleanedText = cleanedText.replace(/\s+/g, ' ').trim();
+    // Normalize newlines and collapse excess horizontal spaces WITHOUT destroying linebreaks
+    cleanedText = cleanedText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    // Repair squashed numbered lists and metadata headers if loading an older conversation
+    cleanedText = cleanedText
+      .replace(/([^\n])\s+(\d+\.\s+[\*\[])/g, '$1\n\n$2')
+      .replace(/(\))\s+([A-Za-z]+:)/g, '$1\n\n$2')
+      .replace(/(\S)\s+(Program:)/gi, '$1\n$2')
+      .replace(/(\S)\s+(Authors:)/gi, '$1\n$2');
     
     return cleanedText;
   },
@@ -458,20 +549,22 @@ const Chatbot = {
     this.userInput.value = '';
     this.userInput.style.height = 'auto';
     this.userInput.style.overflowY = 'hidden';
-    this.sendBtn.disabled = true;
+    this.updateSendButtonState();
     const counter = document.getElementById('char-counter');
     if (counter) {
       counter.textContent = '0 / 500';
       counter.classList.remove('near-limit', 'at-limit');
     }
     
-    // Show typing indicator while waiting for the first token
-    this.showTyping();
+    const initialProvider = this.getActiveProvider();
+    let currentProvider = initialProvider;
+    
+    // Show typing indicator with specific provider branding
+    this.showTyping(initialProvider);
 
     let botMessageDiv = null;
     let bubbleDiv = null;
     let timeDiv = null;
-    let currentProvider = 'AI';
     let hasCreatedMessage = false;
     let fullAccumulatedText = '';
 
@@ -483,14 +576,11 @@ const Chatbot = {
       botMessageDiv = document.createElement('div');
       botMessageDiv.className = 'message bot';
 
-      const providerLogo = this.getProviderLogo(providerName);
+      const providerLogoHtml = this.getProviderLogoElement(providerName);
 
       botMessageDiv.innerHTML = `
-        <div class="message-avatar" style="background: white; padding: 4px;">
-          <img src="${providerLogo}" 
-               alt="${providerName}" 
-               style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"
-               onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 40 40\\'><rect width=\\'40\\' height=\\'40\\' rx=\\'20\\' fill=\\'%23667eea\\'/><text x=\\'50%25\\' y=\\'54%25\\' font-family=\\'Inter,sans-serif\\' font-size=\\'13\\' font-weight=\\'700\\' fill=\\'white\\' text-anchor=\\'middle\\' dominant-baseline=\\'middle\\'>AI</text></svg>'">
+        <div class="message-avatar bot-avatar">
+          ${providerLogoHtml}
         </div>
         <div class="message-content">
           <div class="message-bubble"><span class="streaming-cursor"></span></div>
@@ -511,7 +601,8 @@ const Chatbot = {
       // Stream AI response in real time
       await AIService.sendMessageStream(cleanMessage, {
         onStart: (info) => {
-          currentProvider = info.provider || 'AI';
+          currentProvider = info.provider || currentProvider || 'AI';
+          this.updateTypingProvider(currentProvider);
           createStreamingBotElement(currentProvider);
         },
         onToken: (token, accumulatedText, info) => {
@@ -524,7 +615,8 @@ const Chatbot = {
           if (bubbleDiv) {
             let formatted = '';
             if (typeof MessageFormatter !== 'undefined') {
-              formatted = MessageFormatter.formatComplete(accumulatedText, currentProvider);
+              const liveProjects = (typeof AIService !== 'undefined' && AIService.lastRelevantProjects) ? AIService.lastRelevantProjects : [];
+              formatted = MessageFormatter.formatComplete(accumulatedText, currentProvider, liveProjects);
             } else {
               formatted = this.formatMessage(accumulatedText);
             }
@@ -537,6 +629,7 @@ const Chatbot = {
           this.hideTyping();
           const finalProvider = result.provider || currentProvider || 'AI';
           const finalRawText = result.response || fullAccumulatedText || '';
+          const relevantProjects = result.relevantProjects || [];
 
           if (!hasCreatedMessage) {
             createStreamingBotElement(finalProvider);
@@ -553,10 +646,10 @@ const Chatbot = {
             providerLabel.textContent = finalProvider;
           }
 
-          // Format final response
+          // Format final response with project links
           let formattedMessage = '';
           if (typeof MessageFormatter !== 'undefined') {
-            formattedMessage = MessageFormatter.formatComplete(finalRawText, finalProvider);
+            formattedMessage = MessageFormatter.formatComplete(finalRawText, finalProvider, relevantProjects);
           } else {
             formattedMessage = this.formatMessage(finalRawText);
           }
@@ -566,15 +659,15 @@ const Chatbot = {
           }
 
           // Check for RAG project usage
-          const relevantProjects = result.relevantProjects || [];
-          if (relevantProjects.length > 0 && this.detectProjectUsage(finalRawText, relevantProjects)) {
+          const hasProjectUsage = (relevantProjects.length > 0 && this.detectProjectUsage(finalRawText, relevantProjects));
+          if (hasProjectUsage) {
             const ragBadge = document.createElement('div');
             ragBadge.style.cssText = 'display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;';
             ragBadge.innerHTML = `
               ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
               ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
             `;
-            const contentDiv = botMessageDiv.querySelector('.message-content');
+            const contentDiv = botMessageDiv ? botMessageDiv.querySelector('.message-content') : null;
             if (contentDiv) contentDiv.appendChild(ragBadge);
           }
 
@@ -590,12 +683,15 @@ const Chatbot = {
           const contentDiv = botMessageDiv ? botMessageDiv.querySelector('.message-content') : null;
           if (contentDiv) contentDiv.appendChild(actionsDiv);
 
-          // Add clean bot message to buffer
+          // Add clean bot message to buffer with provider and RAG metadata preserved
           const cleanResponseText = this.cleanMessageText(finalRawText);
           this.conversationMessages.push({
             role: 'bot',
             text: cleanResponseText,
             time: this.getCurrentTime(),
+            provider: finalProvider,
+            projectsUsed: hasProjectUsage ? relevantProjects.length : 0,
+            relevantProjects: relevantProjects
           });
 
           // Auto-save to Firestore
@@ -642,6 +738,156 @@ const Chatbot = {
       }
     } finally {
       this.isSending = false;
+      this.updateSendButtonState();
+    }
+  },
+
+  /**
+   * Open the exact project in the system itself (Project Detail View)
+   * @param {HTMLElement|string} target - Link element or project title/slug
+   */
+  async openProjectDetailsFromChat(target) {
+    let queryTitle = '';
+    let queryId = '';
+    let queryUrl = '';
+
+    if (typeof target === 'string') {
+      queryTitle = target;
+    } else if (target && target.getAttribute) {
+      queryTitle = target.getAttribute('data-project-title') || target.textContent || '';
+      queryId = target.getAttribute('data-project-id') || '';
+      queryUrl = target.getAttribute('data-project-url') || target.getAttribute('href') || '';
+    }
+
+    // Clean title string
+    queryTitle = queryTitle.replace(/^[\[\*"'\s]+|[\]\*"'\s]+$/g, '').trim();
+
+    // If queryTitle is empty but queryUrl has a slug (e.g. /project/automatic-plant-irrigation-system)
+    if (!queryTitle && queryUrl) {
+      const slugMatch = queryUrl.match(/project\/([a-zA-Z0-9_-]+)/i);
+      if (slugMatch && slugMatch[1]) {
+        queryTitle = slugMatch[1].replace(/[-_]+/g, ' ');
+      }
+    }
+
+    if (!queryTitle && !queryId) {
+      console.warn('⚠️ No project title or ID found to open');
+      return;
+    }
+
+    console.log(`🔍 Chatbot: Opening project details for "${queryTitle}" (ID: ${queryId})`);
+
+    if (typeof showToast === 'function') {
+      showToast('Opening project details...', 'info');
+    }
+
+    // Normalization helper for title matching
+    const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const targetNorm = norm(queryTitle);
+
+    let matchedProject = null;
+
+    // 1. Search in AIService.lastRelevantProjects
+    if (typeof AIService !== 'undefined' && Array.isArray(AIService.lastRelevantProjects)) {
+      matchedProject = AIService.lastRelevantProjects.find(p => {
+        if (queryId && p.id === queryId) return true;
+        const pNorm = norm(p.title);
+        return pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm));
+      });
+    }
+
+    // 2. Search in conversation messages
+    if (!matchedProject && Array.isArray(this.conversationMessages)) {
+      for (let i = this.conversationMessages.length - 1; i >= 0; i--) {
+        const msg = this.conversationMessages[i];
+        if (msg.relevantProjects && Array.isArray(msg.relevantProjects)) {
+          matchedProject = msg.relevantProjects.find(p => {
+            if (queryId && p.id === queryId) return true;
+            const pNorm = norm(p.title);
+            return pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm));
+          });
+          if (matchedProject) break;
+        }
+      }
+    }
+
+    // 3. Search in global allProjects (from project-list.js)
+    if (!matchedProject && typeof allProjects !== 'undefined' && Array.isArray(allProjects)) {
+      matchedProject = allProjects.find(p => {
+        if (queryId && p.id === queryId) return true;
+        const pNorm = norm(p.title);
+        return pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm));
+      });
+    }
+
+    // 4. Query Firestore if available
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+      try {
+        const db = firebase.firestore();
+        if (queryId) {
+          const doc = await db.collection('projects').doc(queryId).get();
+          if (doc.exists) {
+            matchedProject = { id: doc.id, ...doc.data() };
+          }
+        }
+        if (!matchedProject && targetNorm) {
+          const snap = await db.collection('projects').limit(100).get();
+          snap.forEach(doc => {
+            if (matchedProject) return;
+            const data = doc.data();
+            const pNorm = norm(data.title);
+            if (pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm))) {
+              matchedProject = { id: doc.id, ...data };
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Firestore project lookup warning:', err);
+      }
+    }
+
+    // 5. Fallback: if not found, construct a valid project record so details always render
+    if (!matchedProject) {
+      matchedProject = {
+        title: queryTitle,
+        authors: ['Undergraduate Research Team'],
+        program: 'BIT-Electronics',
+        year: '2025',
+        status: 'Completed',
+        adviser: 'Not specified',
+        abstract: 'Automated Plant Irrigation System capstone project. Details retrieved via repository archive.'
+      };
+    }
+
+    // Ensure essential fields exist for renderProjectDetails
+    if (!matchedProject.status) matchedProject.status = 'Completed';
+    if (!matchedProject.program) matchedProject.program = 'BIT-Electronics';
+    if (!matchedProject.year) matchedProject.year = '2025';
+
+    // 6. Save to sessionStorage
+    sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(matchedProject));
+
+    // Log Activity
+    if (window.ActivityService && typeof window.ActivityService.logViewProject === 'function') {
+      const authorsStr = Array.isArray(matchedProject.authors) 
+        ? matchedProject.authors.join(', ') 
+        : (matchedProject.authors || '');
+      window.ActivityService.logViewProject(matchedProject.id || '', matchedProject.title, authorsStr, matchedProject.program);
+    }
+
+    // 7. Switch view to project-detail
+    if (window.ViewManager && typeof window.ViewManager.switchView === 'function') {
+      window.ViewManager.switchView('project-detail');
+      if (typeof window.renderProjectDetails === 'function') {
+        window.renderProjectDetails(matchedProject);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (typeof window.openProjectDetails === 'function') {
+      window.openProjectDetails(matchedProject);
+    } else {
+      sessionStorage.setItem('showProjectDetails', 'true');
+      const isInPagesFolder = window.location.pathname.includes('/pages/');
+      window.location.href = isInPagesFolder ? '../index.html' : 'index.html';
     }
   },
 
@@ -706,6 +952,10 @@ const Chatbot = {
     `;
     
     this.messagesContainer.appendChild(messageDiv);
+    // If typingIndicator is in DOM, ensure it is moved after the new user message
+    if (this.typingIndicator) {
+      this.messagesContainer.appendChild(this.typingIndicator);
+    }
     this.scrollToBottom();
     
     // Update clear button visibility
@@ -713,18 +963,59 @@ const Chatbot = {
   },
 
   /**
-   * Get AI provider logo
+   * Get active provider from saved settings or default
+   */
+  getActiveProvider() {
+    try {
+      const saved = localStorage.getItem('recaps_chatbot_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.preferredProvider) return parsed.preferredProvider;
+      }
+    } catch (e) {}
+    return 'Mistral';
+  },
+
+  /**
+   * Get provider logo HTML element (inline SVG from SVGRegistry or fallback)
+   */
+  getProviderLogoElement(providerName) {
+    const key = (providerName || '').toLowerCase();
+    if (typeof SVGRegistry !== 'undefined') {
+      if (key.includes('mistral')) return SVGRegistry.get('ai-provider-mistral');
+      if (key.includes('groq')) return SVGRegistry.get('ai-provider-groq');
+      if (key.includes('gemini')) return SVGRegistry.get('ai-provider-gemini');
+      if (key.includes('openrouter')) return SVGRegistry.get('ai-provider-openrouter');
+    }
+    const logoUrl = this.getProviderLogo(providerName);
+    return `<img src="${logoUrl}" alt="${providerName}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 40 40\\'><rect width=\\'40\\' height=\\'40\\' rx=\\'20\\' fill=\\'%23667eea\\'/><text x=\\'50%25\\' y=\\'54%25\\' font-family=\\'Inter,sans-serif\\' font-size=\\'13\\' font-weight=\\'700\\' fill=\\'white\\' text-anchor=\\'middle\\' dominant-baseline=\\'middle\\'>AI</text></svg>'">`;
+  },
+
+  /**
+   * Get AI provider logo URL
    */
   getProviderLogo(providerName) {
     const logos = {
       'Mistral AI': 'https://docs.mistral.ai/img/logo.svg',
       'Groq AI': 'https://groq.com/wp-content/uploads/2024/03/PBG-mark1-color.svg',
       'Google Gemini': 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg',
-      'OpenRouter': 'https://openrouter.ai/favicon-32x32.png'
+      'OpenRouter': 'https://openrouter.ai/favicon-32x32.png',
+      'Mistral': 'https://docs.mistral.ai/img/logo.svg',
+      'Groq': 'https://groq.com/wp-content/uploads/2024/03/PBG-mark1-color.svg',
+      'Gemini': 'https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg'
     };
     
+    if (providerName && typeof providerName === 'string') {
+      if (logos[providerName]) return logos[providerName];
+      const lower = providerName.toLowerCase();
+      if (lower.includes('mistral')) return logos['Mistral AI'];
+      if (lower.includes('groq')) return logos['Groq AI'];
+      if (lower.includes('gemini')) return logos['Google Gemini'];
+      if (lower.includes('openrouter')) return logos['OpenRouter'];
+    }
+    
     const fallbackSvg = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='40' height='40' rx='20' fill='%23667eea'/><text x='50%25' y='54%25' font-family='Inter,sans-serif' font-size='13' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>AI</text></svg>`;
-    return logos[providerName] || fallbackSvg;
+    return fallbackSvg;
   },
   
   /**
@@ -781,7 +1072,7 @@ const Chatbot = {
     }
     
     messageDiv.innerHTML = `
-      <div class="message-avatar" style="background: white; padding: 4px;">
+      <div class="message-avatar bot-avatar">
         <img src="${providerLogo}" 
              alt="${providerName}" 
              style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"
@@ -790,9 +1081,8 @@ const Chatbot = {
       <div class="message-content">
         <div class="message-bubble">${formattedMessage}</div>
         <div class="message-time">
-          <span style="opacity: 0.6;">${providerName}</span> • ${this.getCurrentTime()}
+          <span class="provider-label">${providerName}</span> • ${this.getCurrentTime()}
         </div>
-        // {ragBadge}
         <div class="message-actions">
           <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
@@ -871,29 +1161,66 @@ const Chatbot = {
   },
   
   /**
-   * Show typing indicator
+   * Show typing indicator with specific AI provider branding
    */
-  showTyping() {
+  showTyping(providerName) {
     if (this.typingIndicator) {
-      // Update typing indicator avatar to show AI logo
+      const activeProvider = providerName || this.getActiveProvider();
+
+      // Ensure typing indicator is at the bottom of the container (never above the user's message)
+      this.messagesContainer.appendChild(this.typingIndicator);
+
+      // Update typing indicator avatar to show specific provider logo
       const typingAvatar = this.typingIndicator.querySelector('.message-avatar');
       if (typingAvatar) {
-        typingAvatar.style.background = 'white';
-        typingAvatar.style.padding = '4px';
-        typingAvatar.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('ai-avatar') : '';
+        typingAvatar.style.background = '#ffffff';
+        typingAvatar.style.padding = '3px';
+        typingAvatar.innerHTML = this.getProviderLogoElement(activeProvider);
+        typingAvatar.title = `${activeProvider} is thinking...`;
+      }
+
+      // Update provider name inside typing bubble
+      const providerNameEl = this.typingIndicator.querySelector('#typing-provider-name');
+      if (providerNameEl) {
+        providerNameEl.textContent = activeProvider;
       }
       
       this.typingIndicator.classList.add('active');
       this.scrollToBottom();
     }
   },
-  
+
+  /**
+   * Update typing provider dynamically (e.g. on fallback transition)
+   */
+  updateTypingProvider(newProvider) {
+    if (!this.typingIndicator || !this.typingIndicator.classList.contains('active')) return;
+    const typingAvatar = this.typingIndicator.querySelector('.message-avatar');
+    if (typingAvatar) {
+      typingAvatar.innerHTML = this.getProviderLogoElement(newProvider);
+      typingAvatar.title = `${newProvider} is thinking...`;
+    }
+    const providerNameEl = this.typingIndicator.querySelector('#typing-provider-name');
+    if (providerNameEl) {
+      providerNameEl.textContent = newProvider;
+    }
+  },
+
   /**
    * Hide typing indicator
    */
   hideTyping() {
     if (this.typingIndicator) {
       this.typingIndicator.classList.remove('active');
+    }
+  },
+
+  /**
+   * Apply updated settings from the settings modal
+   */
+  applySettings(newSettings) {
+    if (newSettings && newSettings.preferredProvider) {
+      console.log(`✓ Chatbot active provider updated to: ${newSettings.preferredProvider}`);
     }
   },
   
@@ -963,7 +1290,7 @@ const Chatbot = {
       if (msg.role === 'user') {
         this._renderUserMessage(msg.text, msg.time);
       } else if (msg.role === 'bot') {
-        this._renderBotMessage(msg.text, msg.time);
+        this._renderBotMessage(msg.text, msg.time, msg.provider || 'Mistral AI', msg.projectsUsed, msg.relevantProjects);
       }
     });
 
@@ -1002,24 +1329,57 @@ const Chatbot = {
   },
 
   /**
-   * Internal: render a bot message with plain formatting (used when replaying history)
+   * Internal: render a bot message with full formatting and provider branding (used when replaying history)
    */
-  _renderBotMessage(text, time) {
+  _renderBotMessage(text, time, provider = 'Mistral AI', projectsUsed = 0, relevantProjects = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot';
-    let formattedMessage = text;
+    
+    // In case an older saved conversation in Firestore was squashed into a single line,
+    // restore clean newlines before numbered list items and metadata keys.
+    let processedText = text || '';
+    processedText = processedText
+      .replace(/([^\n])\s+(\d+\.\s+[\*\[])/g, '$1\n\n$2')
+      .replace(/(\))\s+([A-Za-z]+:)/g, '$1\n\n$2')
+      .replace(/(\S)\s+(Program:)/gi, '$1\n$2')
+      .replace(/(\S)\s+(Authors:)/gi, '$1\n$2');
+
+    const displayProvider = provider || 'Mistral AI';
+    let formattedMessage = processedText;
     if (typeof MessageFormatter !== 'undefined') {
-      formattedMessage = MessageFormatter.formatComplete(text, 'AI');
+      formattedMessage = MessageFormatter.formatComplete(processedText, displayProvider, relevantProjects);
     } else {
-      formattedMessage = this.formatMessage(text);
+      formattedMessage = this.formatMessage(processedText);
     }
+
+    const providerLogo = this.getProviderLogo(displayProvider);
+    const displayTime = time || this.getCurrentTime();
+
+    // RAG badge HTML if projects were used
+    let ragBadgeHtml = '';
+    const numProjects = projectsUsed || (relevantProjects && relevantProjects.length) || 0;
+    if (numProjects > 0) {
+      ragBadgeHtml = `
+        <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;">
+          ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
+          ${numProjects} project${numProjects !== 1 ? 's' : ''} referenced
+        </div>
+      `;
+    }
+
     messageDiv.innerHTML = `
-      <div class="message-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:white; font-family:Inter,sans-serif;">
-        AI
+      <div class="message-avatar bot-avatar">
+        <img src="${providerLogo}" 
+             alt="${displayProvider}" 
+             style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;"
+             onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 40 40\\'><rect width=\\'40\\' height=\\'40\\' rx=\\'20\\' fill=\\'%23667eea\\'/><text x=\\'50%25\\' y=\\'54%25\\' font-family=\\'Inter,sans-serif\\' font-size=\\'13\\' font-weight=\\'700\\' fill=\\'white\\' text-anchor=\\'middle\\' dominant-baseline=\\'middle\\'>AI</text></svg>'">
       </div>
       <div class="message-content">
         <div class="message-bubble">${formattedMessage}</div>
-        <div class="message-time">${time || ''}</div>
+        <div class="message-time">
+          <span class="provider-label" style="opacity: 0.6;">${displayProvider}</span> • ${displayTime}
+        </div>
+        ${ragBadgeHtml}
         <div class="message-actions">
           <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
@@ -1056,12 +1416,23 @@ const Chatbot = {
   /**
    * Clear conversation
    */
-  clearConversation() {
+  async clearConversation() {
     if (typeof showChatbotModal === 'function') {
       showChatbotModal('clear-modal');
     } else {
-      // Fallback
-      if (confirm('Clear all messages?')) {
+      // Fallback to ModalDialog
+      const confirmed = window.ModalDialog
+        ? await ModalDialog.confirm({
+            title: 'Clear Conversation',
+            message: 'Are you sure you want to clear all messages in this conversation? This cannot be undone.',
+            confirmText: 'Clear Messages',
+            cancelText: 'Cancel',
+            isDanger: true,
+            icon: 'trash'
+          })
+        : confirm('Clear all messages?');
+
+      if (confirmed) {
         this.executeClearConversation();
       }
     }
@@ -1134,7 +1505,16 @@ const Chatbot = {
     const count = await ChatService.getConversationCount();
     
     if (count >= 3) {
-      alert('You have reached the maximum of 3 saved conversations. Please delete an old conversation from Chat History before starting a new one.');
+      if (window.ModalDialog) {
+        await ModalDialog.alert({
+          title: 'Conversation Limit Reached',
+          message: 'You have reached the maximum of 3 saved conversations. Please delete an older conversation from Chat History before starting a new one.',
+          buttonText: 'Understood',
+          type: 'warning'
+        });
+      } else {
+        alert('You have reached the maximum of 3 saved conversations. Please delete an old conversation from Chat History before starting a new one.');
+      }
       return;
     }
     

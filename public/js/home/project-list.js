@@ -32,8 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectsContainer = document.getElementById('projects-container');
     const paginationContainer = document.getElementById('pagination-container');
     
-    // Saved projects state
-    let savedProjectIds = (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
+    // User role state & Admin limitation check
+    let currentUserRole = sessionStorage.getItem('userType') || null;
+
+    function isAdminUser() {
+        return currentUserRole === 'admin' || sessionStorage.getItem('userType') === 'admin';
+    }
+
+    // Saved projects state (Admins cannot save or bookmark projects)
+    let savedProjectIds = (!isAdminUser() && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
         ? window.GuestSavedProjects.getIds()
         : [];
     let savedProjectsFull = []; // Store full project data for localStorage
@@ -126,6 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to load saved projects from Firestore
     async function loadSavedProjectsFromFirestore(userId) {
+        if (isAdminUser()) {
+            savedProjectIds = [];
+            savedProjectsFull = [];
+            return;
+        }
         try {
             const docRef = db.collection('usersSavedProjects').doc(userId);
             const doc = await docRef.get();
@@ -179,6 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to save project to Firestore
     async function saveProjectToFirestore(userId, projectId) {
+        if (isAdminUser()) {
+            console.warn('[RE-CAPS] Administrators are restricted from saving or bookmarking projects.');
+            return;
+        }
         try {
             const docRef = db.collection('usersSavedProjects').doc(userId);
             await docRef.set({
@@ -204,6 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to remove project from Firestore
     async function removeProjectFromFirestore(userId, projectId) {
+        if (isAdminUser()) {
+            return;
+        }
         try {
             const docRef = db.collection('usersSavedProjects').doc(userId);
             await docRef.set({
@@ -270,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Unable to open project details:', error);
         }
     }
+    window.openProjectDetails = openProjectDetails;
 
     // Sorting Logic with Radio Buttons
     const sortRadios = document.querySelectorAll('input[name="sortField"], input[name="sortOrder"]');
@@ -408,12 +428,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const metadata = JSON.parse(cachedMetadata);
             const cachedCount = metadata.projectCount || 0;
             const cachedUpdateCounter = metadata.updateCounter || 0;
+            const lastCached = metadata.lastCached ? new Date(metadata.lastCached).getTime() : 0;
+            const isRecent = (Date.now() - lastCached) < (15 * 60 * 1000); // 15 mins
             
             console.log(`📦 Cached: ${cachedCount} projects, update counter: ${cachedUpdateCounter}`);
             
-            // Fetch RTDB counters
-            const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
-            const rtdbData = await rtdbResponse.json();
+            // Try fetching RTDB counters with timeout
+            let rtdbData = null;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json', {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (rtdbResponse.ok) {
+                    rtdbData = await rtdbResponse.json();
+                }
+            } catch (err) {
+                // RTDB unreachable or connection reset
+            }
+            
+            if (!rtdbData) {
+                // If RTDB is temporarily unreachable, trust fresh local cache
+                if (isRecent && cachedCount > 0) {
+                    console.log('✓ RTDB offline, using fresh local cache');
+                    return true;
+                }
+                return false;
+            }
             
             const currentCount = rtdbData.projects_document_count || 0;
             const currentUpdateCounter = rtdbData.update_counter || 0;
@@ -435,8 +478,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
             
         } catch (error) {
-            console.error('Error checking cache validity:', error);
-            return false; // On error, fetch fresh data
+            console.warn('Cache validation check bypassed, fetching fresh:', error);
+            return false;
         }
     }
     
@@ -463,13 +506,24 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function saveToCache(projects) {
         try {
-            // Fetch current RTDB counters
-            const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
-            const rtdbData = await rtdbResponse.json();
+            let rtdbData = {};
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
+                const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json', {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (rtdbResponse.ok) {
+                    rtdbData = await rtdbResponse.json() || {};
+                }
+            } catch (err) {
+                // RTDB optional - use fallback metadata
+            }
             
             const metadata = {
                 projectCount: rtdbData.projects_document_count || projects.length,
-                updateCounter: rtdbData.update_counter || 0,
+                updateCounter: rtdbData.update_counter || Date.now(),
                 lastCached: new Date().toISOString()
             };
             
@@ -480,6 +534,12 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('projectsMetadata', JSON.stringify(metadata));
             
             console.log(`✓ Cached ${projects.length} projects with metadata:`, metadata);
+            
+            // Ensure UI counter updates immediately
+            const countElement = document.getElementById('total-projects-count');
+            if (countElement) {
+                countElement.textContent = projects.length;
+            }
             
         } catch (error) {
             console.error('Error saving to cache:', error);
@@ -752,6 +812,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = `project-card ${cardTierClass}`.trim();
             
+            // Admin limitation: Admins cannot see or operate the saving project feature
+            const isAdmin = isAdminUser();
+            const saveButtonHtml = isAdmin ? '' : `
+                    <button class="${saveBtnClass}" type="button" data-id="${projectId}">
+                        <span id="save-icon-${projectId}"></span>
+                        <span class="btn-text">${saveBtnText}</span>
+                    </button>
+            `;
+
             card.innerHTML = `
                 <div class="project-header">
                     <h3 class="project-title">${displayTitle}</h3>
@@ -770,10 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${displayAbstract}
                 </div>
                 <div class="project-actions">
-                    <button class="${saveBtnClass}" type="button" data-id="${projectId}">
-                        <span id="save-icon-${projectId}"></span>
-                        <span class="btn-text">${saveBtnText}</span>
-                    </button>
+                    ${saveButtonHtml}
                     <button class="btn-view-details" type="button">View Details &rarr;</button>
                 </div>
             `;
@@ -784,10 +850,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof loadIcon === 'function') {
                 loadIcon('user', `user-icon-${projectId}`, 'meta-icon', { width: 16, height: 16 });
                 loadIcon('program', `program-icon-${projectId}`, 'meta-icon', { width: 16, height: 16 });
-                loadIcon('save', `save-icon-${projectId}`, '', { width: 16, height: 16 });
+                if (!isAdmin) {
+                    loadIcon('save', `save-icon-${projectId}`, '', { width: 16, height: 16 });
+                }
             }
-            
-            projectsContainer.appendChild(card);
 
             const detailsButton = card.querySelector('.btn-view-details');
             if (detailsButton) {
@@ -795,7 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const saveButton = card.querySelector('.btn-save');
-            if (saveButton) {
+            if (saveButton && !isAdmin) {
                 saveButton.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const isCurrentlySaved = saveButton.classList.contains('saved');
@@ -902,19 +968,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Fetch Projects Count from RTDB
+    // Fetch Projects Count from RTDB with smart fallback
     async function fetchProjectsCount() {
+        const countElement = document.getElementById('total-projects-count');
+        
+        // Immediate fallback if allProjects is already loaded
+        if (allProjects && allProjects.length > 0 && countElement) {
+            countElement.textContent = allProjects.length;
+        }
+
         try {
-            const response = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/projects_document_count.json');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2500);
+            const response = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/projects_document_count.json', {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
             if (response.ok) {
                 const count = await response.json();
-                const countElement = document.getElementById('total-projects-count');
-                if (countElement) {
-                    countElement.textContent = count !== null ? count : 0;
+                if (countElement && count !== null && count !== undefined) {
+                    countElement.textContent = count;
+                    return;
                 }
             }
         } catch (error) {
-            console.error("Error fetching projects count:", error);
+            // RTDB count endpoint unavailable or connection reset - fallback gracefully
+        }
+
+        // Final fallback: use allProjects length or cached count
+        if (countElement) {
+            if (allProjects && allProjects.length > 0) {
+                countElement.textContent = allProjects.length;
+            } else {
+                const cached = localStorage.getItem('projectsData');
+                if (cached) {
+                    try {
+                        const parsed = JSON.parse(cached);
+                        countElement.textContent = parsed.length;
+                    } catch (e) {
+                        countElement.textContent = '0';
+                    }
+                }
+            }
         }
     }
     
@@ -979,12 +1075,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fetch and cache users only when a user is signed in AND is an admin (we'll check later, but for now skip it to avoid errors)
     if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().onAuthStateChanged((user) => {
+        firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
-                // Don't fetch users cache here to avoid permission errors - we'll fetch it only on admin pages
-                // Load saved projects from Firestore
-                loadSavedProjectsFromFirestore(user.uid);
+                // Resolve user role
+                let role = sessionStorage.getItem('userType');
+                if (!role && window.AuthService) {
+                    role = await window.AuthService.getUserType(user.uid);
+                } else if (!role && typeof db !== 'undefined') {
+                    try {
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            role = userDoc.data().userType;
+                            if (role) sessionStorage.setItem('userType', role);
+                        }
+                    } catch (e) {
+                        console.warn('Could not fetch user role in project-list:', e);
+                    }
+                }
+                currentUserRole = role;
+
+                if (isAdminUser()) {
+                    // Admin limitation: Admins cannot save projects. Clear bookmarks and re-render without save buttons
+                    savedProjectIds = [];
+                    savedProjectsFull = [];
+                    localStorage.removeItem('savedProjects');
+                    renderPage(currentPage);
+                } else {
+                    // Load saved projects from Firestore for students / regular users
+                    await loadSavedProjectsFromFirestore(user.uid);
+                }
             } else {
+                currentUserRole = null;
                 // User logged out: restore guest saved projects from local device
                 if (window.GuestSavedProjects) {
                     savedProjectIds = window.GuestSavedProjects.getIds();
@@ -997,10 +1118,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Listen for immediate role changes (e.g. login from auth-modal)
+        window.addEventListener('authRoleUpdated', (e) => {
+            if (e.detail && e.detail.role) {
+                currentUserRole = e.detail.role;
+                if (isAdminUser()) {
+                    savedProjectIds = [];
+                    savedProjectsFull = [];
+                    localStorage.removeItem('savedProjects');
+                }
+                renderPage(currentPage);
+            }
+        });
+
         // Listen for guest storage updates (e.g. after sync or delete)
         window.addEventListener('guestSavedProjectsChanged', () => {
             const currentUser = firebase.auth().currentUser;
-            if (!currentUser && window.GuestSavedProjects) {
+            if (!currentUser && window.GuestSavedProjects && !isAdminUser()) {
                 savedProjectIds = window.GuestSavedProjects.getIds();
                 renderPage(currentPage);
             }

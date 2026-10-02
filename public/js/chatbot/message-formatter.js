@@ -11,8 +11,13 @@ const MessageFormatter = {
    * @param {string} source - Source of the message (e.g., 'Mistral', 'Groq', 'User')
    * @returns {string} - Formatted HTML string
    */
-  format(rawText, source = '') {
+  format(rawText, source = '', relevantProjects = []) {
     if (!rawText) return '';
+    
+    // Fall back to AIService.lastRelevantProjects if not passed directly
+    if ((!relevantProjects || !relevantProjects.length) && typeof AIService !== 'undefined' && Array.isArray(AIService.lastRelevantProjects)) {
+      relevantProjects = AIService.lastRelevantProjects;
+    }
     
     let html = rawText;
     
@@ -24,15 +29,11 @@ const MessageFormatter = {
     html = this.formatNumberedLists(html);
     html = this.formatCodeBlocks(html);
     html = this.formatInlineCode(html);
-    html = this.formatLinks(html);
+    html = this.formatLinks(html, relevantProjects);
+    html = this.formatProjectTitles(html, relevantProjects);
     html = this.formatQuotes(html);
     html = this.formatLineBreaks(html);
     html = this.formatEmojis(html);
-    
-    // Add source attribution if provided
-    if (source) {
-      html = this.addSourceAttribution(html, source);
-    }
     
     return html;
   },
@@ -169,11 +170,72 @@ const MessageFormatter = {
   },
   
   /**
-   * Format links ([text](url))
+   * Escape attribute values
    */
-  formatLinks(text) {
-    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="ai-link" target="_blank" rel="noopener noreferrer">$1</a>');
-    
+  escapeAttr(text) {
+    return String(text || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
+
+  /**
+   * Format links ([text](url)) - converts project links into interactive repository detail viewers
+   */
+  formatLinks(text, relevantProjects = []) {
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      const cleanUrl = (url || '').trim();
+      const cleanText = (linkText || '').trim();
+      const lowerUrl = cleanUrl.toLowerCase();
+      const lowerText = cleanText.toLowerCase();
+
+      // Check if this link refers to an internal project or thesis
+      const isProjectLink = lowerUrl.includes('project') || 
+                            lowerUrl.includes('capstone') || 
+                            lowerUrl.includes('thesis') || 
+                            lowerUrl.includes('projecthub') || 
+                            lowerUrl.startsWith('#') ||
+                            lowerUrl.startsWith('project:') ||
+                            !cleanUrl.startsWith('http') ||
+                            (relevantProjects && relevantProjects.some(p => {
+                              const pt = (p.title || '').toLowerCase();
+                              return pt && (pt.includes(lowerText) || lowerText.includes(pt));
+                            }));
+
+      if (isProjectLink) {
+        const safeTitle = this.escapeHtml(cleanText);
+        const attrTitle = this.escapeAttr(cleanText);
+        const attrUrl = this.escapeAttr(cleanUrl);
+        return `<a href="javascript:void(0)" class="ai-project-link" data-project-title="${attrTitle}" data-project-url="${attrUrl}" onclick="if(window.Chatbot && window.Chatbot.openProjectDetailsFromChat){ window.Chatbot.openProjectDetailsFromChat(this); } return false;" title="Click to view full project details in repository"><svg class="ai-project-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>${safeTitle}</a>`;
+      }
+
+      return `<a href="${cleanUrl}" class="ai-link" target="_blank" rel="noopener noreferrer">${this.escapeHtml(cleanText)}</a>`;
+    });
+
+    return text;
+  },
+
+  /**
+   * Format project titles from RAG context into clickable project detail links
+   */
+  formatProjectTitles(text, relevantProjects = []) {
+    if (!relevantProjects || !relevantProjects.length) return text;
+
+    relevantProjects.forEach(proj => {
+      if (!proj || !proj.title) return;
+      const title = proj.title.trim();
+      if (title.length < 5) return;
+
+      // Escape for regex safely
+      const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Look for <strong>[Title]</strong> or <strong>Title</strong> (generated from **Title**)
+      // but only if not already wrapped in <a
+      const boldPattern = new RegExp(`(?<!<a[^>]*>)<strong>\\[?(${escaped})\\]?<\\/strong>(?!<\\/a>)`, 'gi');
+      text = text.replace(boldPattern, (m, matchedTitle) => {
+        const safeTitle = this.escapeHtml(matchedTitle);
+        const attrTitle = this.escapeAttr(matchedTitle);
+        return `<a href="javascript:void(0)" class="ai-project-link" data-project-title="${attrTitle}" onclick="if(window.Chatbot && window.Chatbot.openProjectDetailsFromChat){ window.Chatbot.openProjectDetailsFromChat(this); } return false;" title="Click to view full project details in repository"><svg class="ai-project-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>${safeTitle}</a>`;
+      });
+    });
+
     return text;
   },
   
@@ -285,8 +347,8 @@ const MessageFormatter = {
   /**
    * Complete formatting pipeline with cleanup
    */
-  formatComplete(rawText, source = '') {
-    let html = this.format(rawText, source);
+  formatComplete(rawText, source = '', relevantProjects = []) {
+    let html = this.format(rawText, source, relevantProjects);
     html = this.formatProjectCount(html);
     html = this.cleanup(html);
     return html;

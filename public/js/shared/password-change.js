@@ -21,6 +21,10 @@
         'book': 'What is your favorite book?'
     };
 
+    // Requirement status icons
+    const CHECK_ICON_SVG = '<svg class="req-icon req-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="rgba(39, 174, 96, 0.15)"></circle><polyline points="16 9 10 15 8 13"></polyline></svg>';
+    const CIRCLE_ICON_SVG = '<svg class="req-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>';
+
     /**
      * Initialize password change modal
      */
@@ -151,12 +155,18 @@
                                         type="password" 
                                         id="new-password-input" 
                                         class="password-change-input"
-                                        placeholder="Enter new password (min. 6 characters)"
+                                        placeholder="Enter new password (min. 8 characters)"
                                         autocomplete="new-password"
                                     >
                                     <button type="button" class="password-toggle-btn" id="toggle-new-password">
                                         ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
                                     </button>
+                                </div>
+                                <div class="password-strength-container" id="password-strength-container" style="display: none;">
+                                    <div class="password-strength-bar">
+                                        <div class="password-strength-fill" id="password-strength-fill"></div>
+                                    </div>
+                                    <div class="password-strength-text" id="password-strength-text"></div>
                                 </div>
                             </div>
 
@@ -181,12 +191,24 @@
 
                             <div class="password-requirements">
                                 <div class="password-requirement" id="req-length">
-                                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : ''}
-                                    At least 6 characters
+                                    <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
+                                    <span class="req-text">At least 8 characters</span>
+                                </div>
+                                <div class="password-requirement" id="req-number">
+                                    <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
+                                    <span class="req-text">At least 1 number (0-9)</span>
+                                </div>
+                                <div class="password-requirement" id="req-case">
+                                    <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
+                                    <span class="req-text">Uppercase & lowercase letters (A-Z, a-z)</span>
+                                </div>
+                                <div class="password-requirement" id="req-special">
+                                    <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
+                                    <span class="req-text">At least 1 special character (!@#$%^&*...)</span>
                                 </div>
                                 <div class="password-requirement" id="req-match">
-                                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : ''}
-                                    Passwords match
+                                    <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
+                                    <span class="req-text">Passwords match</span>
                                 </div>
                             </div>
 
@@ -315,12 +337,27 @@
 
         // Validation
         if (!newPassword || !confirmPassword) {
-            showError(errorDiv, newPasswordInput, 'Please fill in both password fields');
+            showError(errorDiv, !newPassword ? newPasswordInput : confirmPasswordInput, 'Please fill in both password fields');
             return;
         }
 
-        if (newPassword.length < 6) {
-            showError(errorDiv, newPasswordInput, 'Password must be at least 6 characters');
+        if (newPassword.length < 8) {
+            showError(errorDiv, newPasswordInput, 'Password must be at least 8 characters long');
+            return;
+        }
+
+        if (!/[0-9]/.test(newPassword)) {
+            showError(errorDiv, newPasswordInput, 'Password must contain at least 1 number (0-9)');
+            return;
+        }
+
+        if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword)) {
+            showError(errorDiv, newPasswordInput, 'Password must contain both uppercase and lowercase letters');
+            return;
+        }
+
+        if (!/[^A-Za-z0-9]/.test(newPassword)) {
+            showError(errorDiv, newPasswordInput, 'Password must contain at least 1 special character (e.g. !@#$%^&*)');
             return;
         }
 
@@ -384,28 +421,97 @@
     }
 
     /**
+     * Set requirement status with icon and class
+     */
+    function setRequirementStatus(reqElement, isMet) {
+        if (!reqElement) return;
+        const iconWrapper = reqElement.querySelector('.req-icon-wrapper');
+        if (isMet) {
+            reqElement.classList.add('met');
+            if (iconWrapper) {
+                iconWrapper.innerHTML = CHECK_ICON_SVG;
+            }
+        } else {
+            reqElement.classList.remove('met');
+            if (iconWrapper) {
+                iconWrapper.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG;
+            }
+        }
+    }
+
+    /**
+     * Update password strength meter
+     */
+    function updatePasswordStrength(password, criteria) {
+        const container = document.getElementById('password-strength-container');
+        const fill = document.getElementById('password-strength-fill');
+        const text = document.getElementById('password-strength-text');
+        if (!container || !fill || !text) return;
+
+        if (!password) {
+            container.style.display = 'none';
+            fill.style.width = '0%';
+            return;
+        }
+
+        container.style.display = 'flex';
+        const passedCount = criteria.filter(Boolean).length;
+
+        if (passedCount <= 1) {
+            fill.style.width = '25%';
+            fill.style.backgroundColor = '#e74c3c';
+            text.style.color = '#e74c3c';
+            text.textContent = 'Weak password';
+        } else if (passedCount === 2) {
+            fill.style.width = '50%';
+            fill.style.backgroundColor = '#e67e22';
+            text.style.color = '#e67e22';
+            text.textContent = 'Fair password';
+        } else if (passedCount === 3) {
+            fill.style.width = '75%';
+            fill.style.backgroundColor = '#f39c12';
+            text.style.color = '#f39c12';
+            text.textContent = 'Good password';
+        } else {
+            fill.style.width = '100%';
+            fill.style.backgroundColor = '#27ae60';
+            text.style.color = '#27ae60';
+            text.textContent = 'Strong password';
+        }
+    }
+
+    /**
      * Validate password requirements in real-time
      */
     function validatePasswordRequirements() {
-        const newPassword = document.getElementById('new-password-input').value;
-        const confirmPassword = document.getElementById('confirm-password-input').value;
+        const newPasswordInput = document.getElementById('new-password-input');
+        const confirmPasswordInput = document.getElementById('confirm-password-input');
+        if (!newPasswordInput || !confirmPasswordInput) return;
+
+        const newPassword = newPasswordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
 
         const reqLength = document.getElementById('req-length');
+        const reqNumber = document.getElementById('req-number');
+        const reqCase = document.getElementById('req-case');
+        const reqSpecial = document.getElementById('req-special');
         const reqMatch = document.getElementById('req-match');
 
-        // Length requirement
-        if (newPassword.length >= 6) {
-            reqLength.classList.add('met');
-        } else {
-            reqLength.classList.remove('met');
-        }
+        const hasLength = newPassword.length >= 8;
+        const hasNumber = /[0-9]/.test(newPassword);
+        const hasUpper = /[A-Z]/.test(newPassword);
+        const hasLower = /[a-z]/.test(newPassword);
+        const hasCase = hasUpper && hasLower;
+        const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+        const hasMatch = Boolean(newPassword && confirmPassword && newPassword === confirmPassword);
 
-        // Match requirement
-        if (newPassword && confirmPassword && newPassword === confirmPassword) {
-            reqMatch.classList.add('met');
-        } else {
-            reqMatch.classList.remove('met');
-        }
+        setRequirementStatus(reqLength, hasLength);
+        setRequirementStatus(reqNumber, hasNumber);
+        setRequirementStatus(reqCase, hasCase);
+        setRequirementStatus(reqSpecial, hasSpecial);
+        setRequirementStatus(reqMatch, hasMatch);
+
+        updatePasswordStrength(newPassword, [hasLength, hasNumber, hasCase, hasSpecial]);
     }
 
     /**
@@ -429,7 +535,13 @@
      */
     function showToast(message, type = 'info') {
         if (typeof window.showToast === 'function') {
-            window.showToast(message, type === 'success' ? '✅' : '❌');
+            window.showToast(message, type);
+        } else if (window.ModalDialog) {
+            ModalDialog.alert({
+                title: type === 'success' ? 'Password Updated' : 'Password Error',
+                message: message,
+                type: type === 'success' ? 'success' : 'danger'
+            });
         } else {
             alert(message);
         }

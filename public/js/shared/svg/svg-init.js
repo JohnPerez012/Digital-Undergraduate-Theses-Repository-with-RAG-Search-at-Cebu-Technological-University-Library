@@ -261,6 +261,7 @@
             // Details view
             { name: 'back',               targetId: 'back-btn-icon',       options: { width: 16, height: 16 } },
             // Chatbot floating buttons
+            { name: 'addconversation',    targetId: 'new-chat-dock-icon',  options: { width: 20, height: 20 } },
             { name: 'conversationhistory', targetId: 'history-btn-icon',  options: { width: 20, height: 20 } },
             { name: 'delete',             targetId: 'clear-btn-icon',      options: { width: 20, height: 20 } },
             { name: 'download',           targetId: 'export-btn-icon',     options: { width: 20, height: 20 } },

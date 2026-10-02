@@ -1,6 +1,6 @@
 /**
  * Feedback Module
- * Handles feedback form submission with emoji reactions, image attachments, and email notifications
+ * Handles feedback form submission with image attachments and email notifications
  */
 
 const FeedbackModule = (() => {
@@ -36,14 +36,32 @@ const FeedbackModule = (() => {
             ...options
         };
 
-        // Initialize emoji reactions
-        initEmojiReactions();
 
-        // Initialize image upload
         initImageUpload();
 
         // Attach submit handler
         form.addEventListener('submit', (e) => handleSubmit(e, form, config));
+
+        // Attach clear handler
+        const clearBtn = form.querySelector('#btn-clear-feedback');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                form.reset();
+                selectedImages = [];
+                const previewContainer = document.getElementById('feedback-image-preview');
+                if (previewContainer) {
+                    renderImagePreviews(previewContainer);
+                }
+                clearValidationStates(form);
+                const firstInput = form.querySelector('input:not([type="hidden"])');
+                if (firstInput) {
+                    firstInput.focus();
+                }
+                if (typeof showToast === 'function') {
+                    showToast('Feedback form cleared', 'info');
+                }
+            });
+        }
 
         // Add real-time validation
         const nameInput = form.querySelector('[name="name"]');
@@ -69,41 +87,6 @@ const FeedbackModule = (() => {
         }
 
         console.log('✓ Feedback module initialized');
-    }
-
-    /**
-     * Initialize emoji reaction buttons
-     */
-    function initEmojiReactions() {
-        const emojiContainer = document.getElementById('emoji-reaction-container');
-        const feelingInput = document.getElementById('feedback-feeling');
-        
-        if (!emojiContainer || !feelingInput) return;
-
-        const emojiButtons = emojiContainer.querySelectorAll('.emoji-btn');
-
-        emojiButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Remove selected class from all buttons
-                emojiButtons.forEach(b => b.classList.remove('selected'));
-                
-                // Add selected class to clicked button
-                btn.classList.add('selected');
-                
-                // Set hidden input value
-                const feeling = btn.getAttribute('data-feeling');
-                feelingInput.value = feeling;
-                
-                // Clear error state if exists
-                const feedback = feelingInput.nextElementSibling;
-                if (feedback && feedback.classList.contains('field-feedback')) {
-                    feedback.style.display = 'none';
-                    feedback.textContent = '';
-                }
-                
-                console.log('Feeling selected:', feeling);
-            });
-        });
     }
 
     /**
@@ -134,7 +117,13 @@ const FeedbackModule = (() => {
         // Check if adding these files exceeds max limit
         if (selectedImages.length + fileArray.length > MAX_IMAGES) {
             if (typeof showToast === 'function') {
-                showToast(`Maximum ${MAX_IMAGES} images allowed`, '⚠️');
+                showToast(`Maximum ${MAX_IMAGES} images allowed`, 'warning');
+            } else if (window.ModalDialog) {
+                ModalDialog.alert({
+                    title: 'Image Upload Limit',
+                    message: `You can upload a maximum of ${MAX_IMAGES} images with your feedback.`,
+                    type: 'warning'
+                });
             } else {
                 alert(`Maximum ${MAX_IMAGES} images allowed`);
             }
@@ -230,7 +219,6 @@ const FeedbackModule = (() => {
         const data = {
             name: formData.get('name')?.trim(),
             email: formData.get('email')?.trim(),
-            feeling: formData.get('feeling')?.trim(),
             subject: formData.get('subject')?.trim() || '',
             message: formData.get('message')?.trim()
         };
@@ -239,7 +227,13 @@ const FeedbackModule = (() => {
         const validation = validateFormData(data);
         if (!validation.valid) {
             if (config.showToast && typeof showToast === 'function') {
-                showToast(validation.error, '❌');
+                showToast(validation.error, 'warning');
+            } else if (window.ModalDialog) {
+                ModalDialog.alert({
+                    title: 'Incomplete Form',
+                    message: validation.error,
+                    type: 'warning'
+                });
             } else {
                 alert(validation.error);
             }
@@ -294,7 +288,13 @@ const FeedbackModule = (() => {
             if (response.ok && result.success) {
                 // Success
                 if (config.showToast && typeof showToast === 'function') {
-                    showToast(result.message || 'Feedback sent successfully! Check your email.', '✅');
+                    showToast(result.message || 'Feedback sent successfully! Check your email.', 'success');
+                } else if (window.ModalDialog) {
+                    ModalDialog.alert({
+                        title: 'Feedback Received',
+                        message: result.message || 'Feedback sent successfully! Thank you for helping us improve.',
+                        type: 'success'
+                    });
                 } else {
                     alert(result.message || 'Feedback sent successfully!');
                 }
@@ -305,14 +305,8 @@ const FeedbackModule = (() => {
                     selectedImages = [];
                     renderImagePreviews(document.getElementById('feedback-image-preview'));
                     clearValidationStates(form);
-                    
-                    // Clear emoji selection
-                    document.querySelectorAll('.emoji-btn').forEach(btn => {
-                        btn.classList.remove('selected');
-                    });
                 }
 
-                // Call success callback
                 if (typeof config.onSuccess === 'function') {
                     config.onSuccess(result);
                 }
@@ -331,7 +325,13 @@ const FeedbackModule = (() => {
             const errorMessage = error.message || 'Failed to send feedback. Please try again.';
             
             if (config.showToast && typeof showToast === 'function') {
-                showToast(errorMessage, '❌');
+                showToast(errorMessage, 'error');
+            } else if (window.ModalDialog) {
+                ModalDialog.alert({
+                    title: 'Submission Failed',
+                    message: errorMessage,
+                    type: 'danger'
+                });
             } else {
                 alert(errorMessage);
             }
@@ -367,17 +367,6 @@ const FeedbackModule = (() => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(data.email)) {
             return { valid: false, error: 'Please enter a valid email address' };
-        }
-
-        if (!data.feeling) {
-            // Highlight emoji container
-            const feelingInput = document.getElementById('feedback-feeling');
-            const feedback = feelingInput ? feelingInput.nextElementSibling : null;
-            if (feedback && feedback.classList.contains('field-feedback')) {
-                feedback.textContent = 'Please select how you\'re feeling';
-                feedback.style.display = 'block';
-            }
-            return { valid: false, error: 'Please select how you\'re feeling' };
         }
 
         if (!data.message || data.message.length < 10) {

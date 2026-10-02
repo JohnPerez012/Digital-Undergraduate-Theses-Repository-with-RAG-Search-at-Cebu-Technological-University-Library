@@ -646,54 +646,164 @@ body {
     background: rgba(239, 68, 68, 0.05);
 }
 
-.table-actions {
-    display: flex;
-    gap: 0.5rem;
+/* ==========================================================================
+   GENERALIZED TABLE ACTION BUTTONS (Icon Default -> Text on Hover)
+   ========================================================================== */
+.table-actions,
+.catalog-item-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: nowrap;
 }
 
 .action-btn {
-    padding: 0.5rem 0.75rem;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.85rem;
-    font-weight: 500;
-    font-family: 'Atkinson Hyperlegible', sans-serif;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-}
-
-.action-btn:hover {
-    background: var(--border);
     color: var(--text-primary);
-    transform: translateY(-1px);
+    cursor: pointer;
+    font-size: 0 !important; /* Hides text node when not hovered */
+    line-height: 1;
+    font-weight: 600;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease,
+                transform 0.15s ease,
+                box-shadow 0.2s ease;
+    box-sizing: border-box;
 }
 
+/* 1. NOT HOVERED: ONLY SHOW THE ICON, HIDE TEXT */
 .action-btn svg {
+    display: block !important;
     width: 14px;
     height: 14px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    margin: 0 auto;
+    transition: transform 0.15s ease;
 }
 
-.action-btn.action-view:hover {
-    background: var(--librarian-accent);
-    border-color: var(--librarian-accent);
-    color: white;
+.action-btn .action-btn-text,
+.action-btn .btn-text,
+.action-btn span:not(.sync-dot) {
+    display: none !important;
 }
 
-.action-btn.action-edit:hover {
-    background: var(--librarian-warning);
-    border-color: var(--librarian-warning);
-    color: white;
+/* Unhovered semantic state hints */
+.action-btn.action-view {
+    color: var(--librarian-accent, #3b82f6);
+    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.04);
 }
 
-.action-btn.action-approve:hover {
-    background: var(--librarian-success);
-    border-color: var(--librarian-success);
-    color: white;
+.action-btn.action-edit {
+    color: var(--librarian-warning, #f59e0b);
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.action-btn.action-delete,
+.action-btn.delete {
+    color: var(--librarian-danger, #ef4444);
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.action-btn.action-approve {
+    color: var(--librarian-success, #10b981);
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+/* 2. HOVERED (OR FOCUSED): SHOW TEXT, HIDE ICON */
+.action-btn:hover,
+.action-btn:focus-visible {
+    width: auto !important;
+    min-width: 58px;
+    padding: 0 0.75rem !important;
+    font-size: 0.8125rem !important; /* Shows text */
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.action-btn:hover svg,
+.action-btn:focus-visible svg {
+    display: none !important; /* Hides icon */
+}
+
+.action-btn:hover .action-btn-text,
+.action-btn:hover .btn-text,
+.action-btn:hover span:not(.sync-dot),
+.action-btn:focus-visible .action-btn-text,
+.action-btn:focus-visible .btn-text,
+.action-btn:focus-visible span:not(.sync-dot) {
+    display: inline-block !important; /* Shows text */
+    font-size: 0.8125rem !important;
+    line-height: 1;
+    animation: actionBtnTextFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover themes for each action */
+.action-btn.action-view:hover,
+.action-btn.action-view:focus-visible {
+    background: var(--librarian-accent, #3b82f6) !important;
+    border-color: var(--librarian-accent, #3b82f6) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.action-btn.action-edit:hover,
+.action-btn.action-edit:focus-visible {
+    background: var(--librarian-warning, #f59e0b) !important;
+    border-color: var(--librarian-warning, #f59e0b) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.action-btn.action-delete:hover,
+.action-btn.delete:hover,
+.action-btn.action-delete:focus-visible,
+.action-btn.delete:focus-visible {
+    background: var(--librarian-danger, #ef4444) !important;
+    border-color: var(--librarian-danger, #ef4444) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.action-btn.action-approve:hover,
+.action-btn.action-approve:focus-visible {
+    background: var(--librarian-success, #10b981) !important;
+    border-color: var(--librarian-success, #10b981) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+@keyframes actionBtnTextFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ===== Badges ===== */
@@ -936,13 +1046,23 @@ body {
     }
 
     .table-actions {
-        flex-direction: column;
+        display: inline-flex;
+        flex-direction: row;
+        align-items: center;
         gap: 0.375rem;
+        flex-wrap: nowrap;
     }
 
     .action-btn {
-        width: 100%;
-        justify-content: center;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+    }
+
+    .action-btn:hover,
+    .action-btn:focus-visible {
+        width: auto !important;
+        min-width: 58px;
     }
 
     .catalog-grid {

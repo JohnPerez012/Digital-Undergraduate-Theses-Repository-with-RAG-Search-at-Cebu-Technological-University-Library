@@ -18,15 +18,18 @@
     <title>Teacher Dashboard - RE-CAPS</title>
     <link rel="stylesheet" href="../css/shared/style.css">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
-    <link rel="stylesheet" href="../css/pages/teacher_page.css">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="stylesheet" href="../css/shared/password-change.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
+    <link rel="stylesheet" href="../css/shared/modal-dialog.css">
     <link rel="stylesheet" href="../css/shared/text-protection.css">
     <link rel="stylesheet" href="../css/shared/activity-log.css">
+    <link rel="stylesheet" href="../css/shared/citation-generator.css">
+    <link rel="stylesheet" href="../css/pages/student_page.css">
+    <link rel="stylesheet" href="../css/pages/teacher_page.css">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
@@ -41,7 +44,7 @@
                 <img src="../assets/logo.png" alt="RE-CAPS Logo" class="rail-logo">
                 <div class="rail-brand">
                     <div class="rail-brand-title">RE-CAPS</div>
-                    <div class="rail-brand-subtitle">Teacher Panel</div>
+                    <div class="rail-brand-subtitle">Teacher Dashboard</div>
                 </div>
             </div>
 
@@ -55,41 +58,26 @@
                         </span>
                         <span class="rail-nav-text">Dashboard</span>
                     </a>
-                    <a href="#projects" class="rail-nav-item" data-section="projects">
+                    
+                    <a href="#saved" class="rail-nav-item" data-section="saved">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
                         </span>
-                        <span class="rail-nav-text">Projects Archive</span>
-                    </a>
-                    <a href="#students" class="rail-nav-item" data-section="students">
-                        <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        </span>
-                        <span class="rail-nav-text">My Students</span>
-                    </a>
-                    <a href="#classes" class="rail-nav-item" data-section="classes">
-                        <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-                        </span>
-                        <span class="rail-nav-text">My Classes</span>
-                    </a>
-                    <a href="#submissions" class="rail-nav-item" data-section="submissions">
-                        <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                        </span>
-                        <span class="rail-nav-text">Submissions</span>
+                        <span class="rail-nav-text">Saved Projects</span>
+                        <span class="rail-nav-badge" id="saved-count">0</span>
                     </a>
                 </div>
 
                 <div class="rail-divider"></div>
 
                 <div class="rail-nav-section">
-                    <div class="rail-nav-label">Reports</div>
-                    <a href="#analytics" class="rail-nav-item" data-section="analytics">
+                    <div class="rail-nav-label">Tools</div>
+                    
+                    <a href="#citations" class="rail-nav-item" data-section="citations">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         </span>
-                        <span class="rail-nav-text">Analytics</span>
+                        <span class="rail-nav-text">Citations</span>
                     </a>
                     
                     <a href="#activity" class="rail-nav-item" data-section="activity">
@@ -118,7 +106,7 @@
                     </div>
                 </div>
 
-                <a href="../index.html" class="rail-footer-item" id="back-to-home-btn">
+                <a href="../index.html" class="rail-footer-item">
                     <span class="rail-nav-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                     </span>
@@ -136,234 +124,431 @@
 
         <!-- Main Content Area -->
         <main class="dashboard-main">
-            <!-- Top Bar -->
-            <!-- <div class="dashboard-topbar">
-                <div class="topbar-left">
-                    <h1 class="topbar-title" id="page-title">Dashboard</h1>
-                </div>
-                <div class="topbar-right">
-                    <button class="topbar-action-btn" id="theme-toggle-teacher" aria-label="Toggle theme">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                    </button>
-                </div>
-            </div> -->
-
             <!-- Content Area -->
             <div class="dashboard-content">
                 <!-- Dashboard Section -->
                 <section id="section-dashboard" class="content-section active">
-                    <div class="section-header">
-                        <h2>Dashboard Overview</h2>
-                        <button class="btn-secondary" id="refresh-dashboard-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                            Refresh
-                        </button>
-                    </div>
-                    
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <!-- Hero Banner -->
+                    <div class="student-hero">
+                        <div class="student-hero-content">
+                            <div class="student-greeting-badge">
+                                <span class="pulse-dot"></span>
+                                <span id="teacher-academic-badge">Academic Year 2025–2026 · CTU Daanbantayan Campus</span>
                             </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="total-students-stat">0</h3>
-                                <p class="stat-label">My Students</p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                            </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="total-projects-stat">0</h3>
-                                <p class="stat-label">Projects Supervised</p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-                            </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="total-classes-stat">0</h3>
-                                <p class="stat-label">Active Classes</p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                            </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="pending-submissions-stat">0</h3>
-                                <p class="stat-label">Pending Reviews</p>
-                            </div>
+                            <h2 class="student-hero-title" id="greeting">Good day, Faculty.</h2>
+                            <p class="student-hero-subtitle">
+                                Welcome to your academic research workstation. Explore peer-reviewed capstone manuscripts, reference prior literature, and manage your academic citations.
+                            </p>
                         </div>
                     </div>
 
-                    <div class="dashboard-grid">
-                        <div class="dashboard-card">
-                            <h3 class="card-title">Recent Projects</h3>
-                            <div class="recent-list" id="recent-projects-list">
-                                <div class="loading-spinner">Loading...</div>
+                    <!-- Truthful Stats KPI Cards -->
+                    <!-- Unified Interactive Research Workstation Grid -->
+                    <div class="student-stats-grid">
+                        <!-- Card 1: Available Capstones / Explore Archive (Clickable to home/index.html) -->
+                        <a href="../index.html" class="student-stat-card" id="card-explore-archive" aria-label="Explore Archive Catalog">
+                            <div class="stat-card-header">
+                                <span class="stat-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                </span>
+                                <span class="stat-card-badge">Catalog</span>
+                            </div>
+                            <div class="stat-card-value" id="available-projects-count">--</div>
+                            <div class="stat-card-label">Available Capstones</div>
+                            <div class="stat-card-subtext">Approved theses in CTU campus repository</div>
+                            <div class="stat-card-action">
+                                <span>Explore Archive</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </div>
+                        </a>
+
+                        <!-- Card 2: Saved Projects / Saved Collection (Clickable to Saved Projects) -->
+                        <div class="student-stat-card" id="launchpad-saved-btn" role="button" tabindex="0" aria-label="View Saved Projects Collection">
+                            <div class="stat-card-header">
+                                <span class="stat-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                                </span>
+                                <span class="stat-card-badge">Collection</span>
+                            </div>
+                            <div class="stat-card-value" id="saved-projects-count">0</div>
+                            <div class="stat-card-label">Saved Projects</div>
+                            <div class="stat-card-subtext">Bookmarked for personal literature review</div>
+                            <div class="stat-card-action">
+                                <span>View Saved Collection</span>
+                                <span id="launchpad-saved-count" style="display: none;">0</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                             </div>
                         </div>
 
-                        <div class="dashboard-card">
-                            <h3 class="card-title">My Students</h3>
-                            <div class="recent-list" id="recent-students-list">
-                                <div class="loading-spinner">Loading...</div>
+                        <!-- Card 3: Research Citations / Citation Generator (Clickable to Citations) -->
+                        <div class="student-stat-card" id="launchpad-citations-btn" role="button" tabindex="0" aria-label="Open Citation Generator">
+                            <div class="stat-card-header">
+                                <span class="stat-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                </span>
+                                <span class="stat-card-badge">Tools</span>
                             </div>
+                            <div class="stat-card-value" id="activities-count">0</div>
+                            <div class="stat-card-label">Citation Generator</div>
+                            <div class="stat-card-subtext">Format citations in APA 7th, MLA, Chicago &amp; IEEE</div>
+                            <div class="stat-card-action">
+                                <span>Generate Citation</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </div>
+                        </div>
+
+                        <!-- Card 4: AI Research Assistant (Clickable to open Chatbot) -->
+                        <div class="student-stat-card" id="launchpad-chatbot-btn" role="button" tabindex="0" aria-label="Open AI Research Assistant">
+                            <div class="stat-card-header">
+                                <span class="stat-card-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path><rect x="4" y="8" width="16" height="12" rx="4"></rect><circle cx="9" cy="13" r="1.5" fill="currentColor"></circle><circle cx="15" cy="13" r="1.5" fill="currentColor"></circle><path d="M9 17h6"></path></svg>
+                                </span>
+                                <span class="stat-card-badge">AI Assistant</span>
+                            </div>
+                            <div class="stat-card-value stat-card-ai-value">
+                                <span class="stat-card-pulse-dot"></span>
+                                <span>Active</span>
+                            </div>
+                            <div class="stat-card-label">AI Research Assistant</div>
+                            <div class="stat-card-subtext">Prompt feedback on thesis titles, problem formulations &amp; frameworks</div>
+                            <div class="stat-card-action">
+                                <span>Open Assistant</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </div>
+                        </div>
+
+                        <!-- Preserved for background tracking -->
+                        <span id="recent-views-count" style="display: none;">0</span>
+                    </div>
+
+                    <!-- Two-Column Interactive Content Section -->
+                    <div class="student-content-columns">
+                        <!-- Left Column: Recently Explored Theses -->
+                        <div class="student-card-panel">
+                            <div class="panel-header-row">
+                                <h3 class="panel-header-title">
+                                    <span>Recently Explored Theses</span>
+                                </h3>
+                                <a href="#activity" class="panel-header-link" id="view-activity-link">
+                                    <span>Full History</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                </a>
+                            </div>
+
+                            <div id="recent-theses-container" class="recent-theses-list">
+                                <!-- Populated dynamically by teacher_page.js -->
+                                <div class="recent-theses-empty">
+                                    <div class="recent-empty-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    </div>
+                                    <h4>No recent project views yet</h4>
+                                    <p>Start browsing capstone projects in the repository to keep track of what you have explored.</p>
+                                    <a href="../index.html" class="recent-explore-cta">Explore Capstones →</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Academic Programs & Research Guidance -->
+                        <div class="student-card-panel">
+                            <div class="panel-header-row">
+                                <h3 class="panel-header-title">
+                                    <span>Browse by Academic Program</span>
+                                </h3>
+                            </div>
+
+                            <div class="programs-grid">
+                                <button type="button" class="program-browse-btn" data-program="BSIE">
+                                    <span>BS Industrial Engineering</span>
+                                    <span class="program-pill-code">BSIE</span>
+                                </button>
+                                <button type="button" class="program-browse-btn" data-program="BIT-Electronics">
+                                    <span>BIT Electronics Technology</span>
+                                    <span class="program-pill-code">BIT-Electronics</span>
+                                </button>
+                                <button type="button" class="program-browse-btn" data-program="BSHM">
+                                    <span>BS Hospitality Management</span>
+                                    <span class="program-pill-code">BSHM</span>
+                                </button>
+                                <button type="button" class="program-browse-btn" data-program="BIT-Automotive">
+                                    <span>BIT Automotive Technology</span>
+                                    <span class="program-pill-code">BIT-Automotive</span>
+                                </button>
+                            </div>
+
+                            <!-- Research Tip of the Day -->
+                            <div class="research-tip-panel">
+                                <div class="research-tip-header">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <span>CTU Research Tip</span>
+                                </div>
+                                <p class="research-tip-text" id="daily-research-tip">
+                                    Formulate specific, measurable objectives. When referencing prior theses, note their limitations in Chapter 2 as justification for your proposed methodology.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Saved Projects Section -->
+                <section id="section-saved" class="content-section">
+                    <div style="margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                            <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary);">Saved Projects</h2>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <button class="btn-secondary" id="clear-all-saved-btn" style="padding: 0.625rem 1.25rem; font-size: 0.875rem;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="saved-projects-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                        <!-- Saved projects will be loaded here -->
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary); font-style: italic;">
+                            Loading saved projects...
                         </div>
                     </div>
                 </section>
 
-                <!-- Projects Section -->
-                <section id="section-projects" class="content-section">
-                    <div class="section-header">
-                        <h2>Projects Archive</h2>
-                        <div class="section-actions">
-                            <div class="search-box">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-                                <input type="text" id="projects-search" placeholder="Search projects...">
+                <!-- Citations Section -->
+                <section id="section-citations" class="content-section">
+                    <!-- Header -->
+                    <div class="citation-header-area">
+                        <div class="citation-title-wrap">
+                            <div class="citation-badge-pill">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                                <span>Academic Bibliography Studio</span>
                             </div>
+                            <h2 class="citation-main-title">Citation Generator</h2>
+                            <p class="citation-main-desc">Generate authoritative bibliographic references, in-text citations, and BibTeX records for academic capstone manuscripts.</p>
+                        </div>
+
+                        <div class="citation-header-actions">
+                            <!-- Import from Saved Projects dropdown -->
+                            <div class="citation-import-dropdown-wrap">
+                                <button type="button" class="btn-citation-import" id="btn-import-saved-project">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                                    <span>Import Saved Project</span>
+                                </button>
+                                <div class="citation-import-menu" id="citation-import-menu" style="display: none;">
+                                    <div class="citation-import-menu-header">Select a saved capstone:</div>
+                                    <div class="citation-import-list" id="citation-saved-projects-list">
+                                        <!-- Populated dynamically -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn-citation-reset" id="btn-citation-reset" title="Reset all fields">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                                <span>Reset</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="table-container">
-                        <table class="data-table" id="projects-table">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Authors</th>
-                                    <th>Program</th>
-                                    <th>Year</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="projects-table-body">
-                                <tr>
-                                    <td colspan="6" class="table-loading">Loading projects...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Students Section -->
-                <section id="section-students" class="content-section">
-                    <div class="section-header">
-                        <h2>My Students</h2>
-                        <div class="section-actions">
-                            <div class="search-box">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-                                <input type="text" id="students-search" placeholder="Search students...">
-                            </div>
+                    <!-- Format Tabs Bar -->
+                    <div class="citation-format-bar">
+                        <span class="citation-format-label">Citation Style:</span>
+                        <div class="citation-format-pills" role="tablist">
+                            <button type="button" class="citation-format-pill active" data-format="apa" role="tab" aria-selected="true">APA 7th</button>
+                            <button type="button" class="citation-format-pill" data-format="mla" role="tab" aria-selected="false">MLA 9th</button>
+                            <button type="button" class="citation-format-pill" data-format="chicago" role="tab" aria-selected="false">Chicago 17th</button>
+                            <button type="button" class="citation-format-pill" data-format="ieee" role="tab" aria-selected="false">IEEE</button>
+                            <button type="button" class="citation-format-pill" data-format="harvard" role="tab" aria-selected="false">Harvard</button>
+                            <button type="button" class="citation-format-pill" data-format="bibtex" role="tab" aria-selected="false">BibTeX</button>
                         </div>
+                        <!-- Hidden select for backwards compatibility -->
+                        <select id="citation-format" style="display: none;">
+                            <option value="apa" selected>APA Style</option>
+                            <option value="mla">MLA Style</option>
+                            <option value="chicago">Chicago Style</option>
+                            <option value="ieee">IEEE Style</option>
+                            <option value="harvard">Harvard Style</option>
+                            <option value="bibtex">BibTeX</option>
+                        </select>
                     </div>
 
-                    <div class="table-container">
-                        <table class="data-table" id="students-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Student ID</th>
-                                    <th>Program</th>
-                                    <th>Email</th>
-                                    <th>Projects</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="students-table-body">
-                                <tr>
-                                    <td colspan="6" class="table-loading">Loading students...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Classes Section -->
-                <section id="section-classes" class="content-section">
-                    <div class="section-header">
-                        <h2>My Classes</h2>
-                        <button class="btn-primary" id="add-class-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            Add Class
-                        </button>
-                    </div>
-
-                    <div class="classes-grid" id="classes-grid">
-                        <div class="loading-spinner">Loading classes...</div>
-                    </div>
-                </section>
-
-                <!-- Submissions Section -->
-                <section id="section-submissions" class="content-section">
-                    <div class="section-header">
-                        <h2>Project Submissions</h2>
-                        <div class="section-actions">
-                            <div class="search-box">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-                                <input type="text" id="submissions-search" placeholder="Search submissions...">
+                    <!-- Workstation Two-Column Grid -->
+                    <div class="citation-workstation-grid">
+                        <!-- Left Column: Inputs Form -->
+                        <div class="citation-card citation-form-card">
+                            <div class="citation-card-title-row">
+                                <h3 class="citation-card-heading">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    <span>Manuscript Details</span>
+                                </h3>
+                                <span class="citation-live-pill" id="citation-live-status">Live Preview Active</span>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="table-container">
-                        <table class="data-table" id="submissions-table">
-                            <thead>
-                                <tr>
-                                    <th>Project</th>
-                                    <th>Student</th>
-                                    <th>Submitted</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="submissions-table-body">
-                                <tr>
-                                    <td colspan="5" class="table-loading">Loading submissions...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+                            <div class="citation-form-fields">
+                                <!-- Project Title -->
+                                <div class="citation-field-group">
+                                    <label class="citation-field-label" for="citation-title">
+                                        <span>Project / Thesis Title</span>
+                                        <span class="citation-required-star">*</span>
+                                    </label>
+                                    <input type="text" id="citation-title" class="citation-text-input" placeholder="e.g., Automated IoT Crop Irrigation System Using LoRaWAN">
+                                </div>
 
-                <!-- Analytics Section -->
-                <section id="section-analytics" class="content-section">
-                    <div class="section-header">
-                        <h2>Analytics & Reports</h2>
-                    </div>
+                                <!-- Authors (Dynamic Add-Field Builder) -->
+                                <div class="citation-field-group">
+                                    <div class="citation-field-label-row">
+                                        <label class="citation-field-label">
+                                            <span>Author(s)</span>
+                                            <span class="citation-required-star">*</span>
+                                        </label>
+                                        <span class="citation-field-hint-pill">No strict formatting required &mdash; add each author</span>
+                                    </div>
 
-                    <div class="analytics-grid">
-                        <div class="analytics-card">
-                            <h3>📊 Projects by Program</h3>
-                            <div id="projects-by-program-chart" class="chart-container">
-                                <div class="loading-spinner">Loading chart...</div>
-                            </div>
-                        </div>
+                                    <!-- Dynamic Authors Container -->
+                                    <div id="citation-authors-container" class="citation-authors-container">
+                                        <!-- Rendered dynamically by CitationStudio -->
+                                    </div>
 
-                        <div class="analytics-card">
-                            <h3>📈 Student Progress</h3>
-                            <div id="student-progress-chart" class="chart-container">
-                                <div class="loading-spinner">Loading chart...</div>
-                            </div>
-                        </div>
+                                    <!-- Add Author Controls -->
+                                    <div class="citation-authors-controls">
+                                        <div class="citation-authors-btn-group">
+                                            <button type="button" class="btn-add-citation-author" id="btn-add-citation-author">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                                <span>Add Author</span>
+                                            </button>
+                                            <button type="button" class="btn-clear-citation-authors" id="btn-clear-citation-authors" title="Clear all authors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                <span>Clear Authors</span>
+                                            </button>
+                                        </div>
+                                        <span class="citation-authors-tip">Type or paste any name (e.g. John Cadaro, Cadaro, John, or Juan Dela Cruz)</span>
+                                    </div>
 
-                        <div class="analytics-card">
-                            <h3>⏰ Submission Timeline</h3>
-                            <div id="submission-timeline-chart" class="chart-container">
-                                <div class="loading-spinner">Loading chart...</div>
+                                    <!-- Hidden input for backwards-compatibility -->
+                                    <input type="hidden" id="citation-authors" value="Ompoy; Cabardo; Conde;">
+                                </div>
+
+                                <!-- Year and Department Grid -->
+                                <div class="citation-fields-row">
+                                    <div class="citation-field-group">
+                                        <label class="citation-field-label" for="citation-year">
+                                            <span>Year of Defense / Publication</span>
+                                            <span class="citation-required-star">*</span>
+                                        </label>
+                                        <input type="text" id="citation-year" class="citation-text-input" placeholder="2024">
+                                    </div>
+                                    <div class="citation-field-group">
+                                        <label class="citation-field-label" for="citation-program">
+                                            <span>Academic Program / Degree</span>
+                                        </label>
+                                        <input type="text" id="citation-program" class="citation-text-input" placeholder="BS in Information Technology">
+                                    </div>
+                                </div>
+
+                                <!-- Campus and Repository URL -->
+                                <div class="citation-fields-row">
+                                    <div class="citation-field-group">
+                                        <label class="citation-field-label" for="citation-institution">
+                                            <span>Institution &amp; Campus</span>
+                                        </label>
+                                        <input type="text" id="citation-institution" class="citation-text-input" value="Cebu Technological University - Daanbantayan Campus">
+                                    </div>
+                                    <div class="citation-field-group">
+                                        <label class="citation-field-label" for="citation-repository">
+                                            <span>Repository Archive</span>
+                                        </label>
+                                        <input type="text" id="citation-repository" class="citation-text-input" value="RE-CAPS University Repository">
+                                    </div>
+                                </div>
+
+                                <!-- Action buttons -->
+                                <div class="citation-form-actions">
+                                    <button type="button" id="btn-clear-citation-form" class="btn-clear-citation-form" title="Clear all fields in this form">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                        <span>Clear Form</span>
+                                    </button>
+                                    <button type="button" id="generate-citation-btn" class="btn-generate-citation">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                        <span>Generate &amp; Save Citation</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="analytics-card">
-                            <h3>⭐ Top Students</h3>
-                            <div id="top-students-list" class="analytics-list">
-                                <div class="loading-spinner">Loading...</div>
+                        <!-- Right Column: Formatted Output & Quick Copy -->
+                        <div class="citation-results-column">
+                            <!-- Bibliographic Entry Card -->
+                            <div class="citation-card citation-output-card">
+                                <div class="citation-output-header">
+                                    <div class="citation-output-badge-wrap">
+                                        <span class="citation-format-tag" id="citation-active-format-tag">APA 7th Edition</span>
+                                        <span class="citation-type-tag">Reference List</span>
+                                    </div>
+                                    <button type="button" class="btn-copy-citation" id="btn-copy-reference" title="Copy full reference to clipboard">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                        <span>Copy Reference</span>
+                                    </button>
+                                </div>
+
+                                <div class="citation-output-content" id="citation-formatted-display">
+                                    <!-- Dynamic formatted citation with italics -->
+                                </div>
+                                <!-- Hidden legacy output box for script compatibility -->
+                                <div id="citation-output" style="display: none;"></div>
+
+                                <div class="citation-output-toolbar">
+                                    <button type="button" class="btn-citation-tool" id="btn-copy-bibtex">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                                        <span>Copy BibTeX</span>
+                                    </button>
+                                    <button type="button" class="btn-citation-tool" id="btn-download-txt">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                        <span>Download (.txt)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- In-Text Citation Card -->
+                            <div class="citation-card citation-intext-card">
+                                <div class="citation-card-title-row">
+                                    <h4 class="citation-intext-title">In-Text Citation (Body of Paper)</h4>
+                                    <span class="citation-format-subtag" id="citation-intext-format-tag">APA Style</span>
+                                </div>
+                                
+                                <div class="citation-intext-grid">
+                                    <div class="citation-intext-item">
+                                        <div class="citation-intext-label-row">
+                                            <span class="citation-intext-kind">Parenthetical</span>
+                                            <button type="button" class="btn-mini-copy" id="btn-copy-parenthetical" title="Copy parenthetical citation">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                                <span>Copy</span>
+                                            </button>
+                                        </div>
+                                        <div class="citation-intext-value" id="citation-intext-parenthetical">
+                                            (Cadaro et al., 2024)
+                                        </div>
+                                    </div>
+
+                                    <div class="citation-intext-item">
+                                        <div class="citation-intext-label-row">
+                                            <span class="citation-intext-kind">Narrative</span>
+                                            <button type="button" class="btn-mini-copy" id="btn-copy-narrative" title="Copy narrative citation">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                                <span>Copy</span>
+                                            </button>
+                                        </div>
+                                        <div class="citation-intext-value" id="citation-intext-narrative">
+                                            Cadaro et al. (2024)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Generated Citations (Session History) -->
+                            <div class="citation-card citation-history-card">
+                                <div class="citation-card-title-row">
+                                    <h4 class="citation-history-title">Recent Generated Citations</h4>
+                                    <button type="button" class="btn-clear-history" id="btn-clear-citation-history" title="Clear history">Clear</button>
+                                </div>
+                                <div class="citation-history-list" id="citation-history-list">
+                                    <!-- Populated dynamically -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -371,39 +556,219 @@
 
                 <!-- Settings Section -->
                 <section id="section-settings" class="content-section">
-                    <div class="section-header">
-                        <h2>Settings</h2>
+                    <div style="margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">Settings</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.9375rem;">Manage your account preferences and application settings.</p>
                     </div>
-                    
-                    <!-- Account Settings -->
-                    <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem; margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            </div>
-                            <div>
-                                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account</h3>
-                                <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account information</p>
-                            </div>
-                        </div>
+
+                    <!-- Settings Grid -->
+                    <div style="display: grid; gap: 1.5rem;">
                         
-                        <div style="display: grid; gap: 1rem;">
-                            <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
-                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Email</div>
-                                <div style="font-weight: 600; color: var(--text-primary);" id="settings-user-email">Loading...</div>
+                        <!-- Appearance Settings -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Appearance</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Customize how RE-CAPS looks</p>
+                                </div>
                             </div>
-                            <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
-                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Account Type</div>
-                                <div style="font-weight: 600; color: var(--text-primary);">Teacher</div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 12px;">
+                                <div>
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Dark Mode</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Toggle between light and dark themes</div>
+                                </div>
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="settings-theme-toggle">
+                                    <span class="settings-toggle-slider"></span>
+                                </label>
                             </div>
-                            <button id="change-password-btn" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-                                <span>Change Password</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                            </button>
                         </div>
+
+                        <!-- Account Settings -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account Management</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account credentials and system data</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
+                                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Email</div>
+                                    <div style="font-weight: 600; color: var(--text-primary);" id="settings-user-email">Loading...</div>
+                                </div>
+                                <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
+                                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Account Type</div>
+                                    <div style="font-weight: 600; color: var(--text-primary);">Teacher</div>
+                                </div>
+                                <button id="change-password-btn" style="padding: 1rem; background: transparent; border: 2px solid var(--border); border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Click me to Change Password</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                </button>
+
+                                <!-- Danger Zone (Collapsible Dropdown Position - Inconspicuous & Low Prominence) -->
+                                <div class="danger-zone-container" id="danger-zone-container">
+                                    <button type="button" class="danger-zone-toggle" id="danger-zone-toggle" aria-expanded="false" aria-controls="danger-zone-content">
+                                        <div class="danger-zone-toggle-left">
+                                            <svg class="danger-zone-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                            </svg>
+                                            <div class="danger-zone-title-wrap">
+                                                <span class="danger-zone-title">Danger Zone</span>
+                                                <span class="danger-zone-subtitle">Advanced data clearing &amp; account termination</span>
+                                            </div>
+                                        </div>
+                                        <svg class="danger-zone-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                    
+                                    <div class="danger-zone-content" id="danger-zone-content" style="display: none;">
+                                        <div class="danger-zone-item">
+                                            <div class="danger-zone-item-info">
+                                                <div class="danger-zone-item-title">Clear Account Data</div>
+                                                <div class="danger-zone-item-desc">Erase saved capstone projects, query history, chat sessions, and activity logs. Your account login remains active.</div>
+                                            </div>
+                                            <button type="button" id="clear-account-data-btn" class="btn-danger-subtle">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                                <span>Clear Data</span>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="danger-zone-item danger-zone-item-destructive">
+                                            <div class="danger-zone-item-info">
+                                                <div class="danger-zone-item-title">Delete Account</div>
+                                                <div class="danger-zone-item-desc">Permanently remove your account, profile, and all associated academic data from the university database. <strong>This cannot be undone.</strong></div>
+                                            </div>
+                                            <button type="button" id="delete-account-btn" class="btn-danger-subtle btn-danger-critical">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="8.5" cy="7" r="4"></circle>
+                                                    <line x1="18" y1="8" x2="23" y2="13"></line>
+                                                    <line x1="23" y1="8" x2="18" y2="13"></line>
+                                                </svg>
+                                                <span>Delete Account</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Settings -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Notifications</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Control notification preferences</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 12px;">
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Toast Notifications</div>
+                                        <div style="font-size: 0.875rem; color: var(--text-secondary);">Show success/error messages</div>
+                                    </div>
+                                    <label class="settings-toggle">
+                                        <input type="checkbox" id="settings-toast-toggle" checked>
+                                        <span class="settings-toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Management -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Data Management</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your saved data</p>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; gap: 1rem;">
+                                <button id="clear-search-history-btn" style="padding: 1rem; background: var(--background); border: 1px solid var(--border); border-radius: 12px; font-weight: 600; color: var(--text-primary); cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Clear Search History</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                                <button id="export-saved-projects-btn" style="padding: 1rem; background: var(--background); border: 1px solid var(--border); border-radius: 12px; font-weight: 600; color: var(--text-primary); cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Export Saved Projects</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Background Image Preference -->
+                        <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                </div>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Background Images</h3>
+                                    <p style="font-size: 0.875rem; color: var(--text-secondary);">Choose your cinematic slider preference</p>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">Image Mode</label>
+                                <div style="display: grid; gap: 0.75rem;">
+                                    <label class="bg-mode-option">
+                                        <input type="radio" name="bg-mode" value="random" id="bg-mode-random" checked>
+                                        <div class="bg-mode-card">
+                                            <!-- <div class="bg-mode-icon">🎲</div> -->
+                                            <div>
+                                                <div class="bg-mode-title">Random</div>
+                                                <div class="bg-mode-desc">Show different images each time</div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="bg-mode-option">
+                                        <input type="radio" name="bg-mode" value="static" id="bg-mode-static">
+                                        <div class="bg-mode-card">
+                                            <!-- <div class="bg-mode-icon">📌</div> -->
+                                            <div>
+                                                <div class="bg-mode-title">Static</div>
+                                                <div class="bg-mode-desc">Use one selected image only</div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Image Gallery (shown when Static is selected) -->
+                            <div id="bg-image-gallery" style="display: none;">
+                                <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">Select Your Image</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; max-height: 400px; overflow-y: auto; padding: 1rem; background: var(--background); border-radius: 12px; border: 1px solid var(--border);">
+                                    <!-- Images will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </section>
 
@@ -425,21 +790,24 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    <!-- App Scripts -->
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
     <script src="../js/shared/svg/svg-loader.js"></script>
     <script src="../js/shared/svg/svg-registry.js"></script>
     <script src="../js/shared/svg/svg-init.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/modal-dialog.js"></script>
     <script src="../js/shared/text-protection.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/password-change.js"></script>
     <script src="../js/shared/dashboard-rail.js"></script>
     <script src="../js/shared/guest-storage.js"></script>
+    <script src="../js/shared/user-dashboard.js"></script>
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
+    <script src="../js/pages/settings-handler.js"></script>
+    <script src="../js/shared/citation-generator.js"></script>
     <script src="../js/pages/teacher_page.js"></script>
 </body>
 </html>

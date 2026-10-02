@@ -131,6 +131,12 @@
          * @returns {Promise<{syncedCount: number}>}
          */
         async syncToFirestore(userId, firestoreDb) {
+            // Admins are restricted from saving or bookmarking projects
+            if (sessionStorage.getItem('userType') === 'admin') {
+                this.clear();
+                return { syncedCount: 0 };
+            }
+
             const list = this.getAll();
             const ids = this.getIds();
 

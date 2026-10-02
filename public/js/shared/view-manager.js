@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.initializeChatbot();
             this.setupCustomEventListener();
         },
-        
+
         setupNavigation() {
             // Update secondary header navigation
             const navItems = document.querySelectorAll('.secondary-header .nav-item');
@@ -15,57 +15,84 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Remove any existing listeners by cloning
                 const newItem = item.cloneNode(true);
                 item.parentNode.replaceChild(newItem, item);
-                
+
                 newItem.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    
+
                     const page = newItem.dataset.page;
-                    
+
                     // Don't switch if already on this view
                     const currentView = document.querySelector('.view-mode-container.active');
                     if (currentView && currentView.id === page + '-view') {
                         return;
                     }
-                    
+
                     this.switchView(page);
                 }, { capture: true });
             });
-            
+
             // Back to search button
             const backBtn = document.getElementById('back-to-search');
             if (backBtn) {
                 backBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.switchView('index');
+                    if (this.previousView === 'ai-chatbot') {
+                        this.switchView('ai-chatbot');
+                    } else {
+                        this.switchView('index');
+                    }
                 });
             }
+
+            // Logo click navigation to home
+            document.addEventListener('click', (e) => {
+                const logoBtn = e.target.closest('.logo-container');
+                if (logoBtn) {
+                    const currentView = document.querySelector('.view-mode-container.active');
+                    if (currentView && currentView.id !== 'home-view') {
+                        e.preventDefault();
+                        this.switchView('index');
+                    } else if (window.scrollY > 0) {
+                        e.preventDefault();
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }
+            });
         },
-        
+
         setupProjectSelection() {
-            // Check if we should show project details on page load (coming from another page)
-            const projectDataJson = sessionStorage.getItem('selectedProjectForViewDetails');
+            // Check if we should show chatbot or project details on page load (coming from another page)
             const currentPath = window.location.pathname;
-            
-            // Only auto-switch if we have project data AND we're on index.html
-            if (projectDataJson && (currentPath.endsWith('index.html') || currentPath.endsWith('/'))) {
-                // Check if there's a flag indicating we just navigated here to view details
-                const shouldShowDetails = sessionStorage.getItem('showProjectDetails');
-                
-                if (shouldShowDetails === 'true') {
-                    // Clear the flag to prevent infinite loops
-                    sessionStorage.removeItem('showProjectDetails');
-                    
-                    // Small delay to ensure DOM is ready
+            const isHomePage = currentPath.endsWith('index.html') || currentPath.endsWith('/') || currentPath === '';
+
+            if (isHomePage) {
+                const shouldShowChatbot = sessionStorage.getItem('showChatbotView') === 'true' || 
+                                          new URLSearchParams(window.location.search).get('view') === 'chatbot' ||
+                                          window.location.hash === '#chatbot';
+                if (shouldShowChatbot) {
+                    sessionStorage.removeItem('showChatbotView');
                     setTimeout(() => {
-                        this.switchView('project-detail');
+                        this.switchView('ai-chatbot');
                     }, 100);
+                    return;
+                }
+
+                const projectDataJson = sessionStorage.getItem('selectedProjectForViewDetails');
+                if (projectDataJson) {
+                    const shouldShowDetails = sessionStorage.getItem('showProjectDetails');
+                    if (shouldShowDetails === 'true') {
+                        sessionStorage.removeItem('showProjectDetails');
+                        setTimeout(() => {
+                            this.switchView('project-detail');
+                        }, 100);
+                    }
                 }
             }
         },
-        
+
         setupCustomEventListener() {
             // Listen for custom switchView events from other scripts
             window.addEventListener('switchView', (e) => {
@@ -74,47 +101,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         },
-        
+
         switchView(viewName) {
             console.log('Switching to view:', viewName);
-            
+
             const views = {
                 'index': document.getElementById('home-view'),
                 'project-detail': document.getElementById('details-view'),
                 'ai-chatbot': document.getElementById('chatbot-view')
             };
-            
+
             // Get current active view before switching
             const currentActiveView = document.querySelector('.view-mode-container.active');
             let fromViewId = null;
-            
+
             if (currentActiveView) {
                 const currentId = currentActiveView.id;
                 if (currentId === 'home-view') fromViewId = 'index';
                 else if (currentId === 'details-view') fromViewId = 'project-detail';
                 else if (currentId === 'chatbot-view') fromViewId = 'ai-chatbot';
             }
-            
+
             // Check if already on this view
             if (currentActiveView && currentActiveView === views[viewName]) {
                 console.log('Already on this view, skipping');
                 return;
             }
-            
+
+            // Store previous view
+            if (fromViewId) {
+                this.previousView = fromViewId;
+            }
+
             // Notify ScrollStateManager about view switch
             if (typeof ScrollStateManager !== 'undefined') {
                 ScrollStateManager.handleViewSwitch(fromViewId, viewName);
             }
-            
+
             // Hide all views
             Object.values(views).forEach(view => {
                 if (view) view.classList.remove('active');
             });
-            
+
             // Show selected view
             if (views[viewName]) {
                 views[viewName].classList.add('active');
-                
+
                 // Activate chatbot fullpage class when switching to chatbot
                 if (viewName === 'ai-chatbot') {
                     const chatbotFullpage = document.querySelector('.chatbot-fullpage');
@@ -136,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         Chatbot.guestDialog.classList.remove('active');
                     }
                 }
-                
+
                 // Trigger project details rendering if switching to details
                 if (viewName === 'project-detail') {
                     const projectDataJson = sessionStorage.getItem('selectedProjectForViewDetails');
@@ -151,19 +183,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            
+
             // Update navigation active state - disable current, enable others
             const navItems = document.querySelectorAll('.secondary-header .nav-item');
             navItems.forEach(item => {
                 const isActive = item.dataset.page === viewName;
-                
+
                 if (isActive) {
                     item.classList.add('active', 'nav-item-disabled');
                 } else {
                     item.classList.remove('active', 'nav-item-disabled');
                 }
             });
-            
+
             // ALWAYS show project detail nav item if there's project data in sessionStorage
             // Don't hide it when navigating away
             const projectDetailNav = document.querySelector('.nav-item[data-page="project-detail"]');
@@ -178,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         },
-        
+
         initializeChatbot() {
             // Initialize chatbot when DOM is ready
             if (typeof Chatbot !== 'undefined' && Chatbot.init) {
@@ -186,23 +218,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     };
-    
+
     // Initialize view manager
     ViewManager.init();
-    
+
     // Expose ViewManager globally for other scripts
     window.ViewManager = ViewManager;
-    
+
     // INITIALIZE DEFAULT STATE ON PAGE LOAD
     const homeView = document.getElementById('home-view');
     const detailsView = document.getElementById('details-view');
     const chatbotView = document.getElementById('chatbot-view');
-    
+
     // Check if we should show a specific view based on sessionStorage
     const shouldShowDetails = sessionStorage.getItem('showProjectDetails');
     const projectData = sessionStorage.getItem('selectedProjectForViewDetails');
-    
-    if (shouldShowDetails === 'true' && projectData) {
+    const shouldShowChatbot = sessionStorage.getItem('showChatbotView') === 'true' || 
+                              new URLSearchParams(window.location.search).get('view') === 'chatbot' ||
+                              window.location.hash === '#chatbot';
+
+    if (shouldShowChatbot) {
+        sessionStorage.removeItem('showChatbotView');
+        ViewManager.switchView('ai-chatbot');
+    } else if (shouldShowDetails === 'true' && projectData) {
         // Coming from another page to view project details
         sessionStorage.removeItem('showProjectDetails');
         ViewManager.switchView('project-detail');
@@ -211,13 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (homeView) homeView.classList.add('active');
         if (detailsView) detailsView.classList.remove('active');
         if (chatbotView) chatbotView.classList.remove('active');
-        
+
         // Set home nav item as active
         const homeNavItem = document.querySelector('.nav-item[data-page="index"]');
         if (homeNavItem) {
             homeNavItem.classList.add('active', 'nav-item-disabled');
         }
-        
+
         // ALWAYS show Project Detail button if there's project data in session
         const projectDetailNav = document.querySelector('.nav-item[data-page="project-detail"]');
         if (projectDetailNav && projectData) {
@@ -226,24 +264,24 @@ document.addEventListener('DOMContentLoaded', () => {
             projectDetailNav.style.display = 'none';
         }
     }
-    
-    
+
+
     // Make renderProjectDetails globally available
     window.renderProjectDetails = (project) => {
         const detailsGrid = document.getElementById('details-grid');
         const detailsLeft = document.getElementById('details-left');
         const detailsSidebar = document.getElementById('details-sidebar');
         const detailsEmpty = document.getElementById('details-empty');
-        
+
         if (!detailsGrid || !detailsLeft || !detailsSidebar || !detailsEmpty) return;
-        
+
         function escapeHtml(text) {
             return String(text || '').replace(/[&<>"']/g, (match) => {
                 const escapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
                 return escapeMap[match] || match;
             });
         }
-        
+
         function formatDate(value) {
             if (!value) return 'Unknown';
             if (typeof value === 'number') {
@@ -267,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return String(value);
         }
-        
+
         detailsEmpty.style.display = 'none';
         detailsGrid.hidden = false;
 
@@ -281,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const adviser = escapeHtml(project.adviser || 'Not listed');
         const updatedAtStr = formatDate(project.updatedAt || project.createdAt);
 
-                   
+
 
         detailsLeft.innerHTML = `
             <div class="project-badge">${program} - ${year} - ${status}</div>
@@ -362,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-        
+
         // Attach event listener to the cite button
         const citeBtn = detailsSidebar.querySelector('.cite-btn');
         if (citeBtn) {
@@ -370,6 +408,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('currentProject', JSON.stringify(project));
                 if (typeof Citation !== 'undefined') {
                     Citation.showCitationModal();
+                } else if (window.ModalDialog) {
+                    ModalDialog.alert({
+                        title: 'Citation Unavailable',
+                        message: 'Citation module is not loaded yet. Please refresh the page and try again.',
+                        type: 'warning'
+                    });
+                } else if (typeof showToast === 'function') {
+                    showToast('Citation module not available. Please refresh the page.', 'warning');
                 } else {
                     alert('Citation module not available. Please refresh the page.');
                 }
@@ -400,21 +446,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
             <div class="book-gallery-grid">
                 ${visibleImages.map((img, idx) => {
-                    const rawUrl = typeof img === 'string' ? img : (img.secure_url || img.url);
-                    const thumbUrl = (typeof CloudinaryService !== 'undefined' && CloudinaryService.getThumbnailUrl)
-                        ? CloudinaryService.getThumbnailUrl(rawUrl, 300, 400)
-                        : rawUrl;
-                    const isCover = idx === 0;
-                    const isLastVisible = idx === maxVisible - 1 && extraCount > 0;
+            const rawUrl = typeof img === 'string' ? img : (img.secure_url || img.url);
+            const thumbUrl = (typeof CloudinaryService !== 'undefined' && CloudinaryService.getThumbnailUrl)
+                ? CloudinaryService.getThumbnailUrl(rawUrl, 300, 400)
+                : rawUrl;
+            const isCover = idx === 0;
+            const isLastVisible = idx === maxVisible - 1 && extraCount > 0;
 
-                    return `
+            return `
                         <div class="book-gallery-thumb ${isCover ? 'is-main-cover' : ''}" data-index="${idx}" title="${isCover ? 'Book Cover' : `Book Photo ${idx + 1}`}">
                             <img src="${thumbUrl}" alt="Project Photo ${idx + 1}" loading="lazy">
                             ${isCover ? '<span class="thumb-cover-tag">Cover</span>' : ''}
                             ${isLastVisible ? `<div class="thumb-more-overlay">+${extraCount}</div>` : ''}
                         </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `;
     }
@@ -427,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const imageUrls = images.map(img => typeof img === 'string' ? img : (img.secure_url || img.url));
         const thumbs = document.querySelectorAll('.book-gallery-thumb');
-        
+
         let currentIndex = 0;
         let lightbox = document.getElementById('recaps-gallery-lightbox');
 
