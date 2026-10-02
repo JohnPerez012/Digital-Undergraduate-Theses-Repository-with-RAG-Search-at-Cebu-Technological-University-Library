@@ -564,6 +564,18 @@
 
         // Role selection cards
         roleCards.forEach(card => {
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('role', 'button');
+            card.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!this.classList.contains('selected')) {
+                        this.click();
+                    } else if (nextToStep2Btn && !nextToStep2Btn.disabled) {
+                        nextToStep2Btn.click();
+                    }
+                }
+            });
             card.addEventListener('click', function() {
                 roleCards.forEach(c => c.classList.remove('selected'));
                 this.classList.add('selected');
@@ -662,12 +674,30 @@
                         ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : ''}
                         <span>Sign in with Google</span>
                     `;
+                    let errorTitle = 'Authentication Failed';
+                    let errorMsg = error.message;
+                    let errorType = 'danger';
+
                     if (error.code === 'auth/popup-closed-by-user') {
-                        alert('Sign-in cancelled. Please try again.');
+                        errorTitle = 'Sign-In Cancelled';
+                        errorMsg = 'The Google sign-in window was closed before completion. Please try again.';
+                        errorType = 'warning';
                     } else if (error.code === 'auth/popup-blocked') {
-                        alert('Pop-up blocked. Please allow pop-ups for this site and try again.');
+                        errorTitle = 'Pop-Up Blocked';
+                        errorMsg = 'Your browser blocked the Google authentication pop-up. Please allow pop-ups for this site and try again.';
+                        errorType = 'warning';
+                    }
+
+                    if (window.ModalDialog) {
+                        await ModalDialog.alert({
+                            title: errorTitle,
+                            message: errorMsg,
+                            type: errorType
+                        });
+                    } else if (typeof showToast === 'function') {
+                        showToast(errorMsg, errorType);
                     } else {
-                        alert('Sign-in failed: ' + error.message);
+                        alert(errorMsg);
                     }
                 }
             });
@@ -692,7 +722,17 @@
                     nextToStep4Btn.disabled = true;
                 } catch (error) {
                     console.error('Sign-out error:', error);
-                    alert('Error signing out: ' + error.message);
+                    if (window.ModalDialog) {
+                        await ModalDialog.alert({
+                            title: 'Sign Out Error',
+                            message: 'Error signing out: ' + error.message,
+                            type: 'danger'
+                        });
+                    } else if (typeof showToast === 'function') {
+                        showToast('Error signing out: ' + error.message, 'error');
+                    } else {
+                        alert('Error signing out: ' + error.message);
+                    }
                 }
             });
         }
@@ -714,6 +754,7 @@
         
         // Step 2 validations (Name fields)
         const firstNameInput = document.getElementById('first-name');
+        const middleNameInput = document.getElementById('middle-name');
         const lastNameInput = document.getElementById('last-name');
         
         function preventNumbers(e) {
@@ -741,6 +782,11 @@
                 preventNumbers(e);
                 validateStep2();
             });
+            if (middleNameInput) {
+                middleNameInput.addEventListener('input', (e) => {
+                    preventNumbers(e);
+                });
+            }
             lastNameInput.addEventListener('input', (e) => {
                 preventNumbers(e);
                 validateStep2();
@@ -1215,6 +1261,42 @@
             }
             
             updateStepIndicators();
+
+            // Automatically focus the primary input field of the activated step
+            setTimeout(() => {
+                if (stepNumber === 2) {
+                    if (firstNameInput) {
+                        firstNameInput.focus();
+                    }
+                } else if (stepNumber === 4) {
+                    if (userType === 'student' && studentIdInput) {
+                        studentIdInput.focus();
+                    } else if (userType === 'teacher' && teacherIdInput) {
+                        teacherIdInput.focus();
+                    }
+                } else if (stepNumber === 5) {
+                    if (passwordInput) {
+                        passwordInput.focus();
+                    }
+                } else if (stepNumber === 6) {
+                    if (passwordTestInput) {
+                        passwordTestInput.focus();
+                    }
+                } else if (stepNumber === 7) {
+                    const secQ = document.getElementById('security-question');
+                    const secA = document.getElementById('security-answer');
+                    if (secQ && !secQ.value) {
+                        secQ.focus();
+                    } else if (secA) {
+                        secA.focus();
+                    }
+                } else if (stepNumber === 8) {
+                    const termsBox = document.getElementById('terms-agreement-checkbox');
+                    if (termsBox && termsBox.offsetParent !== null) {
+                        termsBox.focus();
+                    }
+                }
+            }, 120);
         }
 
         function updateAcademicProfileFields() {
@@ -1466,6 +1548,317 @@
         if (backToStep7Btn) {
             backToStep7Btn.addEventListener('click', () => showStep(7));
         }
+
+        // Setup Step-by-Step Keyboard Navigation (Enter key progression)
+        function setupStepKeyboardNavigation() {
+            // Step 1: Proceed on Enter if role is selected
+            if (step1) {
+                step1.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        if (userTypeInput.value && !nextToStep2Btn.disabled) {
+                            e.preventDefault();
+                            nextToStep2Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 2: First Name -> Middle Name -> Last Name -> Next Step
+            if (firstNameInput) {
+                firstNameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (middleNameInput) {
+                            middleNameInput.focus();
+                        } else if (lastNameInput) {
+                            lastNameInput.focus();
+                        }
+                    }
+                });
+            }
+
+            if (middleNameInput) {
+                middleNameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (lastNameInput) {
+                            lastNameInput.focus();
+                        }
+                    }
+                });
+            }
+
+            if (lastNameInput) {
+                lastNameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const firstName = firstNameInput.value.trim();
+                        const lastName = lastNameInput.value.trim();
+                        if (!firstName) {
+                            firstNameInput.focus();
+                            showToast('Please enter your first name', '⚠️');
+                            return;
+                        }
+                        if (!lastName) {
+                            showToast('Please enter your last name', '⚠️');
+                            return;
+                        }
+                        if (nextToStep3Btn && !nextToStep3Btn.disabled) {
+                            nextToStep3Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 3: Proceed on Enter if Google Auth completed
+            if (step3) {
+                step3.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        if (googleUser && !nextToStep4Btn.disabled) {
+                            e.preventDefault();
+                            nextToStep4Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 4: Student ID / Teacher ID -> Next Step (or guide to College / Program)
+            if (studentIdInput) {
+                studentIdInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const sId = studentIdInput.value.trim();
+                        if (!sId) {
+                            showToast('Please enter your Student ID', '⚠️');
+                            return;
+                        }
+                        const college = studentCollegeInput.value;
+                        if (!college) {
+                            showToast('Please select your College', '⚠️');
+                            const colElem = document.getElementById('student-college-cards');
+                            if (colElem) colElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                        }
+                        const program = programInput.value;
+                        if (!program) {
+                            showToast('Please select your Program', '⚠️');
+                            const progElem = document.getElementById('programCarouselViewport');
+                            if (progElem) progElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                        }
+                        if (nextToStep5Btn && !nextToStep5Btn.disabled) {
+                            nextToStep5Btn.click();
+                        }
+                    }
+                });
+            }
+
+            if (teacherIdInput) {
+                teacherIdInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const tId = teacherIdInput.value.trim();
+                        if (!tId) {
+                            showToast('Please enter your Teacher ID', '⚠️');
+                            return;
+                        }
+                        const college = teacherCollegeInput.value;
+                        if (!college) {
+                            showToast('Please select your College', '⚠️');
+                            const teacherColGroup = document.getElementById('teacher-college-group');
+                            if (teacherColGroup) teacherColGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                        }
+                        if (nextToStep5Btn && !nextToStep5Btn.disabled) {
+                            nextToStep5Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 5: Password -> Confirm Password -> Next Step
+            if (passwordInput) {
+                passwordInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (confirmPasswordInput) {
+                            confirmPasswordInput.focus();
+                            if (confirmPasswordInput.value) {
+                                confirmPasswordInput.select();
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (confirmPasswordInput) {
+                confirmPasswordInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const p = passwordInput ? passwordInput.value : '';
+                        const cp = confirmPasswordInput.value;
+                        if (!p) {
+                            showToast('Please enter a password', '⚠️');
+                            if (passwordInput) passwordInput.focus();
+                            return;
+                        }
+                        if (p.length < 8) {
+                            showToast('Password must be at least 8 characters long', '⚠️');
+                            if (passwordInput) passwordInput.focus();
+                            return;
+                        }
+                        const str = checkPasswordStrength(p);
+                        if (str.strength !== 'strong') {
+                            showToast('Password must be strong', '⚠️');
+                            return;
+                        }
+                        if (!cp) {
+                            showToast('Please confirm your password', '⚠️');
+                            confirmPasswordInput.focus();
+                            return;
+                        }
+                        if (p !== cp) {
+                            showToast('Passwords do not match', '⚠️');
+                            return;
+                        }
+                        if (nextToStep6Btn) {
+                            nextToStep6Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 6: Password Test verification -> Next Step
+            if (passwordTestInput) {
+                passwordTestInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (nextToStep7Btn && !nextToStep7Btn.disabled) {
+                            nextToStep7Btn.click();
+                        } else if (!passwordTestInput.value.trim() && skipToStep7Btn) {
+                            skipToStep7Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 7: Security Question -> Security Answer -> Next Step
+            const secQuestionSelect = document.getElementById('security-question');
+            const secAnswerInput = document.getElementById('security-answer');
+
+            if (secQuestionSelect) {
+                secQuestionSelect.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (secAnswerInput) {
+                            secAnswerInput.focus();
+                        }
+                    }
+                });
+                secQuestionSelect.addEventListener('change', () => {
+                    if (secAnswerInput && !secAnswerInput.value) {
+                        secAnswerInput.focus();
+                    }
+                });
+            }
+
+            if (secAnswerInput) {
+                secAnswerInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const q = secQuestionSelect ? secQuestionSelect.value : '';
+                        const a = secAnswerInput.value.trim();
+                        if (!q) {
+                            if (secQuestionSelect) secQuestionSelect.focus();
+                            showToast('Please select a security question', '⚠️');
+                            return;
+                        }
+                        if (!a || a.length < 2) {
+                            showToast('Please provide an answer (minimum 2 characters)', '⚠️');
+                            return;
+                        }
+                        if (nextToStep8Btn && !nextToStep8Btn.disabled) {
+                            nextToStep8Btn.click();
+                        }
+                    }
+                });
+            }
+
+            // Step 8: Terms & Conditions agreement -> Complete Registration
+            const termsBox = document.getElementById('terms-agreement-checkbox');
+            if (termsBox) {
+                termsBox.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (!termsBox.checked) {
+                            termsBox.checked = true;
+                            termsBox.dispatchEvent(new Event('change'));
+                        }
+                        if (completeBtn && !completeBtn.disabled) {
+                            completeBtn.click();
+                        }
+                    }
+                });
+            }
+
+            // Global Enter key handler for non-input card selections across all steps
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+
+                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                // Don't intercept if user is actively in an input, textarea, or select
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+                    return;
+                }
+
+                if (currentStep === 1) {
+                    if (userTypeInput.value && nextToStep2Btn && !nextToStep2Btn.disabled) {
+                        e.preventDefault();
+                        nextToStep2Btn.click();
+                    }
+                } else if (currentStep === 3) {
+                    if (googleUser && nextToStep4Btn && !nextToStep4Btn.disabled) {
+                        e.preventDefault();
+                        nextToStep4Btn.click();
+                    }
+                } else if (currentStep === 4) {
+                    if (nextToStep5Btn && !nextToStep5Btn.disabled) {
+                        e.preventDefault();
+                        nextToStep5Btn.click();
+                    }
+                } else if (currentStep === 6) {
+                    if (nextToStep7Btn && !nextToStep7Btn.disabled) {
+                        e.preventDefault();
+                        nextToStep7Btn.click();
+                    } else if (skipToStep7Btn) {
+                        e.preventDefault();
+                        skipToStep7Btn.click();
+                    }
+                } else if (currentStep === 7) {
+                    if (nextToStep8Btn && !nextToStep8Btn.disabled) {
+                        e.preventDefault();
+                        nextToStep8Btn.click();
+                    }
+                } else if (currentStep === 8) {
+                    const termsWrapper = document.getElementById('terms-scroll-wrapper');
+                    const termsAgreementCheckbox = document.getElementById('terms-agreement-checkbox');
+                    if (!termsScrollComplete && termsWrapper) {
+                        e.preventDefault();
+                        termsWrapper.scrollTo({ top: termsWrapper.scrollHeight, behavior: 'smooth' });
+                    } else if (termsAgreementCheckbox) {
+                        e.preventDefault();
+                        if (!termsAgreementCheckbox.checked) {
+                            termsAgreementCheckbox.checked = true;
+                            termsAgreementCheckbox.dispatchEvent(new Event('change'));
+                        }
+                        if (completeBtn && !completeBtn.disabled) {
+                            completeBtn.click();
+                        }
+                    }
+                }
+            });
+        }
+        setupStepKeyboardNavigation();
         
         // Terms and Conditions Scroll Tracking
         let termsScrollComplete = false;
@@ -1513,6 +1906,7 @@
                             termsAgreementContainer.style.display = 'block';
                             setTimeout(() => {
                                 termsAgreementContainer.classList.add('show');
+                                termsAgreementCheckbox.focus();
                             }, 10);
                         }, 300);
                     }
@@ -1887,7 +2281,17 @@
                 }
             } catch (error) {
                 console.error('Auto-login error:', error);
-                alert('Error during login. Redirecting to login page...');
+                if (window.ModalDialog) {
+                    await ModalDialog.alert({
+                        title: 'Authentication Error',
+                        message: 'Error during login. Redirecting you to the sign-in page...',
+                        type: 'danger'
+                    });
+                } else if (typeof showToast === 'function') {
+                    showToast('Error during login. Redirecting...', 'error');
+                } else {
+                    alert('Error during login. Redirecting to login page...');
+                }
                 window.location.href = '../index.html';
             }
         });

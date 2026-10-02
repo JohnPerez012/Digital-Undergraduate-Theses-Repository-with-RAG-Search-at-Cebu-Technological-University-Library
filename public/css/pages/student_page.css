@@ -1,0 +1,872 @@
+/* ==========================================================================
+   RE-CAPS STUDENT DASHBOARD STYLES (student_page.css)
+   Clean, Truthful, Academic Research Hub - Simple & Consistent Light/Dark
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. HERO BANNER & GREETING
+   -------------------------------------------------------------------------- */
+.student-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.25rem 2.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.student-hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+}
+
+.student-greeting-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    letter-spacing: 0.2px;
+}
+
+.student-greeting-badge .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(8, 212, 136, 0.2);
+    display: inline-block;
+}
+
+.student-hero-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.student-hero-subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* --------------------------------------------------------------------------
+   2. HERO QUICK RESEARCH SEARCH BAR
+   -------------------------------------------------------------------------- */
+.student-search-bar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.4rem 0.5rem 0.4rem 1.25rem;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.student-search-bar:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(8, 212, 136, 0.15);
+}
+
+.student-search-bar .search-input-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.student-search-bar .search-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.student-search-bar .search-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.student-search-bar input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.student-search-bar input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.dash-search-clear {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 6px;
+    transition: color 0.2s;
+}
+
+.dash-search-clear:hover {
+    color: var(--text-primary);
+}
+
+.dash-search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.35rem;
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .dash-search-btn {
+    background: var(--primary-color);
+    color: #1a1e23;
+}
+
+.dash-search-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.dash-search-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Quick Topic Chips */
+.quick-topics {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.15rem;
+}
+
+.quick-topics-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-right: 0.25rem;
+}
+
+.topic-chip {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 9999px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.775rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.topic-chip:hover {
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+    background: var(--surface);
+    transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   3. TRUTHFUL STATS KPI GRID (Clean, Simple, Monochrome, No Rainbows)
+   -------------------------------------------------------------------------- */
+.student-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.student-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    user-select: none;
+}
+
+.student-stat-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md), 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.student-stat-card:active {
+    transform: translateY(-1px);
+}
+
+.student-stat-card:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+}
+
+/* Strictly no background fill, pure monochrome icon per user request */
+.stat-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+.stat-card-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+}
+
+.stat-card-badge {
+    font-size: 0.725rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.stat-card-value {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.5px;
+}
+
+.stat-card-ai-value {
+    font-size: 1.65rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--text-primary);
+}
+
+.stat-card-pulse-dot {
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: statPulseDot 2s infinite;
+}
+
+@keyframes statPulseDot {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.stat-card-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.stat-card-subtext {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    flex: 1;
+}
+
+.stat-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-top: 1.15rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    transition: gap 0.2s ease, color 0.2s ease;
+}
+
+[data-theme="light"] .stat-card-action {
+    border-top-color: rgba(0, 0, 0, 0.07);
+}
+
+.student-stat-card:hover .stat-card-action {
+    gap: 0.65rem;
+}
+
+.stat-card-action svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s ease;
+}
+
+.student-stat-card:hover .stat-card-action svg {
+    transform: translateX(2px);
+}
+
+/* --------------------------------------------------------------------------
+   4. SECTION HEADERS
+   -------------------------------------------------------------------------- */
+.student-section-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.35rem 0;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.student-section-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0 0 1.25rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. RESEARCH LAUNCHPAD (QUICK ACTIONS GRID)
+   -------------------------------------------------------------------------- */
+.student-launchpad-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.launchpad-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.launchpad-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.launchpad-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    margin-bottom: 1.15rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.launchpad-card:hover .launchpad-icon-wrapper {
+    transform: scale(1.05);
+    border-color: var(--primary-color);
+}
+
+.launchpad-icon-wrapper svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+}
+
+.launchpad-card-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.4rem 0;
+}
+
+.launchpad-card-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0 0 1.25rem 0;
+    flex: 1;
+}
+
+.launchpad-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    transition: gap 0.2s ease;
+}
+
+.launchpad-card:hover .launchpad-card-action {
+    gap: 0.65rem;
+}
+
+.launchpad-card-action svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   6. TWO-COLUMN INTERACTIVE CONTENT AREA
+   -------------------------------------------------------------------------- */
+.student-content-columns {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .student-content-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+.student-card-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1.75rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.panel-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.panel-header-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.panel-header-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: opacity 0.2s ease;
+}
+
+.panel-header-link:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+}
+
+/* Recently Explored List */
+.recent-theses-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.recent-thesis-item {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: all 0.2s ease;
+}
+
+.recent-thesis-item:hover {
+    border-color: var(--primary-color);
+    transform: translateX(2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.recent-thesis-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recent-thesis-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.3rem;
+    flex-wrap: wrap;
+}
+
+.recent-program-badge {
+    padding: 0.15rem 0.45rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.7rem;
+    color: var(--text-primary);
+}
+
+.recent-thesis-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-thesis-authors {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+}
+
+.recent-thesis-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.85rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.recent-thesis-action-btn:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .recent-thesis-action-btn:hover {
+    color: #1a1e23;
+}
+
+/* Empty State */
+.recent-theses-empty {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+.recent-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 1rem auto;
+    border-radius: 50%;
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.recent-empty-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.recent-theses-empty h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.35rem 0;
+}
+
+.recent-theses-empty p {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0 0 1.25rem 0;
+}
+
+.recent-explore-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.15rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.recent-explore-cta:hover {
+    border-color: var(--primary-color);
+    background: var(--surface);
+    color: var(--primary-color);
+}
+
+/* Academic Programs Discovery */
+.programs-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.program-browse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.program-browse-btn:hover {
+    border-color: var(--primary-color);
+    background: var(--surface);
+    transform: translateX(2px);
+}
+
+.program-pill-code {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+/* Research Tip Card */
+.research-tip-panel {
+    margin-top: 1.5rem;
+    background: var(--background);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+}
+
+.research-tip-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.research-tip-text {
+    font-size: 0.825rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   7. AI CHATBOT INTERACTIVE STYLES
+   -------------------------------------------------------------------------- */
+.chat-prompts-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.75rem 1.5rem;
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+}
+
+.chat-prompt-pill {
+    padding: 0.35rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    font-size: 0.775rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.chat-prompt-pill:hover {
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+.chat-bubble {
+    display: flex;
+    margin-bottom: 1.25rem;
+    max-width: 82%;
+    animation: fadeInMessage 0.25s ease-out;
+}
+
+@keyframes fadeInMessage {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-bubble.user {
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.chat-bubble.bot {
+    margin-right: auto;
+    justify-content: flex-start;
+}
+
+.chat-bubble-inner {
+    padding: 1rem 1.25rem;
+    border-radius: 16px;
+    font-size: 0.925rem;
+    line-height: 1.6;
+}
+
+.chat-bubble.user .chat-bubble-inner {
+    background: var(--primary-color);
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}
+
+[data-theme="dark"] .chat-bubble.user .chat-bubble-inner {
+    color: #1a1e23;
+    font-weight: 500;
+}
+
+.chat-bubble.bot .chat-bubble-inner {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   8. RESPONSIVE BREAKPOINTS
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .student-hero {
+        padding: 1.5rem;
+    }
+    
+    .student-hero-title {
+        font-size: 1.75rem;
+    }
+    
+    .student-search-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.75rem;
+    }
+    
+    .dash-search-btn {
+        justify-content: center;
+    }
+    
+    .student-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .student-launchpad-grid {
+        grid-template-columns: 1fr;
+    }
+}

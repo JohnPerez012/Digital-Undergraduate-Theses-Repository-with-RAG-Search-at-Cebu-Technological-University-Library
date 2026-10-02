@@ -1,635 +1,409 @@
 /**
- * Teacher Panel Main Logic
- * Handles role-based authentication and all teacher dashboard functionality
+ * RE-CAPS Teacher / Faculty Dashboard Controller
+ * Clean, Truthful, Academic Research Hub - Equal Workstation & Capabilities
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // ===== Authentication & Role Check =====
-    const checkTeacherAuth = async () => {
-        return new Promise((resolve) => {
-            auth.onAuthStateChanged(async (user) => {
-                if (!user) {
-                    console.warn('No user logged in. Redirecting to home...');
-                    window.location.href = '../index.html';
-                    resolve(false);
-                    return;
-                }
+document.addEventListener('DOMContentLoaded', () => {
+    // =========================================================================
+    // 1. TRUTHFUL GREETING & PROFILE IDENTITY
+    // =========================================================================
+    function updateTeacherGreeting() {
+        const hour = new Date().getHours();
+        let greetingText = 'Good evening';
+        if (hour < 12) greetingText = 'Good morning';
+        else if (hour < 18) greetingText = 'Good afternoon';
 
+        function cleanName(val) {
+            if (!val || typeof val !== 'string') return null;
+            const trimmed = val.trim();
+            const lower = trimmed.toLowerCase();
+            if (lower === '' || lower === 'null' || lower === 'undefined' || lower === 'unknown' || lower.includes('admin')) {
+                return null;
+            }
+            return trimmed;
+        }
+
+        const userType = sessionStorage.getItem('userType');
+        const sessionName = sessionStorage.getItem('userName');
+        const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
+                         (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+
+        const validAuthName = cleanName(authUser && authUser.displayName);
+        const validSessionName = cleanName(sessionName);
+        const rawEmail = sessionStorage.getItem('userEmail');
+        const validEmailName = cleanName(rawEmail ? rawEmail.split('@')[0] : null);
+
+        let name = 'Faculty';
+        if (validAuthName) {
+            name = validAuthName;
+        } else if (validSessionName) {
+            name = validSessionName;
+        } else if (validEmailName) {
+            name = validEmailName.charAt(0).toUpperCase() + validEmailName.slice(1);
+        } else {
+            name = 'Faculty';
+        }
+
+        const firstName = name.split(' ')[0] || 'Faculty';
+        const greetingEl = document.getElementById('greeting');
+        if (greetingEl) {
+            greetingEl.textContent = `${greetingText}, ${firstName}.`;
+        }
+
+        // Update rail profile name if present
+        const railNameEl = document.getElementById('teacher-name');
+        if (railNameEl) {
+            railNameEl.textContent = name;
+        }
+    }
+
+    updateTeacherGreeting();
+
+    // Re-verify when auth state settles
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged(() => {
+            updateTeacherGreeting();
+            refreshLiveCounters();
+            renderRecentTheses();
+        });
+    }
+
+    // =========================================================================
+    // 2. RESEARCH LAUNCHPAD NAVIGATION
+    // =========================================================================
+    // launchpad-chatbot-btn: Redirect directly to index.html and open AI Chatbot screen
+    const launchpadChatbotBtn = document.getElementById('launchpad-chatbot-btn');
+    if (launchpadChatbotBtn) {
+        launchpadChatbotBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            sessionStorage.setItem('showChatbotView', 'true');
+            window.location.href = '../index.html?view=chatbot#chatbot';
+        });
+    }
+
+    // launchpad-citations-btn: Automatically go to sidebar citation screen
+    const launchpadCitationsBtn = document.getElementById('launchpad-citations-btn');
+    if (launchpadCitationsBtn) {
+        launchpadCitationsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const citationNav = document.querySelector('.rail-nav-item[data-section="citations"]');
+            if (citationNav) {
+                citationNav.click();
+            } else {
+                navigateToSection('citations');
+            }
+        });
+    }
+
+    // launchpad-saved-btn: Automatically go to sidebar saved projects screen
+    const launchpadSavedBtn = document.getElementById('launchpad-saved-btn');
+    if (launchpadSavedBtn) {
+        launchpadSavedBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const savedNav = document.querySelector('.rail-nav-item[data-section="saved"]');
+            if (savedNav) {
+                savedNav.click();
+            } else {
+                navigateToSection('saved');
+            }
+        });
+    }
+
+    // Enable Enter / Space key activation on interactive cards
+    [launchpadChatbotBtn, launchpadCitationsBtn, launchpadSavedBtn].forEach(card => {
+        if (card) {
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    card.click();
+                }
+            });
+        }
+    });
+
+    const viewActivityLink = document.getElementById('view-activity-link');
+    if (viewActivityLink) {
+        viewActivityLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const activityNav = document.querySelector('.rail-nav-item[data-section="activity"]');
+            if (activityNav) {
+                activityNav.click();
+            } else {
+                navigateToSection('activity');
+            }
+        });
+    }
+
+    function navigateToSection(sectionId) {
+        const targetNav = document.querySelector(`.rail-nav-item[data-section="${sectionId}"]`);
+        if (targetNav) {
+            targetNav.click();
+        } else {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            const sec = document.getElementById(`section-${sectionId}`);
+            if (sec) sec.classList.add('active');
+        }
+    }
+
+    // =========================================================================
+    // 3. FUNCTIONABLE BROWSE BY ACADEMIC PROGRAM
+    // =========================================================================
+    document.querySelectorAll('.program-browse-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const program = btn.getAttribute('data-program');
+            if (program) {
+                sessionStorage.setItem('pendingSearchQuery', program);
+                window.location.href = `../index.html?search=${encodeURIComponent(program)}`;
+            }
+        });
+    });
+
+    // =========================================================================
+    // 4. TRUTHFUL LIVE KPI COUNTERS (100% Real Database & Activity Data)
+    // =========================================================================
+    function refreshLiveCounters() {
+        const userId = sessionStorage.getItem('userId') || 
+                      (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null) ||
+                      'guest';
+
+        // 1. Available Projects (Real count from database)
+        const availableEl = document.getElementById('available-projects-count');
+        if (availableEl) {
+            let count = 0;
+            if (window.__allProjectsData && window.__allProjectsData.length > 0) {
+                count = window.__allProjectsData.length;
+            } else {
                 try {
-                    // Check user role from Firestore
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    if (!userDoc.exists) {
-                        console.error('User document does not exist');
-                        showToast('Access denied: User data not found', '❌');
-                        setTimeout(() => window.location.href = '../index.html', 2000);
-                        resolve(false);
-                        return;
-                    }
-
-                    const userData = userDoc.data();
-                    const userType = userData.userType || sessionStorage.getItem('userType');
-
-                    // Check if user is teacher
-                    if (userType !== 'teacher') {
-                        console.warn('User is not a teacher. Redirecting...');
-                        showToast('Access denied: Teacher privileges required', '❌');
-                        setTimeout(() => {
-                            if (userType === 'admin') {
-                                AuthService.navigateToDashboard('admin');
-                            } else if (userType === 'librarian') {
-                                AuthService.navigateToDashboard('librarian');
-                            } else if (userType === 'student') {
-                                AuthService.navigateToDashboard('student');
-                            } else {
-                                window.location.href = '../index.html';
-                            }
-                        }, 2000);
-                        resolve(false);
-                        return;
-                    }
-
-                    // Teacher authenticated successfully
-                    sessionStorage.setItem('userId', user.uid);
-                    sessionStorage.setItem('userEmail', user.email);
-                    sessionStorage.setItem('userName', user.displayName || userData.fullName || 'Teacher');
-                    sessionStorage.setItem('userType', 'teacher');
-
-                    // Update teacher profile display
-                    updateTeacherProfile(user, userData);
-                    resolve(true);
-
-                } catch (error) {
-                    console.error('Error checking teacher role:', error);
-                    showToast('Authentication error occurred', '❌');
-                    setTimeout(() => window.location.href = '../index.html', 2000);
-                    resolve(false);
-                }
-            });
-        });
-    };
-
-    // Wait for authentication check
-    const isTeacher = await checkTeacherAuth();
-    if (!isTeacher) return;
-
-    // ===== DOM Elements =====
-    const sidebar = document.getElementById('teacher-sidebar');
-    const menuToggleBtn = document.getElementById('menu-toggle-btn');
-    const navItems = document.querySelectorAll('.nav-item');
-    const contentSections = document.querySelectorAll('.content-section');
-    const pageTitle = document.getElementById('page-title');
-    const logoutBtn = document.getElementById('teacher-logout-btn');
-    const backToHomeBtn = document.getElementById('back-to-home-btn');
-    const themeToggleBtn = document.getElementById('theme-toggle-teacher');
-
-    // ===== Update Teacher Profile =====
-    function updateTeacherProfile(user, userData) {
-        const teacherNameEl = document.getElementById('teacher-name');
-        const teacherProfileImg = document.getElementById('teacher-profile-img');
-
-        if (teacherNameEl) {
-            teacherNameEl.textContent = user.displayName || userData.fullName || 'Teacher';
-        }
-
-        if (teacherProfileImg && user.photoURL) {
-            teacherProfileImg.src = user.photoURL;
-        }
-    }
-
-    // ===== Sidebar Toggle (Mobile Only) =====
-    if (menuToggleBtn) {
-        menuToggleBtn.addEventListener('click', () => {
-            if (window.innerWidth <= 1024) {
-                sidebar.classList.toggle('mobile-open');
+                    const cached = JSON.parse(localStorage.getItem('projectsData') || '[]');
+                    count = cached.length;
+                } catch (e) {}
             }
-        });
-    }
+            if (count > 0) {
+                availableEl.textContent = count;
+            } else {
+                fetchAvailableProjectsCount();
+            }
+        }
 
-    // ===== Navigation =====
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const section = item.getAttribute('data-section');
+        // 2. Saved Projects Count
+        const savedEl = document.getElementById('saved-projects-count');
+        const launchpadSavedEl = document.getElementById('launchpad-saved-count');
+        let savedCount = 0;
+        try {
+            const savedList = JSON.parse(localStorage.getItem('savedProjects') || '[]');
+            savedCount = savedList.length;
+        } catch (e) {}
+        if (savedEl) savedEl.textContent = savedCount;
+        if (launchpadSavedEl) launchpadSavedEl.textContent = savedCount;
+
+        // 3. Recently Viewed Projects Count (Truthful from ActivityService)
+        const recentViewsEl = document.getElementById('recent-views-count');
+        let viewCount = 0;
+
+        if (window.ActivityService && typeof window.ActivityService.getLocalCache === 'function') {
+            const activities = window.ActivityService.getLocalCache(userId);
+            const projectViews = activities.filter(a => a.category === 'project' && a.action === 'project_viewed');
             
-            // Update active states
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
-
-            // Show corresponding section
-            contentSections.forEach(content => {
-                if (content.id === `section-${section}`) {
-                    content.classList.add('active');
-                } else {
-                    content.classList.remove('active');
-                }
+            const uniqueProjectIds = new Set();
+            projectViews.forEach(v => {
+                const pid = (v.metadata && v.metadata.projectId) || v.title;
+                if (pid) uniqueProjectIds.add(pid);
             });
+            viewCount = uniqueProjectIds.size;
+        }
 
-            // Update page title
-            const titles = {
-                'dashboard': 'Dashboard',
-                'projects': 'Projects Archive',
-                'students': 'My Students',
-                'classes': 'My Classes',
-                'submissions': 'Project Submissions',
-                'analytics': 'Analytics & Reports'
-            };
-            pageTitle.textContent = titles[section] || 'Dashboard';
+        if (recentViewsEl) recentViewsEl.textContent = viewCount;
+    }
 
-            // Close sidebar on mobile
-            if (window.innerWidth <= 1024) {
-                sidebar.classList.remove('mobile-open');
+    async function fetchAvailableProjectsCount() {
+        try {
+            if (typeof db !== 'undefined' && db.collection) {
+                const snapshot = await db.collection('projects').get();
+                const count = snapshot.size || snapshot.docs.length;
+                const availableEl = document.getElementById('available-projects-count');
+                if (availableEl && count > 0) {
+                    availableEl.textContent = count;
+                }
             }
+        } catch (err) {
+            console.warn('[TeacherDashboard] Error fetching project count:', err);
+        }
+    }
 
-            // Load section data
-            loadSectionData(section);
-        });
+    // Listen for all projects loaded event from user-dashboard.js
+    window.addEventListener('allProjectsLoaded', (e) => {
+        const count = e.detail?.count || 0;
+        const availableEl = document.getElementById('available-projects-count');
+        if (availableEl && count > 0) {
+            availableEl.textContent = count;
+        }
+        renderRecentTheses();
     });
 
-    // ===== Logout =====
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            // Use the new logout modal
-            const modal = getLogoutModal();
-            modal.show({
-                onAbort: () => {
-                    console.log('Logout cancelled by user');
-                },
-                onConfirm: async () => {
-                    await auth.signOut();
-                    sessionStorage.clear();
-                    localStorage.removeItem('cachedAuthState');
-                    showToast('Logged out successfully', '✅');
-                    setTimeout(() => window.location.href = '../index.html', 1000);
-                }
-            });
-        });
-    }
+    window.addEventListener('projectSavedStateChanged', () => {
+        refreshLiveCounters();
+    });
 
-    // ===== Back to Home =====
-    if (backToHomeBtn) {
-        backToHomeBtn.addEventListener('click', () => {
-            window.location.href = '../index.html';
-        });
-    }
+    // =========================================================================
+    // 5. RECENTLY EXPLORED THESES SPOTLIGHT
+    // =========================================================================
+    function renderRecentTheses() {
+        const container = document.getElementById('recent-theses-container');
+        if (!container) return;
 
-    // ===== Theme Toggle =====
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-        });
-    }
+        const userId = sessionStorage.getItem('userId') || 
+                      (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null) ||
+                      'guest';
 
-    // ===== Load Section Data =====
-    async function loadSectionData(section) {
-        switch(section) {
-            case 'dashboard':
-                await loadDashboardData();
-                break;
-            case 'projects':
-                await loadProjectsData();
-                break;
-            case 'students':
-                await loadStudentsData();
-                break;
-            case 'classes':
-                await loadClassesData();
-                break;
-            case 'submissions':
-                await loadSubmissionsData();
-                break;
-            case 'analytics':
-                await loadAnalyticsData();
-                break;
+        let recentViews = [];
+        if (window.ActivityService && typeof window.ActivityService.getLocalCache === 'function') {
+            const activities = window.ActivityService.getLocalCache(userId);
+            recentViews = activities.filter(a => a.category === 'project' && a.action === 'project_viewed');
         }
-    }
 
-    // ===== Dashboard Data =====
-    async function loadDashboardData() {
-        try {
-            const currentUserId = auth.currentUser.uid;
-            
-            // Load all students
-            const studentsSnapshot = await db.collection('users')
-                .where('userType', '==', 'student')
-                .get();
-            
-            // Load all projects
-            const projectsSnapshot = await db.collection('projects').get();
-            
-            // Calculate stats
-            const totalStudents = studentsSnapshot.size;
-            const totalProjects = projectsSnapshot.size;
-            
-            document.getElementById('total-students-stat').textContent = totalStudents;
-            document.getElementById('total-projects-stat').textContent = totalProjects;
-            document.getElementById('total-classes-stat').textContent = '0'; // TODO: Implement classes
-            document.getElementById('pending-submissions-stat').textContent = '0'; // TODO: Implement submissions
-
-            // Load recent projects
-            const recentProjectsList = document.getElementById('recent-projects-list');
-            recentProjectsList.innerHTML = '';
-
-            const recentProjects = projectsSnapshot.docs
-                .map(doc => ({id: doc.id, ...doc.data()}))
-                .sort((a, b) => {
-                    const dateA = getTimestamp(a.createdAt);
-                    const dateB = getTimestamp(b.createdAt);
-                    return dateB - dateA;
-                })
-                .slice(0, 5);
-
-            if (recentProjects.length === 0) {
-                recentProjectsList.innerHTML = '<p class="empty-state">No projects yet</p>';
-            } else {
-                recentProjects.forEach(data => {
-                    const item = document.createElement('div');
-                    item.className = 'recent-item';
-                    item.innerHTML = `
-                        <div class="recent-item-title">${escapeHtml(data.title || 'Untitled')}</div>
-                        <div class="recent-item-meta">
-                            ${data.program || 'N/A'} · ${data.year || 'N/A'} · 
-                            ${formatDate(data.createdAt)}
-                        </div>
-                    `;
-                    recentProjectsList.appendChild(item);
-                });
+        const seenIds = new Set();
+        const uniqueRecent = [];
+        for (const item of recentViews) {
+            const key = (item.metadata && item.metadata.projectId) || item.title;
+            if (!seenIds.has(key)) {
+                seenIds.add(key);
+                uniqueRecent.push(item);
             }
-
-            // Load recent students
-            const recentStudentsList = document.getElementById('recent-students-list');
-            recentStudentsList.innerHTML = '';
-
-            const recentStudents = studentsSnapshot.docs
-                .map(doc => ({id: doc.id, ...doc.data()}))
-                .sort((a, b) => {
-                    const dateA = getTimestamp(a.createdAt);
-                    const dateB = getTimestamp(b.createdAt);
-                    return dateB - dateA;
-                })
-                .slice(0, 5);
-
-            if (recentStudents.length === 0) {
-                recentStudentsList.innerHTML = '<p class="empty-state">No students yet</p>';
-            } else {
-                recentStudents.forEach(data => {
-                    const item = document.createElement('div');
-                    item.className = 'recent-item';
-                    item.innerHTML = `
-                        <div class="recent-item-title">${escapeHtml(data.fullName || 'Unknown')}</div>
-                        <div class="recent-item-meta">
-                            ${data.program || 'N/A'} · Joined ${formatDate(data.createdAt)}
-                        </div>
-                    `;
-                    recentStudentsList.appendChild(item);
-                });
-            }
-
-        } catch (error) {
-            console.error('Error loading dashboard data:', error);
-            showToast('Error loading dashboard data', '❌');
+            if (uniqueRecent.length >= 4) break;
         }
-    }
 
-    // ===== Projects Data =====
-    async function loadProjectsData() {
-        const tbody = document.getElementById('projects-table-body');
-        tbody.innerHTML = '<tr><td colspan="6" class="table-loading">Loading projects...</td></tr>';
-        
-        try {
-            const projectsSnapshot = await db.collection('projects')
-                .orderBy('createdAt', 'desc')
-                .get();
-
-            tbody.innerHTML = '';
-
-            if (projectsSnapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No projects found</td></tr>';
-                return;
-            }
-
-            projectsSnapshot.forEach(doc => {
-                const data = doc.data();
-                const status = data.status || 'draft';
-                const statusBadge = {
-                    'draft': 'badge-draft',
-                    'pending': 'badge-pending',
-                    'approved': 'badge-approved',
-                    'rejected': 'badge-rejected'
-                }[status] || 'badge-draft';
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${escapeHtml(data.title || 'Untitled')}</strong></td>
-                    <td>${escapeHtml((data.authors || []).join(', ') || 'N/A')}</td>
-                    <td><span class="badge badge-info">${escapeHtml(data.program || 'N/A')}</span></td>
-                    <td>${escapeHtml(data.year || 'N/A')}</td>
-                    <td><span class="badge ${statusBadge}">${status.toUpperCase()}</span></td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="action-btn action-view" onclick="viewProject('${doc.id}')" title="View details">
-                                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('view-sm') : ''}
-                                View
-                            </button>
-                            <button class="action-btn action-edit" onclick="reviewProject('${doc.id}')" title="Review project">
-                                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('edit-sm') : ''}
-                                Review
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-        } catch (error) {
-            console.error('Error loading projects:', error);
-            tbody.innerHTML = '<tr><td colspan="6" class="table-error">⚠️ Error loading projects</td></tr>';
-            showToast('Error loading projects', '❌');
-        }
-    }
-
-    // ===== Students Data =====
-    async function loadStudentsData() {
-        const tbody = document.getElementById('students-table-body');
-        tbody.innerHTML = '<tr><td colspan="6" class="table-loading">Loading students...</td></tr>';
-        
-        try {
-            const studentsSnapshot = await db.collection('users')
-                .where('userType', '==', 'student')
-                .get();
-
-            tbody.innerHTML = '';
-
-            if (studentsSnapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No students found</td></tr>';
-                return;
-            }
-
-            studentsSnapshot.forEach(doc => {
-                const data = doc.data();
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${escapeHtml(data.fullName || 'N/A')}</strong></td>
-                    <td>${escapeHtml(data.studentId || 'N/A')}</td>
-                    <td><span class="badge badge-info">${escapeHtml(data.program || 'N/A')}</span></td>
-                    <td>${escapeHtml(data.email || 'N/A')}</td>
-                    <td>0</td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="action-btn action-view" onclick="viewStudent('${doc.id}')" title="View student">
-                                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('view-sm') : ''}
-                                View
-                            </button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-
-        } catch (error) {
-            console.error('Error loading students:', error);
-            tbody.innerHTML = '<tr><td colspan="6" class="table-error">⚠️ Error loading students</td></tr>';
-            showToast('Error loading students', '❌');
-        }
-    }
-
-    // ===== Classes Data =====
-    async function loadClassesData() {
-        const grid = document.getElementById('classes-grid');
-        grid.innerHTML = '<div class="loading-spinner">Loading classes...</div>';
-        
-        try {
-            // TODO: Implement classes collection
-            setTimeout(() => {
-                grid.innerHTML = '<div class="empty-state">No classes yet. Click "Add Class" to create one.</div>';
-            }, 500);
-        } catch (error) {
-            console.error('Error loading classes:', error);
-            grid.innerHTML = '<div class="empty-state">Error loading classes</div>';
-            showToast('Error loading classes', '❌');
-        }
-    }
-
-    // ===== Submissions Data =====
-    async function loadSubmissionsData() {
-        const tbody = document.getElementById('submissions-table-body');
-        tbody.innerHTML = '<tr><td colspan="5" class="table-loading">Loading submissions...</td></tr>';
-        
-        try {
-            // TODO: Implement submissions collection
-            setTimeout(() => {
-                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No submissions yet</td></tr>';
-            }, 500);
-        } catch (error) {
-            console.error('Error loading submissions:', error);
-            tbody.innerHTML = '<tr><td colspan="5" class="table-error">⚠️ Error loading submissions</td></tr>';
-            showToast('Error loading submissions', '❌');
-        }
-    }
-
-    // ===== Analytics Data =====
-    async function loadAnalyticsData() {
-        try {
-            showToast('Analytics feature coming soon', 'ℹ️');
-        } catch (error) {
-            console.error('Error loading analytics:', error);
-            showToast('Error loading analytics', '❌');
-        }
-    }
-
-    // ===== Helper Functions =====
-    function getTimestamp(timestamp) {
-        if (!timestamp) return 0;
-        
-        try {
-            if (timestamp.toDate) {
-                return timestamp.toDate().getTime();
-            } else if (timestamp instanceof Date) {
-                return timestamp.getTime();
-            } else if (typeof timestamp === 'number') {
-                return timestamp;
-            } else if (typeof timestamp === 'string') {
-                return new Date(timestamp).getTime();
-            }
-        } catch (error) {
-            console.error('Error parsing timestamp:', error);
-        }
-        return 0;
-    }
-
-    function escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return String(text || '').replace(/[&<>"']/g, m => map[m]);
-    }
-
-    function formatDate(timestamp) {
-        if (!timestamp) return 'N/A';
-        
-        try {
-            let date;
-            if (timestamp.toDate) {
-                date = timestamp.toDate();
-            } else if (timestamp instanceof Date) {
-                date = timestamp;
-            } else if (typeof timestamp === 'number') {
-                date = new Date(timestamp);
-            } else if (typeof timestamp === 'string') {
-                date = new Date(timestamp);
-            } else {
-                return 'N/A';
-            }
-
-            if (isNaN(date.getTime())) {
-                return 'N/A';
-            }
-
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            return date.toLocaleDateString('en-US', options);
-        } catch (error) {
-            console.error('Error formatting date:', error);
-            return 'N/A';
-        }
-    }
-
-    // ===== Global Action Functions =====
-    window.viewProject = (projectId) => {
-        console.log('View project:', projectId);
-        showToast('Opening project details...', 'ℹ️');
-        setTimeout(() => {
-            // Set flag to show details view
-            sessionStorage.setItem('showProjectDetails', 'true');
-            // Navigate to index.html which will handle the view
-            window.location.href = '../index.html';
-        }, 500);
-    };
-
-    window.reviewProject = (projectId) => {
-        console.log('Review project:', projectId);
-        showToast('Review functionality coming soon', 'ℹ️');
-    };
-
-    window.viewStudent = (studentId) => {
-        console.log('View student:', studentId);
-        showToast('Student profile view coming soon', 'ℹ️');
-    };
-
-    // ===== Search Functionality =====
-    const projectsSearch = document.getElementById('projects-search');
-    if (projectsSearch) {
-        projectsSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const tbody = document.getElementById('projects-table-body');
-            const rows = tbody.getElementsByTagName('tr');
-
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    const studentsSearch = document.getElementById('students-search');
-    if (studentsSearch) {
-        studentsSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const tbody = document.getElementById('students-table-body');
-            const rows = tbody.getElementsByTagName('tr');
-
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    const submissionsSearch = document.getElementById('submissions-search');
-    if (submissionsSearch) {
-        submissionsSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const tbody = document.getElementById('submissions-table-body');
-            const rows = tbody.getElementsByTagName('tr');
-
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    }
-
-    // ===== Refresh Dashboard =====
-    const refreshDashboardBtn = document.getElementById('refresh-dashboard-btn');
-    if (refreshDashboardBtn) {
-        refreshDashboardBtn.addEventListener('click', async () => {
-            refreshDashboardBtn.disabled = true;
-            refreshDashboardBtn.innerHTML = `
-                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('refresh-spin') : ''}
-                Refreshing...
+        if (uniqueRecent.length === 0) {
+            container.innerHTML = `
+                <div class="recent-theses-empty">
+                    <div class="recent-empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                    <h4>No recent project views yet</h4>
+                    <p>Explore capstones from the institutional repository to keep track of your literature trail.</p>
+                    <a href="../index.html" class="recent-explore-cta">Browse Capstone Archive →</a>
+                </div>
             `;
-            
-            await loadDashboardData();
-            
-            setTimeout(() => {
-                refreshDashboardBtn.disabled = false;
-                refreshDashboardBtn.innerHTML = `
-                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('refresh') : ''}
-                    Refresh
-                `;
-                showToast('Dashboard refreshed successfully', '✅');
-            }, 500);
-        });
-    }
-
-    // ===== Add Class Button =====
-    const addClassBtn = document.getElementById('add-class-btn');
-    if (addClassBtn) {
-        addClassBtn.addEventListener('click', () => {
-            showToast('Add class feature coming soon', 'ℹ️');
-        });
-    }
-
-    // ===== Click outside to close sidebar on mobile =====
-    document.addEventListener('click', (e) => {
-        if (window.innerWidth <= 1024) {
-            if (!sidebar.contains(e.target) && !menuToggleBtn.contains(e.target)) {
-                sidebar.classList.remove('mobile-open');
-            }
+            return;
         }
-    });
 
-    // ===== Initial Load =====
-    await loadDashboardData();
+        container.innerHTML = '';
+        uniqueRecent.forEach(item => {
+            const projectId = item.metadata?.projectId || '';
+            const title = item.metadata?.projectTitle || item.title?.replace('Viewed Project: ', '') || 'Capstone Research';
+            const program = item.metadata?.program || 'Undergraduate Thesis';
+            const authors = item.metadata?.authors || '';
+
+            const el = document.createElement('div');
+            el.className = 'recent-thesis-item';
+            el.innerHTML = `
+                <div class="recent-thesis-info">
+                    <div class="recent-thesis-meta">
+                        <span class="recent-program-badge">${escapeHtml(program)}</span>
+                    </div>
+                    <h4 class="recent-thesis-title" title="${escapeHtml(title)}">${escapeHtml(title)}</h4>
+                    ${authors ? `<p class="recent-thesis-authors">${escapeHtml(authors)}</p>` : ''}
+                </div>
+                <button type="button" class="recent-thesis-action-btn" data-project-id="${projectId}" data-title="${escapeHtml(title)}">
+                    <span>View</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
+            `;
+
+            el.querySelector('.recent-thesis-action-btn').addEventListener('click', () => {
+                openProjectDetails(projectId, title, program);
+            });
+
+            container.appendChild(el);
+        });
+    }
+
+    function openProjectDetails(projectId, title, program) {
+        let projectData = null;
+        try {
+            const cached = JSON.parse(localStorage.getItem('projectsData') || '[]');
+            projectData = cached.find(p => p.id === projectId || p.title === title);
+        } catch (e) {}
+
+        if (!projectData) {
+            projectData = { id: projectId, title, program };
+        }
+
+        sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(projectData));
+        sessionStorage.setItem('showProjectDetails', 'true');
+        window.location.href = '../index.html';
+    }
+
+    function escapeHtml(str) {
+        return String(str || '').replace(/[&<>"']/g, match => {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return map[match] || match;
+        });
+    }
+
+    // Initial render
+    refreshLiveCounters();
+    renderRecentTheses();
+
+    // =========================================================================
+    // 6. ROTATING DAILY RESEARCH TIP
+    // =========================================================================
+    const researchTips = [
+        "Formulate specific, measurable objectives. When referencing prior theses, note their limitations in Chapter 2 as justification for your proposed methodology.",
+        "Always cite primary sources where possible. Use the Citation Generator to keep your bibliography updated as you write.",
+        "For hardware or IoT capstones, document your circuit schematics and component bill of materials early in Chapter 3.",
+        "A strong Statement of the Problem specifies: (1) The ideal standard, (2) The observed real-world deficiency, and (3) Your proposed technical intervention.",
+        "Align your conceptual framework (IPO - Input, Process, Output) directly with each specific research objective in Chapter 1.",
+        "Evaluate your prototype with actual target end-users in local Cebu/Daanbantayan community settings for genuine evaluation data."
+    ];
+
+    const tipEl = document.getElementById('daily-research-tip');
+    if (tipEl) {
+        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+        const selectedTip = researchTips[dayOfYear % researchTips.length];
+        tipEl.textContent = selectedTip;
+    }
+
+    // =========================================================================
+    // 7. CITATION GENERATOR
+    // =========================================================================
+    // Handled by CitationStudio (shared/citation-generator.js)
+    if (!window.CitationStudio) {
+        const genCitationBtn = document.getElementById('generate-citation-btn');
+        if (genCitationBtn) {
+            genCitationBtn.addEventListener('click', () => {
+                const format = (document.getElementById('citation-format')?.value || 'apa').toLowerCase();
+                const title = document.getElementById('citation-title')?.value.trim() || 'Untitled Research Project';
+                const authors = document.getElementById('citation-authors')?.value.trim() || 'Author Unknown';
+                const year = document.getElementById('citation-year')?.value.trim() || new Date().getFullYear().toString();
+                const outputBox = document.getElementById('citation-output');
+
+                let result = '';
+                if (format === 'apa') {
+                    result = `${authors} (${year}). ${title}. Cebu Technological University Library Repository.`;
+                } else if (format === 'mla') {
+                    result = `${authors}. "${title}." Cebu Technological University, ${year}.`;
+                } else if (format === 'chicago') {
+                    result = `${authors}. "${title}." Undergraduate thesis, Cebu Technological University, ${year}.`;
+                } else if (format === 'ieee') {
+                    result = `${authors}, "${title}," CTU Undergraduate Thesis, Cebu, Philippines, ${year}.`;
+                }
+
+                if (outputBox) {
+                    outputBox.style.display = 'block';
+                    outputBox.textContent = result;
+                }
+
+                // Log activity
+                if (window.ActivityService && typeof window.ActivityService.logCitation === 'function') {
+                    window.ActivityService.logCitation(format.toUpperCase(), title);
+                    refreshLiveCounters();
+                }
+
+                if (typeof showToast === 'function') {
+                    showToast(`Generated ${format.toUpperCase()} citation!`, 'success');
+                }
+            });
+        }
+    }
 });
-
-// ===== Load User Email in Settings =====
-if (typeof auth !== 'undefined') {
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            const emailElement = document.getElementById('settings-user-email');
-            if (emailElement) {
-                emailElement.textContent = user.email || 'N/A';
-            }
-        }
-    });
-}

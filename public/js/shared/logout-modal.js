@@ -137,9 +137,15 @@ class LogoutModal {
         } catch (error) {
             console.error('Logout execution error:', error);
             
-            // Show error toast if available
+            // Show error notification
             if (window.showToast) {
-                showToast('Error logging out. Please try again.', '❌');
+                showToast('Error logging out. Please try again.', 'error');
+            } else if (window.ModalDialog) {
+                ModalDialog.alert({
+                    title: 'Sign Out Error',
+                    message: 'An unexpected error occurred while logging out. Please try again.',
+                    type: 'danger'
+                });
             } else {
                 alert('Error logging out. Please try again.');
             }

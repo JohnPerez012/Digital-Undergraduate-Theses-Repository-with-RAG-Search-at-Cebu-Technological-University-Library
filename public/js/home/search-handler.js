@@ -31,6 +31,28 @@ const SearchHandler = {
         this.saveSearchHistory(query);
       }
     });
+
+    // Handle initial search from URL parameter or student dashboard redirect
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlQuery = urlParams.get('search') || urlParams.get('q') || urlParams.get('program');
+      const sessionQuery = sessionStorage.getItem('pendingSearchQuery');
+      if (sessionQuery) {
+        sessionStorage.removeItem('pendingSearchQuery');
+      }
+      const initialQuery = urlQuery || sessionQuery;
+      if (initialQuery && initialQuery.trim()) {
+        const cleanQuery = initialQuery.trim();
+        searchInput.value = cleanQuery;
+        if (searchClearBtn) searchClearBtn.style.display = 'flex';
+        setTimeout(() => {
+          this.performSearch(cleanQuery);
+          this.saveSearchHistory(cleanQuery);
+        }, 350);
+      }
+    } catch (e) {
+      console.warn('Error reading initial search parameters:', e);
+    }
     
     // Handle clear button click
     if (searchClearBtn) {
@@ -533,11 +555,29 @@ const SearchHandler = {
         allProjects.push(data);
       });
       
-      // Filter projects by query
-      const lowerQuery = query.toLowerCase();
+      // Filter projects by query with academic program synonyms support
+      const lowerQuery = query.toLowerCase().trim();
+      const programAliases = {
+        'bsie': ['bsie', 'industrial engineering', 'industrial'],
+        'industrial engineering': ['bsie', 'industrial engineering', 'industrial'],
+        'bit-electronics': ['bit-electronics', 'electronics', 'electronics technology', 'bit electronics'],
+        'electronics': ['bit-electronics', 'electronics', 'electronics technology', 'bit electronics'],
+        'bshm': ['bshm', 'hospitality management', 'hospitality', 'bs hospitality management'],
+        'hospitality management': ['bshm', 'hospitality management', 'hospitality'],
+        'bit-automotive': ['bit-automotive', 'automotive', 'automotive technology', 'bit automotive'],
+        'automotive': ['bit-automotive', 'automotive', 'automotive technology']
+      };
+
+      const matchTerms = [lowerQuery];
+      if (programAliases[lowerQuery]) {
+        matchTerms.push(...programAliases[lowerQuery]);
+      }
+
       const filteredProjects = allProjects.filter(project => {
         const title = (project.title || '').toLowerCase();
         const abstract = (project.abstract || '').toLowerCase();
+        const program = (project.program || '').toLowerCase();
+        const department = (project.department || '').toLowerCase();
         const authors = Array.isArray(project.authors) 
           ? project.authors.join(' ').toLowerCase() 
           : (project.authors || '').toLowerCase();
@@ -546,11 +586,15 @@ const SearchHandler = {
           : (project.keywords || '').toLowerCase();
         const adviser = (project.adviser || '').toLowerCase();
         
-        return title.includes(lowerQuery) || 
-               abstract.includes(lowerQuery) ||
-               authors.includes(lowerQuery) ||
-               keywords.includes(lowerQuery) ||
-               adviser.includes(lowerQuery);
+        return matchTerms.some(term => 
+          title.includes(term) || 
+          abstract.includes(term) ||
+          program.includes(term) ||
+          department.includes(term) ||
+          authors.includes(term) ||
+          keywords.includes(term) ||
+          adviser.includes(term)
+        );
       });
       
       console.log(`✓ Found ${filteredProjects.length} matching projects`);

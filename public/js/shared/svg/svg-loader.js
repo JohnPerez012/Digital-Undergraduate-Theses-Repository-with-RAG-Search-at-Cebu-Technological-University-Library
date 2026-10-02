@@ -29,7 +29,7 @@
      * @param {Object} options
      */
     function _applyOptions(svg, options = {}) {
-        const allEls = svg.querySelectorAll('*');
+        const allEls = [svg, ...svg.querySelectorAll('*')];
 
         // Force currentColor so icons inherit from CSS
         allEls.forEach(el => {

@@ -24,6 +24,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
+    <link rel="stylesheet" href="../css/shared/modal-dialog.css">
     <link rel="stylesheet" href="../css/shared/text-protection.css">
     <link rel="stylesheet" href="../css/shared/activity-log.css">
 </head>
@@ -161,7 +162,7 @@
                     <!-- Stats Grid -->
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <div class="stat-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                             </div>
                             <div class="stat-content">
@@ -171,7 +172,7 @@
                         </div>
 
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                            <div class="stat-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                             </div>
                             <div class="stat-content">
@@ -181,7 +182,7 @@
                         </div>
 
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                            <div class="stat-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg>
                             </div>
                             <div class="stat-content">
@@ -191,7 +192,7 @@
                         </div>
 
                         <div class="stat-card">
-                            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                            <div class="stat-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                             </div>
                             <div class="stat-content">
@@ -302,8 +303,8 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                             </div>
                             <div>
-                                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account</h3>
-                                <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account information</p>
+                                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account Management</h3>
+                                <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account credentials and system data</p>
                             </div>
                         </div>
                         
@@ -323,6 +324,58 @@
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                                 </svg>
                             </button>
+
+                            <!-- Danger Zone (Collapsible Dropdown Position - Inconspicuous & Low Prominence) -->
+                            <div class="danger-zone-container" id="danger-zone-container">
+                                <button type="button" class="danger-zone-toggle" id="danger-zone-toggle" aria-expanded="false" aria-controls="danger-zone-content">
+                                    <div class="danger-zone-toggle-left">
+                                        <svg class="danger-zone-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                        </svg>
+                                        <div class="danger-zone-title-wrap">
+                                            <span class="danger-zone-title">Danger Zone</span>
+                                            <span class="danger-zone-subtitle">Advanced data clearing &amp; account termination</span>
+                                        </div>
+                                    </div>
+                                    <svg class="danger-zone-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                
+                                <div class="danger-zone-content" id="danger-zone-content" style="display: none;">
+                                    <div class="danger-zone-item">
+                                        <div class="danger-zone-item-info">
+                                            <div class="danger-zone-item-title">Clear Account Data</div>
+                                            <div class="danger-zone-item-desc">Erase saved capstone projects, query history, chat sessions, and activity logs. Your account login remains active.</div>
+                                        </div>
+                                        <button type="button" id="clear-account-data-btn" class="btn-danger-subtle">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            </svg>
+                                            <span>Clear Data</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="danger-zone-item danger-zone-item-destructive">
+                                        <div class="danger-zone-item-info">
+                                            <div class="danger-zone-item-title">Delete Account</div>
+                                            <div class="danger-zone-item-desc">Permanently remove your account, profile, and all associated academic data from the university database.<strong>This cannot be undone.</strong></div>
+                                        </div>
+                                        <button type="button" id="delete-account-btn" class="btn-danger-subtle btn-danger-critical">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="8.5" cy="7" r="4"></circle>
+                                                <line x1="18" y1="8" x2="23" y2="13"></line>
+                                                <line x1="23" y1="8" x2="18" y2="13"></line>
+                                            </svg>
+                                            <span>Delete Account</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -355,6 +408,7 @@
     <script src="../js/shared/svg/svg-registry.js"></script>
     <script src="../js/shared/svg/svg-init.js"></script>
     <script src="../js/shared/toast.js"></script>
+    <script src="../js/shared/modal-dialog.js"></script>
     <script src="../js/shared/text-protection.js"></script>
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
@@ -363,6 +417,7 @@
     <script src="../js/shared/guest-storage.js"></script>
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
+    <script src="../js/pages/settings-handler.js"></script>
     <script>
         // Placeholder for librarian-specific JavaScript
         console.log('Librarian dashboard loaded');

@@ -26,7 +26,8 @@ html {
     --green-200: #80E6C1;
     --green-300: #4DDCA8;
     --green-400: #1AD28F;
-    --green-500: #08D488;  /* Base */
+    --green-500: #08D488;
+    /* Base */
     --green-600: #07BC79;
     --green-700: #069F66;
     --green-800: #058254;
@@ -38,7 +39,8 @@ html {
     --yellow-200: #FFE380;
     --yellow-300: #FFD84D;
     --yellow-400: #FFCD1A;
-    --yellow-500: #FCCC56;  /* Base */
+    --yellow-500: #FCCC56;
+    /* Base */
     --yellow-600: #E3B84E;
     --yellow-700: #CA9F43;
     --yellow-800: #B18639;
@@ -146,16 +148,16 @@ body::-webkit-scrollbar {
 }
 
 body::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, 
-        rgba(8, 212, 136, 0.4) 0%, 
-        rgba(252, 204, 86, 0.4) 100%);
+    background: linear-gradient(180deg,
+            rgba(8, 212, 136, 0.4) 0%,
+            rgba(252, 204, 86, 0.4) 100%);
     border-radius: 10px;
 }
 
 body::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, 
-        rgba(8, 212, 136, 0.9) 0%, 
-        rgba(252, 204, 86, 0.9) 100%);
+    background: linear-gradient(180deg,
+            rgba(8, 212, 136, 0.9) 0%,
+            rgba(252, 204, 86, 0.9) 100%);
 }
 
 body:hover::-webkit-scrollbar {
@@ -163,31 +165,35 @@ body:hover::-webkit-scrollbar {
 }
 
 body:hover::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, 
-        rgba(8, 212, 136, 0.6) 0%, 
-        rgba(252, 204, 86, 0.6) 100%);
+    background: linear-gradient(180deg,
+            rgba(8, 212, 136, 0.6) 0%,
+            rgba(252, 204, 86, 0.6) 100%);
 }
 
 [data-theme="dark"] body::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, 
-        rgba(26, 210, 143, 0.5) 0%, 
-        rgba(255, 216, 77, 0.5) 100%);
+    background: linear-gradient(180deg,
+            rgba(26, 210, 143, 0.5) 0%,
+            rgba(255, 216, 77, 0.5) 100%);
 }
 
 [data-theme="dark"] body::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, 
-        rgba(26, 210, 143, 1) 0%, 
-        rgba(255, 216, 77, 1) 100%);
+    background: linear-gradient(180deg,
+            rgba(26, 210, 143, 1) 0%,
+            rgba(255, 216, 77, 1) 100%);
 }
 
 [data-theme="dark"] body:hover::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, 
-        rgba(26, 210, 143, 0.7) 0%, 
-        rgba(255, 216, 77, 0.7) 100%);
+    background: linear-gradient(180deg,
+            rgba(26, 210, 143, 0.7) 0%,
+            rgba(255, 216, 77, 0.7) 100%);
 }
 
 
-body, button, input, select, textarea {
+body,
+button,
+input,
+select,
+textarea {
     font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -196,7 +202,8 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     transition: background-color 0.3s ease, color 0.3s ease;
-    padding-top: 72px; /* Account for fixed header */
+    padding-top: 72px;
+    /* Account for fixed header */
     overflow-x: hidden;
     width: 100%;
 }
@@ -256,11 +263,38 @@ body {
     user-select: none;
     display: flex;
     align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.logo-container:hover {
+    opacity: 0.92;
 }
 
 .logo-img {
     height: 40px;
     width: auto;
+    display: block;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+.logo-text {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+    font-family: var(--font-primary);
+    line-height: 1;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+}
+
+.logo-container:hover .logo-text {
+    color: var(--primary-color);
 }
 
 .nav-container {
@@ -275,8 +309,8 @@ body {
     gap: 0.75rem;
 }
 
-.nav-menu > *,
-.nav-container > * {
+.nav-menu>*,
+.nav-container>* {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -300,7 +334,8 @@ body {
 }
 
 /* Login Button — glass default, solid on hover */
-#login-nav-link, #about-nav-link {
+#login-nav-link,
+#about-nav-link {
     padding: 0.45rem 1.2rem;
     border-radius: 9999px;
     /* border: 1px solid rgba(8, 212, 136, 0.35); */
@@ -313,10 +348,11 @@ body {
     padding-left: 1.2rem !important;
     padding-right: 1.2rem !important;
     transition: background 0.25s ease, border-color 0.25s ease,
-                color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+        color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
-#login-nav-link:hover, #about-nav-link:hover {
+#login-nav-link:hover,
+#about-nav-link:hover {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: #ffffff;
@@ -324,12 +360,14 @@ body {
     transform: translateY(-1px);
 }
 
-[data-theme="dark"] #login-nav-link, #login-nav-link {
+[data-theme="dark"] #login-nav-link,
+#login-nav-link {
     border-color: rgba(26, 210, 143, 0.4);
     background: rgba(26, 210, 143, 0.1);
 }
 
-[data-theme="dark"] #login-nav-link:hover, #login-nav-link:hover {
+[data-theme="dark"] #login-nav-link:hover,
+#login-nav-link:hover {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: #ffffff;
@@ -380,7 +418,7 @@ body {
     cursor: pointer;
     padding: 0 !important;
     transition: background 0.25s ease, border-color 0.25s ease,
-                box-shadow 0.25s ease, transform 0.25s ease;
+        box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 #theme-toggle:hover {
@@ -903,7 +941,7 @@ html.auth-cached-logged-in #profile-link {
     border-radius: 16px;
     padding: 0;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
     min-height: 100%;
@@ -911,7 +949,7 @@ html.auth-cached-logged-in #profile-link {
 
 .saved-project-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     border-color: var(--primary-color);
 }
 
@@ -1116,20 +1154,20 @@ html.auth-cached-logged-in #profile-link {
     width: 100%;
     height: 100%;
     background: linear-gradient(to bottom,
-        rgba(0, 0, 0, 0.55) 0%,
-        rgba(0, 0, 0, 0.6) 60%,
-        rgba(247, 247, 248, 0.3) 85%,
-        #F7F7F8 100%);
+            rgba(0, 0, 0, 0.55) 0%,
+            rgba(0, 0, 0, 0.6) 60%,
+            rgba(247, 247, 248, 0.3) 85%,
+            #F7F7F8 100%);
     z-index: 2;
     pointer-events: none;
 }
 
 [data-theme="dark"] .search-section::after {
     background: linear-gradient(to bottom,
-        rgba(0, 0, 0, 0.65) 0%,
-        rgba(0, 0, 0, 0.7) 60%,
-        rgba(26, 30, 35, 0.5) 85%,
-        #1a1e23 100%);
+            rgba(0, 0, 0, 0.65) 0%,
+            rgba(0, 0, 0, 0.7) 60%,
+            rgba(26, 30, 35, 0.5) 85%,
+            #1a1e23 100%);
 }
 
 .search-section .search-container {
@@ -1222,7 +1260,7 @@ textarea::placeholder {
 [data-theme="dark"] textarea::placeholder,
 body.dark-mode input::placeholder,
 body.dark-mode textarea::placeholder {
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--text-secondary);
     opacity: 1;
 }
 
@@ -1231,7 +1269,7 @@ body.dark-mode textarea::placeholder {
 }
 
 [data-theme="dark"] .search-input::placeholder {
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--text-secondary);
 }
 
 
@@ -1256,7 +1294,8 @@ body.dark-mode textarea::placeholder {
 /* Search Clear Button */
 .search-clear-btn {
     position: absolute;
-    right: 70px; /* Position it before the search button */
+    right: 70px;
+    /* Position it before the search button */
     background: transparent;
     border: none;
     color: var(--text-secondary);
@@ -1877,14 +1916,18 @@ body.dark-mode textarea::placeholder {
         gap: 0;
     }
 
-    .nav-menu > *,
-    .nav-container > * {
+    .nav-menu>*,
+    .nav-container>* {
         padding-left: 0.4rem;
         padding-right: 0.4rem;
     }
 
     .logo-img {
         height: 34px;
+    }
+
+    .logo-text {
+        font-size: 1.2rem;
     }
 }
 
@@ -1951,7 +1994,7 @@ body.dark-mode textarea::placeholder {
         height: 16px;
     }
 
-    .ai-toggle-input:checked + .ai-toggle-slider::after {
+    .ai-toggle-input:checked+.ai-toggle-slider::after {
         transform: translateX(20px);
     }
 
@@ -1964,8 +2007,16 @@ body.dark-mode textarea::placeholder {
         padding: 0.1rem 0.35rem;
     }
 
+    .logo-container {
+        gap: 0.5rem;
+    }
+
     .logo-img {
         height: 30px;
+    }
+
+    .logo-text {
+        font-size: 1.05rem;
     }
 }
 
@@ -2111,7 +2162,8 @@ body.dark-mode .btn-google:hover {
 /* ── Profile Dropdown ── */
 .profile-dropdown-wrapper {
     position: relative;
-    display: none; /* hidden by default; shown when logged in */
+    display: none;
+    /* hidden by default; shown when logged in */
 }
 
 /* Allow auth-cached logic to override the display */
@@ -2280,33 +2332,33 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
 
 /* Custom Font Utility Classes */
 .atkinson-hyperlegible-regular {
-  font-family: "Atkinson Hyperlegible", sans-serif;
-  font-weight: 400;
-  font-style: normal;
+    font-family: "Atkinson Hyperlegible", sans-serif;
+    font-weight: 400;
+    font-style: normal;
 }
 
 .atkinson-hyperlegible-bold {
-  font-family: "Atkinson Hyperlegible", sans-serif;
-  font-weight: 700;
-  font-style: normal;
+    font-family: "Atkinson Hyperlegible", sans-serif;
+    font-weight: 700;
+    font-style: normal;
 }
 
 .atkinson-hyperlegible-regular-italic {
-  font-family: "Atkinson Hyperlegible", sans-serif;
-  font-weight: 400;
-  font-style: italic;
+    font-family: "Atkinson Hyperlegible", sans-serif;
+    font-weight: 400;
+    font-style: italic;
 }
 
 .atkinson-hyperlegible-bold-italic {
-  font-family: "Atkinson Hyperlegible", sans-serif;
-  font-weight: 700;
-  font-style: italic;
+    font-family: "Atkinson Hyperlegible", sans-serif;
+    font-weight: 700;
+    font-style: italic;
 }
 
 .cedarville-cursive-regular {
-  font-family: "Cedarville Cursive", cursive;
-  font-weight: 400;
-  font-style: normal;
+    font-family: "Cedarville Cursive", cursive;
+    font-weight: 400;
+    font-style: normal;
 }
 
 
@@ -2349,7 +2401,7 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
 }
 
 /* SVG Icon Containers - Ensure proper display and theme adaptation */
-span[id$="-icon"], 
+span[id$="-icon"],
 span[id*="icon-"],
 .icon-container {
     display: inline-flex;
@@ -2374,4 +2426,213 @@ button .icon-container svg,
 a span[id$="-icon"] svg,
 a .icon-container svg {
     color: inherit;
+}
+
+/* ==========================================================================
+   UNIVERSAL ACTION BUTTONS (Icon Default -> Text on Hover)
+   Generalizing action button areas across all pages & tables:
+   - Not hovered: only show the ICON, hide text
+   - Hovered / focused: show text, hide the ICON
+   ========================================================================== */
+.table-actions,
+.catalog-item-actions,
+.actions-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: nowrap;
+}
+
+.table-actions .action-btn,
+.catalog-item-actions .action-btn,
+.actions-cell .action-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary, #e2e8f0);
+    cursor: pointer;
+    font-size: 0 !important; /* Hides raw text node when not hovered */
+    line-height: 1;
+    font-weight: 600;
+    font-family: 'Atkinson Hyperlegible', sans-serif;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease,
+                transform 0.15s ease,
+                box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* 1. NOT HOVERED: ONLY SHOW ICON, HIDE TEXT */
+.table-actions .action-btn svg,
+.catalog-item-actions .action-btn svg,
+.actions-cell .action-btn svg {
+    display: block !important;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    margin: 0 auto;
+    transition: transform 0.15s ease;
+}
+
+.table-actions .action-btn .action-btn-text,
+.table-actions .action-btn .btn-text,
+.table-actions .action-btn span:not(.sync-dot),
+.catalog-item-actions .action-btn .action-btn-text,
+.catalog-item-actions .action-btn span:not(.sync-dot),
+.actions-cell .action-btn .action-btn-text,
+.actions-cell .action-btn span:not(.sync-dot) {
+    display: none !important;
+}
+
+/* Subtle semantic tinting when unhovered */
+.table-actions .action-btn.action-view,
+.catalog-item-actions .action-btn.action-view,
+.actions-cell .action-btn.action-view {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(59, 130, 246, 0.04);
+}
+
+.table-actions .action-btn.action-edit,
+.catalog-item-actions .action-btn.action-edit,
+.actions-cell .action-btn.action-edit {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.table-actions .action-btn.action-delete,
+.table-actions .action-btn.delete,
+.catalog-item-actions .action-btn.action-delete,
+.actions-cell .action-btn.action-delete {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.04);
+}
+
+.table-actions .action-btn.action-approve,
+.actions-cell .action-btn.action-approve {
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+/* 2. HOVERED (OR FOCUSED): SHOW TEXT, HIDE ICON */
+.table-actions .action-btn:hover,
+.table-actions .action-btn:focus-visible,
+.catalog-item-actions .action-btn:hover,
+.catalog-item-actions .action-btn:focus-visible,
+.actions-cell .action-btn:hover,
+.actions-cell .action-btn:focus-visible {
+    width: auto !important;
+    min-width: 58px;
+    padding: 0 0.75rem !important;
+    font-size: 0.8125rem !important; /* Shows text */
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.table-actions .action-btn:hover svg,
+.table-actions .action-btn:focus-visible svg,
+.catalog-item-actions .action-btn:hover svg,
+.catalog-item-actions .action-btn:focus-visible svg,
+.actions-cell .action-btn:hover svg,
+.actions-cell .action-btn:focus-visible svg {
+    display: none !important; /* Hides icon */
+}
+
+.table-actions .action-btn:hover .action-btn-text,
+.table-actions .action-btn:hover .btn-text,
+.table-actions .action-btn:hover span:not(.sync-dot),
+.table-actions .action-btn:focus-visible .action-btn-text,
+.table-actions .action-btn:focus-visible .btn-text,
+.table-actions .action-btn:focus-visible span:not(.sync-dot),
+.catalog-item-actions .action-btn:hover .action-btn-text,
+.catalog-item-actions .action-btn:hover span:not(.sync-dot),
+.catalog-item-actions .action-btn:focus-visible .action-btn-text,
+.catalog-item-actions .action-btn:focus-visible span:not(.sync-dot),
+.actions-cell .action-btn:hover .action-btn-text,
+.actions-cell .action-btn:hover span:not(.sync-dot),
+.actions-cell .action-btn:focus-visible .action-btn-text,
+.actions-cell .action-btn:focus-visible span:not(.sync-dot) {
+    display: inline-block !important; /* Shows text */
+    font-size: 0.8125rem !important;
+    line-height: 1;
+    animation: universalActionBtnTextFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover themes for each action */
+.table-actions .action-btn.action-view:hover,
+.table-actions .action-btn.action-view:focus-visible,
+.catalog-item-actions .action-btn.action-view:hover,
+.catalog-item-actions .action-btn.action-view:focus-visible,
+.actions-cell .action-btn.action-view:hover,
+.actions-cell .action-btn.action-view:focus-visible {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.table-actions .action-btn.action-edit:hover,
+.table-actions .action-btn.action-edit:focus-visible,
+.catalog-item-actions .action-btn.action-edit:hover,
+.catalog-item-actions .action-btn.action-edit:focus-visible,
+.actions-cell .action-btn.action-edit:hover,
+.actions-cell .action-btn.action-edit:focus-visible {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.table-actions .action-btn.action-delete:hover,
+.table-actions .action-btn.delete:hover,
+.table-actions .action-btn.action-delete:focus-visible,
+.table-actions .action-btn.delete:focus-visible,
+.catalog-item-actions .action-btn.action-delete:hover,
+.catalog-item-actions .action-btn.action-delete:focus-visible,
+.actions-cell .action-btn.action-delete:hover,
+.actions-cell .action-btn.action-delete:focus-visible {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.table-actions .action-btn.action-approve:hover,
+.table-actions .action-btn.action-approve:focus-visible,
+.actions-cell .action-btn.action-approve:hover,
+.actions-cell .action-btn.action-approve:focus-visible {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+@keyframes universalActionBtnTextFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }

@@ -14,7 +14,47 @@
         msPerCharacter: 45,         // Average reading speed (~220 wpm / ~1300 cpm)
         minDurationMs: 3000,        // Absolute minimum display duration
         maxDurationMs: 12000,       // Absolute maximum display duration
+
+        // Anti-Spam & Flooding Protection
+        maxVisibleCorner: 3,        // Strict max concurrent toasts visible in corner
+        maxVisibleCenter: 2,        // Strict max concurrent toasts in center
+        burstWindowMs: 800,         // Sliding window for rate limiting
+        maxBurstCount: 5,           // Max distinct toasts allowed in burst window
     };
+
+    // ---------- BURST RATE LIMITER ----------
+    const recentTriggerTimes = [];
+    function isBurstFlooded() {
+        const now = Date.now();
+        while (recentTriggerTimes.length > 0 && (now - recentTriggerTimes[0] > CONFIG.burstWindowMs)) {
+            recentTriggerTimes.shift();
+        }
+        if (recentTriggerTimes.length >= CONFIG.maxBurstCount) {
+            return true;
+        }
+        recentTriggerTimes.push(now);
+        return false;
+    }
+
+    // ---------- SEMANTIC TAG INFERENCE ----------
+    function inferTag(message, customTag) {
+        if (customTag) return String(customTag).trim().toLowerCase();
+        if (!message) return null;
+        const str = String(message).toLowerCase();
+        if (/switched to (dark|light) mode/i.test(str) || (/theme/i.test(str) && /(dark|light)/i.test(str))) {
+            return 'tag-theme-toggle';
+        }
+        if (/(added to|removed from) bookmark/i.test(str) || /bookmark (added|removed)/i.test(str)) {
+            return 'tag-bookmark-toggle';
+        }
+        if (/(offline|online|connection lost|connection restored|network)/i.test(str)) {
+            return 'tag-network-status';
+        }
+        if (/(citation|bibtex|ieee|apa|mla) (copied|generated)/i.test(str)) {
+            return 'tag-citation-copy';
+        }
+        return null;
+    }
 
     // ---------- CONTAINERS ----------
     let centerContainer = null; // Important toasts (screen middle)
@@ -76,10 +116,6 @@
         const total = toasts.length;
 
         toasts.forEach((toast, index) => {
-            // Remove any existing counter badge
-            const counter = toast.querySelector('.toast-counter');
-            if (counter) counter.remove();
-
             if (index === 0) {
                 toast.style.transform = 'translateY(0) scale(1)';
                 toast.style.opacity = '1';
@@ -108,18 +144,23 @@
 
         const progressBar = toast.querySelector('.toast-progress-bar');
         if (progressBar) {
+            progressBar.classList.remove('active');
+            void progressBar.offsetWidth; // Force CSS reflow to cleanly restart animation
             progressBar.style.animationDuration = `${duration}ms`;
             progressBar.classList.add('active');
             progressBar.style.animationPlayState = 'running';
         }
 
         // ── BLUR-OUT THEN DISMISS ──────────────────────────────────────
-        // When the timer fires, show a short blur-out effect (~800ms) so
-        // the user sees a clear "time's up" signal before the toast exits.
         function triggerBlurOutThenRemove() {
             if (toast.classList.contains('removing') || toast.classList.contains('blurring-out')) return;
             toast.classList.add('blurring-out');
-            setTimeout(() => { removeToast(toast); }, 800);
+
+            requestAnimationFrame(() => {
+                updateCornerPositions();
+            });
+
+            setTimeout(() => { removeToast(toast); }, 520);
         }
 
         toast._dismissTimer = setTimeout(triggerBlurOutThenRemove, duration);
@@ -128,7 +169,6 @@
         if (!toast._hoverAttached) {
             toast._hoverAttached = true;
             toast.addEventListener('mouseenter', () => {
-                // Don't interrupt if already blurring out
                 if (toast.classList.contains('blurring-out')) return;
                 if (toast._dismissTimer) {
                     clearTimeout(toast._dismissTimer);
@@ -165,78 +205,38 @@
     function updateCornerPositions() {
         if (!cornerContainer) return;
 
-        const toasts = Array.from(cornerContainer.querySelectorAll('.toast:not(.removing)'));
+        // Only select toasts that are actively visible in the stack (exclude exiting/blurring ones)
+        const toasts = Array.from(cornerContainer.querySelectorAll('.toast:not(.removing):not(.blurring-out)'));
 
         toasts.forEach((toast, index) => {
-            // Remove any existing counter badge
-            const counter = toast.querySelector('.toast-counter');
-            if (counter) counter.remove();
-
-            // STACKING & POSITIONING RULE:
-            // Toast 0 (active) — bottom, scale 1, full opacity
-            // Queued toasts — spaced with an EXACT EQUAL visible gap (14px) between all active toasts.
-            // With transform-origin: bottom center, height scales down by toastHeight * (1 - scale).
-            // We adjust yOffset so every toast's visible top edge has the exact same 14px step.
             const visibleGap  = 14;
             const toastHeight = toast.offsetHeight || 70;
             const scale       = index === 0 ? 1 : Math.max(1 - (index * 0.035), 0.82);
             const opacity     = index === 0 ? 1 : Math.max(0.88 - (index * 0.12), 0.35);
             const yOffset     = index === 0 ? 0 : Math.round(-(index * visibleGap) - (toastHeight * (1 - scale)));
 
-            // --- SMOOTH PROMOTION DETECTION ---
-            // A toast is "being promoted" when:
-            //   • It's now at index 0 (newly the active toast)
-            //   • It was already settled in the stack (entry animation finished)
-            //   • It hasn't started its own timer yet (i.e. it was queued, not active)
-            const isBeingPromoted = index === 0
-                && toast.dataset.settled === 'true'
-                && !toast._timerStarted;
-
-            if (isBeingPromoted) {
-                // Update destination CSS vars (--stack-y/scale stay at 0/1 for active slot)
-                toast.style.setProperty('--stack-y',    `${yOffset}px`);
-                toast.style.setProperty('--stack-scale', `${scale}`);
-
-                // Clear inline transform & opacity so the CSS animation can own them.
-                // (Inline styles override CSS animations — we MUST clear them first.)
-                toast.style.transform = '';
-                toast.style.opacity   = '';
-
-                // Re-trigger the slide-in animation (same as entry — from left)
-                toast.classList.remove('toast-promoting');
-                void toast.offsetWidth; // force reflow so removing then re-adding restarts anim
-                toast.classList.add('toast-promoting');
-
-                // After the animation completes: freeze final state as inline style & clean up
-                setTimeout(() => {
-                    toast.classList.remove('toast-promoting');
-                    toast.style.transform = `translateY(${yOffset}px) scale(${scale})`;
-                    toast.style.opacity   = String(opacity);
-                }, 560);
-
+            // Visual classes for front (active) vs behind (queued)
+            if (index === 0) {
+                toast.classList.add('toast-active');
+                toast.classList.remove('toast-queued');
             } else {
-                // Normal re-positioning — but SKIP if promotion animation is still playing
-                // (updateCornerPositions fires multiple times during removeToast;
-                //  without this guard the inline style would snap the animation mid-play)
-                toast.style.setProperty('--stack-y',    `${yOffset}px`);
-                toast.style.setProperty('--stack-scale', `${scale}`);
-                if (!toast.classList.contains('toast-promoting')) {
-                    toast.style.transform = `translateY(${yOffset}px) scale(${scale})`;
-                    toast.style.opacity   = String(opacity);
-                }
+                toast.classList.add('toast-queued');
+                toast.classList.remove('toast-active');
+            }
+
+            // Set stacking custom properties (used for entrance and exit keyframes)
+            toast.style.setProperty('--stack-y', `${yOffset}px`);
+            toast.style.setProperty('--stack-scale', `${scale}`);
+
+            // Apply smooth position and opacity via CSS transition
+            if (!toast.classList.contains('toast-entering')) {
+                toast.style.transform = `translateY(${yOffset}px) scale(${scale})`;
+                toast.style.opacity   = String(opacity);
             }
 
             toast.style.zIndex = String(100 - index);
 
-            // Mark this toast as "settled" after its entry animation finishes (~510ms).
-            // Only settled toasts are eligible for the promotion animation.
-            if (!toast.dataset.settled) {
-                setTimeout(() => { toast.dataset.settled = 'true'; }, 510);
-            }
-
-            // SEQUENTIAL COUNTDOWN:
-            // ONLY the active toast (index 0) runs its timer.
-            // Queued toasts wait silently behind it.
+            // SEQUENTIAL COUNTDOWN: Only active front toast runs timer
             if (index === 0) {
                 startActiveCornerTimer(toast);
             } else {
@@ -245,6 +245,25 @@
         });
     }
 
+    // ---------- FAST EVICT TOAST (FOR HARD CAP OVERFLOW) ----------
+    function fastEvictToast(toast) {
+        if (!toast || toast.classList.contains('removing') || toast.classList.contains('blurring-out')) return;
+        toast.classList.add('blurring-out');
+        if (toast._dismissTimer) {
+            clearTimeout(toast._dismissTimer);
+            toast._dismissTimer = null;
+        }
+        requestAnimationFrame(() => {
+            if (toast.classList.contains('toast-unimportant')) {
+                updateCornerPositions();
+            } else {
+                updateCenterPositions();
+            }
+        });
+        setTimeout(() => {
+            removeToast(toast);
+        }, 220);
+    }
 
     // ---------- REMOVE TOAST ----------
     function removeToast(toast) {
@@ -261,52 +280,25 @@
         }
 
         if (isAlreadyExiting) {
-            // The blurring-out animation already slid the toast off-screen.
-            // Skip re-triggering the slide-out animation (it would snap back to
-            // opacity:1 at its 0% keyframe before sliding, causing a flicker).
-            // Just update stack positions immediately, then remove the DOM node.
-            requestAnimationFrame(() => {
-                if (isCorner) updateCornerPositions();
-                else if (container) updateCenterPositions();
-            });
             setTimeout(() => {
                 if (toast.parentNode) toast.remove();
             }, 50);
             return;
         }
 
+        requestAnimationFrame(() => {
+            if (isCorner) updateCornerPositions();
+            else if (container) updateCenterPositions();
+        });
+
         toast.addEventListener('animationend', function onEnd() {
-            toast.remove();
-            requestAnimationFrame(() => {
-                if (isCorner) {
-                    updateCornerPositions();
-                } else if (container) {
-                    updateCenterPositions();
-                }
-            });
+            if (toast.parentNode) toast.remove();
         }, { once: true });
 
         // Safety fallback
         setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-                requestAnimationFrame(() => {
-                    if (isCorner) {
-                        updateCornerPositions();
-                    } else if (container) {
-                        updateCenterPositions();
-                    }
-                });
-            }
-        }, 500);
-
-        requestAnimationFrame(() => {
-            if (isCorner) {
-                updateCornerPositions();
-            } else if (container) {
-                updateCenterPositions();
-            }
-        });
+            if (toast.parentNode) toast.remove();
+        }, 380);
     }
 
     // ---------- CALCULATE READING DURATION ----------
@@ -332,11 +324,13 @@
         let type = 'info';
         let isImportant = false;
         let customDuration = null;
+        let customTag = null;
 
         if (typeof typeOrOptions === 'object' && typeOrOptions !== null) {
             type = typeOrOptions.type || 'info';
             isImportant = !!typeOrOptions.important;
             customDuration = typeOrOptions.duration || null;
+            customTag = typeOrOptions.tag || null;
         } else if (typeof typeOrOptions === 'string') {
             type = typeOrOptions;
             if (typeof options === 'boolean') {
@@ -344,15 +338,134 @@
             } else if (typeof options === 'object' && options !== null) {
                 isImportant = !!options.important;
                 customDuration = options.duration || null;
+                customTag = options.tag || null;
             }
         }
 
         const normalizedType = normalizeType(type);
         const container = isImportant ? getCenterContainer() : getCornerContainer();
 
+        // Active visible toasts in container
+        const activeToasts = Array.from(container.querySelectorAll('.toast:not(.removing):not(.blurring-out)'));
+        const normalizedMessage = String(message || '').trim();
+
+        // ── 1. EXACT DUPLICATE DEDUPLICATION ─────────────────────────
+        const existingDuplicate = activeToasts.find(t => String(t._rawMessage || '').trim() === normalizedMessage);
+        if (existingDuplicate) {
+            existingDuplicate._count = (existingDuplicate._count || 1) + 1;
+
+            // Counter badge
+            let counterBadge = existingDuplicate.querySelector('.toast-counter');
+            if (!counterBadge) {
+                counterBadge = document.createElement('span');
+                counterBadge.className = 'toast-counter';
+                const closeBtn = existingDuplicate.querySelector('.toast-close');
+                if (closeBtn) {
+                    existingDuplicate.insertBefore(counterBadge, closeBtn);
+                } else {
+                    existingDuplicate.appendChild(counterBadge);
+                }
+            }
+            counterBadge.innerHTML = `<span class="icon">×</span>${existingDuplicate._count}`;
+            counterBadge.style.animation = 'none';
+            void counterBadge.offsetWidth;
+            counterBadge.style.animation = 'toastCounterPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+            // Micro-pulse feedback
+            existingDuplicate.classList.remove('toast-pulsing');
+            void existingDuplicate.offsetWidth;
+            existingDuplicate.classList.add('toast-pulsing');
+            setTimeout(() => existingDuplicate.classList.remove('toast-pulsing'), 400);
+
+            // Reset reading countdown timer
+            const duration = customDuration || existingDuplicate._duration || calculateReadingDuration(message);
+            existingDuplicate._duration = duration;
+            existingDuplicate._remainingTime = duration;
+            existingDuplicate._startTime = Date.now();
+
+            if (!isImportant) {
+                if (existingDuplicate._dismissTimer) {
+                    clearTimeout(existingDuplicate._dismissTimer);
+                    existingDuplicate._dismissTimer = null;
+                }
+                existingDuplicate._timerStarted = false;
+                startActiveCornerTimer(existingDuplicate);
+            }
+            return existingDuplicate;
+        }
+
+        // ── 2. SEMANTIC TAG / STATE REPLACEMENT (TOGGLES) ────────────
+        const tag = inferTag(message, customTag);
+        const existingTagged = tag ? activeToasts.find(t => t._tag === tag) : null;
+        if (existingTagged) {
+            existingTagged._rawMessage = message;
+
+            // In-place text update with crossfade
+            const msgEl = existingTagged.querySelector('.toast-message');
+            if (msgEl) {
+                msgEl.classList.add('toast-message-updating');
+                setTimeout(() => {
+                    msgEl.innerHTML = message;
+                    msgEl.classList.remove('toast-message-updating');
+                }, 90);
+            }
+
+            // Update variant accent
+            ['toast-info', 'toast-success', 'toast-error', 'toast-warning'].forEach(c => existingTagged.classList.remove(c));
+            existingTagged.classList.add(`toast-${normalizedType}`);
+
+            // Remove previous counter badge if state flipped
+            const oldCounter = existingTagged.querySelector('.toast-counter');
+            if (oldCounter) oldCounter.remove();
+            existingTagged._count = 1;
+
+            // Pulse feedback
+            existingTagged.classList.remove('toast-pulsing');
+            void existingTagged.offsetWidth;
+            existingTagged.classList.add('toast-pulsing');
+            setTimeout(() => existingTagged.classList.remove('toast-pulsing'), 350);
+
+            // Reset countdown timer
+            const duration = customDuration || calculateReadingDuration(message);
+            existingTagged._duration = duration;
+            existingTagged._remainingTime = duration;
+            existingTagged._startTime = Date.now();
+
+            if (!isImportant) {
+                if (existingTagged._dismissTimer) {
+                    clearTimeout(existingTagged._dismissTimer);
+                    existingTagged._dismissTimer = null;
+                }
+                existingTagged._timerStarted = false;
+                startActiveCornerTimer(existingTagged);
+            }
+            return existingTagged;
+        }
+
+        // ── 3. BURST FLOOD RATE LIMITING ──────────────────────────────
+        if (isBurstFlooded()) {
+            console.warn('[ToastSystem] High frequency burst throttled');
+            return null;
+        }
+
+        // ── 4. HARD MAXIMUM VISIBLE CAP (FIFO EVICTION) ────────────────
+        const maxLimit = isImportant ? CONFIG.maxVisibleCenter : CONFIG.maxVisibleCorner;
+        if (activeToasts.length >= maxLimit) {
+            const evictCount = (activeToasts.length - maxLimit) + 1;
+            for (let i = 0; i < evictCount; i++) {
+                const oldest = activeToasts[i];
+                if (oldest) {
+                    fastEvictToast(oldest);
+                }
+            }
+        }
+
+        // ── 5. SPAWN NEW TOAST CARD ───────────────────────────────────
         const toast = document.createElement('div');
-        toast.className = `toast toast-${normalizedType} ${isImportant ? 'toast-important' : 'toast-unimportant'}`;
+        toast.className = `toast toast-${normalizedType} ${isImportant ? 'toast-important' : 'toast-unimportant toast-entering'}`;
         toast._rawMessage = message;
+        toast._tag = tag;
+        toast._count = 1;
 
         // Compute reading duration for unimportant toasts
         const duration = customDuration || calculateReadingDuration(message);
@@ -369,9 +482,21 @@
             ` : ''}
         `;
 
-        // NEW STACKING RULE:
-        // Append toast so the 1st message (first in) stays at DOM index 0 and top layer!
         container.appendChild(toast);
+
+        // When entrance animation completes, remove .toast-entering so standard CSS transitions take over
+        if (!isImportant) {
+            const onEntryDone = () => {
+                toast.classList.remove('toast-entering');
+                toast.dataset.settled = 'true';
+                toast.removeEventListener('animationend', onEntryDone);
+                const y = toast.style.getPropertyValue('--stack-y') || '0px';
+                const s = toast.style.getPropertyValue('--stack-scale') || '1';
+                toast.style.transform = `translateY(${y}) scale(${s})`;
+            };
+            toast.addEventListener('animationend', onEntryDone, { once: true });
+            setTimeout(onEntryDone, 460);
+        }
 
         // Close button handler
         const closeBtn = toast.querySelector('.toast-close');
@@ -395,12 +520,19 @@
     };
 
     // ---------- DEDICATED HELPERS ----------
-    window.showToast.important = function(message, type = 'warning') {
-        return window.showToast(message, type, { important: true });
+    window.showToast.important = function(message, type = 'warning', options = {}) {
+        const opts = (typeof options === 'object' && options !== null) ? { ...options, important: true } : { important: true };
+        return window.showToast(message, type, opts);
     };
 
-    window.showToast.unimportant = function(message, type = 'info', duration) {
-        return window.showToast(message, type, { important: false, duration });
+    window.showToast.unimportant = function(message, type = 'info', durationOrOptions) {
+        let opts = { important: false };
+        if (typeof durationOrOptions === 'number') {
+            opts.duration = durationOrOptions;
+        } else if (typeof durationOrOptions === 'object' && durationOrOptions !== null) {
+            opts = { ...durationOrOptions, important: false };
+        }
+        return window.showToast(message, type, opts);
     };
 
     // ---------- CLEAR ALL TOASTS ----------

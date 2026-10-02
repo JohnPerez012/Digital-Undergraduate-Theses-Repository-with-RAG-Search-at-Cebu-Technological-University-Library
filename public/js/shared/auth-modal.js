@@ -23,7 +23,26 @@ document.addEventListener('DOMContentLoaded', function() {
             loginModal.classList.add('active');
             // Reset and replay text animations
             restartLoginAnimations();
+            setTimeout(() => {
+                if (loginEmailInput) {
+                    loginEmailInput.focus();
+                }
+            }, 120);
         }
+
+        // Auto-focus email input whenever the login modal becomes active
+        const modalObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class' && loginModal.classList.contains('active')) {
+                    setTimeout(() => {
+                        if (loginEmailInput) {
+                            loginEmailInput.focus();
+                        }
+                    }, 120);
+                }
+            });
+        });
+        modalObserver.observe(loginModal, { attributes: true, attributeFilter: ['class'] });
 
         // Restart login panel animations
         function restartLoginAnimations() {
@@ -100,10 +119,49 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
+        // Keyboard navigation: Enter on Email moves cursor directly to Password
+        if (loginEmailInput) {
+            loginEmailInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (loginPasswordInput) {
+                        loginPasswordInput.focus();
+                        if (loginPasswordInput.value) {
+                            loginPasswordInput.select();
+                        }
+                    }
+                }
+            });
+        }
+
+        // Keyboard navigation: Enter on Password evaluates credentials via login button
         if (loginPasswordInput) {
-            loginPasswordInput.addEventListener('input', () => {
-                passwordError.classList.remove('show');
-                loginPasswordInput.classList.remove('error');
+            loginPasswordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const email = loginEmailInput ? loginEmailInput.value.trim() : '';
+                    const password = loginPasswordInput.value;
+
+                    // If email field is empty, shift focus back to email
+                    if (!email) {
+                        if (loginEmailInput) {
+                            loginEmailInput.focus();
+                        }
+                        showFieldError('email', 'Please enter your email address');
+                        return;
+                    }
+
+                    // If password field is empty, show password error
+                    if (!password) {
+                        showFieldError('password', 'Please enter your password');
+                        return;
+                    }
+
+                    // Both fields have values: trigger login button to evaluate validity
+                    if (loginBtn && !loginBtn.disabled) {
+                        loginBtn.click();
+                    }
+                }
             });
         }
 
@@ -174,6 +232,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.setItem('userName', user.displayName);
                     sessionStorage.setItem('userType', userData.userType);
 
+                    window.dispatchEvent(new CustomEvent('authRoleUpdated', { detail: { role: userData.userType } }));
+
                     if (typeof window.ActivityService !== 'undefined') {
                         window.ActivityService.logAuth('login', `Signed in via email as ${userData.userType || 'user'}`);
                     }
@@ -188,8 +248,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         );
                     };
 
-                    // Check if local device has guest saved projects
-                    if (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                    // Check if local device has guest saved projects (Admins do not save/bookmark projects)
+                    if (userData.userType !== 'admin' && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
                         showSyncPromptModal(user, userData, proceedWithLogin);
                     } else {
                         proceedWithLogin();
@@ -254,6 +314,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.setItem('userName', user.displayName);
                     sessionStorage.setItem('userType', userData.userType);
 
+                    window.dispatchEvent(new CustomEvent('authRoleUpdated', { detail: { role: userData.userType } }));
+
                     if (typeof window.ActivityService !== 'undefined') {
                         window.ActivityService.logAuth('login', `Signed in via Google as ${userData.userType || 'user'}`);
                     }
@@ -268,8 +330,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         );
                     };
 
-                    // Check if local device has guest saved projects
-                    if (typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                    // Check if local device has guest saved projects (Admins do not save/bookmark projects)
+                    if (userData.userType !== 'admin' && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
                         showSyncPromptModal(user, userData, proceedWithLogin);
                     } else {
                         proceedWithLogin();
@@ -508,6 +570,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Modal to sync local device saved projects on login (ONLY DELETE OR CONTINUE)
     function showSyncPromptModal(user, userData, onFinished) {
+        // Admins cannot save or sync projects
+        if (userData && userData.userType === 'admin') {
+            if (typeof onFinished === 'function') onFinished();
+            return;
+        }
+
         const guestProjects = (typeof window.GuestSavedProjects !== 'undefined') ? window.GuestSavedProjects.getAll() : [];
         const count = guestProjects.length;
 

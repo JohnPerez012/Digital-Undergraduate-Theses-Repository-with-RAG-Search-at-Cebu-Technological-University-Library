@@ -117,6 +117,25 @@ const AIService = {
   
   /**
    * Send message to AI with RAG context and real-time response streaming (word-by-word)
+  /**
+   * Read user preferences from localStorage
+   */
+  getSettings() {
+    try {
+      const saved = localStorage.getItem('recaps_chatbot_settings');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      preferredProvider: 'Mistral',
+      ragEnabled: true,
+      responseStyle: 'balanced',
+      autoCitation: true,
+      streamingEnabled: true
+    };
+  },
+
+  /**
+   * Stream message to AI using Fetch + ReadableStream
    * @param {string} userMessage - Message from user
    * @param {Object} callbacks - { onStart, onToken, onDone, onError }
    */
@@ -124,10 +143,28 @@ const AIService = {
     const { onStart, onToken, onDone, onError } = callbacks;
 
     try {
-      // Step 1: Search for relevant projects using Pinecone RAG
-      const relevantProjects = await this.searchRelevantProjects(userMessage, 8, 0.2);
-      
-      console.log(`💬 Streaming message to AI with ${relevantProjects.length} projects context`);
+      const settings = this.getSettings();
+
+      // Step 1: Search for relevant projects using Pinecone RAG (if enabled)
+      let relevantProjects = [];
+      if (settings.ragEnabled !== false) {
+        relevantProjects = await this.searchRelevantProjects(userMessage, 8, 0.2);
+        console.log(`💬 Streaming message to AI with ${relevantProjects.length} projects context`);
+      } else {
+        console.log('ℹ️ RAG search disabled in user settings; sending direct inquiry');
+      }
+      this.lastRelevantProjects = relevantProjects;
+
+      // Format payload with user settings
+      const payload = {
+        message: userMessage,
+        conversationHistory: this.conversationHistory,
+        relevantProjects: relevantProjects,
+        stream: settings.streamingEnabled !== false,
+        preferredProvider: settings.preferredProvider || 'Mistral',
+        responseStyle: settings.responseStyle || 'balanced',
+        autoCitation: settings.autoCitation !== false
+      };
       
       // Step 2: Send request with stream: true
       const response = await fetch(`${this.API_BASE_URL}/chat`, {
@@ -136,12 +173,7 @@ const AIService = {
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream'
         },
-        body: JSON.stringify({
-          message: userMessage,
-          conversationHistory: this.conversationHistory,
-          relevantProjects: relevantProjects,
-          stream: true
-        })
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) {

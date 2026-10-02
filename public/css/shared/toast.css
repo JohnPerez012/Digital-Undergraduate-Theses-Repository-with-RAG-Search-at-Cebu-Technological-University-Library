@@ -170,12 +170,18 @@
     }
 }
 
-/* ---------- ANIMATIONS: UNIMPORTANT TOASTS (LEFT CORNER) ---------- */
+/* ---------- ANIMATIONS: UNIMPORTANT TOASTS (LEFT CORNER STACK) ---------- */
 .toast-unimportant {
     transform-origin: bottom center;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.4s ease,
+                border-color 0.4s ease;
+    will-change: transform, opacity;
 }
 
-.toast-unimportant:not(.removing) {
+/* Only newly entering toasts play the slide-in animation */
+.toast-unimportant.toast-entering {
     animation: toastSlideInLeft 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -196,8 +202,10 @@
     }
 }
 
-.toast-unimportant.removing {
-    animation: toastSlideOutLeft 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* Manual dismissal (clicking X) */
+.toast-unimportant.removing:not(.blurring-out) {
+    animation: toastSlideOutLeft 0.36s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none;
 }
 
 @keyframes toastSlideOutLeft {
@@ -250,26 +258,14 @@
     }
 }
 
-/* ---------- PROMOTE ANIMATION: queued toast → active toast ----------
-   Reuses the exact same slide-in-from-left animation as the initial entry.
-   Specificity 0,3,0 beats .toast-unimportant:not(.removing) at 0,2,0,
-   overriding the frozen toastSlideInLeft fill state cleanly. */
-.toast.toast-unimportant.toast-promoting {
-    animation: toastSlideInLeft 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 /* Pause bottom border timer on hover */
 .toast:hover .toast-progress-bar.active {
     animation-play-state: paused;
 }
 
-/* ---------- BLUR-OUT EXIT: slides LEFT off-screen with blur (~800ms) ----------
-   Triggered when the countdown timer ends. Mirrors the entry animation direction:
-   entry comes from LEFT → rest position, exit goes rest position → LEFT.
-   removeToast() fires after 800ms but skips re-animating since the toast
-   is already off-screen — it just cleans up the DOM. */
+/* ---------- BLUR-OUT EXIT: slides LEFT off-screen with blur (~500ms) ---------- */
 .toast.blurring-out {
-    animation: toastBlurOut 0.75s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
+    animation: toastBlurOut 0.5s cubic-bezier(0.4, 0, 0.8, 0.2) forwards;
     pointer-events: none;
 }
 
@@ -285,9 +281,26 @@
     }
     100% {
         opacity: 0;
-        filter: blur(12px);
+        filter: blur(10px);
         transform: translate(-115%, var(--stack-y, 0px)) scale(calc(var(--stack-scale, 1) * 0.88));
     }
+}
+
+/* Active (front) toast in corner stack */
+.toast-container-corner .toast.toast-active {
+    box-shadow: 0 12px 38px rgba(0, 0, 0, 0.42),
+                0 4px 18px rgba(0, 0, 0, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Queued (behind) toasts in corner stack */
+.toast-container-corner .toast.toast-queued {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+}
+
+.toast-container-corner .toast.toast-queued:hover {
+    opacity: 0.95 !important;
 }
 
 /* ---------- TOAST VARIANTS
@@ -349,6 +362,29 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-message.toast-message-updating {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+}
+
+/* Tactile pulse on duplicate trigger or in-place update */
+.toast.toast-pulsing {
+    animation: toastTactilePulse 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+@keyframes toastTactilePulse {
+    0% {
+        transform: translateY(var(--stack-y, 0px)) scale(var(--stack-scale, 1));
+    }
+    45% {
+        transform: translateY(var(--stack-y, 0px)) scale(calc(var(--stack-scale, 1) * 1.035));
+    }
+    100% {
+        transform: translateY(var(--stack-y, 0px)) scale(var(--stack-scale, 1));
+    }
 }
 
 [data-theme="light"] .toast-message {
@@ -413,6 +449,11 @@
     pointer-events: none;
     white-space: nowrap;
     animation: toastCounterPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme="light"] .toast-counter {
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 @keyframes toastCounterPop {

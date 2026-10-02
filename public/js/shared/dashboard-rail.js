@@ -133,7 +133,12 @@
         }
     }
 
+    let isThemeToggling = false;
     function toggleTheme() {
+        if (isThemeToggling) return;
+        isThemeToggling = true;
+        setTimeout(() => { isThemeToggling = false; }, 200);
+
         const html = document.documentElement;
         const currentTheme = html.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -143,7 +148,7 @@
         
         // Optional: Show toast notification
         if (window.showToast) {
-            showToast(`Switched to ${newTheme} mode`, 'success');
+            showToast(`Switched to ${newTheme} mode`, 'success', { tag: 'theme-toggle' });
         }
     }
 

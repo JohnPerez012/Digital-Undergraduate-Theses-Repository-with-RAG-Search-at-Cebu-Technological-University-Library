@@ -36,7 +36,7 @@
 /* Stats Summary Cards */
 .activity-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1.25rem;
     margin-bottom: 2rem;
 }
@@ -62,20 +62,37 @@
 }
 
 .activity-stat-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #ffffff;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    color: var(--text-primary);
 }
 
 .activity-stat-icon svg {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
+    stroke: currentColor;
+    fill: none;
+    transition: transform 0.2s ease;
+}
+
+.activity-stat-card:hover .activity-stat-icon svg {
+    transform: scale(1.1);
+}
+
+/* Simple, consistent light and dark theme colors */
+[data-theme="light"] .activity-stat-icon {
+    color: #1e293b;
+}
+
+[data-theme="dark"] .activity-stat-icon {
+    color: #f8fafc;
 }
 
 .activity-stat-content {
@@ -93,6 +110,14 @@
 .activity-stat-label {
     font-size: 0.85rem;
     color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.activity-stat-subtext {
+    font-size: 0.725rem;
+    color: var(--text-secondary);
+    opacity: 0.75;
+    margin-top: 0.15rem;
     font-weight: 500;
 }
 
@@ -244,6 +269,18 @@
     font-weight: 600;
 }
 
+.activity-pill svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    transition: transform 0.2s ease;
+}
+
+.activity-pill:hover svg {
+    transform: scale(1.1);
+}
+
 /* Timeline Container */
 .activity-timeline-card {
     background: var(--surface);
@@ -328,49 +365,49 @@
 /* Activity Items List */
 .activity-items-list {
     position: relative;
-    padding-left: 2rem;
+    padding-left: 54px;
 }
 
 .activity-items-list::before {
     content: '';
     position: absolute;
-    left: 17px;
-    top: 10px;
-    bottom: 10px;
+    left: 18px;
+    top: 14px;
+    bottom: 14px;
     width: 2px;
     background: var(--border);
+    transform: translateX(-50%);
 }
 
-/* Individual Activity Item */
-.activity-item {
+/* Timeline Entry (Separates static node icon and hoverable card) */
+.activity-timeline-entry {
     position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 1.25rem;
-    padding: 1.15rem 1.25rem;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 16px;
     margin-bottom: 1rem;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
+    width: 100%;
 }
 
-.activity-item:hover {
-    transform: translateX(4px);
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-}
-
-.activity-item:last-child {
+.activity-timeline-entry:last-child {
     margin-bottom: 0;
 }
 
-/* Timeline Node Icon */
+/* Smooth deletion animation for single record removal */
+.activity-timeline-entry.deleting {
+    opacity: 0;
+    transform: translateX(35px);
+    max-height: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Timeline Node Icon (Static on timeline axis; does NOT move on card hover) */
 .activity-node-icon {
     position: absolute;
-    left: -2rem;
-    top: 1.25rem;
+    left: -54px;
+    top: 1.15rem;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -380,13 +417,46 @@
     color: #ffffff;
     box-shadow: 0 0 0 4px var(--surface);
     z-index: 2;
-    transform: translateX(-50%);
     font-size: 0.9rem;
+    pointer-events: none;
+    transition: box-shadow 0.25s ease;
+}
+
+.activity-timeline-entry:hover .activity-node-icon {
+    box-shadow: 0 0 0 5px var(--surface), 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
 .activity-node-icon svg {
     width: 18px;
     height: 18px;
+    stroke: #ffffff;
+    fill: none;
+    flex-shrink: 0;
+}
+
+/* Individual Activity Item (Exclusively receives the hover animation) */
+.activity-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.15rem 1.25rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 0;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.25s ease,
+                box-shadow 0.25s ease;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.activity-item:hover {
+    transform: translateX(6px);
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08);
 }
 
 /* Activity Content */
@@ -436,11 +506,52 @@
 .badge-admin { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
 .badge-system { background: rgba(107, 114, 128, 0.12); color: #6b7280; }
 
+.activity-item-meta-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
 .activity-item-time {
     font-size: 0.8rem;
     color: var(--text-secondary);
     font-weight: 500;
     white-space: nowrap;
+}
+
+.activity-item-delete-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    padding: 0.3rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.45;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: 1;
+}
+
+.activity-item:hover .activity-item-delete-btn {
+    opacity: 0.85;
+}
+
+.activity-item-delete-btn:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    transform: scale(1.12);
+}
+
+.activity-item-delete-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    pointer-events: none;
 }
 
 .activity-item-desc {
@@ -461,6 +572,22 @@
     background: var(--surface);
     border-radius: 6px;
     border: 1px solid var(--border);
+}
+
+.activity-user-badge,
+.activity-device-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.activity-user-badge svg,
+.activity-device-badge svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    flex-shrink: 0;
 }
 
 .activity-item-action-link {
@@ -490,7 +617,29 @@
 .activity-empty-icon {
     font-size: 3.5rem;
     margin-bottom: 1rem;
-    opacity: 0.8;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.activity-empty-icon svg {
+    width: 52px;
+    height: 52px;
+    stroke: var(--text-secondary);
+    fill: none;
+    opacity: 0.65;
+}
+
+.activity-empty-icon svg.activity-spin {
+    animation: activitySpin 2s linear infinite;
+    stroke: var(--primary-color);
+    opacity: 0.85;
+}
+
+@keyframes activitySpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .activity-empty-state h4 {
@@ -617,7 +766,8 @@
     padding: 1.25rem 2rem;
     border-top: 1px solid var(--border);
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
     gap: 0.75rem;
     background: var(--surface);
 }
@@ -710,13 +860,23 @@
     }
     
     .activity-items-list {
-        padding-left: 1.5rem;
+        padding-left: 42px;
+    }
+
+    .activity-items-list::before {
+        left: 15px;
     }
     
     .activity-node-icon {
-        left: -1.5rem;
+        left: -42px;
         width: 30px;
         height: 30px;
+        top: 1rem;
+    }
+
+    .activity-node-icon svg {
+        width: 15px;
+        height: 15px;
     }
     
     .activity-timeline-card {

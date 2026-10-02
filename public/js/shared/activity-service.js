@@ -27,14 +27,14 @@
     };
 
     const DEFAULT_ICONS = {
-        [CATEGORIES.SEARCH]: '🔍',
-        [CATEGORIES.PROJECT]: '📄',
-        [CATEGORIES.BOOKMARK]: '🔖',
-        [CATEGORIES.CITATION]: '📜',
-        [CATEGORIES.AUTH]: '🔐',
-        [CATEGORIES.AI]: '🤖',
-        [CATEGORIES.ADMIN]: '⚡',
-        [CATEGORIES.SYSTEM]: '⚙️'
+        [CATEGORIES.SEARCH]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+        [CATEGORIES.PROJECT]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
+        [CATEGORIES.BOOKMARK]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`,
+        [CATEGORIES.CITATION]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path></svg>`,
+        [CATEGORIES.AUTH]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`,
+        [CATEGORIES.AI]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path><rect x="4" y="8" width="16" height="12" rx="4"></rect><circle cx="9" cy="13" r="1.5" fill="currentColor"></circle><circle cx="15" cy="13" r="1.5" fill="currentColor"></circle><path d="M9 17h6"></path><path d="M2 14h2"></path><path d="M20 14h2"></path></svg>`,
+        [CATEGORIES.ADMIN]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`,
+        [CATEGORIES.SYSTEM]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`
     };
 
     const CATEGORY_COLORS = {
@@ -131,7 +131,7 @@
                 const userName = options.userName || user.name || 'User';
                 const userRole = options.userRole || user.role || 'student';
                 const category = options.category || CATEGORIES.SYSTEM;
-                const icon = options.icon || DEFAULT_ICONS[category] || '📌';
+                const icon = options.icon || DEFAULT_ICONS[category] || DEFAULT_ICONS[CATEGORIES.SYSTEM];
                 const timestamp = options.timestamp || new Date().toISOString();
                 const id = options.id || this.generateId();
 
@@ -157,12 +157,14 @@
                 // 1. Save to Local Storage Cache
                 this.saveToLocalCache(userId, activityRecord);
 
-                // 2. Save to Firestore collection `userActivities`
-                if (typeof db !== 'undefined' && db && db.collection) {
+                // 2. Save to Firestore collection `userActivities` (only if authenticated)
+                const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
+                                 (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+                if (typeof db !== 'undefined' && db && db.collection && userId !== 'guest' && authUser) {
                     try {
                         await db.collection('userActivities').doc(id).set(activityRecord);
                     } catch (fsErr) {
-                        console.warn('[ActivityService] Firestore write failed, using local cache:', fsErr);
+                        console.debug('[ActivityService] Firestore write fallback to local cache:', fsErr);
                     }
                 }
 
@@ -179,22 +181,51 @@
         },
 
         /**
-         * Save activity to localStorage cache
+         * Save activity to localStorage cache with duplicate prevention
          */
         saveToLocalCache(userId, activity) {
             try {
+                if (!userId || !activity) return;
                 const storageKey = `recaps_activities_${userId}`;
                 let activities = [];
                 try {
                     activities = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                    if (!Array.isArray(activities)) activities = [];
                 } catch (e) {
                     activities = [];
+                }
+
+                // Remove any existing entry with the same ID
+                if (activity.id) {
+                    activities = activities.filter(a => a.id !== activity.id);
+                }
+
+                // Prevent rapid duplicate logging of identical action within 3 seconds
+                const now = new Date(activity.timestamp || Date.now()).getTime();
+                const isRapidDuplicate = activities.slice(0, 5).some(a => {
+                    const aTime = new Date(a.timestamp || 0).getTime();
+                    return a.action === activity.action &&
+                           a.details === activity.details &&
+                           Math.abs(now - aTime) < 3000;
+                });
+
+                if (isRapidDuplicate) {
+                    return;
                 }
 
                 // Prepend latest item
                 activities.unshift({
                     ...activity,
                     createdAt: activity.timestamp // store string for json
+                });
+
+                // Deduplicate full list by ID
+                const seen = new Set();
+                activities = activities.filter(item => {
+                    if (!item || !item.id) return false;
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
                 });
 
                 // Keep max 200 items in local buffer
@@ -209,12 +240,23 @@
         },
 
         /**
-         * Get local cache activities
+         * Get local cache activities (guaranteed deduplicated)
          */
         getLocalCache(userId) {
             try {
+                if (!userId) return [];
                 const storageKey = `recaps_activities_${userId}`;
-                return JSON.parse(localStorage.getItem(storageKey) || '[]');
+                const raw = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                if (!Array.isArray(raw)) return [];
+
+                // Deduplicate by ID
+                const seen = new Set();
+                return raw.filter(item => {
+                    if (!item || !item.id) return false;
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                });
             } catch (e) {
                 return [];
             }
@@ -376,17 +418,26 @@
          * @param {Object} filters - { category, dateRange, search }
          * @returns {Promise<Array>} List of activities
          */
+        /**
+         * Fetch activities for a specific user
+         * @param {string} userId - User UID
+         * @param {Object} filters - { category, dateRange, search }
+         * @returns {Promise<Array>} List of activities
+         */
         async getUserActivities(userId, filters = {}) {
             let activities = [];
 
-            // Try Firestore first
-            if (typeof db !== 'undefined' && db && db.collection && userId) {
+            // Check if user is currently authenticated with Firebase
+            const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
+                             (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+
+            // Only attempt Firestore query if user is actively authenticated and not guest
+            if (typeof db !== 'undefined' && db && db.collection && userId && userId !== 'guest' && authUser) {
                 try {
-                    let query = db.collection('userActivities')
+                    const query = db.collection('userActivities')
                         .where('userId', '==', userId);
 
-                    // Note: Firestore requires composite indexes for multiple where + orderBy
-                    // So we fetch by userId and sort in-memory to avoid index errors
+                    // Fetch by userId and sort in-memory to avoid index errors
                     const snapshot = await query.limit(150).get();
                     
                     if (!snapshot.empty) {
@@ -402,23 +453,36 @@
                         });
                     }
                 } catch (err) {
-                    console.warn('[ActivityService] Firestore fetch error, falling back to local cache:', err);
+                    if (err && (err.code === 'permission-denied' || String(err).includes('permissions'))) {
+                        console.debug('[ActivityService] Firestore permissions restricted, using local cache fallback.');
+                    } else {
+                        console.warn('[ActivityService] Firestore fetch error, falling back to local cache:', err);
+                    }
                 }
             }
 
-            // Fallback / Merge with Local Cache
-            if (activities.length === 0 && userId) {
-                activities = this.getLocalCache(userId);
-            } else if (userId) {
-                // Merge local cache items that may not have synced
+            // Fallback / Merge with Local Cache with strict deduplication
+            const seen = new Set();
+            const merged = [];
+
+            activities.forEach(item => {
+                if (item && item.id && !seen.has(item.id)) {
+                    seen.add(item.id);
+                    merged.push(item);
+                }
+            });
+
+            if (userId) {
                 const local = this.getLocalCache(userId);
-                const ids = new Set(activities.map(a => a.id));
                 local.forEach(item => {
-                    if (!ids.has(item.id)) {
-                        activities.push(item);
+                    if (item && item.id && !seen.has(item.id)) {
+                        seen.add(item.id);
+                        merged.push(item);
                     }
                 });
             }
+
+            activities = merged;
 
             // Sort descending by timestamp
             activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -433,7 +497,10 @@
         async getAllActivities(filters = {}) {
             let activities = [];
 
-            if (typeof db !== 'undefined' && db && db.collection) {
+            const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
+                             (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+
+            if (typeof db !== 'undefined' && db && db.collection && authUser) {
                 try {
                     const snapshot = await db.collection('userActivities')
                         .limit(300)
@@ -452,7 +519,11 @@
                         });
                     }
                 } catch (err) {
-                    console.warn('[ActivityService] Firestore audit query failed:', err);
+                    if (err && (err.code === 'permission-denied' || String(err).includes('permissions'))) {
+                        console.debug('[ActivityService] Firestore audit permissions restricted, using local cache.');
+                    } else {
+                        console.warn('[ActivityService] Firestore audit query failed:', err);
+                    }
                 }
             }
 
@@ -463,6 +534,15 @@
                     activities = this.getLocalCache(user.uid);
                 }
             }
+
+            // Strict deduplication
+            const seen = new Set();
+            activities = activities.filter(item => {
+                if (!item || !item.id) return false;
+                if (seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+            });
 
             // Sort descending
             activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -523,6 +603,99 @@
             }
 
             return filtered;
+        },
+
+        /**
+         * Calculate local storage usage (Bytes, KB, MB) occupied by user's activity log
+         * @param {string} userId - User UID
+         * @returns {Object} { bytes, formatted, count }
+         */
+        getStorageUsage(userId) {
+            if (!userId) return { bytes: 0, formatted: '0 B', count: 0 };
+            const storageKey = `recaps_activities_${userId}`;
+            const raw = localStorage.getItem(storageKey) || '';
+
+            let bytes = 0;
+            if (raw) {
+                try {
+                    // Exact UTF-8 byte size of the storage key and content
+                    bytes = new Blob([storageKey + '=' + raw]).size;
+                } catch (e) {
+                    // Fallback calculation for environments without Blob
+                    bytes = (storageKey.length + 1 + raw.length) * 2;
+                }
+            }
+
+            let count = 0;
+            try {
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) count = parsed.length;
+                }
+            } catch (e) {}
+
+            return {
+                bytes,
+                formatted: this.formatBytes(bytes),
+                count
+            };
+        },
+
+        /**
+         * Format byte sizes into readable units (B, KB, MB)
+         * @param {number} bytes
+         * @returns {string}
+         */
+        formatBytes(bytes) {
+            if (!bytes || bytes <= 0) return '0 B';
+            if (bytes < 1024) return `${bytes} B`;
+            const kb = bytes / 1024;
+            if (kb < 1024) return `${kb.toFixed(1)} KB`;
+            const mb = kb / 1024;
+            return `${mb.toFixed(2)} MB`;
+        },
+
+        /**
+         * Delete a specific activity entry by its unique ID
+         * @param {string} userId - User UID
+         * @param {string} activityId - Activity record ID
+         * @returns {Promise<boolean>}
+         */
+        async deleteActivity(userId, activityId) {
+            if (!userId || !activityId) return false;
+
+            // 1. Remove from LocalStorage
+            try {
+                const storageKey = `recaps_activities_${userId}`;
+                const raw = localStorage.getItem(storageKey);
+                if (raw) {
+                    let activities = JSON.parse(raw);
+                    if (Array.isArray(activities)) {
+                        activities = activities.filter(a => a.id !== activityId);
+                        localStorage.setItem(storageKey, JSON.stringify(activities));
+                    }
+                }
+            } catch (e) {
+                console.warn('[ActivityService] Error removing item from local storage:', e);
+            }
+
+            // 2. Remove from Firestore if authenticated
+            const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
+                             (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+            if (typeof db !== 'undefined' && db && db.collection && userId !== 'guest' && authUser) {
+                try {
+                    await db.collection('userActivities').doc(activityId).delete();
+                } catch (fsErr) {
+                    console.debug('[ActivityService] Firestore single doc delete fallback:', fsErr);
+                }
+            }
+
+            // 3. Dispatch event for UI reactivity
+            window.dispatchEvent(new CustomEvent('userActivityDeleted', {
+                detail: { userId, activityId }
+            }));
+
+            return true;
         },
 
         /**

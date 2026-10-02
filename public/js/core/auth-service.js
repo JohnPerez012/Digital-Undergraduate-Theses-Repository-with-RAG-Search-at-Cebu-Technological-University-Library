@@ -414,6 +414,12 @@
             console.log('[AuthService] Page revealed');
         };
 
+        // Allow localhost preview for developer inspection
+        if (window.location.hostname === 'localhost' && new URLSearchParams(window.location.search).has('preview')) {
+            revealPage();
+            return;
+        }
+
         // Check auth immediately (don't wait for DOMContentLoaded since script loads at end of body)
         const checkAuth = async function() {
             if (typeof auth === 'undefined') {
