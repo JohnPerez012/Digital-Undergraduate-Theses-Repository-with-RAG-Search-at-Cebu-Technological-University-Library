@@ -419,10 +419,24 @@
             let str = (cleanName || '').trim();
             if (!str) return null;
 
-            // Strip academic/honorific titles
+            // Use AcademicNameParser if available
+            if (typeof AcademicNameParser !== 'undefined' && AcademicNameParser.parse) {
+                const p = AcademicNameParser.parse(str);
+                if (p) {
+                    const first = p.firstName + (p.middle ? ' ' + p.middle : '');
+                    const last = p.surname + (p.suffix ? ', ' + p.suffix : '');
+                    return {
+                        first,
+                        last,
+                        initials: p.initials || (p.surname ? p.surname[0].toUpperCase() + '.' : 'A.'),
+                        suffix: p.suffix
+                    };
+                }
+            }
+
+            // Fallback parsing
             str = str.replace(/^(Dr\.|Engr\.|Prof\.|Professor|Atty\.|Rev\.|Hon\.|Mr\.|Ms\.|Mrs\.)\s+/i, '');
 
-            // Comma format: "Last, First" or "Last, First Middle"
             if (str.includes(',')) {
                 const parts = str.split(',').map(p => p.trim());
                 const last = parts[0] || '';
@@ -431,16 +445,13 @@
                 return { first, last, initials: initials || (last ? last[0].toUpperCase() + '.' : 'A.') };
             }
 
-            // Natural name: "First Last" or "First Middle Last" or compound surnames
             const words = str.split(/\s+/).filter(Boolean);
             if (words.length === 1) {
                 return { first: '', last: words[0], initials: words[0][0].toUpperCase() + '.' };
             }
 
-            // Compound Filipino / Spanish / European surnames (e.g. Dela Cruz, Delos Santos, De la Rosa, San Juan)
             const compoundPrefixes = ['dela', 'delos', 'de la', 'de los', 'del', 'de', 'san', 'santa', 'van', 'von', 'da', 'di'];
 
-            // 3-word compound: e.g. "Juan De la Rosa"
             if (words.length >= 4) {
                 const twoWordsBefore = (words[words.length - 3] + ' ' + words[words.length - 2]).toLowerCase();
                 if (compoundPrefixes.includes(twoWordsBefore)) {
@@ -451,7 +462,6 @@
                 }
             }
 
-            // 2-word compound: e.g. "Juan Dela Cruz" or "Maria Delos Reyes"
             if (words.length >= 3) {
                 const wordBefore = words[words.length - 2].toLowerCase();
                 if (compoundPrefixes.includes(wordBefore)) {
@@ -462,7 +472,6 @@
                 }
             }
 
-            // Standard: last word is surname, earlier words are given names
             const last = words[words.length - 1];
             const first = words.slice(0, -1).join(' ');
             const initials = words.slice(0, -1).map(w => w[0].toUpperCase() + '.').join(' ');

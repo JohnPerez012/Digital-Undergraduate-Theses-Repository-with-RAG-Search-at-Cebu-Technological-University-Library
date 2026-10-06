@@ -449,6 +449,19 @@ html.auth-cached-logged-in #profile-link {
     display: block !important;
 }
 
+/* Minimize secondary header when logged in by moving Saved Projects to profile dropdown */
+html.auth-cached-logged-in #nav-saved-projects {
+    display: none !important;
+}
+
+html.auth-cached-logged-in #pd-saved-row {
+    display: flex !important;
+}
+
+html.auth-cached-logged-in #pd-saved-divider {
+    display: block !important;
+}
+
 /* Welcome Modal Styles */
 .welcome-modal-overlay {
     position: fixed;
@@ -929,7 +942,148 @@ html.auth-cached-logged-in #profile-link {
 }
 
 /* Saved Project Card Styles for Dashboard */
-#saved-projects-list {
+/* =========================================================================
+   DASHBOARD SAVED PROJECTS — ELEVATED UI & UX (Consolidated from Screen 1)
+   ========================================================================= */
+
+.saved-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.25rem;
+}
+
+.saved-view-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.saved-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.saved-view-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: clamp(1.4rem, 4vw, 1.85rem);
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.saved-title-icon {
+    color: var(--primary-color, #1ad28f);
+}
+
+.saved-total-counter-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(26, 210, 143, 0.12);
+    color: var(--primary-color, #1ad28f);
+    border: 1px solid rgba(26, 210, 143, 0.28);
+}
+
+.saved-view-subtitle {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.saved-view-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.saved-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.saved-action-btn.secondary-btn {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.saved-action-btn.secondary-btn:hover {
+    background: var(--background);
+    border-color: var(--primary-color, #1ad28f);
+    transform: translateY(-1px);
+}
+
+.saved-action-btn.danger-btn {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.saved-action-btn.danger-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    transform: translateY(-1px);
+}
+
+/* Sync Banner */
+.saved-sync-banner {
+    margin-bottom: 1.75rem;
+}
+
+.sync-banner-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+}
+
+.sync-banner-card.authenticated {
+    background: rgba(26, 210, 143, 0.08);
+    border-color: rgba(26, 210, 143, 0.25);
+    color: var(--text-primary);
+}
+
+.sync-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sync-banner-content svg {
+    color: var(--primary-color, #1ad28f);
+    flex-shrink: 0;
+}
+
+#saved-projects-list,
+.dashboard-saved-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 1.5rem;
@@ -940,47 +1094,101 @@ html.auth-cached-logged-in #profile-link {
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 0;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
     min-height: 100%;
+    overflow: hidden;
+    position: relative;
 }
 
 .saved-project-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    border-color: var(--primary-color);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary-color, #1ad28f);
+}
+
+.saved-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.25rem 0.5rem;
+    gap: 0.5rem;
+}
+
+.saved-badge-program {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    letter-spacing: 0.02em;
+}
+
+.saved-badge-year {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(26, 210, 143, 0.12);
+    color: var(--primary-color, #1ad28f);
+    border: 1px solid rgba(26, 210, 143, 0.25);
 }
 
 .saved-card-body {
-    padding: 1.5rem;
+    padding: 0.75rem 1.25rem 1.25rem;
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-.saved-card-meta {
-    display: flex;
-    gap: 0.5rem;
-    font-size: 0.8125rem;
-    color: var(--text-secondary);
-    margin-bottom: 0.75rem;
-    font-weight: 500;
+.saved-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary-color, #1ad28f);
+    margin-bottom: 0.5rem;
+    line-height: 1.45;
+    transition: color 0.2s ease;
 }
 
-.saved-card-title {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
+.saved-project-card:hover .saved-card-title {
+    color: #2feaa7;
 }
 
 .saved-card-authors {
-    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+}
+
+.saved-card-authors svg {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.saved-card-abstract {
+    font-size: 0.85rem;
     color: var(--text-secondary);
     line-height: 1.5;
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.9;
 }
 
 .saved-card-actions {
@@ -988,51 +1196,115 @@ html.auth-cached-logged-in #profile-link {
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem 1.5rem;
+    padding: 0.85rem 1.25rem;
     border-top: 1px solid var(--border);
-    background: var(--background);
-    border-radius: 0 0 16px 16px;
+    background: rgba(0, 0, 0, 0.1);
     margin-top: auto;
 }
 
 .saved-card-view-btn {
-    padding: 0.625rem 1.25rem;
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-color, #1ad28f);
+    color: #0d1520;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.84rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.35rem;
 }
 
 .saved-card-view-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.3);
+    background: #2feaa7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 210, 143, 0.35);
 }
 
 .saved-card-remove-btn {
-    padding: 0.5rem;
-    background: none;
+    padding: 0.45rem 0.65rem;
+    background: transparent;
     border: 1px solid var(--border);
     color: var(--text-secondary);
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
 .saved-card-remove-btn:hover {
     background: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.35);
     color: #ef4444;
+}
+
+/* Empty State */
+.saved-empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.saved-empty-icon-wrap {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: rgba(26, 210, 143, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    color: var(--primary-color, #1ad28f);
+    border: 1px solid rgba(26, 210, 143, 0.2);
+}
+
+.saved-empty-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.saved-empty-desc {
+    max-width: 480px;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 1.5rem;
+}
+
+.saved-empty-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.5rem;
+    border-radius: 10px;
+    background: var(--primary-color, #1ad28f);
+    color: #0d1520;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.saved-empty-btn:hover {
+    background: #2feaa7;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(26, 210, 143, 0.35);
 }
 
 .saved-empty-state {
@@ -2267,6 +2539,41 @@ html.auth-cached-logged-in .profile-dropdown-wrapper {
     opacity: 0.7;
 }
 
+/* Saved Projects badge inside profile dropdown */
+.pd-saved-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.38rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    border-radius: 9999px;
+    background: rgba(26, 210, 143, 0.16);
+    color: var(--primary-color, #1ad28f);
+    border: 1px solid rgba(26, 210, 143, 0.35);
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.pd-saved-badge.badge-bounce {
+    animation: pdBadgeBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pdBadgeBounce {
+    0% {
+        transform: scale(0.8);
+    }
+    50% {
+        transform: scale(1.22);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* Theme toggle inside dropdown */
 .pd-theme-toggle {
     position: relative;
@@ -2635,4 +2942,97 @@ a .icon-container svg {
         opacity: 1;
         transform: scale(1);
     }
+}
+
+/* ==========================================================================
+   Search Highlight Styles (Brand Yellow Word-by-word / text-by-text highlighting)
+   Harmonized with --brand-yellow (#FCCC56) & high-contrast complementary color
+   ========================================================================== */
+.search-highlight {
+    background-color: rgba(252, 204, 86, 0.38); /* Warm Brand Yellow tint (#FCCC56) */
+    color: #2a2f35;
+    padding: 0.08em 0.25em;
+    border-radius: 4px;
+    font-weight: 600;
+    border-bottom: 1.5px solid rgba(227, 184, 78, 0.85); /* Grounded highlighter stroke */
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: inline;
+    animation: searchHighlightFade 0.5s ease-out;
+}
+
+[data-theme="dark"] .search-highlight {
+    background-color: rgba(252, 204, 86, 0.22); /* Soft golden wash on dark surface */
+    color: #FFD84D; /* Luminous warm gold text for pristine readability */
+    border-bottom: 1.5px solid rgba(252, 204, 86, 0.65);
+}
+
+@keyframes searchHighlightFade {
+    0% {
+        background-color: rgba(252, 204, 86, 0.75);
+    }
+    100% {
+        background-color: rgba(252, 204, 86, 0.38);
+    }
+}
+
+[data-theme="dark"] @keyframes searchHighlightFade {
+    0% {
+        background-color: rgba(252, 204, 86, 0.55);
+    }
+    100% {
+        background-color: rgba(252, 204, 86, 0.22);
+    }
+}
+
+/* Extra punch & contrast on project titles */
+.project-title-text .search-highlight,
+.project-title-cell .search-highlight,
+.project-title .search-highlight,
+.project-card-title .search-highlight {
+    background-color: rgba(252, 204, 86, 0.5);
+    color: #1a1e23;
+    font-weight: 700;
+    border-bottom: 2px solid #CA9F43;
+}
+
+[data-theme="dark"] .project-title-text .search-highlight,
+[data-theme="dark"] .project-title-cell .search-highlight,
+[data-theme="dark"] .project-title .search-highlight,
+[data-theme="dark"] .project-card-title .search-highlight {
+    background-color: rgba(252, 204, 86, 0.28);
+    color: #FFE380;
+    font-weight: 700;
+    border-bottom: 2px solid #FCCC56;
+}
+
+/* Badges / Tags: when search matches text inside a badge or chip,
+   guarantee dark text on yellow background so it doesn't wash out against white badge text */
+.badge .search-highlight,
+.badge-info .search-highlight,
+.badge-success .search-highlight,
+.badge-warning .search-highlight,
+.badge-danger .search-highlight,
+.project-tag .search-highlight,
+.category-badge .search-highlight {
+    background-color: #FCCC56 !important;
+    color: #1e293b !important;
+    padding: 0.05em 0.35em !important;
+    border-radius: 3px !important;
+    font-weight: 700 !important;
+    border-bottom: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .badge .search-highlight,
+[data-theme="dark"] .badge-info .search-highlight,
+[data-theme="dark"] .badge-success .search-highlight,
+[data-theme="dark"] .badge-warning .search-highlight,
+[data-theme="dark"] .badge-danger .search-highlight,
+[data-theme="dark"] .project-tag .search-highlight,
+[data-theme="dark"] .category-badge .search-highlight {
+    background-color: #FFD84D !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    border-bottom: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }

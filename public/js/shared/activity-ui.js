@@ -604,16 +604,14 @@
                 const actId = activeModalActivity.id;
                 const titleSnippet = activeModalActivity.title || 'this activity record';
 
-                const confirmed = window.ModalDialog
-                    ? await ModalDialog.confirm({
+                const confirmed = await ModalDialog.confirm({
                         title: 'Delete Activity Record?',
                         message: `Are you sure you want to delete "${titleSnippet}" from your browser's local storage?`,
                         confirmText: 'Delete Record',
                         cancelText: 'Keep Record',
                         isDanger: true,
                         icon: 'trash'
-                    })
-                    : confirm(`Delete "${titleSnippet}" from your browser storage?`);
+                    });
 
                 if (confirmed) {
                     closeModal();
@@ -651,8 +649,7 @@
                 cancelText: 'Cancel'
             });
         } else {
-            const choice = confirm('Click OK to export as CSV, or Cancel to export as JSON.');
-            format = choice ? 'csv' : 'json';
+            format = 'csv'; // Safe default if ModalDialog not available
         }
 
         if (!format) return;
@@ -688,16 +685,14 @@
               `• Storage to reclaim: ${usage.formatted}\n\n` +
               `This will purge your activity data from browser local storage. This action cannot be undone.`;
 
-        const confirmed = window.ModalDialog
-            ? await ModalDialog.confirm({
-                title,
-                message: msg,
-                confirmText: 'Clear All Data',
-                cancelText: 'Cancel',
-                isDanger: true,
-                icon: 'trash'
-            })
-            : confirm(msg);
+        const confirmed = await ModalDialog.confirm({
+            title,
+            message: msg,
+            confirmText: 'Clear All Data',
+            cancelText: 'Cancel',
+            isDanger: true,
+            icon: 'trash'
+        });
 
         if (confirmed) {
             await window.ActivityService.clearUserActivities(currentUserId);
@@ -857,16 +852,14 @@
                 const activity = currentActivities.find(a => a.id === actId);
                 const titleSnippet = activity ? `"${activity.title}"` : 'this activity record';
 
-                const confirmed = window.ModalDialog
-                    ? await ModalDialog.confirm({
+                const confirmed = await ModalDialog.confirm({
                         title: 'Delete Activity Record',
                         message: `Permanently delete ${titleSnippet} from your browser storage? This action cannot be undone.`,
                         confirmText: 'Delete Record',
                         cancelText: 'Keep',
                         isDanger: true,
                         icon: 'trash'
-                    })
-                    : confirm(`Delete ${titleSnippet} from your browser storage?`);
+                    });
 
                 if (!confirmed) {
                     return;

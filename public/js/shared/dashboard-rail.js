@@ -109,6 +109,23 @@
 
         // Load dashboard data
         loadDashboardData();
+
+        // Check hash on page load (e.g. #saved, #citations, #settings)
+        const initialHash = window.location.hash.replace('#', '');
+        if (initialHash) {
+            const hashItem = document.querySelector(`.rail-nav-item[data-section="${initialHash}"]`);
+            if (hashItem) {
+                setTimeout(() => hashItem.click(), 60);
+            }
+        }
+
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash.replace('#', '');
+            if (hash) {
+                const hashItem = document.querySelector(`.rail-nav-item[data-section="${hash}"]`);
+                if (hashItem) hashItem.click();
+            }
+        });
     }
 
     function toggleMobileMenu() {

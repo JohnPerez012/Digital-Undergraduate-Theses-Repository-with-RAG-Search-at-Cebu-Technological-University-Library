@@ -153,6 +153,15 @@
                     UIDproject: firebase.firestore.FieldValue.arrayUnion(...ids)
                 }, { merge: true });
 
+                // Increment community saveCount on Firestore for synced projects
+                ids.forEach(pId => {
+                    try {
+                        db.collection('projects').doc(pId).set({
+                            saveCount: firebase.firestore.FieldValue.increment(1)
+                        }, { merge: true });
+                    } catch (e) {}
+                });
+
                 // Log bookmark activity in ActivityService if available
                 if (window.ActivityService && typeof window.ActivityService.logBookmark === 'function') {
                     list.forEach(p => {

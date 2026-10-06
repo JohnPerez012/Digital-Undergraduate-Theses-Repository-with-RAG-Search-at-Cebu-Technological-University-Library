@@ -222,63 +222,202 @@
 }
 
 .btn-save {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.95);
     border: 1px solid #cbd5e1;
     color: #475569;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s;
+    gap: 0.42rem;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    user-select: none;
+    line-height: 1;
+    backdrop-filter: blur(8px);
 }
 
 .dark-mode .btn-save, [data-theme="dark"] .btn-save {
-    border: 1px solid #475569;
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .btn-save:hover {
-    background: #f1f5f9;
+    background: #f8fafc;
+    border-color: #94a3b8;
     color: #0f172a;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
 }
 
 .dark-mode .btn-save:hover, [data-theme="dark"] .btn-save:hover {
-    background: #334155;
+    background: rgba(51, 65, 85, 0.9);
+    border-color: rgba(255, 255, 255, 0.22);
     color: #f8fafc;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
+.btn-save:active {
+    transform: translateY(0);
+}
+
+.btn-save .btn-save-icon,
+.btn-save span[id^="save-icon-"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: inherit;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-save .btn-save-icon svg,
+.btn-save span[id^="save-icon-"] svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    color: inherit;
+    transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.btn-save .btn-text {
+    font-weight: 600;
+}
+
+/* Minimalist Divider separating Verb and Count */
+.btn-save-divider {
+    display: inline-block;
+    width: 1px;
+    height: 11px;
+    background: currentColor;
+    opacity: 0.25;
+    margin: 0 0.08rem;
+}
+
+/* Tabular Numeric Count Badge */
+.btn-save-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+    display: inline-block;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+
+/* Saved State */
 .btn-save.saved {
-    background-color: rgba(34, 197, 94, 0.1);
-    border-color: #22c55e;
-    color: #15803d;
+    background-color: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #047857;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.12);
 }
 
 .dark-mode .btn-save.saved, [data-theme="dark"] .btn-save.saved {
-    background-color: rgba(34, 197, 94, 0.2);
-    border-color: #22c55e;
-    color: #4ade80;
+    background-color: rgba(16, 185, 129, 0.16);
+    border-color: rgba(52, 211, 153, 0.45);
+    color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.18);
 }
 
 .btn-save.saved:hover {
-    background-color: rgba(34, 197, 94, 0.2);
+    background-color: rgba(16, 185, 129, 0.16);
+    border-color: #059669;
 }
 
-.btn-save.saved .meta-icon {
+.dark-mode .btn-save.saved:hover, [data-theme="dark"] .btn-save.saved:hover {
+    background-color: rgba(16, 185, 129, 0.24);
+    border-color: #34d399;
+}
+
+.btn-save.saved .btn-save-icon svg,
+.btn-save.saved span[id^="save-icon-"] svg {
+    fill: currentColor;
+    stroke: currentColor;
+}
+
+/* Tactile Optimistic Pop Micro-Animation */
+.btn-save.optimistic-pop .btn-save-icon,
+.btn-save.optimistic-pop span[id^="save-icon-"] {
+    animation: bookmarkBounce 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-save.optimistic-pop .btn-save-count {
+    animation: counterPop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bookmarkBounce {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.35) rotate(-6deg); }
+    70% { transform: scale(0.92) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes counterPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.28); }
+    75% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* Admin & Non-interactive Community Save Counter Pill */
+.project-save-counter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.36rem;
+    padding: 0.38rem 0.72rem;
+    border-radius: 9999px;
+    background: rgba(241, 245, 249, 0.85);
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 500;
+    user-select: none;
+    line-height: 1;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s ease;
+}
+
+.dark-mode .project-save-counter-pill, [data-theme="dark"] .project-save-counter-pill {
+    background: rgba(30, 41, 59, 0.65);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+}
+
+.project-save-counter-pill svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    opacity: 0.85;
+}
+
+.project-save-counter-pill.has-saves {
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.dark-mode .project-save-counter-pill.has-saves, [data-theme="dark"] .project-save-counter-pill.has-saves {
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.35);
+    background: rgba(16, 185, 129, 0.14);
+}
+
+.project-save-counter-pill.has-saves svg {
     fill: currentColor;
 }
 
-.btn-save span[id^="save-icon-"] {
-    display: inline-flex;
-    width: 16px;
-    height: 16px;
-    color: inherit;
-}
-
-.btn-save span[id^="save-icon-"] svg {
-    color: inherit;
+.project-save-counter-pill .save-pill-count {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .btn-view-details {
@@ -958,47 +1097,86 @@
 }
 
 /* ===================================
-   Search Highlight Styles
-   (Only for traditional/word-by-word search, NOT AI semantic search)
+   Search Highlight Styles (Brand Yellow Word-by-word / text-by-text highlighting)
+   Harmonized with --brand-yellow (#FCCC56) & high-contrast complementary color
    =================================== */
 
 .search-highlight {
-    background-color: rgba(147, 197, 253, 0.35); /* Soft, calm blue highlight */
-    color: inherit;
-    padding: 0.1em 0.2em;
-    border-radius: 3px;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+    background-color: rgba(252, 204, 86, 0.38); /* Warm Brand Yellow tint (#FCCC56) */
+    color: #2a2f35;
+    padding: 0.08em 0.25em;
+    border-radius: 4px;
+    font-weight: 600;
+    border-bottom: 1.5px solid rgba(227, 184, 78, 0.85); /* Grounded highlighter stroke */
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: inline;
+    animation: highlightFadeIn 0.5s ease-out;
 }
 
-/* Dark mode highlight - slightly different shade for better visibility */
+/* Dark mode highlight - golden wash for dark mode */
 [data-theme="dark"] .search-highlight {
-    background-color: rgba(96, 165, 250, 0.25); /* Softer blue for dark mode */
-    color: #bfdbfe; /* Slightly brighter text */
+    background-color: rgba(252, 204, 86, 0.22); /* Soft golden wash on dark surface */
+    color: #FFD84D; /* Luminous warm gold text for pristine readability */
+    border-bottom: 1.5px solid rgba(252, 204, 86, 0.65);
 }
 
 /* Subtle animation on first load */
 @keyframes highlightFadeIn {
-    from {
-        background-color: rgba(147, 197, 253, 0.6);
+    0% {
+        background-color: rgba(252, 204, 86, 0.75);
     }
-    to {
-        background-color: rgba(147, 197, 253, 0.35);
+    100% {
+        background-color: rgba(252, 204, 86, 0.38);
     }
 }
 
-.search-highlight {
-    animation: highlightFadeIn 0.6s ease-out;
+[data-theme="dark"] @keyframes highlightFadeIn {
+    0% {
+        background-color: rgba(252, 204, 86, 0.55);
+    }
+    100% {
+        background-color: rgba(252, 204, 86, 0.22);
+    }
 }
 
-/* Make highlights more visible in titles */
-.project-title .search-highlight {
-    background-color: rgba(8, 212, 136, 0.4);
+/* Make highlights punchy and distinct in project titles */
+.project-title .search-highlight,
+.project-card-title .search-highlight {
+    background-color: rgba(252, 204, 86, 0.5);
+    color: #1a1e23;
     font-weight: 700;
+    border-bottom: 2px solid #CA9F43;
 }
 
-[data-theme="dark"] .project-title .search-highlight {
-    background-color: rgba(26, 210, 143, 0.3);
+[data-theme="dark"] .project-title .search-highlight,
+[data-theme="dark"] .project-card-title .search-highlight {
+    background-color: rgba(252, 204, 86, 0.28);
+    color: #FFE380;
+    font-weight: 700;
+    border-bottom: 2px solid #FCCC56;
+}
+
+/* Badges / Tags: when text inside a badge or chip is highlighted,
+   ensure high-contrast dark text over yellow so it never washes out against badge colors */
+.project-tag .search-highlight,
+.category-badge .search-highlight,
+.badge .search-highlight {
+    background-color: #FCCC56 !important;
+    color: #1e293b !important;
+    padding: 0.05em 0.35em !important;
+    border-radius: 3px !important;
+    font-weight: 700 !important;
+    border-bottom: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .project-tag .search-highlight,
+[data-theme="dark"] .category-badge .search-highlight,
+[data-theme="dark"] .badge .search-highlight {
+    background-color: #FFD84D !important;
+    color: #0f172a !important;
+    border-bottom: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 /* ==========================================================================
@@ -1357,5 +1535,340 @@
     box-shadow: 0 0 10px #f59e0b;
     animation: offlinePulse 1.4s infinite ease-in-out;
     vertical-align: middle;
+}
+
+/* ==========================================================================
+   PROJECTS SCOPE FILTER (All Projects vs Saved Projects)
+   ========================================================================== */
+.projects-title-and-filter {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.projects-scope-filter {
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 3px;
+    border-radius: 9999px;
+    gap: 2px;
+}
+
+[data-theme="dark"] .projects-scope-filter,
+.dark-mode .projects-scope-filter {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.scope-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.scope-filter-btn:hover:not(.active) {
+    color: var(--text-primary, #0f172a);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .scope-filter-btn:hover:not(.active),
+.dark-mode .scope-filter-btn:hover:not(.active) {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.scope-filter-btn.active {
+    background: #ffffff;
+    color: var(--primary-color, #2563eb);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .scope-filter-btn.active,
+.dark-mode .scope-filter-btn.active {
+    background: #334155;
+    color: #38bdf8;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.scope-saved-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.35rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   DEDICATED SAVED PROJECTS VIEW STYLES
+   ========================================================================== */
+.saved-projects-section {
+    position: relative;
+    overflow: hidden;
+    padding: 2.5rem 5% 5rem;
+    min-height: 70vh;
+}
+
+.saved-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1.25rem;
+}
+
+[data-theme="dark"] .saved-view-header,
+.dark-mode .saved-view-header {
+    border-bottom-color: #334155;
+}
+
+.saved-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.saved-view-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: clamp(1.4rem, 4vw, 1.85rem);
+    font-weight: 800;
+    color: var(--text-primary, #0f172a);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.saved-title-icon {
+    color: #10b981;
+}
+
+.saved-total-counter-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.saved-view-subtitle {
+    margin: 0.35rem 0 0;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.95rem;
+}
+
+.saved-view-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.saved-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.saved-action-btn.secondary-btn {
+    background: #f1f5f9;
+    color: var(--text-primary, #0f172a);
+    border-color: #e2e8f0;
+}
+
+[data-theme="dark"] .saved-action-btn.secondary-btn,
+.dark-mode .saved-action-btn.secondary-btn {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+.saved-action-btn.secondary-btn:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+[data-theme="dark"] .saved-action-btn.secondary-btn:hover,
+.dark-mode .saved-action-btn.secondary-btn:hover {
+    background: #334155;
+}
+
+.saved-action-btn.danger-btn {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.saved-action-btn.danger-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+/* Sync Status Banner */
+.saved-sync-banner {
+    margin-bottom: 1.5rem;
+}
+
+.sync-banner-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    flex-wrap: wrap;
+}
+
+.sync-banner-card.guest {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    color: #1e40af;
+}
+
+[data-theme="dark"] .sync-banner-card.guest,
+.dark-mode .sync-banner-card.guest {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(96, 165, 250, 0.25);
+    color: #93c5fd;
+}
+
+.sync-banner-card.authenticated {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    color: #065f46;
+}
+
+[data-theme="dark"] .sync-banner-card.authenticated,
+.dark-mode .sync-banner-card.authenticated {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+}
+
+.sync-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.sync-banner-btn {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.82rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sync-banner-btn:hover {
+    background: #1d4ed8;
+}
+
+/* Empty State */
+.saved-empty-state {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    max-width: 520px;
+    margin: 2rem auto;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+}
+
+[data-theme="dark"] .saved-empty-state,
+.dark-mode .saved-empty-state {
+    background: rgba(30, 41, 59, 0.4);
+    border-color: #475569;
+}
+
+.saved-empty-icon-wrap {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1.25rem;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.saved-empty-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+    margin: 0 0 0.5rem;
+}
+
+.saved-empty-desc {
+    color: var(--text-secondary, #64748b);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0 0 1.5rem;
+}
+
+.saved-browse-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    border-radius: 9999px;
+    background: #10b981;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.25);
+}
+
+.saved-browse-btn:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
 }
 

@@ -3,40 +3,491 @@
 <head>
     <!-- RBAC: Hide page until auth check completes -->
     <style id="__rbac_hide_initial">body { visibility: hidden !important; }</style>
-    
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
         else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { document.documentElement.setAttribute('data-theme', 'dark'); }
-        
-        if (localStorage.getItem('cachedAuthState') === 'true') {
-            document.documentElement.classList.add('auth-cached-logged-in');
-        }
+        if (localStorage.getItem('cachedAuthState') === 'true') { document.documentElement.classList.add('auth-cached-logged-in'); }
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Librarian Dashboard - RE-CAPS</title>
+    <meta name="description" content="RE-CAPS Librarian Dashboard — manage capstone project metadata and cataloging at CTU Daanbantayan Campus.">
     <link rel="stylesheet" href="../css/shared/style.css">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="stylesheet" href="../css/shared/password-change.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
     <link rel="stylesheet" href="../css/shared/modal-dialog.css">
     <link rel="stylesheet" href="../css/shared/text-protection.css">
     <link rel="stylesheet" href="../css/shared/activity-log.css">
+    <link rel="stylesheet" href="../css/pages/library_page.css">
+    <link rel="stylesheet" href="../css/pages/librarian_renovated.css">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
     <div class="rail-overlay" id="rail-overlay"></div>
 
-    <!-- Dashboard Layout -->
+    <!-- ====================================================
+         ADMIN TASK MODAL — urgent floating modal, re-shows every 3 min if ignored
+         ==================================================== -->
+    <div id="admin-task-modal" class="atm-overlay" role="dialog" aria-modal="true" aria-labelledby="atm-title" style="display:none;">
+        <div class="atm-card">
+            <div class="atm-pulse-ring"></div>
+            <div class="atm-icon-wrap">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="atm-body">
+                <div class="atm-badge-row"><span class="atm-badge">Admin Request</span></div>
+                <h2 id="atm-title" class="atm-title">Edit Permission Granted</h2>
+                <p id="atm-message" class="atm-message">The admin has allowed you to edit a project within a limited time window.</p>
+                <div class="atm-meta-grid">
+                    <div class="atm-meta-item">
+                        <span class="atm-meta-label">Project</span>
+                        <span id="atm-project-title" class="atm-meta-value">Loading...</span>
+                    </div>
+                    <div class="atm-meta-item">
+                        <span class="atm-meta-label">Time Remaining</span>
+                        <span id="atm-countdown" class="atm-meta-value atm-countdown-text">--:--</span>
+                    </div>
+                </div>
+                <div class="atm-progress-track">
+                    <div id="atm-progress-fill" class="atm-progress-fill"></div>
+                </div>
+                <div class="atm-actions">
+                    <button id="atm-start-btn" class="atm-btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Start Editing Now
+                    </button>
+                    <button id="atm-snooze-btn" class="atm-btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Remind in 3 min
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         ADD NEW PROJECT MODAL (single submission — pending approval)
+         ==================================================== -->
+    <div id="upload-metadata-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="um-title">
+        <div class="modal-overlay" id="um-modal-overlay"></div>
+        <div class="modal-content project-modal-content">
+
+            <!-- Modern Modal Header -->
+            <div class="pmodal-header">
+                <div class="pmodal-header-left">
+                    <div class="pmodal-icon" style="background: linear-gradient(135deg, #08D488 0%, #10b981 100%); box-shadow: 0 4px 16px rgba(8,212,136,0.4);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                    </div>
+                    <div>
+                        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                            <h3 id="um-title" class="pmodal-title" style="margin:0;">Add New Project</h3>
+                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Pending Approval
+                            </span>
+                        </div>
+                        <p class="pmodal-subtitle">Submitted to admin queue — status will remain <strong>Pending</strong> until admin approves</p>
+                    </div>
+                </div>
+                <div class="pmodal-header-right">
+                    <button type="button" class="pmodal-close-btn" id="um-close-btn" aria-label="Close modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <div class="pmodal-body">
+                <form id="upload-metadata-form" novalidate>
+
+                    <!-- Section 1: Core Identity -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">01</div>
+                            <div>
+                                <div class="pform-section-title">Core Identity</div>
+                                <div class="pform-section-desc">Title, authors, and academic context</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-field">
+                                <label class="pform-label" for="um-title-field">Project Title <span class="pform-required">*</span></label>
+                                <input type="text" id="um-title-field" class="pform-input" placeholder="e.g., AI-Based Crop Disease Detection System" required>
+                            </div>
+                            <div class="pform-field">
+                                <label class="pform-label" for="um-authors">Authors <span class="pform-required">*</span>
+                                    <span class="pform-label-hint">Separate multiple authors with commas</span>
+                                </label>
+                                <input type="text" id="um-authors" class="pform-input" placeholder="e.g. Juan Dela Cruz, Maria Santos" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Academic Details -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">02</div>
+                            <div>
+                                <div class="pform-section-title">Academic Details</div>
+                                <div class="pform-section-desc">Adviser, year, and program</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label" for="um-adviser">Adviser</label>
+                                    <input type="text" id="um-adviser" class="pform-input" placeholder="e.g., Prof. Elena Villanueva">
+                                </div>
+                                <div class="pform-field">
+                                    <label class="pform-label" for="um-year">Year <span class="pform-required">*</span></label>
+                                    <input type="number" id="um-year" class="pform-input" placeholder="2025" min="2000" max="2099" required>
+                                </div>
+                            </div>
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label" for="um-program">Program <span class="pform-required">*</span></label>
+                                    <select id="um-program" class="pform-input pform-select" required>
+                                        <option value="" disabled selected>-- Select Program --</option>
+                                        <option value="BSFi">BSFi — Bachelor of Science in Fisheries</option>
+                                        <option value="BSIT">BSIT — Bachelor of Science in Information Technology</option>
+                                        <option value="BSHM">BSHM — Bachelor of Science in Hospitality Management</option>
+                                        <option value="BSIE">BSIE — Bachelor of Science in Industrial Engineering</option>
+                                        <option value="BSEd-Math">BSEd-Math — Bachelor of Secondary Education (Math)</option>
+                                        <option value="BEEd">BEEd — Bachelor of Elementary Education</option>
+                                        <option value="BIT-Computer">BIT-Computer — Industrial Technology (Computer)</option>
+                                        <option value="BIT-Electronics">BIT-Electronics — Industrial Technology (Electronics)</option>
+                                        <option value="BIT-Automotive">BIT-Automotive — Industrial Technology (Automotive)</option>
+                                        <option value="BTLEd-HE">BTLEd-HE — Technology &amp; Livelihood Ed. (HE)</option>
+                                    </select>
+                                </div>
+                                <div class="pform-field">
+                                    <!-- Status is LOCKED for librarian — always pending -->
+                                    <label class="pform-label">Status</label>
+                                    <div class="lib-status-locked-display">
+                                        <span class="lib-status-locked-dot"></span>
+                                        <span class="lib-status-locked-text">Pending Approval</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        <span class="lib-status-locked-admin">Admin controlled</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Research Content -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">03</div>
+                            <div>
+                                <div class="pform-section-title">Research Content</div>
+                                <div class="pform-section-desc">Abstract and keywords</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-field">
+                                <label class="pform-label" for="um-abstract">Abstract <span class="pform-required">*</span></label>
+                                <textarea id="um-abstract" class="pform-input pform-textarea" placeholder="Describe the project background, objectives, methodology, and results..." required></textarea>
+                            </div>
+                            <div class="pform-field">
+                                <label class="pform-label" for="um-keywords">Keywords
+                                    <span class="pform-label-hint">Separate with commas</span>
+                                </label>
+                                <input type="text" id="um-keywords" class="pform-input" placeholder="e.g. machine learning, IoT, web development">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="pmodal-footer">
+                        <button type="button" class="pmodal-btn-cancel" id="um-cancel-btn">Cancel</button>
+                        <button type="submit" class="pmodal-btn-submit" id="um-submit-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Submit for Approval
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         BULK ADD PROJECTS MODAL (pending approval for each)
+         ==================================================== -->
+    <div id="bulk-add-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="bulk-modal-title">
+        <div class="modal-overlay" id="bulk-modal-overlay"></div>
+        <div class="modal-content project-modal-content">
+
+            <!-- Header -->
+            <div class="pmodal-header">
+                <div class="pmodal-header-left">
+                    <div class="pmodal-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 16px rgba(99,102,241,0.4);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div>
+                        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                            <h3 id="bulk-modal-title" class="pmodal-title" style="margin:0;">Bulk Add Projects</h3>
+                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                All Pending Approval
+                            </span>
+                        </div>
+                        <p class="pmodal-subtitle">Upload a JSON file — each project is sent to the admin queue with <strong>pending</strong> status</p>
+                    </div>
+                </div>
+                <div class="pmodal-header-right">
+                    <button type="button" class="pmodal-close-btn" id="bulk-close-btn" aria-label="Close modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="pmodal-body">
+
+                <!-- Instructions notice -->
+                <div class="libm-notice libm-notice-info" style="margin-bottom:1.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Upload a <strong>.json</strong> file where each item contains: <code>title</code>, <code>authors</code> (array), <code>abstract</code>, <code>program</code>, <code>year</code>, and optionally <code>adviser</code> and <code>keywords</code>. All entries are submitted as <strong>pending</strong>.
+                </div>
+
+                <!-- Drop Zone -->
+                <div class="image-upload-dropzone" id="bulk-dropzone" style="margin-bottom:1.5rem;">
+                    <input type="file" id="bulk-json-input" accept=".json" style="display:none;">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <div class="dropzone-text"><strong>Click to upload</strong> or drag and drop a JSON file here</div>
+                        <div class="dropzone-subtext">Maximum 100 projects per batch</div>
+                        <button type="button" class="dropzone-browse-btn" id="bulk-browse-btn">Browse JSON File</button>
+                    </div>
+                </div>
+
+                <!-- Preview (shown after file picked) -->
+                <div id="bulk-preview-area" style="display:none;">
+                    <div class="pform-section-header" style="margin-bottom:.75rem;">
+                        <div class="pform-section-badge" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">&#x2713;</div>
+                        <div>
+                            <div class="pform-section-title">File Preview</div>
+                            <div class="pform-section-desc" id="bulk-preview-count">0 projects detected</div>
+                        </div>
+                    </div>
+                    <div class="table-container" style="max-height:260px;overflow-y:auto;">
+                        <table class="data-table" id="bulk-preview-table">
+                            <thead>
+                                <tr><th>#</th><th>Title</th><th>Authors</th><th>Program</th><th>Year</th></tr>
+                            </thead>
+                            <tbody id="bulk-preview-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Progress bar (shown during upload) -->
+                <div id="bulk-progress-area" style="display:none;margin-top:1rem;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;">
+                        <span class="pform-section-desc">Submitting projects...</span>
+                        <span id="bulk-progress-label" class="pform-section-desc">0 / 0</span>
+                    </div>
+                    <div style="background:var(--border-color,#e5e7eb);border-radius:999px;height:8px;overflow:hidden;">
+                        <div id="bulk-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#4f46e5);border-radius:999px;transition:width .3s ease;"></div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div class="pmodal-footer">
+                    <button type="button" class="pmodal-btn-cancel" id="bulk-cancel-btn">Cancel</button>
+                    <button type="button" class="pmodal-btn-submit" id="bulk-submit-btn" disabled style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        <span id="bulk-submit-label">Submit All for Approval</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         PROJECT EDIT MODAL (Admin-gated)
+         ==================================================== -->
+    <div id="project-edit-modal" class="libm-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="pe-title">
+        <div class="libm-card libm-wide">
+            <div class="libm-header">
+                <div class="libm-header-icon libm-icon-amber">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <div class="libm-header-text">
+                    <h2 id="pe-title" class="libm-title">Edit Project</h2>
+                    <div class="pe-timer-badge" id="pe-timer-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span id="pe-timer-display">--:--</span> remaining
+                    </div>
+                </div>
+                <button class="libm-close" id="pe-close-btn" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="libm-notice libm-notice-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                You are editing within an <strong>admin-granted time window</strong>. Editing rights expire when the timer hits zero.
+            </div>
+            <form id="project-edit-form" class="libm-form" novalidate>
+                <input type="hidden" id="pe-project-id">
+                <div class="libm-grid">
+                    <div class="libm-field libm-full">
+                        <label for="pe-title-field" class="libm-label">Project Title <span class="libm-req">*</span></label>
+                        <input type="text" id="pe-title-field" class="libm-input" required>
+                    </div>
+                    <div class="libm-field libm-full">
+                        <label for="pe-abstract" class="libm-label">Abstract</label>
+                        <textarea id="pe-abstract" class="libm-input libm-textarea" rows="4"></textarea>
+                    </div>
+                    <div class="libm-field">
+                        <label for="pe-authors" class="libm-label">Authors</label>
+                        <input type="text" id="pe-authors" class="libm-input" placeholder="Comma-separated">
+                    </div>
+                    <div class="libm-field">
+                        <label for="pe-adviser" class="libm-label">Adviser</label>
+                        <input type="text" id="pe-adviser" class="libm-input">
+                    </div>
+                    <div class="libm-field">
+                        <label for="pe-program" class="libm-label">Program</label>
+                        <select id="pe-program" class="libm-input libm-select">
+                            <option value="">Select program</option>
+                            <option>BSIT</option><option>BSCpE</option><option>BSEE</option>
+                            <option>BSME</option><option>BSA</option><option>BSBA</option>
+                            <option>BSEd</option><option>BEEd</option><option>Other</option>
+                        </select>
+                    </div>
+                    <div class="libm-field">
+                        <label for="pe-year" class="libm-label">Year</label>
+                        <input type="number" id="pe-year" class="libm-input" min="2000" max="2099">
+                    </div>
+
+                    <div class="libm-field libm-full">
+                        <label for="pe-keywords" class="libm-label">Keywords</label>
+                        <input type="text" id="pe-keywords" class="libm-input" placeholder="Comma-separated">
+                    </div>
+                </div>
+                <div class="libm-actions">
+                    <button type="button" class="libm-btn libm-btn-ghost" id="pe-cancel-btn">Cancel</button>
+                    <button type="submit" class="libm-btn libm-btn-amber" id="pe-save-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         CATALOG NOTE MODAL (Free editing for published projects)
+         ==================================================== -->
+    <div id="catalog-note-modal" class="libm-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="cn-title">
+        <div class="libm-card">
+            <div class="libm-header">
+                <div class="libm-header-icon libm-icon-teal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                </div>
+                <div class="libm-header-text">
+                    <h2 id="cn-title" class="libm-title">Catalog Note</h2>
+                    <p class="libm-subtitle">Physical location and classification details</p>
+                </div>
+                <button class="libm-close" id="cn-close-btn" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="cn-project-strip" id="cn-project-strip">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <strong id="cn-project-title">Loading...</strong>
+            </div>
+            <form id="catalog-note-form" class="libm-form" novalidate>
+                <input type="hidden" id="cn-project-id">
+                <!-- Read-only status indicator (Librarian cannot alter status) -->
+                <div class="cn-status-badge-row">
+                    <div class="cn-status-indicator">
+                        <span class="cn-status-dot"></span>
+                        <span class="cn-status-label">Project Status:</span>
+                        <strong class="cn-status-value">Completed</strong>
+                    </div>
+                    <span class="cn-status-admin-lock" title="Status is controlled by Administrator">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Admin Managed
+                    </span>
+                </div>
+
+                <!-- Librarian Accountability Card -->
+                <div class="cn-accountability-card" id="cn-accountability-card" style="display:none;">
+                    <div class="cn-accountability-header">
+                        <div class="cn-acc-title-wrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Librarian Accountability Log</span>
+                        </div>
+                        <button type="button" class="cn-history-toggle-btn" id="cn-history-toggle-btn">View Log</button>
+                    </div>
+                    <div class="cn-accountability-body">
+                        <div class="cn-acc-row" id="cn-acc-created" style="display:none;">
+                            <span class="cn-acc-label">First cataloged by:</span>
+                            <span class="cn-acc-value" id="cn-created-by-val">—</span>
+                        </div>
+                        <div class="cn-acc-row" id="cn-acc-updated" style="display:none;">
+                            <span class="cn-acc-label">Last modified by:</span>
+                            <span class="cn-acc-value" id="cn-updated-by-val">—</span>
+                        </div>
+                    </div>
+                    <div class="cn-history-dropdown" id="cn-history-dropdown" style="display:none;">
+                        <div class="cn-history-title">Audit History</div>
+                        <div class="cn-history-list" id="cn-history-list"></div>
+                    </div>
+                </div>
+                <div class="libm-field">
+                    <label for="cn-note" class="libm-label">Location Note</label>
+                    <textarea id="cn-note" class="libm-input libm-textarea cn-note-big" rows="6"
+                        placeholder="Describe exactly where this material is physically located.&#10;&#10;Examples:&#10;• Rack 1, Row 2, Book Ends Stand 3, Color Blue&#10;• Cabinet A, Section 3, Green cover&#10;• Top shelf near window, red binder"></textarea>
+                    <span class="libm-hint">No fixed format — write naturally. Color, shelf, rack, stand — anything that helps locate it.</span>
+                </div>
+                <div class="libm-grid libm-grid-3col">
+                    <div class="libm-field">
+                        <label for="cn-call-number" class="libm-label">Call Number <span class="libm-opt">(optional)</span></label>
+                        <input type="text" id="cn-call-number" class="libm-input" placeholder="e.g. 025.5 / Dea / 2024">
+                    </div>
+                    <div class="libm-field">
+                        <label for="cn-accession" class="libm-label">Accession No. <span class="libm-opt">(optional)</span></label>
+                        <input type="text" id="cn-accession" class="libm-input" placeholder="e.g. CTU-2024-001">
+                    </div>
+                    <div class="libm-field">
+                        <label for="cn-subject" class="libm-label">Subject Heading <span class="libm-opt">(optional)</span></label>
+                        <input type="text" id="cn-subject" class="libm-input" placeholder="e.g. Information Technology">
+                    </div>
+                </div>
+                <div class="cn-last-updated" id="cn-last-updated" style="display:none;"></div>
+                <div class="libm-actions">
+                    <button type="button" class="libm-btn libm-btn-danger-outline" id="cn-delete-btn" style="margin-right:auto;display:none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Clear Note
+                    </button>
+                    <button type="button" class="libm-btn libm-btn-ghost" id="cn-cancel-btn">Cancel</button>
+                    <button type="submit" class="libm-btn libm-btn-teal" id="cn-save-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Save Catalog Note
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         MAIN DASHBOARD LAYOUT
+         ==================================================== -->
     <div class="dashboard-layout role-librarian">
+
         <!-- Sidebar Rail -->
         <aside class="sidebar-rail" id="sidebar-rail">
-            <!-- Rail Header -->
             <div class="rail-header">
                 <img src="../assets/logo.png" alt="RE-CAPS Logo" class="rail-logo">
                 <div class="rail-brand">
@@ -45,72 +496,61 @@
                 </div>
             </div>
 
-            <!-- Rail Navigation -->
             <nav class="rail-nav">
                 <div class="rail-nav-section">
                     <div class="rail-nav-label">Main</div>
-                    <a href="#dashboard" class="rail-nav-item active" data-section="dashboard">
+
+                    <a href="#dashboard" class="rail-nav-item active" data-section="dashboard" id="nav-dashboard">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                         </span>
                         <span class="rail-nav-text">Dashboard</span>
                     </a>
-                    <a href="#catalog" class="rail-nav-item" data-section="catalog">
+
+                    <a href="#projects" class="rail-nav-item" data-section="projects" id="nav-projects">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                        </span>
-                        <span class="rail-nav-text">Catalog</span>
-                    </a>
-                    <a href="#projects" class="rail-nav-item" data-section="projects">
-                        <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                         </span>
                         <span class="rail-nav-text">Projects</span>
+                        <span class="rail-nav-badge" id="edit-permission-badge" style="display:none;">!</span>
                     </a>
-                    <a href="#circulation" class="rail-nav-item" data-section="circulation">
+
+
+
+                    <a href="#catalog" class="rail-nav-item" data-section="catalog" id="nav-catalog">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                         </span>
-                        <span class="rail-nav-text">Circulation</span>
-                    </a>
-                    <a href="#requests" class="rail-nav-item" data-section="requests">
-                        <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                        </span>
-                        <span class="rail-nav-text">Requests</span>
-                        <span class="rail-nav-badge" id="pending-requests">0</span>
+                        <span class="rail-nav-text">Cataloging</span>
                     </a>
                 </div>
 
                 <div class="rail-divider"></div>
 
                 <div class="rail-nav-section">
-                    <div class="rail-nav-label">Reports</div>
-                    <a href="#analytics" class="rail-nav-item" data-section="analytics">
+                    <div class="rail-nav-label">Account</div>
+
+                    <a href="#activity" class="rail-nav-item" data-section="activity" id="nav-activity">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
-                        </span>
-                        <span class="rail-nav-text">Analytics</span>
-                    </a>
-                    <a href="#activity" class="rail-nav-item" data-section="activity">
-                        <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         </span>
                         <span class="rail-nav-text">Activity</span>
                     </a>
-                    <a href="#settings" class="rail-nav-item" data-section="settings">
+
+                    <a href="#settings" class="rail-nav-item" data-section="settings" id="nav-settings">
                         <span class="rail-nav-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         </span>
                         <span class="rail-nav-text">Settings</span>
                     </a>
                 </div>
             </nav>
 
-            <!-- Rail Footer -->
             <div class="rail-footer">
                 <div class="rail-profile">
-                    <img id="librarian-profile-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" alt="Librarian Profile" class="rail-profile-avatar">
+                    <img id="librarian-profile-img"
+                        src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2308D488'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                        alt="Librarian Profile" class="rail-profile-avatar">
                     <div class="rail-profile-info">
                         <div class="rail-profile-name" id="librarian-name">Librarian</div>
                         <div class="rail-profile-role">Librarian</div>
@@ -119,282 +559,320 @@
 
                 <a href="../index.html" class="rail-footer-item" id="back-to-home-btn">
                     <span class="rail-nav-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </span>
                     <span class="rail-nav-text">Home</span>
                 </a>
 
                 <a href="#" class="rail-footer-item danger" id="librarian-logout-btn">
                     <span class="rail-nav-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                     </span>
                     <span class="rail-nav-text">Logout</span>
                 </a>
             </div>
         </aside>
 
-        <!-- Main Content Area -->
+        <!-- Main Content -->
         <main class="dashboard-main">
-            <!-- Top Bar -->
-            <!-- <div class="dashboard-topbar">
-                <div class="topbar-left">
-                    <h1 class="topbar-title" id="page-title">Dashboard</h1>
-                </div>
-                <div class="topbar-right">
-                    <button class="topbar-action-btn" id="theme-toggle-librarian" aria-label="Toggle theme">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                    </button>
-                </div>
-            </div> -->
-
-            <!-- Content Area -->
             <div class="dashboard-content">
-                <!-- Dashboard Section -->
+
+                <!-- ===== DASHBOARD ===== -->
                 <section id="section-dashboard" class="content-section active">
                     <div class="section-header">
-                        <h2>Library Dashboard</h2>
-                        <button class="btn-secondary" id="refresh-dashboard-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                        <div>
+                            <h1 class="section-title">Library Dashboard</h1>
+                            <p class="section-desc">Welcome back — here's your library at a glance.</p>
+                        </div>
+                        <button class="lib-btn lib-btn-ghost lib-btn-sm" id="refresh-dashboard-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                             Refresh
                         </button>
                     </div>
 
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                    <div class="lib-stats-grid">
+                        <div class="lib-stat-card">
+                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #08D488, #069F66);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="total-catalog-items">0</h3>
-                                <p class="stat-label">Total Catalog Items</p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                            </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="total-projects">0</h3>
-                                <p class="stat-label">Projects</p>
+                            <div class="lib-stat-body">
+                                <div class="lib-stat-value" id="dash-total-projects">—</div>
+                                <div class="lib-stat-label">Total Projects</div>
                             </div>
                         </div>
-
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg>
+                        <div class="lib-stat-card">
+                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                             </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="active-checkouts">0</h3>
-                                <p class="stat-label">Active Checkouts</p>
+                            <div class="lib-stat-body">
+                                <div class="lib-stat-value" id="dash-cataloged">—</div>
+                                <div class="lib-stat-label">Cataloged Items</div>
                             </div>
                         </div>
-
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        <div class="lib-stat-card">
+                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                             </div>
-                            <div class="stat-content">
-                                <h3 class="stat-value" id="pending-requests-count">0</h3>
-                                <p class="stat-label">Pending Requests</p>
+                            <div class="lib-stat-body">
+                                <div class="lib-stat-value" id="dash-pending">—</div>
+                                <div class="lib-stat-label">Pending Approval</div>
+                            </div>
+                        </div>
+                        <div class="lib-stat-card">
+                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            </div>
+                            <div class="lib-stat-body">
+                                <div class="lib-stat-value" id="dash-this-month">—</div>
+                                <div class="lib-stat-label">Added This Month</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Quick Actions -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-                        <div style="background: var(--surface); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem;">Recent Activity</h3>
-                            <div id="recent-activity-list">
-                                <p style="color: var(--text-secondary); font-size: 0.875rem;">Loading...</p>
+                    <!-- Edit Permission Alert Banner -->
+                    <div id="dash-edit-permission-alert" class="lib-perm-alert" style="display:none;">
+                        <div class="lib-perm-alert-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div class="lib-perm-alert-body">
+                            <div class="lib-perm-alert-title">&#9888; Edit Permission Active</div>
+                            <div class="lib-perm-alert-msg" id="dash-alert-msg">Admin has granted you editing rights for a project.</div>
+                        </div>
+                        <button class="libm-btn libm-btn-amber libm-btn-sm" id="dash-go-edit-btn">Edit Now</button>
+                    </div>
+
+                    <div class="lib-widgets-grid">
+                        <div class="lib-widget">
+                            <div class="lib-widget-hd">
+                                <h3 class="lib-widget-title">Recent Projects</h3>
+                            </div>
+                            <div id="dash-recent-list" class="lib-recent-list">
+                                <div class="lib-loading-text">Loading...</div>
                             </div>
                         </div>
-
-                        <div style="background: var(--surface); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem;">Quick Actions</h3>
-                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                                <button class="btn-primary" style="justify-content: center;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                    Add New Item
+                        <div class="lib-widget">
+                            <div class="lib-widget-hd">
+                                <h3 class="lib-widget-title">Quick Actions</h3>
+                            </div>
+                            <div class="lib-quick-tiles">
+                                <button class="lib-tile" id="qa-upload-btn">
+                                    <div class="lib-tile-icon" style="background: linear-gradient(135deg, #08D488, #069F66);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                                    </div>
+                                    <span class="lib-tile-label">Upload Metadata</span>
+                                    <span class="lib-tile-sub">For admin review</span>
                                 </button>
-                                <button class="btn-secondary" style="justify-content: center;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-                                    Search Catalog
+                                <button class="lib-tile" id="qa-projects-btn">
+                                    <div class="lib-tile-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                    </div>
+                                    <span class="lib-tile-label">View Projects</span>
+                                    <span class="lib-tile-sub">Browse all</span>
+                                </button>
+                                <button class="lib-tile" id="qa-catalog-btn">
+                                    <div class="lib-tile-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                    </div>
+                                    <span class="lib-tile-label">Cataloging</span>
+                                    <span class="lib-tile-sub">Manage locations</span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <!-- Catalog Section -->
-                <section id="section-catalog" class="content-section">
-                    <div class="section-header">
-                        <h2>Library Catalog</h2>
-                        <button class="btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            Add Item
-                        </button>
-                    </div>
-                    <div class="table-container">
-                        <p style="text-align: center; padding: 2rem; color: var(--text-secondary);">Catalog management interface</p>
-                    </div>
-                </section>
-
-                <!-- Projects Section -->
+                <!-- ===== PROJECTS ===== -->
                 <section id="section-projects" class="content-section">
+                    <!-- Admin-style section header -->
                     <div class="section-header">
-                        <h2>Capstone Projects</h2>
+                        <h2>
+                            All Projects
+                            <span class="lib-pending-legend" title="New submissions are sent for admin approval">
+                                <span class="lib-pending-dot"></span> Pending Approval
+                            </span>
+                        </h2>
                         <div class="section-actions">
                             <div class="search-box">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                                 <input type="text" id="projects-search" placeholder="Search projects...">
                             </div>
-                        </div>
-                    </div>
-                    <div class="table-container">
-                        <p style="text-align: center; padding: 2rem; color: var(--text-secondary);">Projects management interface</p>
-                    </div>
-                </section>
-
-                <!-- Circulation Section -->
-                <section id="section-circulation" class="content-section">
-                    <div class="section-header">
-                        <h2>Circulation Management</h2>
-                    </div>
-                    <div style="background: var(--surface); border-radius: 16px; padding: 2rem; border: 1px solid var(--border);">
-                        <p style="color: var(--text-secondary);">Manage checkouts, returns, and renewals</p>
-                    </div>
-                </section>
-
-                <!-- Requests Section -->
-                <section id="section-requests" class="content-section">
-                    <div class="section-header">
-                        <h2>Resource Requests</h2>
-                    </div>
-                    <div class="table-container">
-                        <p style="text-align: center; padding: 2rem; color: var(--text-secondary);">No pending requests</p>
-                    </div>
-                </section>
-
-                <!-- Analytics Section -->
-                <section id="section-analytics" class="content-section">
-                    <div class="section-header">
-                        <h2>Library Analytics</h2>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-                        <div style="background: var(--surface); border-radius: 16px; padding: 1.75rem; border: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">📊 Usage Statistics</h3>
-                            <p style="color: var(--text-secondary); font-size: 0.875rem;">Analytics data will appear here</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Settings Section -->
-                <section id="section-settings" class="content-section">
-                    <div class="section-header">
-                        <h2>Library Settings</h2>
-                    </div>
-                    
-                    <!-- Account Settings -->
-                    <div style="background: var(--surface); border-radius: 20px; border: 1px solid var(--border); padding: 2rem; margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            </div>
-                            <div>
-                                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Account Management</h3>
-                                <p style="font-size: 0.875rem; color: var(--text-secondary);">Manage your account credentials and system data</p>
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; gap: 1rem;">
-                            <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
-                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Email</div>
-                                <div style="font-weight: 600; color: var(--text-primary);" id="settings-user-email">Loading...</div>
-                            </div>
-                            <div style="padding: 1rem; background: var(--background); border-radius: 12px;">
-                                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Account Type</div>
-                                <div style="font-weight: 600; color: var(--text-primary);">Librarian</div>
-                            </div>
-                            <button id="change-password-btn" style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; font-weight: 600; color: white; cursor: pointer; transition: all 0.2s ease; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-                                <span>Change Password</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                            </button>
-
-                            <!-- Danger Zone (Collapsible Dropdown Position - Inconspicuous & Low Prominence) -->
-                            <div class="danger-zone-container" id="danger-zone-container">
-                                <button type="button" class="danger-zone-toggle" id="danger-zone-toggle" aria-expanded="false" aria-controls="danger-zone-content">
-                                    <div class="danger-zone-toggle-left">
-                                        <svg class="danger-zone-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                            <line x1="12" y1="9" x2="12" y2="13"></line>
-                                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                        </svg>
-                                        <div class="danger-zone-title-wrap">
-                                            <span class="danger-zone-title">Danger Zone</span>
-                                            <span class="danger-zone-subtitle">Advanced data clearing &amp; account termination</span>
-                                        </div>
-                                    </div>
-                                    <svg class="danger-zone-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
+                            <div class="action-buttons-group">
+                                <select class="lib-filter-select" id="projects-status-filter">
+                                    <option value="">All Status</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Published">Published</option>
+                                    <option value="Draft">Draft</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                                <button class="btn-secondary" id="lib-refresh-projects-btn" title="Refresh projects">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                    Refresh
                                 </button>
-                                
-                                <div class="danger-zone-content" id="danger-zone-content" style="display: none;">
-                                    <div class="danger-zone-item">
-                                        <div class="danger-zone-item-info">
-                                            <div class="danger-zone-item-title">Clear Account Data</div>
-                                            <div class="danger-zone-item-desc">Erase saved capstone projects, query history, chat sessions, and activity logs. Your account login remains active.</div>
-                                        </div>
-                                        <button type="button" id="clear-account-data-btn" class="btn-danger-subtle">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
-                                            <span>Clear Data</span>
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="danger-zone-item danger-zone-item-destructive">
-                                        <div class="danger-zone-item-info">
-                                            <div class="danger-zone-item-title">Delete Account</div>
-                                            <div class="danger-zone-item-desc">Permanently remove your account, profile, and all associated academic data from the university database.<strong>This cannot be undone.</strong></div>
-                                        </div>
-                                        <button type="button" id="delete-account-btn" class="btn-danger-subtle btn-danger-critical">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                                <circle cx="8.5" cy="7" r="4"></circle>
-                                                <line x1="18" y1="8" x2="23" y2="13"></line>
-                                                <line x1="23" y1="8" x2="18" y2="13"></line>
-                                            </svg>
-                                            <span>Delete Account</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                <button class="btn-secondary" id="lib-bulk-import-btn" title="Bulk add multiple projects">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Bulk Add
+                                </button>
+                                <button class="btn-primary" id="lib-add-project-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Add New Project
+                                </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div style="background: var(--surface); border-radius: 16px; padding: 2rem; border: 1px solid var(--border);">
-                        <p style="color: var(--text-secondary);">Configure library settings and preferences</p>
+
+                    <!-- Filter pills (program filter) -->
+                    <div class="filter-pills" id="lib-project-filters">
+                        <button class="filter-pill active" data-filter="all">All Projects</button>
+                        <button class="filter-pill" data-filter="BSFi">BSFi</button>
+                        <button class="filter-pill" data-filter="BSIT">BSIT</button>
+                        <button class="filter-pill" data-filter="BSHM">BSHM</button>
+                        <button class="filter-pill" data-filter="BSIE">BSIE</button>
+                        <button class="filter-pill" data-filter="BSEd-Math">BSEd-Math</button>
+                        <button class="filter-pill" data-filter="BEEd">BEEd</button>
+                        <button class="filter-pill" data-filter="BIT-Computer">BIT-Computer</button>
+                        <button class="filter-pill" data-filter="BIT-Electronics">BIT-Electronics</button>
+                        <button class="filter-pill" data-filter="BIT-Automotive">BIT-Automotive</button>
+                        <button class="filter-pill" data-filter="BTLEd-HE">BTLEd-HE</button>
+                        <button class="filter-pill" data-filter="pending">⏳ Pending</button>
+                    </div>
+
+                    <!-- Edit permission active banner -->
+                    <div id="projects-edit-banner" class="lib-edit-banner" style="display:none;">
+                        <div class="lib-edit-banner-left">
+                            <div class="lib-edit-banner-pulse"></div>
+                            <div>
+                                <div class="lib-edit-banner-title">Edit Window Active</div>
+                                <div class="lib-edit-banner-sub" id="projects-banner-msg">Admin has granted you editing rights for a project.</div>
+                            </div>
+                        </div>
+                        <div class="lib-edit-banner-timer" id="projects-banner-timer">--:--</div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table" id="projects-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Authors</th>
+                                    <th>Program</th>
+                                    <th>Year</th>
+                                    <th>Status</th>
+                                    <th style="width:140px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projects-table-body">
+                                <tr><td colspan="6" class="table-loading">Loading projects...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination-container" id="lib-projects-pagination"></div>
+                </section>
+
+                <!-- ===== CATALOG ===== -->
+                <section id="section-catalog" class="content-section">
+                    <div class="section-header">
+                        <div>
+                            <h1 class="section-title">Cataloging</h1>
+                            <p class="section-desc">Only <strong>Completed</strong> projects are shown here. Add physical location notes freely — no admin permission needed.</p>
+                        </div>
+                        <div class="lib-search-wrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            <input type="text" id="catalog-search" placeholder="Search catalog...">
+                        </div>
+                    </div>
+
+                    <div class="lib-catalog-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Cataloging is always open for you. Add shelf location, call number, accession number, and subject heading for any <strong>Completed</strong> project.
+                    </div>
+
+                    <div class="catalog-grid" id="catalog-grid">
+                        <div class="lib-loading-text" style="grid-column:1/-1;text-align:center;padding:3rem;">Loading completed projects...</div>
                     </div>
                 </section>
 
-                <!-- Activity Section -->
+                <!-- ===== ACTIVITY ===== -->
                 <section id="section-activity" class="content-section">
                     <!-- Populated dynamically by ActivityUI -->
                 </section>
+
+                <!-- ===== SETTINGS ===== -->
+                <section id="section-settings" class="content-section">
+                    <div class="section-header">
+                        <div>
+                            <h1 class="section-title">Settings</h1>
+                            <p class="section-desc">Manage your account and preferences.</p>
+                        </div>
+                    </div>
+
+                    <div class="lib-settings-block">
+                        <div class="lib-settings-block-hd">
+                            <div class="lib-settings-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="lib-settings-block-title">Account Management</h3>
+                                <p class="lib-settings-block-sub">Manage your credentials and account data</p>
+                            </div>
+                        </div>
+                        <div class="lib-settings-rows">
+                            <div class="lib-settings-row"><span class="lib-settings-row-lbl">Email</span><span id="settings-user-email" class="lib-settings-row-val">Loading...</span></div>
+                            <div class="lib-settings-row"><span class="lib-settings-row-lbl">Account Type</span><span class="lib-settings-row-val"><span class="lib-badge-pill lib-badge-green">Librarian</span></span></div>
+                            <div class="lib-settings-row"><span class="lib-settings-row-lbl">Full Name</span><span id="settings-user-name" class="lib-settings-row-val">Loading...</span></div>
+                        </div>
+                        <div class="lib-settings-btn-row">
+                            <button id="change-password-btn" class="libm-btn libm-btn-green">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                Change Password
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="danger-zone-container" id="danger-zone-container">
+                        <button type="button" class="danger-zone-toggle" id="danger-zone-toggle" aria-expanded="false" aria-controls="danger-zone-content">
+                            <div class="danger-zone-toggle-left">
+                                <svg class="danger-zone-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                <div class="danger-zone-title-wrap">
+                                    <span class="danger-zone-title">Danger Zone</span>
+                                    <span class="danger-zone-subtitle">Advanced data clearing &amp; account termination</span>
+                                </div>
+                            </div>
+                            <svg class="danger-zone-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="danger-zone-content" id="danger-zone-content" style="display:none;">
+                            <div class="danger-zone-item">
+                                <div class="danger-zone-item-info">
+                                    <div class="danger-zone-item-title">Clear Account Data</div>
+                                    <div class="danger-zone-item-desc">Erase saved projects, query history, chat sessions, and activity logs. Your login remains active.</div>
+                                </div>
+                                <button type="button" id="clear-account-data-btn" class="btn-danger-subtle">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    <span>Clear Data</span>
+                                </button>
+                            </div>
+                            <div class="danger-zone-item danger-zone-item-destructive">
+                                <div class="danger-zone-item-info">
+                                    <div class="danger-zone-item-title">Delete Account</div>
+                                    <div class="danger-zone-item-desc">Permanently remove your account and all associated data. <strong>This cannot be undone.</strong></div>
+                                </div>
+                                <button type="button" id="delete-account-btn" class="btn-danger-subtle btn-danger-critical">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="18" y1="8" x2="23" y2="13"/><line x1="23" y1="8" x2="18" y2="13"/></svg>
+                                    <span>Delete Account</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
 
-    <!-- Mobile Toggle Button -->
+    <!-- Mobile Toggle -->
     <button class="mobile-rail-toggle" id="mobile-rail-toggle" aria-label="Toggle navigation">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
 
     <!-- Firebase SDKs -->
@@ -418,21 +896,6 @@
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
     <script src="../js/pages/settings-handler.js"></script>
-    <script>
-        // Placeholder for librarian-specific JavaScript
-        console.log('Librarian dashboard loaded');
-        
-        // Load user email in settings
-        if (typeof auth !== 'undefined') {
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    const emailElement = document.getElementById('settings-user-email');
-                    if (emailElement) {
-                        emailElement.textContent = user.email || 'N/A';
-                    }
-                }
-            });
-        }
-    </script>
+    <script src="../js/pages/librarian_main.js"></script>
 </body>
 </html>

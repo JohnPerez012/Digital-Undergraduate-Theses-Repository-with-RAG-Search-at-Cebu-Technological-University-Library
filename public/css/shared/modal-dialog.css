@@ -65,6 +65,39 @@
     box-sizing: border-box;
 }
 
+/* Colored top accent bar (brand/type indicator) */
+.app-dialog-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3.5px;
+    background: linear-gradient(90deg, #6366f1, #4f46e5);
+    border-radius: 22px 22px 0 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.app-dialog-modal.active .app-dialog-card::before {
+    opacity: 1;
+}
+
+/* Type-specific accent colors */
+.app-dialog-modal:has(.app-dialog-icon-danger) .app-dialog-card::before {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+.app-dialog-modal:has(.app-dialog-icon-warning) .app-dialog-card::before {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+.app-dialog-modal:has(.app-dialog-icon-success) .app-dialog-card::before {
+    background: linear-gradient(90deg, #10b981, #059669);
+}
+.app-dialog-modal:has(.app-dialog-icon-info) .app-dialog-card::before {
+    background: linear-gradient(90deg, #6366f1, #0ea5e9);
+}
+
+
 /* Light Mode Overrides */
 :root:not([data-theme="dark"]) .app-dialog-card,
 [data-theme="light"] .app-dialog-card {

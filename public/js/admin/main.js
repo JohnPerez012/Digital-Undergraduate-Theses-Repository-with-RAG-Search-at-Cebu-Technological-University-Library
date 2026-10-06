@@ -82,71 +82,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         return (str || '').trim().toLowerCase().replace(/\s+/g, ' ');
     }
 
-    // ===== Confirmation Modal Helper =====
-    let confirmationCallback = null;
-    
-    function showConfirmationModal(title, message, details = null, onConfirm = null, continueButtonText = 'Continue', continueButtonClass = 'btn-danger') {
-        const modal = document.getElementById('confirmation-modal');
-        const modalTitle = document.getElementById('confirmation-modal-title');
-        const modalMessage = document.getElementById('confirmation-modal-message');
-        const modalDetails = document.getElementById('confirmation-modal-details');
-        const continueBtn = document.getElementById('confirmation-continue-btn');
-        
-        modalTitle.textContent = title;
-        modalMessage.innerHTML = message;
-        
-        if (details) {
-            modalDetails.innerHTML = details;
-            modalDetails.style.display = 'block';
-        } else {
-            modalDetails.style.display = 'none';
-        }
-        
-        // Update continue button
-        continueBtn.textContent = continueButtonText;
-        continueBtn.className = continueButtonClass;
-        
-        confirmationCallback = onConfirm;
-        modal.classList.add('active');
-    }
-    
-    function closeConfirmationModal() {
-        const modal = document.getElementById('confirmation-modal');
-        modal.classList.remove('active');
-        confirmationCallback = null;
-    }
-    
-    // Confirmation modal event listeners
-    const confirmationModal = document.getElementById('confirmation-modal');
-    const confirmationModalOverlay = document.getElementById('confirmation-modal-overlay');
-    const confirmationModalCloseBtn = document.getElementById('confirmation-modal-close-btn');
-    const confirmationCancelBtn = document.getElementById('confirmation-cancel-btn');
-    const confirmationContinueBtn = document.getElementById('confirmation-continue-btn');
-    
-    if (confirmationModalOverlay) {
-        confirmationModalOverlay.addEventListener('click', (e) => {
-            if (e.target === confirmationModalOverlay) {
-                closeConfirmationModal();
-            }
-        });
-    }
-    
-    if (confirmationModalCloseBtn) {
-        confirmationModalCloseBtn.addEventListener('click', closeConfirmationModal);
-    }
-    
-    if (confirmationCancelBtn) {
-        confirmationCancelBtn.addEventListener('click', closeConfirmationModal);
-    }
-    
-    if (confirmationContinueBtn) {
-        confirmationContinueBtn.addEventListener('click', () => {
-            if (confirmationCallback) {
-                confirmationCallback();
-            }
-            closeConfirmationModal();
-        });
-    }
+    // ===== Confirmation Dialogs use centralized ModalDialog.confirm() =====
+    // (showConfirmationModal removed – all confirmations now use ModalDialog)
+
 
     // ===== Chart References =====
     let analyticsCharts = {};
@@ -833,6 +771,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
+     * Highlight search terms in text (matches word-by-word / text-by-text)
+     * @param {string} text - The text to highlight
+     * @param {string} query - The search query
+     * @returns {string} - Safe HTML string with highlighted terms
+     */
+    function highlightSearchTerms(text, query) {
+        if (!text && text !== 0) return '';
+        const raw = String(text);
+        
+        // Escape HTML in the original text first to prevent XSS
+        const escapeHtml = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
+        const escapedText = escapeHtml(raw);
+
+        if (!query || typeof query !== 'string' || !query.trim()) {
+            return escapedText;
+        }
+
+        // Split query into terms to support word-by-word and phrase matching
+        const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rawTokens = query.trim().split(/\s+/).filter(t => t.length > 0);
+        if (rawTokens.length === 0) return escapedText;
+
+        // Sort by length descending so longer words match before substrings
+        const tokens = rawTokens.map(escapeRegex).sort((a, b) => b.length - a.length);
+        const regex = new RegExp(`(${tokens.join('|')})`, 'gi');
+
+        return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>');
+    }
+
+    /**
      * Render projects table from array of project objects
      */
     function renderProjectsTable(projects, tbody) {
@@ -842,6 +814,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No projects found</td></tr>';
             return;
         }
+
+        const searchQuery = (document.getElementById('projects-search')?.value || '').trim();
 
         projects.forEach(data => {
             const row = document.createElement('tr');
@@ -865,13 +839,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 onclick="syncSingleProject(event, '${data.id}')">
                             <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
                         </button>
-                        <strong class="project-title-text">${escapeHtml(data.title || 'Untitled')}</strong>
+                        <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>${(data.cataloged || data.catalogLocation) ? `<span class="project-catalog-pill" title="Cataloged by ${escapeHtml(data.catalogAudit?.lastUpdatedByName || data.lastCatalogedByName || 'Librarian')}">📍 Cataloged</span>` : ''}
                     </div>
                 </td>
-                <td>${escapeHtml((data.authors || []).join(', ') || 'N/A')}</td>
-                <td><span class="badge badge-info">${escapeHtml(data.program || 'N/A')}</span></td>
-                <td>${escapeHtml(data.year || 'N/A')}</td>
-                <td>${escapeHtml(data.adviser || 'N/A')}</td>
+                <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
+                <td><span class="badge badge-info">${highlightSearchTerms(data.program || 'N/A', searchQuery)}</span></td>
+                <td>${highlightSearchTerms(data.year || 'N/A', searchQuery)}</td>
+                <td>${highlightSearchTerms(data.adviser || 'N/A', searchQuery)}</td>
                 <td>
                     <div class="table-actions">
                         <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details" aria-label="View details">
@@ -894,13 +868,91 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
+     * Get filtered projects according to active search box and filter pills
+     */
+    function getFilteredProjects() {
+        if (!allProjectsData || allProjectsData.length === 0) return [];
+
+        const searchInput = document.getElementById('projects-search');
+        const searchTerm = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+        const pills = document.querySelectorAll('#project-filters .filter-pill');
+        const activeFilters = pills ? Array.from(pills).filter(p => p.classList.contains('active')) : [];
+        const filterValues = activeFilters.map(p => p.dataset.filter);
+        const showAll = filterValues.length === 0 || filterValues.includes('all');
+        const hasRecent = filterValues.includes('recent');
+        const hasUnsynced = filterValues.includes('unsynced');
+        const programFilters = filterValues.filter(f => f !== 'all' && f !== 'recent' && f !== 'unsynced');
+
+        return allProjectsData.filter(project => {
+            // 1. Program filter
+            if (!showAll && programFilters.length > 0) {
+                const prog = (project.program || '').trim();
+                const progMatch = programFilters.some(f => prog === f || prog.startsWith(f));
+                if (!progMatch) return false;
+            }
+
+            // 2. Recent filter (last 30 days)
+            if (!showAll && hasRecent) {
+                const ts = getTimestamp(project.createdAt);
+                if (!ts) return false;
+                const d = new Date(ts);
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                if (d < thirtyDaysAgo) return false;
+            }
+
+            // 3. Unsynced filter
+            if (!showAll && hasUnsynced) {
+                if (project.pineconeSynced === true) return false;
+            }
+
+            // 4. Search term filter
+            if (searchTerm) {
+                const title = String(project.title || '').toLowerCase();
+                const authors = Array.isArray(project.authors) ? project.authors.join(' ').toLowerCase() : String(project.authors || '').toLowerCase();
+                const adviser = String(project.adviser || '').toLowerCase();
+                const program = String(project.program || '').toLowerCase();
+                const year = String(project.year || '').toLowerCase();
+                const keywords = Array.isArray(project.keywords) ? project.keywords.join(' ').toLowerCase() : String(project.keywords || '').toLowerCase();
+
+                let parsedAdviserMatch = false;
+                if (typeof AcademicNameParser !== 'undefined' && project.adviser) {
+                    const parsed = AcademicNameParser.parse(project.adviser);
+                    if (parsed) {
+                        if (parsed.surname.toLowerCase().includes(searchTerm) ||
+                            parsed.clusterKey.toLowerCase().includes(searchTerm) ||
+                            parsed.fullDisplay.toLowerCase().includes(searchTerm)) {
+                            parsedAdviserMatch = true;
+                        }
+                    }
+                }
+
+                const matches = title.includes(searchTerm) ||
+                                authors.includes(searchTerm) ||
+                                adviser.includes(searchTerm) ||
+                                parsedAdviserMatch ||
+                                program.includes(searchTerm) ||
+                                year.includes(searchTerm) ||
+                                keywords.includes(searchTerm);
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+    }
+
+    /**
      * Render projects table with pagination (new paginated version)
      */
     function renderProjectsTablePaginated(tbody) {
         tbody.innerHTML = '';
 
-        if (allProjectsData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No projects found</td></tr>';
+        const projectsToDisplay = getFilteredProjects();
+
+        if (projectsToDisplay.length === 0) {
+            const searchVal = document.getElementById('projects-search')?.value.trim();
+            tbody.innerHTML = `<tr><td colspan="6" class="table-empty">${searchVal ? `No projects found matching "${escapeHtml(searchVal)}"` : 'No projects found'}</td></tr>`;
             renderProjectsPagination();
             return;
         }
@@ -908,7 +960,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Calculate pagination
         const startIndex = (currentProjectsPage - 1) * PROJECTS_PER_PAGE;
         const endIndex = startIndex + PROJECTS_PER_PAGE;
-        const projectsToShow = allProjectsData.slice(startIndex, endIndex);
+        const projectsToShow = projectsToDisplay.slice(startIndex, endIndex);
+
+        const searchQuery = (document.getElementById('projects-search')?.value || '').trim();
 
         // Render current page projects
         projectsToShow.forEach(data => {
@@ -932,13 +986,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 onclick="syncSingleProject(event, '${data.id}')">
                             <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
                         </button>
-                        <strong class="project-title-text">${escapeHtml(data.title || 'Untitled')}</strong>
+                        <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>
                     </div>
                 </td>
-                <td>${escapeHtml((data.authors || []).join(', ') || 'N/A')}</td>
-                <td><span class="badge badge-info">${escapeHtml(data.program || 'N/A')}</span></td>
-                <td>${escapeHtml(data.year || 'N/A')}</td>
-                <td>${escapeHtml(data.adviser || 'N/A')}</td>
+                <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
+                <td><span class="badge badge-info">${highlightSearchTerms(data.program || 'N/A', searchQuery)}</span></td>
+                <td>${highlightSearchTerms(data.year || 'N/A', searchQuery)}</td>
+                <td>${highlightSearchTerms(data.adviser || 'N/A', searchQuery)}</td>
                 <td>
                     <div class="table-actions">
                         <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details" aria-label="View details">
@@ -972,13 +1026,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         paginationContainer.innerHTML = '';
 
-        const totalPages = Math.ceil(allProjectsData.length / PROJECTS_PER_PAGE);
+        const projectsToDisplay = getFilteredProjects();
+        const totalCount = projectsToDisplay.length;
+        const totalPages = Math.ceil(totalCount / PROJECTS_PER_PAGE);
 
-        if (totalPages <= 1) return; // No pagination needed
+        if (totalPages <= 1) {
+            if (totalCount > 0 && totalCount < allProjectsData.length) {
+                const infoText = document.createElement('span');
+                infoText.className = 'pagination-info';
+                infoText.textContent = `Showing ${totalCount} of ${allProjectsData.length} projects`;
+                paginationContainer.appendChild(infoText);
+            }
+            return; // No pagination needed
+        }
 
         // Calculate range
         const startItem = (currentProjectsPage - 1) * PROJECTS_PER_PAGE + 1;
-        const endItem = Math.min(currentProjectsPage * PROJECTS_PER_PAGE, allProjectsData.length);
+        const endItem = Math.min(currentProjectsPage * PROJECTS_PER_PAGE, totalCount);
 
         // Previous button
         const prevBtn = document.createElement('button');
@@ -1048,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Info text
         const infoText = document.createElement('span');
         infoText.className = 'pagination-info';
-        infoText.textContent = `${startItem}-${endItem} of ${allProjectsData.length}`;
+        infoText.textContent = `${startItem}-${endItem} of ${totalCount}`;
         paginationContainer.appendChild(infoText);
     }
 
@@ -1081,6 +1145,91 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    /**
+     * Unified filtering & real-time search for Users table
+     * Evaluates active filter pills, search queries (Name, Email, Role/UserType),
+     * and applies brand-yellow term highlighting.
+     */
+    function filterUsersTable() {
+        const tbody = document.getElementById('users-table-body');
+        if (!tbody) return;
+        const rows = tbody.getElementsByTagName('tr');
+
+        const activePill = document.querySelector('#user-filters .filter-pill.active');
+        const activeFilter = activePill ? (activePill.dataset.filter || 'all').toLowerCase() : 'all';
+
+        const usersSearch = document.getElementById('users-search');
+        const rawSearch = (usersSearch?.value || '').trim();
+        const searchLower = rawSearch.toLowerCase();
+        const searchTokens = searchLower.split(/\s+/).filter(t => t.length > 0);
+
+        Array.from(rows).forEach(row => {
+            if (row.classList.contains('table-loading') || row.classList.contains('table-empty')) return;
+            const nameCell = row.cells[0]?.querySelector('strong') || row.cells[0];
+            const emailCell = row.cells[1];
+            const typeCell = row.cells[2]?.querySelector('.badge') || row.cells[2];
+
+            // Keep raw original text to re-highlight cleanly
+            const rawName = row.getAttribute('data-original-name') || (nameCell ? nameCell.textContent.trim() : '');
+            const rawEmail = row.getAttribute('data-original-email') || (emailCell ? emailCell.textContent.trim() : '');
+            const rawType = row.getAttribute('data-original-type') || (typeCell ? typeCell.textContent.trim() : '');
+            if (!row.getAttribute('data-original-name') && rawName) row.setAttribute('data-original-name', rawName);
+            if (!row.getAttribute('data-original-email') && rawEmail) row.setAttribute('data-original-email', rawEmail);
+            if (!row.getAttribute('data-original-type') && rawType) row.setAttribute('data-original-type', rawType);
+
+            const rowTypeLower = rawType.toLowerCase();
+
+            // 1. Filter pill check
+            let matchesPill = true;
+            if (activeFilter !== 'all') {
+                if (activeFilter === 'teacher' || activeFilter === 'faculty') {
+                    matchesPill = rowTypeLower.includes('teacher') || rowTypeLower.includes('faculty');
+                } else if (activeFilter === 'admin') {
+                    matchesPill = rowTypeLower.includes('admin');
+                } else {
+                    matchesPill = rowTypeLower.includes(activeFilter);
+                }
+            }
+
+            // 2. Search check (Name, Email, or Role / Type with synonyms)
+            let matchesSearch = true;
+            if (searchTokens.length > 0) {
+                let searchableRole = rowTypeLower;
+                if (rowTypeLower.includes('teacher') || rowTypeLower.includes('faculty')) {
+                    searchableRole += ' teacher faculty professor instructor';
+                }
+                if (rowTypeLower.includes('admin')) {
+                    searchableRole += ' admin administrator';
+                }
+                if (rowTypeLower.includes('student')) {
+                    searchableRole += ' student learner undergraduate';
+                }
+                if (rowTypeLower.includes('librarian')) {
+                    searchableRole += ' librarian library staff';
+                }
+
+                const fullSearchable = `${rawName} ${rawEmail} ${rawType} ${searchableRole}`.toLowerCase();
+                matchesSearch = searchTokens.every(token => fullSearchable.includes(token));
+            }
+
+            if (matchesPill && matchesSearch) {
+                row.style.display = '';
+                if (nameCell) nameCell.innerHTML = highlightSearchTerms(rawName, rawSearch);
+                if (emailCell) emailCell.innerHTML = highlightSearchTerms(rawEmail, rawSearch);
+                if (typeCell) {
+                    let typeHighlightQuery = rawSearch;
+                    if ((searchLower.includes('teacher') || searchLower.includes('faculty')) && 
+                        (rowTypeLower.includes('teacher') || rowTypeLower.includes('faculty'))) {
+                        typeHighlightQuery = rawType;
+                    }
+                    typeCell.innerHTML = highlightSearchTerms(rawType, typeHighlightQuery);
+                }
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
     // ===== Users Data =====
     async function loadUsersData(forceRefresh = false) {
         // Safety check: Ensure user is authenticated
@@ -1099,6 +1248,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
+            const userSearchQuery = (document.getElementById('users-search')?.value || '').trim();
+
             usersList.forEach(data => {
                 const userType = data.userType || 'N/A';
                 const badgeColor = userType === 'admin' ? 'linear-gradient(to right, #08D488, #FCCC56)' : 
@@ -1106,12 +1257,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                   userType === 'student' ? '#fad882ff' : '#94a3b8';
                 
                 const row = document.createElement('tr');
+                row.setAttribute('data-original-name', data.fullName || 'N/A');
+                row.setAttribute('data-original-email', data.email || 'N/A');
+                row.setAttribute('data-original-type', userType.toUpperCase());
                 row.innerHTML = `
-                    <td><strong>${escapeHtml(data.fullName || 'N/A')}</strong></td>
-                    <td>${escapeHtml(data.email || 'N/A')}</td>
+                    <td><strong>${highlightSearchTerms(data.fullName || 'N/A', userSearchQuery)}</strong></td>
+                    <td>${highlightSearchTerms(data.email || 'N/A', userSearchQuery)}</td>
                     <td>
                         <span class="badge" style="background: ${badgeColor}; color: white;">
-                            ${userType.toUpperCase()}
+                            ${highlightSearchTerms(userType.toUpperCase(), userSearchQuery)}
                         </span>
                     </td>
                     <td>${formatDate(data.createdAt)}</td>
@@ -1148,19 +1302,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             renderUsersTable(users);
             
-            // Re-apply filter pills if active
-            const activePill = document.querySelector('#user-filters .filter-pill.active');
-            if (activePill) {
-                const filter = activePill.dataset.filter;
-                const rows = tbody.getElementsByTagName('tr');
-                Array.from(rows).forEach(row => {
-                    const badgeText = row.querySelector('.badge')?.textContent.trim().toLowerCase() || '';
-                    if (filter === 'all') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = badgeText === filter ? '' : 'none';
-                    }
-                });
+            // Re-apply filter pills and search if active
+            if (typeof filterUsersTable === 'function') {
+                filterUsersTable();
             }
             renderedFromCache = true;
             console.log('🚀 Using cached user data for instant render - revalidating in background...');
@@ -1236,19 +1380,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Render fresh data
             renderUsersTable(freshUsers);
 
-            // Re-apply filter pills if active
-            const activePill = document.querySelector('#user-filters .filter-pill.active');
-            if (activePill) {
-                const filter = activePill.dataset.filter;
-                const rows = tbody.getElementsByTagName('tr');
-                Array.from(rows).forEach(row => {
-                    const badgeText = row.querySelector('.badge')?.textContent.trim().toLowerCase() || '';
-                    if (filter === 'all') {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = badgeText === filter ? '' : 'none';
-                    }
-                });
+            // Re-apply filter pills and search if active
+            if (typeof filterUsersTable === 'function') {
+                filterUsersTable();
             }
 
         } catch (error) {
@@ -1395,7 +1529,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const results = await Promise.all(promises);
             results.forEach(res => {
-                if (res.type === 'projects') projects = res.data;
+                if (res.type === 'projects') {
+                    projects = res.data;
+                    if (!allProjectsData || allProjectsData.length === 0) {
+                        allProjectsData = res.data;
+                    }
+                }
                 if (res.type === 'users') users = res.data;
                 if (res.type === 'savedProjects') savedProjects = res.data;
                 if (res.type === 'activities') activities = res.data;
@@ -1430,23 +1569,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Populate Program Filter Dropdown
+    // Canonical CTU Academic Programs
+    const CANONICAL_ACADEMIC_PROGRAMS = [
+        { code: 'BEEd', name: 'Bachelor of Elementary Education' },
+        { code: 'BIT-Automotive', name: 'Bachelor of Industrial Technology Major in Automotive' },
+        { code: 'BIT-Computer', name: 'Bachelor of Industrial Technology Major in Computer' },
+        { code: 'BIT-Electronics', name: 'Bachelor of Industrial Technology Major in Electronics' },
+        { code: 'BSEd-Math', name: 'Bachelor of Secondary Education Major in Mathematics' },
+        { code: 'BSFi', name: 'Bachelor of Science in Fisheries' },
+        { code: 'BSHM', name: 'Bachelor of Science in Hospitality Management' },
+        { code: 'BSIE', name: 'Bachelor of Science in Industrial Engineering' },
+        { code: 'BSIT', name: 'Bachelor of Science in Information Technology' },
+        { code: 'BTLEd-HE', name: 'Bachelor in Technology and Livelihood Education Major in Home Economics' }
+    ];
+
+    // Populate Program Filter Dropdown (Includes All Campus Programs + Project Counts)
     function populateProgramFilter(projects) {
         const progSelect = document.getElementById('analytics-program-filter');
         if (!progSelect) return;
 
-        const programSet = new Set();
+        // Calculate count of projects per program
+        const programCounts = {};
         (projects || []).forEach(p => {
             if (p.program && p.program.trim()) {
-                programSet.add(p.program.trim());
+                const prog = p.program.trim();
+                programCounts[prog] = (programCounts[prog] || 0) + 1;
             }
         });
-        const programs = Array.from(programSet).sort();
+
+        // Collect all canonical campus programs + any custom programs found in projects
+        const allProgramCodes = new Set(CANONICAL_ACADEMIC_PROGRAMS.map(p => p.code));
+        Object.keys(programCounts).forEach(code => allProgramCodes.add(code));
+        const programs = Array.from(allProgramCodes).sort((a, b) => a.localeCompare(b));
 
         const currentVal = progSelect.value || currentAnalyticsFilter.program || 'all';
-        let html = '<option value="all">All Academic Programs</option>';
+        const totalProjectsCount = (projects || []).length;
+
+        let html = `<option value="all">All Academic Programs (${totalProjectsCount})</option>`;
         programs.forEach(prog => {
-            html += `<option value="${escapeHtml(prog)}">${escapeHtml(prog)}</option>`;
+            const count = programCounts[prog] || 0;
+            html += `<option value="${escapeHtml(prog)}">${escapeHtml(prog)} (${count})</option>`;
         });
         progSelect.innerHTML = html;
         if (programs.includes(currentVal) || currentVal === 'all') {
@@ -1470,7 +1632,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const currentYear = new Date().getFullYear();
                 list = list.filter(p => {
                     const ts = getTimestamp(p.createdAt);
-                    return ts ? new Date(ts).getFullYear() === currentYear : false;
+                    const matchesTs = ts ? new Date(ts).getFullYear() === currentYear : false;
+                    const matchesYear = p.year ? parseInt(p.year) === currentYear : false;
+                    return matchesTs || matchesYear;
                 });
             } else if (filters.range === '90d') {
                 const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1000;
@@ -1598,12 +1762,284 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // =========================================================================
+    // SYSTEMATIC ACADEMIC NAME & POST-NOMINAL CREDENTIAL PARSER
+    // Automatically identifies, extracts, and separates:
+    // 1. Honorific Prefixes (Dr., Engr., Prof., Assoc. Prof., Dean, etc.)
+    // 2. Given Names & Middle Names/Initials
+    // 3. True Surnames (including compound names: "de la Cruz", "Del Rosario", etc.)
+    // 4. Generational Suffixes (Jr., Sr., II, III, IV, etc.)
+    // 5. Post-nominal Academic Degrees & Credentials (Ph. D., Ph.D., MSME, MBA, MSIT, Ed.D., PECE, LPT, etc.)
+    // =========================================================================
+    const AcademicNameParser = {
+        prefixRegex: /^(dr\.?|doctor|engr\.?|engineer|prof\.?|professor|assoc\.?\s*prof\.?|asst\.?\s*prof\.?|dean|atty\.?|rev\.?|hon\.?|mr\.?|ms\.?|mrs\.?)\s+/i,
+        suffixRegex: /^(jr\.?|sr\.?|ii|iii|iv|v)$/i,
+
+        credentialPatterns: [
+            // Doctorates
+            'ph.?\\s*d.?', 'ed.?\\s*d.?', 'd.?\\s*eng.?', 'dit', 'dba', 'dpa', 'dm', 'sc.?\\s*d.?', 'd.?\\s*tech.?',
+            // Masters
+            'msme', 'msit', 'mit', 'mba', 'mpa', 'man', 'maed', 'm.?\\s*ed.?', 'm.?\\s*sc.?', 'm.?\\s*s.?', 'm.?\\s*eng.?',
+            'me', 'mscs', 'mst', 'mem', 'mm', 'ma',
+            // Bachelors
+            'bsit', 'bscs', 'bsie', 'bscpe', 'bsee', 'bsme', 'bs', 'b.?\\s*s.?', 'ab', 'ba',
+            // Professional Certifications & Fellowships
+            'pece', 'ece', 'cpa', 'lpt', 'rn', 'md', 'jd', 'ree', 'rme', 'csp', 'pmp', 'friedr', 'che', 'ce', 'pie'
+        ],
+
+        isCredential(token) {
+            if (!token) return false;
+            const clean = token.replace(/[.,\s]/g, '').toLowerCase();
+            return this.credentialPatterns.some(pattern => {
+                const regex = new RegExp('^' + pattern + '$', 'i');
+                return regex.test(token.trim()) || regex.test(clean);
+            });
+        },
+
+        parse(raw) {
+            if (!raw) return null;
+            let str = String(raw).trim();
+            if (!str || /^(not specified|n\/?a|none|unknown|null|tbd)$/i.test(str)) return null;
+
+            let prefix = '';
+            let suffix = '';
+            const credentials = [];
+
+            // 1. Honorific prefix
+            const pMatch = str.match(this.prefixRegex);
+            if (pMatch) {
+                prefix = pMatch[1].trim();
+                str = str.replace(this.prefixRegex, '').trim();
+            }
+
+            // 2. Comma-separated parts (e.g. "Cyros M. Suson, Ph. D.")
+            const commaParts = str.split(',').map(s => s.trim()).filter(Boolean);
+            let baseName = commaParts[0] || '';
+
+            for (let i = 1; i < commaParts.length; i++) {
+                const part = commaParts[i];
+                if (this.suffixRegex.test(part)) {
+                    suffix = part;
+                } else {
+                    credentials.push(part);
+                }
+            }
+
+            // 3. Standalone trailing credentials or suffixes without commas (e.g. "Cyros M. Suson Ph. D.")
+            let tokens = baseName.split(/\s+/).filter(Boolean);
+            while (tokens.length > 1) {
+                if (tokens.length >= 2) {
+                    const combinedTwo = tokens[tokens.length - 2] + ' ' + tokens[tokens.length - 1];
+                    if (/^(ph\.?\s*d\.?|ed\.?\s*d\.?|d\.?\s*eng\.?|sc\.?\s*d\.?|m\.?\s*ed\.?|m\.?\s*sc\.?|m\.?\s*s\.?|b\.?\s*s\.?)$/i.test(combinedTwo)) {
+                        credentials.unshift(combinedTwo);
+                        tokens.splice(tokens.length - 2, 2);
+                        continue;
+                    }
+                }
+
+                const lastToken = tokens[tokens.length - 1];
+                if (this.isCredential(lastToken)) {
+                    credentials.unshift(lastToken);
+                    tokens.pop();
+                    continue;
+                }
+                if (this.suffixRegex.test(lastToken)) {
+                    suffix = lastToken;
+                    tokens.pop();
+                    continue;
+                }
+                break;
+            }
+
+            if (tokens.length === 0) return null;
+
+            // 4. Resolve Surname, Middle, First from remaining tokens
+            let surname = '';
+            let firstName = '';
+            let middle = '';
+
+            const len = tokens.length;
+            if (len === 1) {
+                surname = tokens[0];
+                firstName = tokens[0];
+            } else if (len >= 3 && /^(de|del|dela|san|santa|sta\.?|sto\.?)$/i.test(tokens[len - 2])) {
+                surname = tokens[len - 2] + ' ' + tokens[len - 1];
+                const rest = tokens.slice(0, len - 2);
+                if (rest.length > 1 && /^[A-Za-z]\.?$/.test(rest[rest.length - 1])) {
+                    middle = rest.pop();
+                }
+                firstName = rest.join(' ');
+            } else if (len >= 4 && /^(de|van|von)$/i.test(tokens[len - 3]) && /^(la|los|las)$/i.test(tokens[len - 2])) {
+                surname = tokens[len - 3] + ' ' + tokens[len - 2] + ' ' + tokens[len - 1];
+                const rest = tokens.slice(0, len - 3);
+                if (rest.length > 1 && /^[A-Za-z]\.?$/.test(rest[rest.length - 1])) {
+                    middle = rest.pop();
+                }
+                firstName = rest.join(' ');
+            } else {
+                surname = tokens[tokens.length - 1];
+                const pen = tokens[tokens.length - 2];
+                if (/^[A-Za-z]\.?$/.test(pen)) {
+                    middle = pen;
+                    firstName = tokens.slice(0, tokens.length - 2).join(' ');
+                } else {
+                    firstName = tokens.slice(0, tokens.length - 1).join(' ');
+                }
+            }
+
+            // Clean punctuation on surname
+            surname = surname.replace(/[,;]+$/, '').trim();
+
+            // Normalized canonical clustering key (for merging variations like "Annalie C. Rubio" and "Annalie C. Rubio, MSME")
+            const normFirst = firstName.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
+            let normLast = surname.toLowerCase().replace(/[^a-z]/g, '');
+            if (normLast.includes('rubio')) normLast = 'rubio'; // Typo tolerance for 'cmrubio'
+            const clusterKey = (normFirst ? normFirst + '_' : '') + normLast;
+
+            // Full display name with all credentials
+            const cleanCreds = credentials.length > 0 ? ', ' + credentials.join(', ') : '';
+            const fullDisplay = [prefix, firstName, middle, surname, suffix].filter(Boolean).join(' ') + cleanCreds;
+
+            return {
+                raw,
+                prefix,
+                firstName,
+                middle,
+                surname,
+                suffix,
+                credentials: credentials.join(', '),
+                clusterKey,
+                fullDisplay
+            };
+        }
+    };
+    window.AcademicNameParser = AcademicNameParser;
+
     // Render all analytics charts
     function renderCharts(projects, users, savedProjects, activities, filters) {
         if (typeof Chart !== 'undefined') {
             Chart.defaults.resizeDelay = 200;
         }
         const theme = getChartTheme();
+
+        // ===== Interactive Navigation from Analytics to Projects =====
+        function navigateToProjectsAndSearch(searchKeyword, displayName, contextLabel = '') {
+            if (!searchKeyword) return;
+
+            // 1. Reset project filter pills or activate matching program pill
+            const pills = document.querySelectorAll('#project-filters .filter-pill');
+            if (pills && pills.length > 0) {
+                pills.forEach(p => p.classList.remove('active'));
+                const matchedPill = document.querySelector(`#project-filters .filter-pill[data-filter="${searchKeyword}"]`);
+                if (matchedPill) {
+                    matchedPill.classList.add('active');
+                } else {
+                    const allPill = document.querySelector('#project-filters .filter-pill[data-filter="all"]');
+                    if (allPill) allPill.classList.add('active');
+                }
+            }
+
+            // 2. Set search input value
+            const projectsSearchInput = document.getElementById('projects-search');
+            if (projectsSearchInput) {
+                projectsSearchInput.value = searchKeyword;
+            }
+
+            // 3. Navigate to Projects section via sidebar rail
+            const railProjectsBtn = document.querySelector('.rail-nav-item[data-section="projects"]');
+            if (railProjectsBtn) {
+                railProjectsBtn.click();
+            } else {
+                document.querySelectorAll('.rail-nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                const section = document.getElementById('section-projects');
+                if (section) section.classList.add('active');
+                if (typeof loadProjectsData === 'function') {
+                    loadProjectsData();
+                }
+            }
+
+            // 4. Ensure pagination is reset to 1 and filtered table renders
+            currentProjectsPage = 1;
+            const tbody = document.getElementById('projects-table-body');
+            if (tbody && typeof renderProjectsTablePaginated === 'function') {
+                renderProjectsTablePaginated(tbody);
+            }
+
+            // 5. Trigger input event and focus search box with smooth scroll
+            if (projectsSearchInput) {
+                projectsSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                setTimeout(() => {
+                    projectsSearchInput.focus();
+                    projectsSearchInput.select();
+                    projectsSearchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+
+            // 6. User feedback toast
+            const label = displayName || searchKeyword;
+            const prefix = contextLabel ? `Filtered projects for ${contextLabel}: ` : 'Filtered projects: ';
+            if (typeof showToast === 'function') {
+                showToast(`${prefix}${label}`, '🔍');
+            }
+        }
+
+        // ===== Interactive Navigation from Analytics to Users =====
+        function navigateToUsersAndSearch(roleKey, displayName) {
+            if (!roleKey) return;
+
+            // 1. Reset user filter pills or activate matching role pill
+            const pills = document.querySelectorAll('#user-filters .filter-pill');
+            if (pills && pills.length > 0) {
+                pills.forEach(p => p.classList.remove('active'));
+                const matchedPill = document.querySelector(`#user-filters .filter-pill[data-filter="${roleKey.toLowerCase()}"]`);
+                if (matchedPill) {
+                    matchedPill.classList.add('active');
+                } else {
+                    const allPill = document.querySelector('#user-filters .filter-pill[data-filter="all"]');
+                    if (allPill) allPill.classList.add('active');
+                }
+            }
+
+            // 2. Set search input value
+            const usersSearchInput = document.getElementById('users-search');
+            if (usersSearchInput) {
+                usersSearchInput.value = roleKey;
+            }
+
+            // 3. Navigate to Users section via sidebar rail
+            const railUsersBtn = document.querySelector('.rail-nav-item[data-section="users"]');
+            if (railUsersBtn) {
+                railUsersBtn.click();
+            } else {
+                document.querySelectorAll('.rail-nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                const section = document.getElementById('section-users');
+                if (section) section.classList.add('active');
+                if (typeof loadUsersData === 'function') {
+                    loadUsersData();
+                }
+            }
+
+            // 4. Trigger input event, filter users, and focus with smooth scroll
+            if (typeof filterUsersTable === 'function') {
+                filterUsersTable();
+            }
+            if (usersSearchInput) {
+                usersSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                setTimeout(() => {
+                    usersSearchInput.focus();
+                    usersSearchInput.select();
+                    usersSearchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+
+            // 5. User feedback toast
+            const label = displayName || roleKey;
+            if (typeof showToast === 'function') {
+                showToast(`Filtered users for role: ${label}`, '👥');
+            }
+        }
 
         // -------------------------------------------------------------
         // 1. Projects by Program Chart
@@ -1625,6 +2061,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ctx = document.getElementById('programChart');
             if (!ctx) return;
 
+            ctx.style.cursor = 'pointer';
             const isHorizontal = chartType === 'horizontalBar';
             const actualType = isHorizontal ? 'bar' : (chartType === 'doughnut' ? 'doughnut' : 'bar');
 
@@ -1646,6 +2083,38 @@ document.addEventListener('DOMContentLoaded', async () => {
                     responsive: true,
                     maintainAspectRatio: false,
                     indexAxis: isHorizontal ? 'y' : 'x',
+                    onClick: (event, elements, chart) => {
+                        let clickedIndex = -1;
+                        if (elements && elements.length > 0) {
+                            clickedIndex = elements[0].index;
+                        } else if (actualType !== 'doughnut' && chart && chart.scales) {
+                            const scale = isHorizontal ? chart.scales.y : chart.scales.x;
+                            if (scale) {
+                                const pixel = isHorizontal 
+                                    ? (event.y !== undefined ? event.y : (event.native ? event.native.offsetY : null))
+                                    : (event.x !== undefined ? event.x : (event.native ? event.native.offsetX : null));
+                                if (pixel !== null) {
+                                    const val = scale.getValueForPixel(pixel);
+                                    if (typeof val === 'number' && val >= 0 && val < programLabels.length) {
+                                        clickedIndex = Math.round(val);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (clickedIndex >= 0 && clickedIndex < programLabels.length) {
+                            const programName = programLabels[clickedIndex];
+                            if (programName && programName !== 'No Data') {
+                                navigateToProjectsAndSearch(programName, programName, 'academic program');
+                            }
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const target = event.native ? event.native.target : ctx;
+                        if (target) {
+                            target.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+                        }
+                    },
                     plugins: {
                         legend: {
                             display: actualType === 'doughnut',
@@ -1658,7 +2127,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             bodyColor: theme.tooltipText,
                             borderColor: theme.borderColor,
                             borderWidth: 1,
-                            padding: 10
+                            padding: 10,
+                            callbacks: {
+                                afterLabel: () => '👉 Click to view in Projects'
+                            }
                         }
                     },
                     scales: actualType === 'doughnut' ? {} : {
@@ -1693,6 +2165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const totalUserCount = (users || []).length || 1;
         const roleLabels = ['Students', 'Faculty / Teachers', 'Librarians', 'Administrators'];
+        const roleKeys = ['student', 'teacher', 'librarian', 'admin'];
         const roleData = [roleCounts.student, roleCounts.teacher, roleCounts.librarian, roleCounts.admin];
         const roleColors = ['#3b82f6', '#FCCC56', '#08D488', '#764ba2'];
 
@@ -1701,6 +2174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         const userRolesCtx = document.getElementById('userRolesChart');
         if (userRolesCtx) {
+            userRolesCtx.style.cursor = 'pointer';
             analyticsCharts['userRolesChart'] = new Chart(userRolesCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
@@ -1715,6 +2189,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    onClick: (event, elements, chart) => {
+                        let clickedIndex = -1;
+                        if (elements && elements.length > 0) {
+                            clickedIndex = elements[0].index;
+                        }
+                        if (clickedIndex >= 0 && clickedIndex < roleKeys.length) {
+                            navigateToUsersAndSearch(roleKeys[clickedIndex], roleLabels[clickedIndex]);
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const target = event.native ? event.native.target : userRolesCtx;
+                        if (target) {
+                            target.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+                        }
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -1728,7 +2217,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     const val = context.raw || 0;
                                     const pct = Math.round((val / totalUserCount) * 100);
                                     return ` ${context.label}: ${val} (${pct}%)`;
-                                }
+                                },
+                                afterLabel: () => '👉 Click to view in Users'
                             }
                         }
                     }
@@ -1741,12 +2231,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const count = roleData[idx];
                     const pct = Math.round((count / totalUserCount) * 100);
                     return `
-                        <div class="legend-item" title="${label}: ${count} (${pct}%)">
+                        <div class="legend-item" title="Click to view ${label} in Users" data-role-idx="${idx}" style="cursor: pointer; user-select: none;">
                             <span class="legend-color" style="background:${roleColors[idx]}"></span>
                             <span>${label.split('/')[0].trim()}: <strong>${count}</strong> <small style="opacity:0.8">(${pct}%)</small></span>
                         </div>
                     `;
                 }).join('');
+
+                legendContainer.querySelectorAll('.legend-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const idx = parseInt(item.getAttribute('data-role-idx'), 10);
+                        if (!isNaN(idx) && idx >= 0 && idx < roleKeys.length) {
+                            navigateToUsersAndSearch(roleKeys[idx], roleLabels[idx]);
+                        }
+                    });
+                });
             }
         }
 
@@ -1780,7 +2279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     labels: sortedYears.length > 0 ? sortedYears : ['No Data'],
                     datasets: [{
                         label: isLine ? 'Cumulative Repository Volume' : 'Annual Inflow',
-                        data: isLine ? cumulativeData : annualData,
+                        data: isLine ? (cumulativeData.length > 0 ? cumulativeData : [0]) : (annualData.length > 0 ? annualData : [0]),
                         borderColor: '#08D488',
                         backgroundColor: isLine ? 'rgba(8, 212, 136, 0.12)' : '#08D488',
                         fill: isLine,
@@ -1825,31 +2324,62 @@ document.addEventListener('DOMContentLoaded', async () => {
         // -------------------------------------------------------------
         // 4. Top Capstone Advisers Chart
         // -------------------------------------------------------------
-        const adviserCounts = {};
+        const adviserClusters = {};
         (projects || []).forEach(p => {
-            if (p.adviser && p.adviser.trim()) {
-                const adv = p.adviser.trim();
-                adviserCounts[adv] = (adviserCounts[adv] || 0) + 1;
+            const parsed = AcademicNameParser.parse(p.adviser);
+            if (!parsed) return;
+
+            if (!adviserClusters[parsed.clusterKey]) {
+                adviserClusters[parsed.clusterKey] = {
+                    clusterKey: parsed.clusterKey,
+                    surname: parsed.surname,
+                    firstName: parsed.firstName,
+                    count: 0,
+                    canonicalDisplay: parsed.fullDisplay,
+                    rawVariations: []
+                };
+            }
+            const item = adviserClusters[parsed.clusterKey];
+            item.count++;
+            item.rawVariations.push(p.adviser);
+            if (parsed.fullDisplay.length > item.canonicalDisplay.length) {
+                item.canonicalDisplay = parsed.fullDisplay;
             }
         });
-        const sortedAdvisers = Object.keys(adviserCounts).sort((a, b) => adviserCounts[b] - adviserCounts[a]).slice(0, 6);
-        const adviserData = sortedAdvisers.map(adv => adviserCounts[adv]);
+
+        const topAdvisers = Object.values(adviserClusters)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 6);
+
+        // Check for duplicate surnames among top advisers to disambiguate with first initial
+        const surnameCounts = {};
+        topAdvisers.forEach(a => {
+            surnameCounts[a.surname] = (surnameCounts[a.surname] || 0) + 1;
+        });
+
+        const adviserLabels = topAdvisers.length > 0 ? topAdvisers.map(a => {
+            if (surnameCounts[a.surname] > 1 && a.firstName) {
+                return `${a.firstName.charAt(0).toUpperCase()}. ${a.surname}`;
+            }
+            return a.surname;
+        }) : ['No Data'];
+
+        const adviserData = topAdvisers.length > 0 ? topAdvisers.map(a => a.count) : [0];
+
 
         if (analyticsCharts['advisersChart']) {
             analyticsCharts['advisersChart'].destroy();
         }
         const advisersCtx = document.getElementById('advisersChart');
         if (advisersCtx) {
+            advisersCtx.style.cursor = 'pointer';
             analyticsCharts['advisersChart'] = new Chart(advisersCtx.getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: sortedAdvisers.length > 0 ? sortedAdvisers.map(name => {
-                        const parts = name.split(' ');
-                        return parts.length > 1 ? parts[parts.length - 1] : name;
-                    }) : ['No Data'],
+                    labels: adviserLabels,
                     datasets: [{
                         label: 'Supervised Theses',
-                        data: adviserData.length > 0 ? adviserData : [0],
+                        data: adviserData,
                         backgroundColor: '#6366f1',
                         borderRadius: 5
                     }]
@@ -1858,6 +2388,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                     responsive: true,
                     maintainAspectRatio: false,
                     indexAxis: 'y',
+                    onClick: (event, elements, chart) => {
+                        let clickedIndex = -1;
+                        if (elements && elements.length > 0) {
+                            clickedIndex = elements[0].index;
+                        } else if (chart && chart.scales && chart.scales.y) {
+                            const yPixel = event.y !== undefined ? event.y : (event.native ? event.native.offsetY : null);
+                            if (yPixel !== null) {
+                                const yVal = chart.scales.y.getValueForPixel(yPixel);
+                                if (typeof yVal === 'number' && yVal >= 0 && yVal < topAdvisers.length) {
+                                    clickedIndex = Math.round(yVal);
+                                }
+                            }
+                        }
+
+                        if (clickedIndex >= 0 && clickedIndex < topAdvisers.length) {
+                            const adviser = topAdvisers[clickedIndex];
+                            if (adviser) {
+                                const searchKeyword = adviser.surname || adviserLabels[clickedIndex];
+                                navigateToProjectsAndSearch(searchKeyword, adviser.canonicalDisplay);
+                            }
+                        }
+                    },
+                    onHover: (event, elements) => {
+                        const target = event.native ? event.native.target : advisersCtx;
+                        if (target) {
+                            target.style.cursor = 'pointer';
+                        }
+                    },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -1867,8 +2425,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             borderColor: theme.borderColor,
                             borderWidth: 1,
                             callbacks: {
-                                title: (context) => sortedAdvisers[context[0].dataIndex] || '',
-                                label: (context) => ` Advised: ${context.raw} projects`
+                                title: (context) => topAdvisers[context[0].dataIndex]?.canonicalDisplay || '',
+                                label: (context) => ` Advised: ${context.raw} projects`,
+                                afterLabel: () => '👉 Click to view & search projects'
                             }
                         }
                     },
@@ -1886,251 +2445,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // -------------------------------------------------------------
-        // 5. Trending Research Topics & Domains Chart
-        // -------------------------------------------------------------
-        const keywordFreq = {};
-        const stopWords = new Set([
-            'the','a','an','and','or','of','in','for','with','on','at','to','from','by','as',
-            'based','system','study','using','project','ctu','cebu','daanbantayan','campus',
-            'undergraduate','thesis','theses','capstone','development','implementation','design',
-            'evaluation','analysis','assessment','proposed','application','automated','online',
-            'student','students','user','users','management','monitoring'
-        ]);
-
-        (projects || []).forEach(p => {
-            // Process keywords
-            if (p.keywords) {
-                const kwList = Array.isArray(p.keywords) 
-                    ? p.keywords 
-                    : String(p.keywords).split(/[,;]+/);
-                kwList.forEach(k => {
-                    const clean = String(k || '').trim();
-                    if (clean.length > 2 && !stopWords.has(clean.toLowerCase())) {
-                        const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
-                        keywordFreq[capitalized] = (keywordFreq[capitalized] || 0) + 1;
-                    }
-                });
-            }
-            // Process topics
-            if (Array.isArray(p.topics)) {
-                p.topics.forEach(t => {
-                    const clean = String(t || '').trim();
-                    if (clean.length > 2 && !stopWords.has(clean.toLowerCase())) {
-                        const capitalized = clean.charAt(0).toUpperCase() + clean.slice(1);
-                        keywordFreq[capitalized] = (keywordFreq[capitalized] || 0) + 1;
-                    }
-                });
-            }
-            // Extract topics from titles
-            if (p.title) {
-                const titleLower = p.title.toLowerCase();
-                const techTerms = [
-                    'IoT & Smart Devices', 'Machine Learning', 'Artificial Intelligence',
-                    'Mobile Application', 'Web Platform', 'Solar & Renewable Energy',
-                    'Aquaculture & Fisheries', 'E-Commerce', 'GIS & Mapping',
-                    'Attendance Tracking', 'Inventory Management', 'Health & Telemedicine',
-                    'Water Quality Monitoring', 'Arduino & Robotics', 'Facial Recognition'
-                ];
-                techTerms.forEach(term => {
-                    const testWord = term.split('&')[0].trim().toLowerCase();
-                    if (titleLower.includes(testWord)) {
-                        keywordFreq[term] = (keywordFreq[term] || 0) + 1;
-                    }
-                });
-            }
-        });
-
-        // Top trending keywords
-        const sortedKeywords = Object.keys(keywordFreq)
-            .sort((a, b) => keywordFreq[b] - keywordFreq[a])
-            .slice(0, 6);
-        const keywordData = sortedKeywords.map(k => keywordFreq[k]);
-
-        if (analyticsCharts['keywordsChart']) {
-            analyticsCharts['keywordsChart'].destroy();
-        }
-        const keywordsCtx = document.getElementById('keywordsChart');
-        if (keywordsCtx) {
-            analyticsCharts['keywordsChart'] = new Chart(keywordsCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: sortedKeywords.length > 0 ? sortedKeywords : ['AI / Machine Learning', 'Web Platforms', 'IoT Systems', 'Aquaculture'],
-                    datasets: [{
-                        label: 'Mentions in Theses',
-                        data: sortedKeywords.length > 0 ? keywordData : [12, 10, 8, 5],
-                        backgroundColor: '#FCCC56',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    indexAxis: 'y',
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: theme.tooltipBg,
-                            titleColor: theme.tooltipText,
-                            bodyColor: theme.tooltipText,
-                            borderColor: theme.borderColor,
-                            borderWidth: 1,
-                            callbacks: {
-                                label: (context) => ` Frequency: ${context.raw} projects`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: theme.gridColor },
-                            ticks: { color: theme.textColor, precision: 0 }
-                        },
-                        y: {
-                            grid: { color: theme.gridColor },
-                            ticks: { color: theme.textColor, font: { size: 11 } }
-                        }
-                    }
-                }
-            });
-        }
-
-        // -------------------------------------------------------------
-        // 6. Platform Research Engagement Chart
-        // -------------------------------------------------------------
-        let searchCount = 0;
-        let viewCount = 0;
-        let bookmarkCount = 0;
-        let citationCount = 0;
-        let aiCount = 0;
-
-        (activities || []).forEach(act => {
-            const cat = (act.category || '').toLowerCase();
-            if (cat === 'search') searchCount++;
-            else if (cat === 'project') viewCount++;
-            else if (cat === 'bookmark') bookmarkCount++;
-            else if (cat === 'citation') citationCount++;
-            else if (cat === 'ai') aiCount++;
-        });
-
-        (savedProjects || []).forEach(doc => {
-            const list = doc.UIDproject || [];
-            if (Array.isArray(list)) bookmarkCount += list.length;
-        });
-
-        const engagementLabels = ['Searches', 'Thesis Views', 'Bookmarks', 'Citations', 'AI Inquiries'];
-        const numProj = (projects || []).length;
-        const engagementData = [
-            Math.max(searchCount, Math.round(numProj * 3.4) + 15),
-            Math.max(viewCount, Math.round(numProj * 5.2) + 40),
-            Math.max(bookmarkCount, Math.round(numProj * 0.8) + 8),
-            Math.max(citationCount, Math.round(numProj * 0.4) + 4),
-            Math.max(aiCount, Math.round(numProj * 1.6) + 12)
-        ];
-        const engagementColors = ['#3b82f6', '#08D488', '#f59e0b', '#10b981', '#ec4899'];
-
-        if (analyticsCharts['activityChart']) {
-            analyticsCharts['activityChart'].destroy();
-        }
-        const activityCtx = document.getElementById('activityChart');
-        if (activityCtx) {
-            analyticsCharts['activityChart'] = new Chart(activityCtx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: engagementLabels,
-                    datasets: [{
-                        label: 'Interactions',
-                        data: engagementData,
-                        backgroundColor: engagementColors,
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: theme.tooltipBg,
-                            titleColor: theme.tooltipText,
-                            bodyColor: theme.tooltipText,
-                            borderColor: theme.borderColor,
-                            borderWidth: 1
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: theme.gridColor },
-                            ticks: { color: theme.textColor, font: { size: 10 } }
-                        },
-                        y: {
-                            grid: { color: theme.gridColor },
-                            ticks: { color: theme.textColor, precision: 0 }
-                        }
-                    }
-                }
-            });
-        }
-
-        // -------------------------------------------------------------
-        // 7. Monthly Submission Velocity Chart
-        // -------------------------------------------------------------
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthlyCounts = new Array(12).fill(0);
-        (projects || []).forEach(p => {
-            const ts = getTimestamp(p.createdAt);
-            if (ts) {
-                const d = new Date(ts);
-                monthlyCounts[d.getMonth()]++;
-            }
-        });
-
-        if (analyticsCharts['monthlyChart']) {
-            analyticsCharts['monthlyChart'].destroy();
-        }
-        const monthlyCtx = document.getElementById('monthlyChart');
-        if (monthlyCtx) {
-            analyticsCharts['monthlyChart'] = new Chart(monthlyCtx.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: months,
-                    datasets: [{
-                        label: 'Theses Ingested',
-                        data: monthlyCounts,
-                        borderColor: '#f43f5e',
-                        backgroundColor: 'rgba(244, 63, 94, 0.12)',
-                        fill: true,
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#f43f5e',
-                        pointHoverRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: theme.tooltipBg,
-                            titleColor: theme.tooltipText,
-                            bodyColor: theme.tooltipText,
-                            borderColor: theme.borderColor,
-                            borderWidth: 1
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: theme.gridColor },
-                            ticks: { color: theme.textColor }
-                        },
-                        y: {
-                            grid: { color: theme.gridColor },
-                            ticks: { color: theme.textColor, precision: 0 }
-                        }
-                    }
-                }
-            });
-        }
     }
 
     // Render Top Bookmarked Theses Table
@@ -2238,6 +2552,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
+        // Helper to update active filter state and UI reset button
+        function updateAnalyticsFilterState() {
+            const resetBtn = document.getElementById('analytics-reset-filters-btn');
+            const hasFilter = (currentAnalyticsFilter.program && currentAnalyticsFilter.program !== 'all') || 
+                              (currentAnalyticsFilter.range && currentAnalyticsFilter.range !== 'all');
+            
+            if (resetBtn) {
+                if (hasFilter) {
+                    const label = currentAnalyticsFilter.program !== 'all' 
+                        ? `Reset ${currentAnalyticsFilter.program}` 
+                        : `Reset ${currentAnalyticsFilter.range.toUpperCase()}`;
+                    resetBtn.innerHTML = `<span>${label}</span><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+                    resetBtn.style.display = 'inline-flex';
+                } else {
+                    resetBtn.style.display = 'none';
+                }
+            }
+        }
+
         // 2. Program Selector Filter
         const progSelect = document.getElementById('analytics-program-filter');
         if (progSelect) {
@@ -2245,6 +2578,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             progSelect.parentNode.replaceChild(newProgSelect, progSelect);
             newProgSelect.addEventListener('change', () => {
                 currentAnalyticsFilter.program = newProgSelect.value;
+                updateAnalyticsFilterState();
                 const filtered = getFilteredAnalyticsProjects(projects, currentAnalyticsFilter);
                 renderKPIs(filtered, users, savedProjects, projects, currentAnalyticsFilter);
                 renderCharts(filtered, users, savedProjects, activities, currentAnalyticsFilter);
@@ -2258,9 +2592,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const newTab = tab.cloneNode(true);
             tab.parentNode.replaceChild(newTab, tab);
             newTab.addEventListener('click', () => {
-                document.querySelectorAll('#analytics-time-tabs .analytics-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('#analytics-time-tabs .analytics-tab').forEach(t => {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
                 newTab.classList.add('active');
+                newTab.setAttribute('aria-selected', 'true');
                 currentAnalyticsFilter.range = newTab.dataset.range || 'all';
+                updateAnalyticsFilterState();
 
                 const filtered = getFilteredAnalyticsProjects(projects, currentAnalyticsFilter);
                 renderKPIs(filtered, users, savedProjects, projects, currentAnalyticsFilter);
@@ -2269,19 +2608,65 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // 4. Refresh Button
+        // 3b. Reset Filter Pill Action
+        const resetFiltersBtn = document.getElementById('analytics-reset-filters-btn');
+        if (resetFiltersBtn) {
+            const newResetBtn = resetFiltersBtn.cloneNode(true);
+            resetFiltersBtn.parentNode.replaceChild(newResetBtn, resetFiltersBtn);
+            newResetBtn.addEventListener('click', () => {
+                currentAnalyticsFilter.program = 'all';
+                currentAnalyticsFilter.range = 'all';
+
+                const pSelect = document.getElementById('analytics-program-filter');
+                if (pSelect) pSelect.value = 'all';
+
+                document.querySelectorAll('#analytics-time-tabs .analytics-tab').forEach(t => {
+                    const isAll = t.dataset.range === 'all';
+                    t.classList.toggle('active', isAll);
+                    t.setAttribute('aria-selected', isAll ? 'true' : 'false');
+                });
+
+                updateAnalyticsFilterState();
+                const filtered = getFilteredAnalyticsProjects(projects, currentAnalyticsFilter);
+                renderKPIs(filtered, users, savedProjects, projects, currentAnalyticsFilter);
+                renderCharts(filtered, users, savedProjects, activities, currentAnalyticsFilter);
+                renderTopBookmarked(filtered, savedProjects);
+                showToast('Analytics filters reset to default', 'ℹ️');
+            });
+        }
+
+        // Initial filter state check
+        updateAnalyticsFilterState();
+
+        // 4. Refresh Button with tactile animation
         const refreshBtn = document.getElementById('analytics-refresh-btn');
         if (refreshBtn) {
             const newRefreshBtn = refreshBtn.cloneNode(true);
             refreshBtn.parentNode.replaceChild(newRefreshBtn, refreshBtn);
             newRefreshBtn.addEventListener('click', async () => {
-                showToast('Refreshing repository data & intelligence...', 'ℹ️');
-                localStorage.removeItem('projectsData');
-                localStorage.removeItem('usersData');
-                sessionStorage.removeItem('recap_analytics_saved');
-                sessionStorage.removeItem('recap_analytics_activities');
-                await loadAnalyticsData();
-                showToast('Analytics refreshed with latest database snapshot', '✅');
+                const icon = newRefreshBtn.querySelector('.refresh-icon') || newRefreshBtn.querySelector('svg');
+                const label = newRefreshBtn.querySelector('.action-btn-label') || newRefreshBtn.querySelector('span');
+                
+                if (icon) icon.classList.add('rotating');
+                if (label) label.textContent = 'Refreshing...';
+                newRefreshBtn.disabled = true;
+
+                try {
+                    showToast('Refreshing repository data & intelligence...', 'ℹ️');
+                    localStorage.removeItem('projectsData');
+                    localStorage.removeItem('usersData');
+                    sessionStorage.removeItem('recap_analytics_saved');
+                    sessionStorage.removeItem('recap_analytics_activities');
+                    await loadAnalyticsData();
+                    showToast('Analytics refreshed with latest database snapshot', '✅');
+                } catch (err) {
+                    console.error('Refresh error:', err);
+                    showToast('Failed to refresh analytics', '❌');
+                } finally {
+                    if (icon) icon.classList.remove('rotating');
+                    if (label) label.textContent = 'Refresh';
+                    newRefreshBtn.disabled = false;
+                }
             });
         }
 
@@ -2299,7 +2684,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // 6. Export Comprehensive CSV
+        // 6. Export Comprehensive CSV with Blob and Excel UTF-8 BOM
         const exportBtn = document.getElementById('analytics-export-btn');
         if (exportBtn) {
             const newExportBtn = exportBtn.cloneNode(true);
@@ -2317,8 +2702,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     });
 
-                    let csvContent = "data:text/csv;charset=utf-8,";
-                    csvContent += "Rank,Title,Authors,Program,Year,Adviser,BookmarksCount,PineconeSynced,DateAdded\n";
+                    let csvContent = "Rank,Title,Authors,Program,Year,Adviser,BookmarksCount,PineconeSynced,DateAdded\n";
 
                     filtered.forEach((p, index) => {
                         const title = `"${(p.title || '').replace(/"/g, '""')}"`;
@@ -2333,13 +2717,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         csvContent += `${index + 1},${title},${authors},${program},${year},${adviser},${saves},${synced},${dateAdded}\n`;
                     });
 
-                    const encodedUri = encodeURI(csvContent);
+                    // Use Blob with UTF-8 BOM for flawless Excel and multi-language support
+                    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
                     const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("href", url);
                     link.setAttribute("download", `RE-CAPS_Analytics_Report_${currentAnalyticsFilter.program}_${new Date().toISOString().split('T')[0]}.csv`);
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
                     showToast('Analytics CSV dataset exported successfully', '✅');
                 } catch (e) {
                     console.error('Export error:', e);
@@ -2496,7 +2884,90 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-abstract-input').value = data.abstract || '';
 
             // Populate dynamic fields
-            initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
+            initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
+
+            // Load and populate Section 5: Cataloging & Accountability
+            try {
+                const cnDoc = await db.collection('catalogNotes').doc(projectId).get();
+                const cnData = cnDoc.exists ? cnDoc.data() : null;
+                const isCataloged = !!(cnData?.note || cnData?.callNumber || data.catalogLocation || data.cataloged);
+
+                const auditBox = document.getElementById('admin-catalog-audit-box');
+                const badge = document.getElementById('admin-audit-badge');
+                const details = document.getElementById('admin-audit-details');
+                const createdByEl = document.getElementById('admin-audit-created-by');
+                const updatedByEl = document.getElementById('admin-audit-updated-by');
+                const updatedAtEl = document.getElementById('admin-audit-updated-at');
+                const countEl = document.getElementById('admin-audit-count');
+                const historyList = document.getElementById('admin-audit-history-list');
+
+                // Location fields
+                const locInput = document.getElementById('project-catalog-location');
+                const callInput = document.getElementById('project-call-number');
+                const accInput = document.getElementById('project-accession-number');
+                if (locInput) locInput.value = cnData?.note || data.catalogLocation || '';
+                if (callInput) callInput.value = cnData?.callNumber || data.callNumber || '';
+                if (accInput) accInput.value = cnData?.accessionNumber || data.accessionNumber || '';
+
+                if (isCataloged) {
+                    if (badge) {
+                        badge.textContent = 'Cataloged';
+                        badge.classList.add('cataloged');
+                    }
+                    if (details) details.style.display = 'block';
+
+                    const creatorName = cnData?.createdByName || data.catalogAudit?.createdByName || 'Librarian';
+                    const creatorEmail = cnData?.createdByEmail || '';
+                    if (createdByEl) createdByEl.textContent = creatorEmail ? `${creatorName} (${creatorEmail})` : creatorName;
+
+                    const updaterName = cnData?.lastUpdatedByName || data.catalogAudit?.lastUpdatedByName || creatorName;
+                    const updaterEmail = cnData?.lastUpdatedByEmail || data.catalogAudit?.lastUpdatedByEmail || creatorEmail;
+                    if (updatedByEl) updatedByEl.textContent = updaterEmail ? `${updaterName} (${updaterEmail})` : updaterName;
+
+                    const updatedTs = cnData?.updatedAt || cnData?.createdAt || data.lastCatalogedAt;
+                    if (updatedAtEl) updatedAtEl.textContent = formatDate(updatedTs);
+
+                    const history = Array.isArray(cnData?.auditHistory) ? cnData.auditHistory : [];
+                    if (countEl) countEl.textContent = `${history.length || 1} revision(s)`;
+
+                    if (historyList) {
+                        if (history.length === 0) {
+                            historyList.innerHTML = '<div style="color:var(--text-secondary);font-size:0.75rem;padding:0.5rem;">Initial record created.</div>';
+                        } else {
+                            historyList.innerHTML = history.map(item => `
+                                <div class="admin-audit-history-entry">
+                                    <div class="admin-audit-entry-top">
+                                        <span>${escapeHtml(item.action || 'Updated')}</span>
+                                        <span style="font-size:0.7rem;color:var(--text-secondary);">${formatDate(item.timestamp)}</span>
+                                    </div>
+                                    <div class="admin-audit-entry-desc">
+                                        Librarian: <strong>${escapeHtml(item.userName || 'Librarian')}</strong> (${escapeHtml(item.userEmail || '')})
+                                    </div>
+                                    ${item.details ? `<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:2px;">${escapeHtml(item.details)}</div>` : ''}
+                                </div>
+                            `).join('');
+                        }
+                    }
+                } else {
+                    if (badge) {
+                        badge.textContent = 'Not Cataloged';
+                        badge.classList.remove('cataloged');
+                    }
+                    if (details) details.style.display = 'none';
+                }
+
+                // Toggle history button
+                const toggleBtn = document.getElementById('admin-audit-history-toggle');
+                if (toggleBtn) {
+                    toggleBtn.onclick = () => {
+                        if (historyList) {
+                            historyList.style.display = historyList.style.display === 'none' ? 'flex' : 'none';
+                        }
+                    };
+                }
+            } catch (cnErr) {
+                console.warn('Could not load catalog audit for admin:', cnErr);
+            }
 
             // Populate existing project images
             projectExistingImages = Array.isArray(data.images) ? [...data.images] : [];
@@ -2869,17 +3340,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const userDoc = await db.collection('users').doc(userId).get();
             
             if (!userDoc.exists) {
-                // If doc doesn't exist in Firestore, offer to delete from Firebase Authentication directly
-                showConfirmationModal(
-                    'Delete Account',
-                    `This user does not exist in the Firestore database, but may still remain in Firebase Authentication.<br><br>Do you want to permanently delete authentication account <strong>${escapeHtml(name || userId)}</strong>?`,
-                    null,
-                    async () => {
-                        await performUserDeletion(userId, { email: '' }, name);
-                    },
-                    'Delete Auth Account',
-                    'btn-danger'
-                );
+                // Doc not in Firestore – offer to purge the Auth account directly
+                const confirmed = await ModalDialog.confirm({
+                    title: 'Delete Account',
+                    message: `This user does not exist in the Firestore database, but may still remain in Firebase Authentication.\n\nDo you want to permanently delete authentication account "${name || userId}"?`,
+                    confirmText: 'Delete Auth Account',
+                    cancelText: 'Cancel',
+                    isDanger: true,
+                    icon: 'trash'
+                });
+                if (confirmed) {
+                    await performUserDeletion(userId, { email: '' }, name);
+                }
                 return;
             }
             
@@ -2887,17 +3359,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Check if user has security question/answer
             if (!userData.securityQuestion || !userData.securityAnswer) {
-                // Show confirmation modal fallback for accounts without security questions
-                showConfirmationModal(
-                    'Delete User',
-                    `This user has not configured a security question.<br><br>Are you sure you want to permanently delete <strong>${escapeHtml(name || userData.fullName || userData.email)}</strong>?<br><small style="color: #ef4444;">This will delete their account from both Firebase Authentication and Firestore.</small>`,
-                    null,
-                    async () => {
-                        await performUserDeletion(userId, userData, name);
-                    },
-                    'Delete User',
-                    'btn-danger'
-                );
+                // Fallback for accounts without security questions
+                const confirmed = await ModalDialog.confirm({
+                    title: 'Delete User',
+                    message: `This user has not configured a security question.\n\nAre you sure you want to permanently delete "${name || userData.fullName || userData.email}"?\nThis will delete their account from both Firebase Authentication and Firestore.`,
+                    confirmText: 'Delete User',
+                    cancelText: 'Cancel',
+                    isDanger: true,
+                    icon: 'trash'
+                });
+                if (confirmed) {
+                    await performUserDeletion(userId, userData, name);
+                }
                 return;
             }
             
@@ -4089,25 +4562,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Clear button handler (already declared above)
     if (clearProjectBtn) {
-        clearProjectBtn.addEventListener('click', () => {
-            // Show confirmation modal
-            showConfirmationModal(
-                '⚠️ Clear Form',
-                'Are you sure you want to clear all form data? This action cannot be undone.',
-                null,
-                () => {
-                    if (projectForm) projectForm.reset();
-                    clearDynamicContainer('authors-container');
-                    clearDynamicContainer('topics-container');
-                    clearDynamicContainer('keywords-container');
-                    createDynamicRow('authors-container', 'e.g., Reyes, A.');
-                    localStorage.removeItem('admin_project_draft');
-                    showToast('Form cleared', '✅');
-                    updateButtonVisibility();
-                },
-                'Clear Form',
-                'btn-danger'
-            );
+        clearProjectBtn.addEventListener('click', async () => {
+            const confirmed = await ModalDialog.confirm({
+                title: 'Clear Form',
+                message: 'Are you sure you want to clear all form data? This action cannot be undone.',
+                confirmText: 'Clear Form',
+                cancelText: 'Keep Data',
+                isDanger: true
+            });
+            if (!confirmed) return;
+            if (projectForm) projectForm.reset();
+            clearDynamicContainer('authors-container');
+            clearDynamicContainer('topics-container');
+            clearDynamicContainer('keywords-container');
+            createDynamicRow('authors-container', 'e.g., Reyes, A.');
+            localStorage.removeItem('admin_project_draft');
+            showToast('Form cleared', '✅');
+            updateButtonVisibility();
         });
     }
 
@@ -4156,18 +4627,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         `;
                     });
 
-                    showConfirmationModal(
-                        '📝 Confirm Changes',
-                        `You are about to update <strong>${changes.length}</strong> field${changes.length > 1 ? 's' : ''} in this project:`,
-                        changesHTML,
-                        async () => {
-                            // User confirmed, proceed with update
-                            showToast('Updating project...', 'ℹ️');
-                            await performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords);
-                        },
-                        'Apply Changes',
-                        'btn-primary'
-                    );
+                    const confirmed = await ModalDialog.confirm({
+                        title: 'Confirm Changes',
+                        message: `You are about to update ${changes.length} field${changes.length > 1 ? 's' : ''} in this project:\n\n${changes.map(c => `• ${c.field}`).join('\n')}`,
+                        confirmText: 'Apply Changes',
+                        cancelText: 'Review Again',
+                        type: 'info'
+                    });
+                    if (confirmed) {
+                        showToast('Updating project...', 'ℹ️');
+                        await performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords);
+                    }
                 } else {
                     // CREATE MODE: Proceed directly
                     showToast('Creating project...', 'ℹ️');
@@ -4540,75 +5010,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function applyProjectFilters() {
         const tbody = document.getElementById('projects-table-body');
         if (!tbody) return;
-        
-        const rows = tbody.getElementsByTagName('tr');
-        const activeFilters = Array.from(projectFilters).filter(p => p.classList.contains('active'));
-        const filterValues = activeFilters.map(p => p.dataset.filter);
-        
-        // Check if "All" is active
-        const showAll = filterValues.includes('all');
-        const hasRecent = filterValues.includes('recent');
-        const hasUnsynced = filterValues.includes('unsynced');
-        const programFilters = filterValues.filter(f => f !== 'all' && f !== 'recent' && f !== 'unsynced');
-        
-        Array.from(rows).forEach(row => {
-            // Skip loading/error rows
-            if (row.classList.contains('table-loading') || row.classList.contains('table-error') || row.classList.contains('table-empty')) {
-                return;
-            }
-            
-            let shouldShow = false;
-            
-            if (showAll) {
-                // Show all projects
-                shouldShow = true;
-            } else {
-                // Check program filters
-                const programCell = row.cells[2];
-                const programMatch = programFilters.length === 0 || (programCell && programFilters.some(filter => {
-                    const cellText = programCell.textContent.trim();
-                    return cellText === filter || cellText.startsWith(filter);
-                }));
-                
-                // Check recent filter (last 30 days)
-                let recentMatch = true;
-                if (hasRecent) {
-                    const createdAtTimestamp = row.getAttribute('data-created-at');
-                    if (createdAtTimestamp) {
-                        const projectDate = new Date(parseInt(createdAtTimestamp));
-                        const thirtyDaysAgo = new Date();
-                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        recentMatch = !isNaN(projectDate.getTime()) && projectDate >= thirtyDaysAgo;
-                    } else {
-                        recentMatch = false;
-                    }
-                }
-
-                // Check unsynced filter
-                let unsyncedMatch = true;
-                if (hasUnsynced) {
-                    const isSynced = row.getAttribute('data-synced') === 'true';
-                    unsyncedMatch = !isSynced;
-                }
-                
-                // Show row if it matches program AND recent filter AND unsynced filter
-                shouldShow = programMatch && (!hasRecent || recentMatch) && (!hasUnsynced || unsyncedMatch);
-            }
-            
-            row.style.display = shouldShow ? '' : 'none';
-        });
-        
-        // Count visible rows
-        const visibleRows = Array.from(rows).filter(row => 
-            row.style.display !== 'none' && 
-            !row.classList.contains('table-loading') && 
-            !row.classList.contains('table-error') &&
-            !row.classList.contains('table-empty')
-        ).length;
-        
-        // Show toast with active filters
-        const activeFilterNames = activeFilters.map(p => p.textContent).join(', ');
-        // showToast(`Showing ${visibleRows} project${visibleRows !== 1 ? 's' : ''}: ${activeFilterNames}`, 'ℹ️');
+        currentProjectsPage = 1;
+        renderProjectsTablePaginated(tbody);
     }
 
     const userFilters = document.querySelectorAll('#user-filters .filter-pill');
@@ -4617,23 +5020,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update active state
             userFilters.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
-            
-            const filter = pill.dataset.filter;
-            const tbody = document.getElementById('users-table-body');
-            const rows = tbody.getElementsByTagName('tr');
-            
-            Array.from(rows).forEach(row => {
-                if (filter === 'all') {
-                    row.style.display = '';
-                } else {
-                    const typeCell = row.cells[2];
-                    if (typeCell) {
-                        const typeText = typeCell.textContent.toLowerCase();
-                        row.style.display = typeText.includes(filter) ? '' : 'none';
-                    }
-                }
-            });
-            
+            filterUsersTable();
             showToast(`Filtered: ${pill.textContent}`, 'ℹ️');
         });
     });
@@ -4641,37 +5028,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== Search Functionality =====
     const projectsSearch = document.getElementById('projects-search');
     if (projectsSearch) {
-        projectsSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
+        projectsSearch.addEventListener('input', () => {
+            currentProjectsPage = 1;
             const tbody = document.getElementById('projects-table-body');
-            const rows = tbody.getElementsByTagName('tr');
-
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+            if (tbody) {
+                renderProjectsTablePaginated(tbody);
+            }
         });
     }
 
     const usersSearch = document.getElementById('users-search');
     if (usersSearch) {
-        usersSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const tbody = document.getElementById('users-table-body');
-            const rows = tbody.getElementsByTagName('tr');
-
-            Array.from(rows).forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+        usersSearch.addEventListener('input', () => {
+            filterUsersTable();
         });
     }
 
@@ -4980,67 +5349,315 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup real-time listeners
     setupRealtimeListeners();
 
-    // ===== Create Librarian Functionality =====
+    // ===== Create Librarian Functionality (Enhanced & Aligned) =====
     const createLibrarianBtn = document.getElementById('create-librarian-btn');
     const createLibrarianModal = document.getElementById('create-librarian-modal');
     const modalOverlay = document.getElementById('modal-overlay');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const cancelLibrarianBtn = document.getElementById('cancel-librarian-btn');
     const createLibrarianForm = document.getElementById('create-librarian-form');
+    const clearLibrarianBtn = document.getElementById('clear-librarian-btn');
+    const submitLibrarianBtn = document.getElementById('submit-librarian-btn');
+
+    // Enhanced UI Elements
+    const librarianNameInput = document.getElementById('librarian-name');
+    const librarianEmailInput = document.getElementById('librarian-email');
+    const librarianPasswordInput = document.getElementById('librarian-password');
+    const librarianConfirmPasswordInput = document.getElementById('librarian-confirm-password');
+    const chipCtuDomain = document.getElementById('chip-ctu-domain');
+    const generateLibrarianPwdBtn = document.getElementById('generate-librarian-pwd');
+    const toggleLibrarianPwdBtn = document.getElementById('toggle-librarian-pwd');
+    const toggleLibrarianConfirmPwdBtn = document.getElementById('toggle-librarian-confirm-pwd');
+    const librarianPwdMeter = document.getElementById('librarian-pwd-meter');
+    const pwdSeg1 = document.getElementById('pwd-seg-1');
+    const pwdSeg2 = document.getElementById('pwd-seg-2');
+    const pwdSeg3 = document.getElementById('pwd-seg-3');
+    const pwdSeg4 = document.getElementById('pwd-seg-4');
+    const pwdStrengthLabel = document.getElementById('pwd-strength-label');
+    const pwdStrengthHint = document.getElementById('pwd-strength-hint');
+    const librarianPwdMatchHint = document.getElementById('librarian-pwd-match-hint');
+
+    // Success View Elements
+    const librarianSuccessView = document.getElementById('librarian-success-view');
+    const successLibrarianName = document.getElementById('success-librarian-name');
+    const successLibrarianEmail = document.getElementById('success-librarian-email');
+    const successLibrarianPassword = document.getElementById('success-librarian-password');
+    const toggleSuccessPwdBtn = document.getElementById('toggle-success-pwd');
+    const copyLibrarianCredsBtn = document.getElementById('copy-librarian-creds-btn');
+    const createAnotherLibrarianBtn = document.getElementById('create-another-librarian-btn');
+    const finishLibrarianBtn = document.getElementById('finish-librarian-btn');
+
+    let currentCreatedLibrarian = null;
+    let isSuccessPwdVisible = false;
 
     // Open modal
     if (createLibrarianBtn) {
         createLibrarianBtn.addEventListener('click', () => {
+            showLibrarianFormView();
             createLibrarianModal.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Prevent background scroll
-            
-            // Reset button visibility
+            document.body.style.overflow = 'hidden';
             updateLibrarianButtonVisibility();
+            if (librarianNameInput) librarianNameInput.focus();
         });
+    }
+
+    function showLibrarianFormView() {
+        if (createLibrarianForm) {
+            createLibrarianForm.style.display = 'block';
+            createLibrarianForm.reset();
+        }
+        if (librarianSuccessView) {
+            librarianSuccessView.classList.remove('active');
+        }
+        if (librarianPwdMeter) librarianPwdMeter.style.display = 'none';
+        if (librarianPwdMatchHint) librarianPwdMatchHint.textContent = '';
+        resetPasswordToggle(librarianPasswordInput, toggleLibrarianPwdBtn);
+        resetPasswordToggle(librarianConfirmPasswordInput, toggleLibrarianConfirmPwdBtn);
+        updateLibrarianButtonVisibility();
+    }
+
+    function showLibrarianSuccessView(librarianData) {
+        currentCreatedLibrarian = librarianData;
+        if (createLibrarianForm) createLibrarianForm.style.display = 'none';
+        if (librarianSuccessView) {
+            librarianSuccessView.classList.add('active');
+            if (successLibrarianName) successLibrarianName.textContent = librarianData.fullName || '-';
+            if (successLibrarianEmail) successLibrarianEmail.textContent = librarianData.email || '-';
+            if (successLibrarianPassword) {
+                isSuccessPwdVisible = false;
+                successLibrarianPassword.textContent = '••••••••••••';
+            }
+        }
     }
 
     // Close modal function
     function closeLibrarianModal() {
+        if (!createLibrarianModal) return;
         createLibrarianModal.classList.remove('active');
-        document.body.style.overflow = ''; // Restore scroll
-        createLibrarianForm.reset();
-        
-        // Reset button visibility
-        if (clearLibrarianBtn) clearLibrarianBtn.style.display = 'none';
+        document.body.style.overflow = '';
+        showLibrarianFormView();
+        currentCreatedLibrarian = null;
     }
 
     // Close modal events
     if (modalOverlay) {
         modalOverlay.addEventListener('click', (e) => {
-            // Only close if clicking directly on the overlay, not on modal content or its children
-            if (e.target === modalOverlay) {
-                closeLibrarianModal();
+            if (e.target === modalOverlay) closeLibrarianModal();
+        });
+    }
+    if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeLibrarianModal);
+    if (cancelLibrarianBtn) cancelLibrarianBtn.addEventListener('click', closeLibrarianModal);
+    if (finishLibrarianBtn) finishLibrarianBtn.addEventListener('click', closeLibrarianModal);
+    if (createAnotherLibrarianBtn) {
+        createAnotherLibrarianBtn.addEventListener('click', () => {
+            showLibrarianFormView();
+            if (librarianNameInput) librarianNameInput.focus();
+        });
+    }
+
+    // Toggle Password Visibility Helper
+    function setupPasswordToggle(inputEl, btnEl) {
+        if (!inputEl || !btnEl) return;
+        btnEl.addEventListener('click', () => {
+            const isPassword = inputEl.type === 'password';
+            inputEl.type = isPassword ? 'text' : 'password';
+            const eyeOpen = btnEl.querySelector('.eye-open');
+            const eyeClosed = btnEl.querySelector('.eye-closed');
+            if (eyeOpen && eyeClosed) {
+                eyeOpen.style.display = isPassword ? 'none' : 'block';
+                eyeClosed.style.display = isPassword ? 'block' : 'none';
+            }
+            btnEl.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        });
+    }
+
+    function resetPasswordToggle(inputEl, btnEl) {
+        if (!inputEl || !btnEl) return;
+        inputEl.type = 'password';
+        const eyeOpen = btnEl.querySelector('.eye-open');
+        const eyeClosed = btnEl.querySelector('.eye-closed');
+        if (eyeOpen) eyeOpen.style.display = 'block';
+        if (eyeClosed) eyeClosed.style.display = 'none';
+    }
+
+    setupPasswordToggle(librarianPasswordInput, toggleLibrarianPwdBtn);
+    setupPasswordToggle(librarianConfirmPasswordInput, toggleLibrarianConfirmPwdBtn);
+
+    // Toggle success password visibility
+    if (toggleSuccessPwdBtn && successLibrarianPassword) {
+        toggleSuccessPwdBtn.addEventListener('click', () => {
+            if (!currentCreatedLibrarian) return;
+            isSuccessPwdVisible = !isSuccessPwdVisible;
+            successLibrarianPassword.textContent = isSuccessPwdVisible
+                ? currentCreatedLibrarian.password
+                : '••••••••••••';
+            toggleSuccessPwdBtn.title = isSuccessPwdVisible ? 'Hide password' : 'Show password';
+        });
+    }
+
+    // Copy credentials to clipboard
+    if (copyLibrarianCredsBtn) {
+        copyLibrarianCredsBtn.addEventListener('click', async () => {
+            if (!currentCreatedLibrarian) return;
+            const textToCopy = `RE-CAPS Librarian Credentials:\nName: ${currentCreatedLibrarian.fullName}\nEmail: ${currentCreatedLibrarian.email}\nPassword: ${currentCreatedLibrarian.password}\nRole: Librarian (Catalog Manager)\nPortal: ${window.location.origin}/pages/login.html`;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(textToCopy);
+                } else {
+                    const tempInput = document.createElement('textarea');
+                    tempInput.value = textToCopy;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                }
+                showToast('Credentials copied to clipboard! 📋', '✅');
+            } catch (copyErr) {
+                console.error('Failed to copy credentials:', copyErr);
+                showToast('Could not copy automatically. Please select and copy manually.', '⚠️');
             }
         });
     }
 
-    if (modalCloseBtn) {
-        modalCloseBtn.addEventListener('click', closeLibrarianModal);
+    // CTU Domain Quick Chip
+    if (chipCtuDomain && librarianEmailInput) {
+        chipCtuDomain.addEventListener('click', () => {
+            const currentVal = librarianEmailInput.value.trim();
+            if (!currentVal) {
+                librarianEmailInput.value = '@ctu.edu.ph';
+                librarianEmailInput.focus();
+                librarianEmailInput.setSelectionRange(0, 0);
+            } else if (currentVal.includes('@')) {
+                const prefix = currentVal.split('@')[0];
+                librarianEmailInput.value = prefix ? `${prefix}@ctu.edu.ph` : '@ctu.edu.ph';
+            } else {
+                librarianEmailInput.value = `${currentVal}@ctu.edu.ph`;
+            }
+            updateLibrarianButtonVisibility();
+        });
     }
 
-    if (cancelLibrarianBtn) {
-        cancelLibrarianBtn.addEventListener('click', closeLibrarianModal);
+    // Strong Password Generator
+    if (generateLibrarianPwdBtn && librarianPasswordInput && librarianConfirmPasswordInput) {
+        generateLibrarianPwdBtn.addEventListener('click', () => {
+            const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*';
+            let generated = 'CtuLib!';
+            for (let i = 0; i < 5; i++) {
+                generated += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            librarianPasswordInput.value = generated;
+            librarianConfirmPasswordInput.value = generated;
+
+            // Make sure both are visible briefly so admin can see the generated password
+            librarianPasswordInput.type = 'text';
+            librarianConfirmPasswordInput.type = 'text';
+            const eyeOpen1 = toggleLibrarianPwdBtn?.querySelector('.eye-open');
+            const eyeClosed1 = toggleLibrarianPwdBtn?.querySelector('.eye-closed');
+            if (eyeOpen1 && eyeClosed1) {
+                eyeOpen1.style.display = 'none';
+                eyeClosed1.style.display = 'block';
+            }
+            const eyeOpen2 = toggleLibrarianConfirmPwdBtn?.querySelector('.eye-open');
+            const eyeClosed2 = toggleLibrarianConfirmPwdBtn?.querySelector('.eye-closed');
+            if (eyeOpen2 && eyeClosed2) {
+                eyeOpen2.style.display = 'none';
+                eyeClosed2.style.display = 'block';
+            }
+
+            evaluatePasswordStrength(generated);
+            evaluatePasswordMatch();
+            updateLibrarianButtonVisibility();
+            showToast('Strong password generated! 🔑', 'ℹ️');
+        });
     }
 
-    // Clear librarian form with confirmation
-    const clearLibrarianBtn = document.getElementById('clear-librarian-btn');
-    const submitLibrarianBtn = document.getElementById('submit-librarian-btn');
-    
+    // Password strength evaluation
+    function evaluatePasswordStrength(pwd) {
+        if (!librarianPwdMeter) return;
+        if (!pwd || pwd.length === 0) {
+            librarianPwdMeter.style.display = 'none';
+            return;
+        }
+        librarianPwdMeter.style.display = 'flex';
+
+        let score = 0;
+        if (pwd.length >= 6) score++;
+        if (pwd.length >= 8) score++;
+        if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+        if (/[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score++;
+
+        [pwdSeg1, pwdSeg2, pwdSeg3, pwdSeg4].forEach(seg => {
+            if (seg) seg.className = 'pform-strength-segment';
+        });
+
+        if (score === 1) {
+            if (pwdSeg1) pwdSeg1.classList.add('active-weak');
+            if (pwdStrengthLabel) { pwdStrengthLabel.textContent = 'Weak'; pwdStrengthLabel.style.color = '#ef4444'; }
+            if (pwdStrengthHint) pwdStrengthHint.textContent = 'Add uppercase letters & numbers';
+        } else if (score === 2) {
+            if (pwdSeg1) pwdSeg1.classList.add('active-fair');
+            if (pwdSeg2) pwdSeg2.classList.add('active-fair');
+            if (pwdStrengthLabel) { pwdStrengthLabel.textContent = 'Fair'; pwdStrengthLabel.style.color = '#f59e0b'; }
+            if (pwdStrengthHint) pwdStrengthHint.textContent = 'Include special symbols';
+        } else if (score === 3) {
+            if (pwdSeg1) pwdSeg1.classList.add('active-good');
+            if (pwdSeg2) pwdSeg2.classList.add('active-good');
+            if (pwdSeg3) pwdSeg3.classList.add('active-good');
+            if (pwdStrengthLabel) { pwdStrengthLabel.textContent = 'Good'; pwdStrengthLabel.style.color = '#10b981'; }
+            if (pwdStrengthHint) pwdStrengthHint.textContent = 'Strong credentials';
+        } else if (score >= 4) {
+            if (pwdSeg1) pwdSeg1.classList.add('active-strong');
+            if (pwdSeg2) pwdSeg2.classList.add('active-strong');
+            if (pwdSeg3) pwdSeg3.classList.add('active-strong');
+            if (pwdSeg4) pwdSeg4.classList.add('active-strong');
+            if (pwdStrengthLabel) { pwdStrengthLabel.textContent = 'Strong'; pwdStrengthLabel.style.color = '#08D488'; }
+            if (pwdStrengthHint) pwdStrengthHint.textContent = 'Excellent security strength';
+        }
+    }
+
+    // Password match evaluation
+    function evaluatePasswordMatch() {
+        if (!librarianPwdMatchHint || !librarianPasswordInput || !librarianConfirmPasswordInput) return;
+        const pwd = librarianPasswordInput.value;
+        const confirm = librarianConfirmPasswordInput.value;
+
+        if (!confirm) {
+            librarianPwdMatchHint.textContent = '';
+            librarianPwdMatchHint.className = 'pform-match-feedback';
+            return;
+        }
+
+        if (pwd === confirm) {
+            librarianPwdMatchHint.textContent = '✓ Passwords match';
+            librarianPwdMatchHint.className = 'pform-match-feedback match';
+        } else {
+            librarianPwdMatchHint.textContent = '✗ Passwords do not match';
+            librarianPwdMatchHint.className = 'pform-match-feedback mismatch';
+        }
+    }
+
+    if (librarianPasswordInput) {
+        librarianPasswordInput.addEventListener('input', () => {
+            evaluatePasswordStrength(librarianPasswordInput.value);
+            evaluatePasswordMatch();
+        });
+    }
+
+    if (librarianConfirmPasswordInput) {
+        librarianConfirmPasswordInput.addEventListener('input', () => {
+            evaluatePasswordMatch();
+        });
+    }
+
     // Check if librarian form has values
     function hasLibrarianFormValues() {
-        const name = document.getElementById('librarian-name')?.value.trim();
-        const email = document.getElementById('librarian-email')?.value.trim();
-        const password = document.getElementById('librarian-password')?.value;
-        const confirmPassword = document.getElementById('librarian-confirm-password')?.value;
-        
+        const name = librarianNameInput?.value.trim();
+        const email = librarianEmailInput?.value.trim();
+        const password = librarianPasswordInput?.value;
+        const confirmPassword = librarianConfirmPasswordInput?.value;
         return name || email || password || confirmPassword;
     }
-    
+
     // Update librarian button visibility
     function updateLibrarianButtonVisibility() {
         const hasValues = hasLibrarianFormValues();
@@ -5048,27 +5665,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearLibrarianBtn.style.display = hasValues ? 'inline-flex' : 'none';
         }
     }
-    
-    // Monitor librarian form changes
+
     if (createLibrarianForm) {
         createLibrarianForm.addEventListener('input', updateLibrarianButtonVisibility);
         createLibrarianForm.addEventListener('change', updateLibrarianButtonVisibility);
     }
-    
+
     if (clearLibrarianBtn) {
-        clearLibrarianBtn.addEventListener('click', () => {
-            showConfirmationModal(
-                '⚠️ Clear Form',
-                'Are you sure you want to clear all form data? This action cannot be undone.',
-                null,
-                () => {
-                    if (createLibrarianForm) createLibrarianForm.reset();
-                    showToast('Form cleared', '✅');
-                    updateLibrarianButtonVisibility();
-                },
-                'Clear Form',
-                'btn-danger'
-            );
+        clearLibrarianBtn.addEventListener('click', async () => {
+            const confirmed = await ModalDialog.confirm({
+                title: 'Clear Form',
+                message: 'Are you sure you want to clear all form fields? This action cannot be undone.',
+                confirmText: 'Clear Form',
+                cancelText: 'Keep Data',
+                isDanger: true
+            });
+            if (!confirmed) return;
+            if (createLibrarianForm) createLibrarianForm.reset();
+            if (librarianPwdMeter) librarianPwdMeter.style.display = 'none';
+            if (librarianPwdMatchHint) librarianPwdMatchHint.textContent = '';
+            resetPasswordToggle(librarianPasswordInput, toggleLibrarianPwdBtn);
+            resetPasswordToggle(librarianConfirmPasswordInput, toggleLibrarianConfirmPwdBtn);
+            showToast('Form cleared', '✅');
+            updateLibrarianButtonVisibility();
         });
     }
 
@@ -5077,121 +5696,207 @@ document.addEventListener('DOMContentLoaded', async () => {
         createLibrarianForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const name = document.getElementById('librarian-name').value.trim();
-            const email = document.getElementById('librarian-email').value.trim();
-            const password = document.getElementById('librarian-password').value;
-            const confirmPassword = document.getElementById('librarian-confirm-password').value;
+            const name = (librarianNameInput?.value || '').trim();
+            const email = (librarianEmailInput?.value || '').trim().toLowerCase();
+            const password = librarianPasswordInput?.value || '';
+            const confirmPassword = librarianConfirmPasswordInput?.value || '';
             const submitBtn = document.getElementById('submit-librarian-btn');
+            const cancelBtn = document.getElementById('cancel-librarian-btn');
+            const clearBtn = document.getElementById('clear-librarian-btn');
 
             // Validation
             if (!name || !email || !password || !confirmPassword) {
-                showToast('Please fill in all fields', '❌');
+                showToast('Please fill in all required fields', '❌');
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('Please enter a valid email address', '❌');
+                if (librarianEmailInput) librarianEmailInput.focus();
                 return;
             }
 
             if (password.length < 6) {
-                showToast('Password must be at least 6 characters', '❌');
+                showToast('Password must be at least 6 characters long', '❌');
+                if (librarianPasswordInput) librarianPasswordInput.focus();
                 return;
             }
 
             if (password !== confirmPassword) {
-                showToast('Passwords do not match', '❌');
+                showToast('Passwords do not match. Please verify.', '❌');
+                if (librarianConfirmPasswordInput) librarianConfirmPasswordInput.focus();
                 return;
             }
 
-            // Disable submit and action buttons to prevent disruption
-            const cancelBtn = document.getElementById('cancel-librarian-btn');
-            const clearBtn = document.getElementById('clear-librarian-btn');
-            const librarianModalContent = document.querySelector('.librarian-modal-content');
-
+            // Lock UI during account creation
             submitBtn.disabled = true;
             if (cancelBtn) cancelBtn.disabled = true;
             if (clearBtn) clearBtn.disabled = true;
-            if (librarianModalContent) librarianModalContent.style.pointerEvents = 'none';
-            const originalBtnText = submitBtn.innerHTML;
-            submitBtn.innerHTML = 'Creating...';
+            const originalBtnHTML = submitBtn.innerHTML;
+            submitBtn.innerHTML = `
+                <div class="spinner" style="width: 16px; height: 16px; border-width: 2px; margin-right: 6px; display: inline-block; vertical-align: middle;"></div>
+                Creating Account...
+            `;
 
+            // Capture current admin ID so it is preserved
+            const currentAdminUid = auth.currentUser ? auth.currentUser.uid : (sessionStorage.getItem('userId') || 'admin');
 
+            let creationSuccess = false;
+            let createdUserRecord = null;
+
+            // Strategy 1: Attempt creation via Backend API (uses Firebase Admin SDK, never touches client session)
             try {
-                // Create Firebase Authentication user
-                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const user = userCredential.user;
-
-                // Update display name
-                await user.updateProfile({
-                    displayName: name
+                console.log('📡 Calling backend to create librarian account...');
+                const backendUrl = getBackendUrl();
+                const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+                const response = await fetch(`${backendUrl}/api/users/create-librarian`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        fullName: name,
+                        adminUid: currentAdminUid
+                    })
                 });
 
-                // Create Firestore document with librarian role
-                await db.collection('users').doc(user.uid).set({
-                    email: email,
-                    fullName: name,
-                    userType: 'librarian', // IMPORTANT: Set role to librarian
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdBy: auth.currentUser.uid, // Track who created this account
-                    lastLogin: null,
-                    photoURL: user.photoURL || null
-                });
-
-                // Success!
-                showToast('✅ Librarian account created successfully!', '✅');
-                
-                // Close modal and reset form
-                if (librarianModalContent) librarianModalContent.style.pointerEvents = '';
-                if (cancelBtn) cancelBtn.disabled = false;
-                if (clearBtn) clearBtn.disabled = false;
-                closeLibrarianModal();
-                
-                // Reload users table if on users section
-                const usersSection = document.getElementById('section-users');
-                if (usersSection.classList.contains('active')) {
-                    await loadUsersData();
-                }
-
-                // Sign out the newly created user (Firebase auto-signs in)
-                // We need to sign back in as admin
-                const adminEmail = sessionStorage.getItem('userEmail');
-                if (adminEmail) {
-                    // Force refresh auth state
-                    await auth.signOut();
-                    showToast('Please log back in as admin', 'ℹ️');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                }
-
-            } catch (error) {
-                console.error('Error creating librarian:', error);
-                
-                let errorMessage = 'Error creating librarian account';
-                
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'This email is already registered';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'Invalid email address';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'Password is too weak';
-                } else if (error.code === 'auth/operation-not-allowed') {
-                    errorMessage = 'Email/password authentication is not enabled';
+                const result = await response.json().catch(() => ({ success: false, message: 'Backend endpoint returned ' + response.status }));
+                if (response.ok && result.success) {
+                    console.log('✓ Librarian created successfully via backend API');
+                    creationSuccess = true;
+                    createdUserRecord = result.user || { uid: 'lib_' + Date.now(), email, fullName: name, userType: 'librarian' };
                 } else {
-                    errorMessage = error.message || errorMessage;
+                    console.warn('⚠️ Backend create-librarian responded with non-200:', result.message);
+                    if (response.status === 409 || (result.code && result.code === 'auth/email-already-exists')) {
+                        throw new Error('An account with this email address already exists.');
+                    }
+                    if ([400, 401, 403].includes(response.status)) {
+                        const finalErr = new Error(result.message || 'Request rejected by server');
+                        finalErr.noFallback = true;
+                        throw finalErr;
+                    }
+                    throw new Error(result.message || 'Backend service failed');
                 }
-                
-                showToast(errorMessage, '❌');
+            } catch (backendError) {
+                console.warn('⚠️ Backend endpoint attempt failed, evaluating secondary fallback:', backendError.message);
 
-                // Re-enable action buttons
-                if (librarianModalContent) librarianModalContent.style.pointerEvents = '';
+                if (backendError.noFallback || backendError.message.includes('already exists') || backendError.message.includes('already registered')) {
+                    showToast(backendError.message, '❌');
+                    submitBtn.disabled = false;
+                    if (cancelBtn) cancelBtn.disabled = false;
+                    if (clearBtn) clearBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHTML;
+                    return;
+                }
+
+                // Strategy 2: Client-side Secondary Firebase App (creates user in isolated auth instance, keeping admin logged in!)
+                try {
+                    console.log('🔄 Initializing secondary Firebase app for safe client creation...');
+                    const secondaryAppName = 'SecondaryAuth_' + Date.now();
+                    const secondaryApp = firebase.initializeApp(firebaseConfig, secondaryAppName);
+
+                    try {
+                        const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+                        const newUser = userCredential.user;
+
+                        await newUser.updateProfile({ displayName: name });
+
+                        await db.collection('users').doc(newUser.uid).set({
+                            email: email,
+                            fullName: name,
+                            userType: 'librarian',
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            createdBy: currentAdminUid,
+                            lastLogin: null,
+                            photoURL: null
+                        });
+
+                        await secondaryApp.auth().signOut();
+                        creationSuccess = true;
+                        createdUserRecord = {
+                            uid: newUser.uid,
+                            email: email,
+                            fullName: name,
+                            userType: 'librarian'
+                        };
+                        console.log('✓ Librarian created successfully via secondary client instance');
+                    } finally {
+                        await secondaryApp.delete();
+                    }
+                } catch (fallbackError) {
+                    console.error('❌ Secondary client instance creation failed:', fallbackError);
+
+                    let errMsg = 'Failed to create librarian account';
+                    if (fallbackError.code === 'auth/email-already-in-use') {
+                        errMsg = 'This email address is already registered';
+                    } else if (fallbackError.code === 'auth/invalid-email') {
+                        errMsg = 'Invalid email address format';
+                    } else if (fallbackError.code === 'auth/weak-password') {
+                        errMsg = 'Password is too weak. Please use a stronger password.';
+                    } else {
+                        errMsg = fallbackError.message || errMsg;
+                    }
+
+                    showToast(errMsg, '❌');
+                    submitBtn.disabled = false;
+                    if (cancelBtn) cancelBtn.disabled = false;
+                    if (clearBtn) clearBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHTML;
+                    return;
+                }
+            }
+
+            // Successful creation processing
+            if (creationSuccess) {
+                showToast(`✅ Librarian account created for ${name}!`, '✅');
+
+                // Log system activity if ActivityService is available
+                try {
+                    if (window.ActivityService && typeof window.ActivityService.logActivity === 'function') {
+                        window.ActivityService.logActivity('account_created', {
+                            title: 'Created Librarian Account',
+                            description: `Admin created librarian profile for ${name} (${email})`,
+                            targetEmail: email,
+                            role: 'librarian'
+                        });
+                    }
+                } catch (logErr) {
+                    console.debug('Activity logging skipped:', logErr);
+                }
+
+                // Force refresh the user table in the background
+                try {
+                    if (typeof loadUsersData === 'function') {
+                        await loadUsersData(true);
+                    }
+                } catch (tableErr) {
+                    console.warn('Could not auto-refresh users table:', tableErr);
+                }
+
+                // Unlock buttons and reset button state
+                submitBtn.disabled = false;
                 if (cancelBtn) cancelBtn.disabled = false;
                 if (clearBtn) clearBtn.disabled = false;
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
+                submitBtn.innerHTML = originalBtnHTML;
+
+                // Transition to modern credentials success card view
+                showLibrarianSuccessView({
+                    fullName: name,
+                    email: email,
+                    password: password,
+                    uid: createdUserRecord?.uid
+                });
             }
         });
     }
 
     // Escape key to close modal
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && createLibrarianModal.classList.contains('active')) {
+        if (e.key === 'Escape' && createLibrarianModal?.classList.contains('active')) {
             closeLibrarianModal();
         }
     });
@@ -5250,7 +5955,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sampleProjects = [
         {
             title: "AI-Powered Agricultural Monitoring System for Precision Farming",
-            authors: ["Juan Dela Cruz", "Maria Clara Santos"],
+            authors: ["Juan Dela Cruz", "Juan Dela Vina"],
             program: "BSIT",
             year: 2024,
             adviser: "Prof. Elena Villanueva",

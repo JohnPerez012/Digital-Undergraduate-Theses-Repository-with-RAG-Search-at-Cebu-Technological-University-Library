@@ -21,5 +21,6 @@ localRunner.bat
 !README.md
 
 *.txt
-Chapter1_Capstone_Enhanced.docx
-Capstone-Project-and-Research-Manual.pdf
+*.docx
+*.pdf
+*.py

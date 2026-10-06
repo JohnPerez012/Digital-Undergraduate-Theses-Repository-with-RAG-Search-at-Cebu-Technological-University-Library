@@ -1420,17 +1420,14 @@ const Chatbot = {
     if (typeof showChatbotModal === 'function') {
       showChatbotModal('clear-modal');
     } else {
-      // Fallback to ModalDialog
-      const confirmed = window.ModalDialog
-        ? await ModalDialog.confirm({
-            title: 'Clear Conversation',
-            message: 'Are you sure you want to clear all messages in this conversation? This cannot be undone.',
-            confirmText: 'Clear Messages',
-            cancelText: 'Cancel',
-            isDanger: true,
-            icon: 'trash'
-          })
-        : confirm('Clear all messages?');
+      const confirmed = await ModalDialog.confirm({
+          title: 'Clear Conversation',
+          message: 'Are you sure you want to clear all messages in this conversation? This cannot be undone.',
+          confirmText: 'Clear Messages',
+          cancelText: 'Cancel',
+          isDanger: true,
+          icon: 'trash'
+        });
 
       if (confirmed) {
         this.executeClearConversation();
