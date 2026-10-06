@@ -64,11 +64,13 @@
 
         _batch([
             // Profile dropdown
-            { name: 'dashboard',   targetId: 'pd-dashboard-icon', options: { width: 16, height: 16 } },
-            { name: 'arrowright', targetId: 'pd-dashboard-arrow', options: { width: 13, height: 13, style: { opacity: '0.4' } } },
-            { name: 'about',      targetId: 'pd-about-icon',      options: { width: 16, height: 16 } },
-            { name: 'arrowright', targetId: 'pd-about-arrow',     options: { width: 13, height: 13, style: { opacity: '0.4' } } },
-            { name: 'logout',     targetId: 'pd-logout-icon',     options: { width: 15, height: 15 } },
+            { name: 'dashboard',      targetId: 'pd-dashboard-icon',  options: { width: 16, height: 16 } },
+            { name: 'arrowright',     targetId: 'pd-dashboard-arrow', options: { width: 13, height: 13, style: { opacity: '0.4' } } },
+            { name: 'bookmark-saved', targetId: 'pd-saved-icon',      options: { width: 16, height: 16 } },
+            { name: 'arrowright',     targetId: 'pd-saved-arrow',     options: { width: 13, height: 13, style: { opacity: '0.4' } } },
+            { name: 'about',          targetId: 'pd-about-icon',      options: { width: 16, height: 16 } },
+            { name: 'arrowright',     targetId: 'pd-about-arrow',     options: { width: 13, height: 13, style: { opacity: '0.4' } } },
+            { name: 'logout',         targetId: 'pd-logout-icon',     options: { width: 15, height: 15 } },
         ]);
 
         // Theme icons in header toggle button

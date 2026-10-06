@@ -16,9 +16,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - RE-CAPS</title>
-    <link rel="stylesheet" href="../css/shared/style.css">
+    <link rel="stylesheet" href="../css/shared/style.css?v=3">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css?v=2">
-    <link rel="stylesheet" href="../css/admin/style.css?v=20">
+    <link rel="stylesheet" href="../css/admin/style.css?v=22">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="stylesheet" href="../css/shared/password-change.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -360,41 +360,63 @@ BTLEd-HE
                     </div>
 
                     <div class="section-header analytics-header">
-                        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                            <h2>Analytics &amp; Intelligence</h2>
-                            <div class="realtime-indicator" title="Connected to Firestore repository dataset">
-                                <span class="pulse-dot"></span>
-                                <span>Live Repository Data</span>
+                        <div class="analytics-title-group">
+                            <div class="analytics-title-row">
+                                <h2>Analytics &amp; Intelligence</h2>
+                                <div class="realtime-indicator" title="Connected to Firestore repository dataset">
+                                    <span class="pulse-dot"></span>
+                                    <span>Live Repository Data</span>
+                                </div>
                             </div>
+                            <p class="section-subtitle">Real-time repository analytics, research growth trends, and program metrics across CTU.</p>
                         </div>
-                        <div class="analytics-header-controls">
+                    </div>
+
+                    <!-- Dedicated Modern Analytics Control Bar -->
+                    <div class="analytics-control-bar" id="analytics-control-bar">
+                        <!-- Left: Interactive Scope Filters -->
+                        <div class="analytics-bar-filters">
                             <!-- Program Selector Filter -->
-                            <div class="analytics-filter-group">
+                            <div class="analytics-filter-group" title="Filter analytics by Academic Program">
+                                <span class="analytics-filter-icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                                </span>
                                 <select id="analytics-program-filter" class="analytics-select" aria-label="Filter by Academic Program">
                                     <option value="all">All Academic Programs</option>
                                 </select>
                             </div>
-                            <!-- Time Tabs -->
-                            <div class="analytics-time-tabs" id="analytics-time-tabs">
-                                <button class="analytics-tab active" data-range="all">All Time</button>
-                                <button class="analytics-tab" data-range="year">This Year</button>
-                                <button class="analytics-tab" data-range="90d">90 Days</button>
-                                <button class="analytics-tab" data-range="30d">30 Days</button>
+
+                            <!-- Time Horizon Segmented Control -->
+                            <div class="analytics-time-tabs" id="analytics-time-tabs" role="tablist" aria-label="Filter by Time Horizon">
+                                <button class="analytics-tab active" data-range="all" role="tab" aria-selected="true">All Time</button>
+                                <button class="analytics-tab" data-range="year" role="tab" aria-selected="false">This Year</button>
+                                <button class="analytics-tab" data-range="90d" role="tab" aria-selected="false">90 Days</button>
+                                <button class="analytics-tab" data-range="30d" role="tab" aria-selected="false">30 Days</button>
                             </div>
-                            <div class="analytics-action-buttons">
-                                <button class="btn-secondary" id="analytics-refresh-btn" style="display:flex;align-items:center;gap:0.4rem;" title="Refresh analytics dataset">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-                                    <span>Refresh</span>
-                                </button>
-                                <button class="btn-secondary" id="analytics-print-btn" style="display:flex;align-items:center;gap:0.4rem;" title="Print official institutional report">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                                    <span>Print Report</span>
-                                </button>
-                                <button class="btn-secondary" id="analytics-export-btn" style="display:flex;align-items:center;gap:0.4rem;" title="Export dataset as CSV">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                    <span>Export CSV</span>
-                                </button>
-                            </div>
+
+                            <!-- Quick Reset Filter Pill Badge (appears when filter active) -->
+                            <button id="analytics-reset-filters-btn" class="analytics-reset-badge" style="display:none;" title="Reset all analytics filters to defaults">
+                                <span>Reset Filter</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        <!-- Right: Action Controls -->
+                        <div class="analytics-bar-actions">
+                            <button class="analytics-action-btn action-refresh" id="analytics-refresh-btn" title="Refresh analytics dataset from live Firestore">
+                                <svg class="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                <span class="action-btn-label">Refresh</span>
+                            </button>
+
+                            <button class="analytics-action-btn action-print" id="analytics-print-btn" title="Print official institutional summary report">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                <span class="action-btn-label">Print Report</span>
+                            </button>
+
+                            <button class="analytics-action-btn action-export" id="analytics-export-btn" title="Export current filtered analytics dataset as CSV">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <span class="action-btn-label">Export CSV</span>
+                            </button>
                         </div>
                     </div>
 
@@ -541,47 +563,6 @@ BTLEd-HE
                         </div>
                     </div>
 
-                    <!-- Charts Grid Row 3: Trending Topics, Platform Engagement, Monthly Inflow -->
-                    <div class="analytics-charts-grid">
-                        <!-- Trending Research Keywords & Domains -->
-                        <div class="analytics-chart-card">
-                            <div class="chart-card-header">
-                                <div>
-                                    <h3 class="chart-title">Top Research Topics &amp; Domains</h3>
-                                    <p class="chart-subtitle">Most frequent keywords in capstone titles &amp; abstracts</p>
-                                </div>
-                            </div>
-                            <div class="chart-canvas-wrap" style="max-height:260px;">
-                                <canvas id="keywordsChart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Platform Research Engagement -->
-                        <div class="analytics-chart-card">
-                            <div class="chart-card-header">
-                                <div>
-                                    <h3 class="chart-title">Platform Research Engagement</h3>
-                                    <p class="chart-subtitle">Utilization across searches, views &amp; citations</p>
-                                </div>
-                            </div>
-                            <div class="chart-canvas-wrap" style="max-height:260px;">
-                                <canvas id="activityChart"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Monthly additions -->
-                        <div class="analytics-chart-card">
-                            <div class="chart-card-header">
-                                <div>
-                                    <h3 class="chart-title">Monthly Submission Velocity</h3>
-                                    <p class="chart-subtitle">Ingestion flow across academic terms</p>
-                                </div>
-                            </div>
-                            <div class="chart-canvas-wrap" style="max-height:260px;">
-                                <canvas id="monthlyChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Top Bookmarked / Impact Theses Table Card -->
                     <div class="analytics-insights-card">
@@ -689,14 +670,30 @@ BTLEd-HE
             <!-- Modern Modal Header -->
             <div class="pmodal-header">
                 <div class="pmodal-header-left">
-                    <div class="pmodal-icon pmodal-icon--librarian"></div>
+                    <div class="pmodal-icon" style="background: linear-gradient(135deg, #08D488 0%, #10b981 100%); box-shadow: 0 4px 16px rgba(8, 212, 136, 0.4);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+                            <path d="M6 6h10"></path>
+                            <path d="M6 10h10"></path>
+                            <circle cx="17" cy="17" r="3"></circle>
+                            <path d="m21 21-1.5-1.5"></path>
+                        </svg>
+                    </div>
                     <div>
-                        <h3 class="pmodal-title">Create Librarian Account</h3>
-                        <p class="pmodal-subtitle">Add a new library manager with catalog privileges</p>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <h3 class="pmodal-title" style="margin: 0;">Create Librarian Account</h3>
+                            <span class="librarian-role-pill">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                Catalog Manager
+                            </span>
+                        </div>
+                        <p class="pmodal-subtitle">Register a designated library staff member with project curation privileges</p>
                     </div>
                 </div>
                 <div class="pmodal-header-right">
-                    <button class="pmodal-close-btn" id="modal-close-btn" aria-label="Close modal"></button>
+                    <button class="pmodal-close-btn" id="modal-close-btn" aria-label="Close modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
             </div>
 
@@ -709,18 +706,25 @@ BTLEd-HE
                             <div class="pform-section-badge">01</div>
                             <div>
                                 <div class="pform-section-title">Profile Identity</div>
-                                <div class="pform-section-desc">Personal details and system contact email</div>
+                                <div class="pform-section-desc">Personal details and institutional email address</div>
                             </div>
                         </div>
                         <div class="pform-section-body">
                             <div class="pform-field">
                                 <label class="pform-label" for="librarian-name">Full Name <span class="pform-required">*</span></label>
-                                <input type="text" id="librarian-name" class="pform-input" placeholder="e.g., Jane Doe" required>
+                                <input type="text" id="librarian-name" class="pform-input" placeholder="e.g., Juan Dela Vina" required autocomplete="name">
                             </div>
 
                             <div class="pform-field">
-                                <label class="pform-label" for="librarian-email">Email Address <span class="pform-required">*</span></label>
-                                <input type="email" id="librarian-email" class="pform-input" placeholder="e.g., jane.doe@ctu.edu.ph" required>
+                                <div class="pform-field-header-actions">
+                                    <label class="pform-label" for="librarian-email" style="margin-bottom: 0;">Institutional Email <span class="pform-required">*</span></label>
+                                    <button type="button" class="domain-quick-chip" id="chip-ctu-domain" title="Quick append university domain">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                                        @ctu.edu.ph
+                                    </button>
+                                </div>
+                                <input type="email" id="librarian-email" class="pform-input" placeholder="e.g., Allandejesus@ctu.edu.ph" required autocomplete="email" autocapitalize="none">
+                                <span class="pform-label-hint">Official campus email recommended for institutional verification</span>
                             </div>
                         </div>
                     </div>
@@ -731,37 +735,189 @@ BTLEd-HE
                             <div class="pform-section-badge">02</div>
                             <div>
                                 <div class="pform-section-title">Security &amp; Credentials</div>
-                                <div class="pform-section-desc">Sign-in credentials and access permissions</div>
+                                <div class="pform-section-desc">Set secure initial sign-in credentials</div>
                             </div>
                         </div>
                         <div class="pform-section-body">
                             <div class="pform-field">
-                                <label class="pform-label" for="librarian-password">Password <span class="pform-required">*</span></label>
-                                <input type="password" id="librarian-password" class="pform-input" placeholder="Minimum 6 characters" required minlength="6">
-                                <span class="pform-label-hint">Password must be at least 6 characters long</span>
+                                <div class="pform-field-header-actions">
+                                    <label class="pform-label" for="librarian-password" style="margin-bottom: 0;">Initial Password <span class="pform-required">*</span></label>
+                                    <button type="button" class="pwd-gen-chip" id="generate-librarian-pwd" title="Generate a random secure password">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>
+                                        Auto-Generate
+                                    </button>
+                                </div>
+                                <div class="pform-input-wrapper">
+                                    <input type="password" id="librarian-password" class="pform-input" placeholder="Minimum 6 characters" required minlength="6" autocomplete="new-password">
+                                    <button type="button" class="pform-pwd-toggle" id="toggle-librarian-pwd" aria-label="Toggle password visibility">
+                                        <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+                                    </button>
+                                </div>
+                                <!-- Password Strength Indicator -->
+                                <div class="pform-strength-meter" id="librarian-pwd-meter" style="display: none;">
+                                    <div class="pform-strength-bars">
+                                        <div class="pform-strength-segment" id="pwd-seg-1"></div>
+                                        <div class="pform-strength-segment" id="pwd-seg-2"></div>
+                                        <div class="pform-strength-segment" id="pwd-seg-3"></div>
+                                        <div class="pform-strength-segment" id="pwd-seg-4"></div>
+                                    </div>
+                                    <div class="pform-strength-info">
+                                        <span id="pwd-strength-hint">At least 6 characters</span>
+                                        <span class="pform-strength-status" id="pwd-strength-label"></span>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="pform-field">
                                 <label class="pform-label" for="librarian-confirm-password">Confirm Password <span class="pform-required">*</span></label>
-                                <input type="password" id="librarian-confirm-password" class="pform-input" placeholder="Re-enter password" required>
+                                <div class="pform-input-wrapper">
+                                    <input type="password" id="librarian-confirm-password" class="pform-input" placeholder="Re-enter password" required autocomplete="new-password">
+                                    <button type="button" class="pform-pwd-toggle" id="toggle-librarian-confirm-pwd" aria-label="Toggle confirm password visibility">
+                                        <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <svg class="eye-closed" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+                                    </button>
+                                </div>
+                                <div class="pform-match-feedback" id="librarian-pwd-match-hint"></div>
                             </div>
 
                             <div class="pform-field">
-                                <div class="pform-label-hint" style="margin-left: 0; margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: flex-start;">
-                                    <span class="pform-tooltip" title="System Info"></span>
-                                    <span>The librarian will receive credentials to manage capstone projects. Only administrators can perform this action.</span>
+                                <div class="pform-info-box">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                    <div>
+                                        <strong>Permissions Granted:</strong> Full repository management including capstone publishing, editing, catalog indexing, and batch import. Librarians cannot delete other administrator accounts or modify system settings.
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Section 5: Physical Book Cataloging & Librarian Accountability -->
+                    <div class="pform-section" id="pform-section-cataloging">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">05</div>
+                            <div>
+                                <div class="pform-section-title">Physical Catalog &amp; Librarian Accountability</div>
+                                <div class="pform-section-desc">Physical shelf location, call number, and librarian modification history</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <!-- Accountability Stamp / Card -->
+                            <div class="admin-catalog-audit-box" id="admin-catalog-audit-box">
+                                <div class="admin-catalog-audit-header">
+                                    <div class="admin-audit-icon-wrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    </div>
+                                    <div class="admin-audit-header-text">
+                                        <div class="admin-audit-title" id="admin-audit-title">Catalog Accountability Status</div>
+                                        <div class="admin-audit-sub" id="admin-audit-sub">Tracks which librarian created or modified this catalog record.</div>
+                                    </div>
+                                    <span class="admin-audit-badge" id="admin-audit-badge">Not Cataloged</span>
+                                </div>
+                                <div class="admin-audit-details" id="admin-audit-details" style="display:none;">
+                                    <div class="admin-audit-meta-grid">
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">First Cataloged By</span>
+                                            <strong id="admin-audit-created-by">—</strong>
+                                        </div>
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">Last Modified By</span>
+                                            <strong id="admin-audit-updated-by">—</strong>
+                                        </div>
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">Last Updated At</span>
+                                            <span id="admin-audit-updated-at">—</span>
+                                        </div>
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">Total Revisions</span>
+                                            <span id="admin-audit-count">—</span>
+                                        </div>
+                                    </div>
+                                    <div class="admin-audit-history-wrap">
+                                        <button type="button" class="admin-audit-history-btn" id="admin-audit-history-toggle">
+                                            <span>View Complete Librarian Audit Trail</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                        </button>
+                                        <div class="admin-audit-history-list" id="admin-audit-history-list" style="display:none;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Physical location fields -->
+                            <div class="pform-field">
+                                <label class="pform-label" for="project-catalog-location">Physical Location Note</label>
+                                <input type="text" id="project-catalog-location" class="pform-input" placeholder="e.g., Rack 1, Row 2, Book Ends Stand 3, Color Blue">
+                            </div>
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label" for="project-call-number">Call Number</label>
+                                    <input type="text" id="project-call-number" class="pform-input" placeholder="e.g., 025.5 / Dea / 2024">
+                                </div>
+                                <div class="pform-field">
+                                    <label class="pform-label" for="project-accession-number">Accession Number</label>
+                                    <input type="text" id="project-accession-number" class="pform-input" placeholder="e.g., CTU-2024-001">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Footer Actions -->
                     <div class="pmodal-footer">
-                        <button type="button" class="pmodal-btn-clear" id="clear-librarian-btn">Clear</button>
+                        <button type="button" class="pmodal-btn-clear" id="clear-librarian-btn" style="display: none;">Clear</button>
                         <button type="button" class="pmodal-btn-cancel" id="cancel-librarian-btn">Cancel</button>
-                        <button type="submit" class="pmodal-btn-submit" id="submit-librarian-btn">Create Account</button>
+                        <button type="submit" class="pmodal-btn-submit" id="submit-librarian-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                            Create Librarian
+                        </button>
                     </div>
                 </form>
+
+                <!-- Success Screen View (Shown after successful account creation) -->
+                <div class="librarian-success-view" id="librarian-success-view">
+                    <div class="librarian-success-icon-wrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <h3 class="librarian-success-title">Librarian Account Ready!</h3>
+                    <p class="librarian-success-desc">The librarian user has been successfully registered and granted repository cataloging permissions. You can copy the login details below to share with the staff member.</p>
+
+                    <div class="librarian-creds-card">
+                        <div class="librarian-cred-row">
+                            <span class="librarian-cred-label">Full Name</span>
+                            <span class="librarian-cred-value" id="success-librarian-name">-</span>
+                        </div>
+                        <div class="librarian-cred-row">
+                            <span class="librarian-cred-label">Login Email</span>
+                            <span class="librarian-cred-value" id="success-librarian-email">-</span>
+                        </div>
+                        <div class="librarian-cred-row">
+                            <span class="librarian-cred-label">Password</span>
+                            <div class="librarian-cred-value">
+                                <span id="success-librarian-password">••••••••</span>
+                                <button type="button" class="librarian-cred-copy-icon" id="toggle-success-pwd" title="Show password">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="librarian-cred-row">
+                            <span class="librarian-cred-label">Access Level</span>
+                            <span class="librarian-cred-value" style="color: #08D488;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                Librarian (Catalog Privileges)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="librarian-success-actions">
+                        <button type="button" class="btn-primary" id="copy-librarian-creds-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                            Copy Credentials
+                        </button>
+                        <button type="button" class="btn-secondary" id="create-another-librarian-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Create Another
+                        </button>
+                        <button type="button" class="btn-secondary" id="finish-librarian-btn">Done</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1108,7 +1264,7 @@ BTLEd-HE
                                     <tbody>
                                         <tr>
                                             <td>AI System</td>
-                                            <td>Juan Dela Cruz, Maria Santos</td>
+                                            <td>Juan Dela Cruz, Allan De Jesus</td>
                                             <td>BSIT</td>
                                             <td>2024</td>
                                             <td>Prof. Villanueva</td>
@@ -1134,7 +1290,7 @@ BTLEd-HE
                         <pre><code>[
   {
     "title": "AI-Powered Agricultural System",
-    "authors": ["Juan Dela Cruz", "Maria Santos"],
+    "authors": ["Allan P. De Jesus Jr.", "Allan Dela Vina"],
     "program": "BSIT",
     "year": 2024,
     "adviser": "Prof. Elena Villanueva",
@@ -1496,26 +1652,7 @@ BTLEd-HE
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
-    <div class="modal" id="confirmation-modal">
-        <div class="modal-overlay" id="confirmation-modal-overlay"></div>
-        <div class="modal-content confirmation-modal-content">
-            <div class="modal-header">
-                <h3 id="confirmation-modal-title">Confirm Action</h3>
-                <button class="modal-close-btn" id="confirmation-modal-close-btn" aria-label="Close">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div id="confirmation-modal-message"></div>
-                <div id="confirmation-modal-details" style="display: none;"></div>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn-secondary" id="confirmation-cancel-btn">Cancel</button>
-                <button type="button" class="btn-danger" id="confirmation-continue-btn">Continue</button>
-            </div>
-        </div>
-    </div>
+    <!-- Confirmation dialogs handled by shared ModalDialog system -->
 
     <!-- Mobile Toggle Button -->
     <button class="mobile-rail-toggle" id="mobile-rail-toggle" aria-label="Toggle navigation">
@@ -1550,7 +1687,8 @@ BTLEd-HE
     <script src="../js/shared/guest-storage.js"></script>
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
-    <script src="../js/admin/main.js?v=21"></script>
+    <script src="../js/shared/academic-name-parser.js"></script>
+    <script src="../js/admin/main.js?v=26"></script>
 </body>
 </html>
 

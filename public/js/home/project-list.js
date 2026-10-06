@@ -11,6 +11,26 @@ window.ProjectList = {
             updateProjectsForSearch(projects, isRAGSearch);
         }
     },
+
+    searchRealtime: function(query) {
+        if (typeof performRealtimeSearchWrapper === 'function') {
+            return performRealtimeSearchWrapper(query);
+        }
+        return 0;
+    },
+
+    resetRealtimeSearch: function() {
+        if (typeof resetRealtimeSearchWrapper === 'function') {
+            resetRealtimeSearchWrapper();
+        }
+    },
+
+    getMasterProjects: function() {
+        if (typeof getMasterProjectsWrapper === 'function') {
+            return getMasterProjectsWrapper();
+        }
+        return [];
+    },
     
     loadProjects: function() {
         // Clear search query and RAG flag when loading all projects
@@ -43,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let savedProjectIds = (!isAdminUser() && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
         ? window.GuestSavedProjects.getIds()
         : [];
+    window.savedProjectIds = savedProjectIds;
     let savedProjectsFull = []; // Store full project data for localStorage
     
     // Sort Dropdown UI Logic
@@ -98,36 +119,137 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Pagination & Data State
     let allProjects = [];
+    let masterProjects = []; // Master list preserved for instant real-time word-by-word filtering
     let currentPage = 1;
     const PROJECTS_PER_PAGE = 9;
     let isRAGResults = false; // Track if current results are from RAG
+    let currentScope = 'all'; // 'all' | 'saved'
+
+    window.getMasterProjectsWrapper = () => masterProjects;
+
+    // Scope Filter Elements & Logic
+    const filterAllBtn = document.getElementById('filter-all-projects');
+    const filterSavedBtn = document.getElementById('filter-saved-projects');
+
+    function updateScopeBadges() {
+        const count = Array.isArray(savedProjectIds) ? savedProjectIds.length : 0;
+        const scopeBadge = document.getElementById('scope-saved-count');
+        if (scopeBadge) {
+            if (count > 0) {
+                scopeBadge.textContent = count;
+                scopeBadge.style.display = 'inline-flex';
+            } else {
+                scopeBadge.style.display = 'none';
+                scopeBadge.textContent = '0';
+            }
+        }
+        const secBadge = document.getElementById('secondary-saved-count');
+        if (secBadge) {
+            if (count > 0) {
+                secBadge.textContent = count;
+                secBadge.style.display = 'inline-flex';
+            } else {
+                secBadge.style.display = 'none';
+            }
+        }
+    }
+
+    function applyScopeFilter(scope) {
+        currentScope = scope;
+        if (filterAllBtn && filterSavedBtn) {
+            filterAllBtn.classList.toggle('active', scope === 'all');
+            filterSavedBtn.classList.toggle('active', scope === 'saved');
+        }
+
+        if (scope === 'saved') {
+            const savedList = masterProjects.filter(p => savedProjectIds.includes(p.id));
+            allProjects = [...savedList];
+        } else {
+            allProjects = [...masterProjects];
+        }
+
+        const totalCountEl = document.getElementById('total-projects-count');
+        if (totalCountEl) {
+            totalCountEl.textContent = allProjects.length;
+        }
+
+        applySorting();
+    }
+
+    if (filterAllBtn) {
+        filterAllBtn.addEventListener('click', () => {
+            if (currentScope !== 'all') {
+                applyScopeFilter('all');
+            }
+        });
+    }
+
+    if (filterSavedBtn) {
+        filterSavedBtn.addEventListener('click', () => {
+            if (currentScope !== 'saved') {
+                applyScopeFilter('saved');
+            }
+        });
+    }
     
     /**
+     * Escape HTML in string to prevent XSS
+     */
+    function escapeHtml(str) {
+        if (!str && str !== 0) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
+    /**
+     * Format save count for minimalist modern UI (e.g. 0, 14, 1.2k)
+     */
+    function formatSaveCount(count) {
+        const num = Number(count) || 0;
+        if (num < 0) return '0';
+        if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+        return String(num);
+    }
+
+    /**
+     * Get effective save count, ensuring user's own save is reflected optimistically
+     */
+    function getEffectiveSaveCount(projData, isSaved) {
+        let count = (typeof projData.saveCount === 'number' && !isNaN(projData.saveCount))
+            ? Math.max(0, projData.saveCount)
+            : 0;
+        if (isSaved && count === 0) {
+            count = 1;
+        }
+        return count;
+    }
+
+    /**
      * Highlight search terms in text (only for traditional search, not AI semantic)
+     * Tokenizes words to support word-by-word matching with brand yellow highlight
      * @param {string} text - The text to highlight
      * @param {string} query - The search query
      * @returns {string} - HTML string with highlighted terms
      */
     function highlightSearchTerms(text, query) {
-        if (!query || !text) return text;
-        
-        // Escape HTML in original text first
-        const escapeHtml = (str) => {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        };
-        
+        if (!text && text !== 0) return '';
         const escapedText = escapeHtml(text);
-        
-        // Escape special regex characters in query
-        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const escapedQuery = escapeRegex(query);
-        
-        // Create regex for case-insensitive matching
-        const regex = new RegExp(`(${escapedQuery})`, 'gi');
-        
-        // Replace matches with highlighted version
+
+        if (!query || typeof query !== 'string' || !query.trim()) {
+            return escapedText;
+        }
+
+        // Split query into terms to support word-by-word and phrase matching
+        const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rawTokens = query.trim().split(/\s+/).filter(t => t.length > 0);
+        if (rawTokens.length === 0) return escapedText;
+
+        // Sort by length descending so longer words match before substrings
+        const tokens = rawTokens.map(escapeRegex).sort((a, b) => b.length - a.length);
+        const regex = new RegExp(`(${tokens.join('|')})`, 'gi');
+
         return escapedText.replace(regex, '<mark class="search-highlight">$1</mark>');
     }
     
@@ -147,9 +269,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 savedProjectIds = [];
             }
+            window.savedProjectIds = savedProjectIds;
             
             // Sync savedProjectIds with localStorage (full project data)
             syncSavedProjectsWithLocalStorage();
+            updateScopeBadges();
             
             // Re-render current page to update button states
             renderPage(currentPage);
@@ -196,15 +320,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         try {
-            const docRef = db.collection('usersSavedProjects').doc(userId);
-            await docRef.set({
-                UIDproject: firebase.firestore.FieldValue.arrayUnion(projectId)
-            }, { merge: true });
+            const userDocRef = db.collection('usersSavedProjects').doc(userId);
+            const projectDocRef = db.collection('projects').doc(projectId);
+
+            await Promise.all([
+                userDocRef.set({
+                    UIDproject: firebase.firestore.FieldValue.arrayUnion(projectId)
+                }, { merge: true }),
+                projectDocRef.set({
+                    saveCount: firebase.firestore.FieldValue.increment(1)
+                }, { merge: true }).catch(err => console.warn('[RE-CAPS] Project saveCount increment warning:', err))
+            ]);
             
             // Update local state
             if (!savedProjectIds.includes(projectId)) {
                 savedProjectIds.push(projectId);
             }
+            window.savedProjectIds = savedProjectIds;
             
             syncSavedProjectsWithLocalStorage();
 
@@ -215,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error saving project to Firestore:', error);
+            throw error;
         }
     }
     
@@ -224,13 +357,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         try {
-            const docRef = db.collection('usersSavedProjects').doc(userId);
-            await docRef.set({
-                UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
-            }, { merge: true });
+            const userDocRef = db.collection('usersSavedProjects').doc(userId);
+            const projectDocRef = db.collection('projects').doc(projectId);
+
+            await Promise.all([
+                userDocRef.set({
+                    UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
+                }, { merge: true }),
+                projectDocRef.set({
+                    saveCount: firebase.firestore.FieldValue.increment(-1)
+                }, { merge: true }).catch(err => console.warn('[RE-CAPS] Project saveCount decrement warning:', err))
+            ]);
             
             // Update local state
             savedProjectIds = savedProjectIds.filter(id => id !== projectId);
+            window.savedProjectIds = savedProjectIds;
             
             syncSavedProjectsWithLocalStorage();
 
@@ -241,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error removing project from Firestore:', error);
+            throw error;
         }
     }
 
@@ -380,13 +522,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 return titleA.localeCompare(titleB) * modifier;
             } 
             else if (sortField === 'adviser') {
-                const advA = (a.adviser || '').toLowerCase();
-                const advB = (b.adviser || '').toLowerCase();
+                const getAdviserSortKey = (val) => {
+                    if (typeof AcademicNameParser !== 'undefined' && AcademicNameParser.getSortKey) {
+                        return AcademicNameParser.getSortKey(val);
+                    }
+                    return (val || '').toLowerCase();
+                };
+                const advA = getAdviserSortKey(a.adviser);
+                const advB = getAdviserSortKey(b.adviser);
                 return advA.localeCompare(advB) * modifier;
             }
             else if (sortField === 'authorsCount') {
                 const countA = Array.isArray(a.authors) ? a.authors.length : 1;
                 const countB = Array.isArray(b.authors) ? b.authors.length : 1;
+                return (countA - countB) * modifier;
+            }
+            else if (sortField === 'saveCount') {
+                const countA = (typeof a.saveCount === 'number') ? a.saveCount : (savedProjectIds.includes(a.id) ? 1 : 0);
+                const countB = (typeof b.saveCount === 'number') ? b.saveCount : (savedProjectIds.includes(b.id) ? 1 : 0);
                 return (countA - countB) * modifier;
             }
             return 0;
@@ -559,10 +712,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const cachedProjects = loadFromCache();
                 
                 if (cachedProjects && cachedProjects.length > 0) {
-                    allProjects = cachedProjects;
+                    masterProjects = [...cachedProjects];
+                    allProjects = [...masterProjects];
                     console.log('🚀 Using cached data - instant load!');
                     
                     // Apply default sort
+                    updateScopeBadges();
                     applySorting();
                     return;
                 }
@@ -600,6 +755,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 allProjects.push(data);
             });
 
+            masterProjects = [...allProjects];
+
             if (allProjects.length === 0) {
                 const totalProjectsCountElement = document.getElementById('total-projects-count');
                 const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
@@ -619,6 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await saveToCache(allProjects);
 
             // Apply default sort (Date Created, Descending)
+            updateScopeBadges();
             applySorting();
 
         } catch (error) {
@@ -732,6 +890,35 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPage(page) {
         currentPage = page;
         projectsContainer.innerHTML = ''; 
+
+        if (allProjects.length === 0) {
+            if (currentScope === 'saved') {
+                projectsContainer.innerHTML = `
+                    <div class="saved-empty-state" style="margin: 2rem auto; width: 100%;">
+                        <div class="saved-empty-icon-wrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="saved-empty-title">No saved projects yet</h2>
+                        <p class="saved-empty-desc">
+                            You haven't saved any capstone projects yet. Click the <strong>Save</strong> button on any project card to bookmark it.
+                        </p>
+                        <button type="button" class="saved-browse-btn" id="empty-scope-back-btn">
+                            View All Projects
+                        </button>
+                    </div>
+                `;
+                const backBtn = projectsContainer.querySelector('#empty-scope-back-btn');
+                if (backBtn) {
+                    backBtn.addEventListener('click', () => {
+                        applyScopeFilter('all');
+                    });
+                }
+                renderPagination(0);
+                return;
+            }
+        }
         
         const startIndex = (page - 1) * PROJECTS_PER_PAGE;
         const endIndex = startIndex + PROJECTS_PER_PAGE;
@@ -788,6 +975,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const isSaved = savedProjectIds.includes(projectId);
             const saveBtnClass = isSaved ? 'btn-save saved' : 'btn-save';
             const saveBtnText = isSaved ? 'Saved' : 'Save';
+            const effectiveSaveCount = getEffectiveSaveCount(data, isSaved);
+            const formattedSaveCount = formatSaveCount(effectiveSaveCount);
 
             // Generate relevance badge & tier styling if this is a RAG result
             let relevanceBadge = '';
@@ -812,13 +1001,27 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = `project-card ${cardTierClass}`.trim();
             
-            // Admin limitation: Admins cannot see or operate the saving project feature
+            // Admin limitation: Admins cannot save projects, but can see community save metrics
             const isAdmin = isAdminUser();
-            const saveButtonHtml = isAdmin ? '' : `
-                    <button class="${saveBtnClass}" type="button" data-id="${projectId}">
-                        <span id="save-icon-${projectId}"></span>
-                        <span class="btn-text">${saveBtnText}</span>
-                    </button>
+            const saveButtonHtml = isAdmin ? `
+                <div class="project-save-counter-pill ${effectiveSaveCount > 0 ? 'has-saves' : ''}" data-id="${projectId}" title="${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'} saved this project">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="${effectiveSaveCount > 0 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span class="save-pill-count">${formattedSaveCount}</span>
+                    <span class="save-pill-label">${effectiveSaveCount === 1 ? 'save' : 'saves'}</span>
+                </div>
+            ` : `
+                <button class="${saveBtnClass}" type="button" data-id="${projectId}" aria-label="${isSaved ? 'Remove from saved' : 'Save project'}" title="${isSaved ? 'Saved to bookmarks (click to remove)' : 'Save this project'}">
+                    <span class="btn-save-icon" id="save-icon-${projectId}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bookmark-icon-svg" aria-hidden="true">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </span>
+                    <span class="btn-text">${saveBtnText}</span>
+                    <span class="btn-save-divider" aria-hidden="true"></span>
+                    <span class="btn-save-count" data-count="${effectiveSaveCount}">${formattedSaveCount}</span>
+                </button>
             `;
 
             card.innerHTML = `
@@ -850,9 +1053,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof loadIcon === 'function') {
                 loadIcon('user', `user-icon-${projectId}`, 'meta-icon', { width: 16, height: 16 });
                 loadIcon('program', `program-icon-${projectId}`, 'meta-icon', { width: 16, height: 16 });
-                if (!isAdmin) {
-                    loadIcon('save', `save-icon-${projectId}`, '', { width: 16, height: 16 });
-                }
             }
 
             const detailsButton = card.querySelector('.btn-view-details');
@@ -864,55 +1064,136 @@ document.addEventListener('DOMContentLoaded', () => {
             if (saveButton && !isAdmin) {
                 saveButton.addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    const isCurrentlySaved = saveButton.classList.contains('saved');
-                    
-                    // Get current user
+                    const wasSaved = saveButton.classList.contains('saved');
+                    const nextSaved = !wasSaved;
+                    const countEl = saveButton.querySelector('.btn-save-count');
+                    const labelEl = saveButton.querySelector('.btn-text');
+                    const iconSvg = saveButton.querySelector('.btn-save-icon svg');
+
+                    const prevCount = getEffectiveSaveCount(data, wasSaved);
+                    const nextCount = Math.max(0, prevCount + (nextSaved ? 1 : -1));
+
+                    // 1. OPTIMISTIC UI: Instant visual feedback (0ms perceived latency)
+                    data.saveCount = nextCount;
+                    saveButton.classList.toggle('saved', nextSaved);
+                    if (labelEl) labelEl.textContent = nextSaved ? 'Saved' : 'Save';
+                    if (countEl) {
+                        countEl.textContent = formatSaveCount(nextCount);
+                        countEl.setAttribute('data-count', nextCount);
+                    }
+                    if (iconSvg) {
+                        iconSvg.setAttribute('fill', nextSaved ? 'currentColor' : 'none');
+                    }
+                    saveButton.setAttribute('title', nextSaved ? 'Saved to bookmarks (click to remove)' : 'Save this project');
+                    saveButton.setAttribute('aria-label', nextSaved ? 'Remove from saved' : 'Save project');
+
+                    // Micro-animation pop trigger
+                    saveButton.classList.remove('optimistic-pop');
+                    void saveButton.offsetWidth; // Force reflow
+                    saveButton.classList.add('optimistic-pop');
+                    setTimeout(() => saveButton.classList.remove('optimistic-pop'), 400);
+
+                    // Update memory state
+                    if (nextSaved) {
+                        if (!savedProjectIds.includes(projectId)) savedProjectIds.push(projectId);
+                    } else {
+                        savedProjectIds = savedProjectIds.filter(id => id !== projectId);
+                    }
+                    window.savedProjectIds = savedProjectIds;
+
+                    // Sync to all other open views immediately
+                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                        detail: { projectId, isSaved: nextSaved, saveCount: nextCount }
+                    }));
+
+                    // Update master list references
+                    const targetInAll = allProjects.find(p => p.id === projectId);
+                    if (targetInAll) targetInAll.saveCount = nextCount;
+                    const targetInMaster = masterProjects.find(p => p.id === projectId);
+                    if (targetInMaster) targetInMaster.saveCount = nextCount;
+
+                    // 2. Perform background persistence
                     const user = firebase.auth().currentUser;
                     if (!user) {
-                        // User not logged in: save/unsave ONLY on local device
-                        if (isCurrentlySaved) {
-                            if (window.GuestSavedProjects) {
-                                window.GuestSavedProjects.remove(projectId);
+                        // Guest mode: save locally on device
+                        if (nextSaved) {
+                            if (window.GuestSavedProjects) window.GuestSavedProjects.save(data);
+                            if (typeof db !== 'undefined' && db.collection) {
+                                db.collection('projects').doc(projectId).set({
+                                    saveCount: firebase.firestore.FieldValue.increment(1)
+                                }, { merge: true }).catch(err => console.warn('[RE-CAPS] Guest increment warning:', err));
                             }
-                            savedProjectIds = savedProjectIds.filter(id => id !== projectId);
-                            saveButton.classList.remove('saved');
-                            const btnText = saveButton.querySelector('.btn-text');
-                            if (btnText) btnText.textContent = 'Save';
+                            if (typeof showToast === 'function') {
+                                showToast('Project saved locally on this device. Sign in to sync across devices.', 'success');
+                            }
+                        } else {
+                            if (window.GuestSavedProjects) window.GuestSavedProjects.remove(projectId);
+                            if (typeof db !== 'undefined' && db.collection) {
+                                db.collection('projects').doc(projectId).set({
+                                    saveCount: firebase.firestore.FieldValue.increment(-1)
+                                }, { merge: true }).catch(err => console.warn('[RE-CAPS] Guest decrement warning:', err));
+                            }
                             if (typeof showToast === 'function') {
                                 showToast('Project removed from this device', 'info');
                             }
-                        } else {
-                            if (window.GuestSavedProjects) {
-                                window.GuestSavedProjects.save(data);
-                            }
-                            if (!savedProjectIds.includes(projectId)) {
-                                savedProjectIds.push(projectId);
-                            }
-                            saveButton.classList.add('saved');
-                            const btnText = saveButton.querySelector('.btn-text');
-                            if (btnText) btnText.textContent = 'Saved';
-                            if (typeof showToast === 'function') {
-                                showToast('Project saved locally on this device. Sign in to sync to your account.', 'success');
-                            }
                         }
-                        window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
+                        syncSavedProjectsWithLocalStorage();
+                        updateScopeBadges();
+                        if (currentScope === 'saved') {
+                            applyScopeFilter('saved');
+                        }
                         return;
                     }
-                    
-                    if (isCurrentlySaved) {
-                        // Unsave
-                        await removeProjectFromFirestore(user.uid, projectId);
-                        saveButton.classList.remove('saved');
-                        saveButton.querySelector('.btn-text').textContent = 'Save';
-                    } else {
-                        // Save
-                        await saveProjectToFirestore(user.uid, projectId);
-                        saveButton.classList.add('saved');
-                        saveButton.querySelector('.btn-text').textContent = 'Saved';
+
+                    // Authenticated user mode: background Firestore update
+                    try {
+                        if (nextSaved) {
+                            await saveProjectToFirestore(user.uid, projectId);
+                            if (typeof showToast === 'function') {
+                                showToast('Project saved to your account', 'success');
+                            }
+                        } else {
+                            await removeProjectFromFirestore(user.uid, projectId);
+                            if (typeof showToast === 'function') {
+                                showToast('Project removed from saved projects', 'info');
+                            }
+                        }
+                        updateScopeBadges();
+                        if (currentScope === 'saved') {
+                            applyScopeFilter('saved');
+                        }
+                    } catch (error) {
+                        console.error('Failed to sync bookmark to Firestore:', error);
+                        // Rollback on network/permission error
+                        data.saveCount = prevCount;
+                        if (targetInAll) targetInAll.saveCount = prevCount;
+                        if (targetInMaster) targetInMaster.saveCount = prevCount;
+
+                        if (wasSaved) {
+                            if (!savedProjectIds.includes(projectId)) savedProjectIds.push(projectId);
+                        } else {
+                            savedProjectIds = savedProjectIds.filter(id => id !== projectId);
+                        }
+                        window.savedProjectIds = savedProjectIds;
+
+                        saveButton.classList.toggle('saved', wasSaved);
+                        if (labelEl) labelEl.textContent = wasSaved ? 'Saved' : 'Save';
+                        if (countEl) {
+                            countEl.textContent = formatSaveCount(prevCount);
+                            countEl.setAttribute('data-count', prevCount);
+                        }
+                        if (iconSvg) {
+                            iconSvg.setAttribute('fill', wasSaved ? 'currentColor' : 'none');
+                        }
+
+                        window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                            detail: { projectId, isSaved: wasSaved, saveCount: prevCount }
+                        }));
+
+                        if (typeof showToast === 'function') {
+                            showToast('Unable to update saved project. Changes reverted.', 'error');
+                        }
                     }
-                    
-                    // Dispatch custom event to notify dashboard dropdown
-                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
                 });
             }
         });
@@ -1053,13 +1334,160 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize
     
+    /**
+     * Real-time Word-by-Word Search implementation
+     * Rapid in-memory filtering that tokenizes search input word-by-word
+     */
+    function performRealtimeSearch(query) {
+        if (!query || !query.trim()) {
+            resetRealtimeSearch();
+            return masterProjects.length;
+        }
+
+        // Ensure masterProjects is populated
+        if (masterProjects.length === 0) {
+            const cached = loadFromCache();
+            if (cached && cached.length > 0) {
+                masterProjects = [...cached];
+            } else if (allProjects.length > 0 && !isRAGResults) {
+                masterProjects = [...allProjects];
+            }
+        }
+
+        const cleanQuery = query.trim();
+        window.currentSearchQuery = cleanQuery;
+        isRAGResults = false;
+
+        const rawTokens = cleanQuery.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+        if (rawTokens.length === 0) {
+            resetRealtimeSearch();
+            return masterProjects.length;
+        }
+
+        const programAliases = {
+            'bsie': ['bsie', 'industrial engineering', 'industrial'],
+            'industrial engineering': ['bsie', 'industrial engineering', 'industrial'],
+            'bit-electronics': ['bit-electronics', 'electronics', 'electronics technology', 'bit electronics'],
+            'electronics': ['bit-electronics', 'electronics', 'electronics technology', 'bit electronics'],
+            'bshm': ['bshm', 'hospitality management', 'hospitality', 'bs hospitality management'],
+            'hospitality management': ['bshm', 'hospitality management', 'hospitality'],
+            'bit-automotive': ['bit-automotive', 'automotive', 'automotive technology', 'bit automotive'],
+            'automotive': ['bit-automotive', 'automotive', 'automotive technology']
+        };
+
+        const filtered = masterProjects.filter(project => {
+            const title = (project.title || '').toLowerCase();
+            const abstract = (project.abstract || '').toLowerCase();
+            const program = (project.program || '').toLowerCase();
+            const department = (project.department || '').toLowerCase();
+            const authors = Array.isArray(project.authors)
+                ? project.authors.join(' ').toLowerCase()
+                : String(project.authors || '').toLowerCase();
+            const keywords = Array.isArray(project.keywords)
+                ? project.keywords.join(' ').toLowerCase()
+                : String(project.keywords || '').toLowerCase();
+            const year = String(project.year || '').toLowerCase();
+            const adviser = (project.adviser || '').toLowerCase();
+
+            let adviserPool = adviser;
+            if (typeof AcademicNameParser !== 'undefined' && AcademicNameParser.parse && project.adviser) {
+                const pAdv = AcademicNameParser.parse(project.adviser);
+                if (pAdv) {
+                    adviserPool = `${adviser} ${pAdv.surname} ${pAdv.firstName} ${pAdv.fullDisplay}`.toLowerCase();
+                }
+            }
+
+            let programPool = program;
+            for (const [key, aliases] of Object.entries(programAliases)) {
+                if (program.includes(key)) {
+                    programPool += ' ' + aliases.join(' ');
+                }
+            }
+
+            const fullSearchPool = `${title} ${abstract} ${programPool} ${department} ${authors} ${keywords} ${year} ${adviserPool}`;
+
+            // Real-time word-by-word match: every typed word must match
+            return rawTokens.every(token => fullSearchPool.includes(token));
+        });
+
+        allProjects = filtered;
+        currentPage = 1;
+
+        const countElement = document.getElementById('total-projects-count');
+        if (countElement) {
+            countElement.textContent = filtered.length;
+        }
+
+        if (filtered.length === 0) {
+            projectsContainer.innerHTML = `
+                <div class="no-projects-found" style="text-align: center; padding: 3rem 1.5rem; width: 100%; grid-column: 1 / -1;">
+                     <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary, #1e293b);">No capstone projects found</h3>
+                    <p style="color: var(--text-secondary, #64748b); max-width: 480px; margin: 0 auto 1.5rem;">
+                        No results found matching "<strong>${escapeHtml(cleanQuery)}</strong>". Try checking for typos or searching a different term.
+                    </p>
+                    <button type="button" class="btn-secondary" id="btn-reset-realtime-search" style="padding: 0.5rem 1.25rem; border-radius: 8px; cursor: pointer;">
+                        Clear Search
+                    </button>
+                </div>
+            `;
+            const resetBtn = document.getElementById('btn-reset-realtime-search');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    const searchInput = document.querySelector('.search-input');
+                    const searchClearBtn = document.querySelector('.search-clear-btn');
+                    if (searchInput) searchInput.value = '';
+                    if (searchClearBtn) searchClearBtn.style.display = 'none';
+                    resetRealtimeSearch();
+                });
+            }
+            if (paginationContainer) paginationContainer.innerHTML = '';
+        } else {
+            applySorting();
+        }
+
+        return filtered.length;
+    }
+
+    /**
+     * Reset Real-time Search and restore full master projects list
+     */
+    function resetRealtimeSearch() {
+        window.currentSearchQuery = null;
+        isRAGResults = false;
+
+        if (masterProjects.length === 0) {
+            const cached = loadFromCache();
+            if (cached && cached.length > 0) {
+                masterProjects = [...cached];
+            }
+        }
+
+        allProjects = [...masterProjects];
+        currentPage = 1;
+
+        const countElement = document.getElementById('total-projects-count');
+        if (countElement) {
+            countElement.textContent = allProjects.length;
+        }
+
+        applySorting();
+    }
+
     // Wrapper function to clear search state
     window.clearSearchStateWrapper = function() {
         window.currentSearchQuery = null;
         isRAGResults = false;
+        if (masterProjects.length > 0) {
+            allProjects = [...masterProjects];
+        }
     };
     
-    // Wrapper function for external access
+    // Wrapper functions for external access
+    window.performRealtimeSearchWrapper = performRealtimeSearch;
+    window.resetRealtimeSearchWrapper = resetRealtimeSearch;
+    window.getMasterProjectsWrapper = () => masterProjects;
+
     window.fetchProjectsWrapper = async function() {
         // Ensure search query is cleared before fetching
         window.currentSearchQuery = null;
@@ -1136,7 +1564,84 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUser = firebase.auth().currentUser;
             if (!currentUser && window.GuestSavedProjects && !isAdminUser()) {
                 savedProjectIds = window.GuestSavedProjects.getIds();
-                renderPage(currentPage);
+                window.savedProjectIds = savedProjectIds;
+                updateScopeBadges();
+                if (currentScope === 'saved') {
+                    applyScopeFilter('saved');
+                } else {
+                    renderPage(currentPage);
+                }
+            }
+        });
+
+        // Listen for project bookmark state changes (e.g. from details view or dashboard)
+        window.addEventListener('projectSavedStateChanged', (e) => {
+            if (e && e.detail && e.detail.projectId) {
+                const targetId = e.detail.projectId;
+                const isNowSaved = Boolean(e.detail.isSaved);
+                const newCount = typeof e.detail.saveCount === 'number' ? e.detail.saveCount : null;
+
+                if (!isAdminUser()) {
+                    if (isNowSaved) {
+                        if (!savedProjectIds.includes(targetId)) {
+                            savedProjectIds.push(targetId);
+                        }
+                    } else {
+                        savedProjectIds = savedProjectIds.filter(id => id !== targetId);
+                    }
+                    window.savedProjectIds = savedProjectIds;
+                    syncSavedProjectsWithLocalStorage();
+                    updateScopeBadges();
+                    if (currentScope === 'saved') {
+                        applyScopeFilter('saved');
+                    }
+                }
+
+                // Update data in in-memory arrays
+                const projInAll = allProjects.find(p => p.id === targetId);
+                if (projInAll && newCount !== null) projInAll.saveCount = newCount;
+                const projInMaster = masterProjects.find(p => p.id === targetId);
+                if (projInMaster && newCount !== null) projInMaster.saveCount = newCount;
+
+                // Dynamically update corresponding card button in current DOM
+                const cardBtn = document.querySelector(`.btn-save[data-id="${targetId}"]`);
+                if (cardBtn) {
+                    cardBtn.classList.toggle('saved', isNowSaved);
+                    const btnText = cardBtn.querySelector('.btn-text');
+                    if (btnText) btnText.textContent = isNowSaved ? 'Saved' : 'Save';
+                    const iconSvg = cardBtn.querySelector('.btn-save-icon svg');
+                    if (iconSvg) iconSvg.setAttribute('fill', isNowSaved ? 'currentColor' : 'none');
+                    if (newCount !== null) {
+                        const countEl = cardBtn.querySelector('.btn-save-count');
+                        if (countEl) {
+                            countEl.textContent = formatSaveCount(newCount);
+                            countEl.setAttribute('data-count', newCount);
+                        }
+                    }
+                }
+
+                // Also update admin counter pill if present
+                const adminPill = document.querySelector(`.project-save-counter-pill[data-id="${targetId}"]`);
+                if (adminPill && newCount !== null) {
+                    adminPill.classList.toggle('has-saves', newCount > 0);
+                    const pillCount = adminPill.querySelector('.save-pill-count');
+                    if (pillCount) pillCount.textContent = formatSaveCount(newCount);
+                    const pillLabel = adminPill.querySelector('.save-pill-label');
+                    if (pillLabel) pillLabel.textContent = newCount === 1 ? 'save' : 'saves';
+                    adminPill.title = `${newCount} ${newCount === 1 ? 'user saved' : 'users saved'} this project`;
+                }
+            } else {
+                const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+                if (!currentUser && window.GuestSavedProjects) {
+                    savedProjectIds = window.GuestSavedProjects.getIds();
+                    window.savedProjectIds = savedProjectIds;
+                }
+                updateScopeBadges();
+                if (currentScope === 'saved') {
+                    applyScopeFilter('saved');
+                } else {
+                    renderPage(currentPage);
+                }
             }
         });
     } else {

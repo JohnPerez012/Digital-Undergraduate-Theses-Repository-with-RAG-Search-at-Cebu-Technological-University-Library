@@ -134,10 +134,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Function to remove project from Firestore
     async function removeProjectFromFirestore(userId, projectId) {
         try {
-            const docRef = db.collection('usersSavedProjects').doc(userId);
-            await docRef.set({
-                UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
-            }, { merge: true });
+            const userDocRef = db.collection('usersSavedProjects').doc(userId);
+            const projectDocRef = db.collection('projects').doc(projectId);
+
+            await Promise.all([
+                userDocRef.set({
+                    UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
+                }, { merge: true }),
+                projectDocRef.set({
+                    saveCount: firebase.firestore.FieldValue.increment(-1)
+                }, { merge: true }).catch(err => console.warn('[UserDashboard] Decrement saveCount warning:', err))
+            ]);
             
             // Update local state
             savedProjectIds = savedProjectIds.filter(id => id !== projectId);
@@ -150,7 +157,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             renderSavedProjects();
-            window.dispatchEvent(new CustomEvent('projectSavedStateChanged'));
+            window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                detail: { projectId, isSaved: false }
+            }));
         } catch (error) {
             console.error('Error removing project from Firestore:', error);
         }
@@ -159,10 +168,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Function to clear all saved projects
     async function clearAllSavedProjects(userId) {
         try {
+            const idsToDecrement = [...savedProjectIds];
             const docRef = db.collection('usersSavedProjects').doc(userId);
             await docRef.set({
                 UIDproject: []
             }, { merge: true });
+
+            idsToDecrement.forEach(pId => {
+                try {
+                    db.collection('projects').doc(pId).set({
+                        saveCount: firebase.firestore.FieldValue.increment(-1)
+                    }, { merge: true });
+                } catch (e) {}
+            });
             
             savedProjectIds = [];
             syncSavedProjectsWithLocalStorage();
@@ -178,12 +196,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const savedCountBadge = document.getElementById('saved-count');
         const savedProjectsStats = document.getElementById('saved-projects-count');
         const launchpadSaved = document.getElementById('launchpad-saved-count');
+        const pillCount = document.getElementById('dashboard-saved-count-pill');
+        const syncEmail = document.getElementById('dashboard-sync-email');
+
         if (savedCountBadge) savedCountBadge.textContent = count;
         if (savedProjectsStats) savedProjectsStats.textContent = count;
         if (launchpadSaved) launchpadSaved.textContent = count;
+        if (pillCount) pillCount.textContent = `${count} saved`;
+
+        if (syncEmail) {
+            const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            if (user && user.email) {
+                syncEmail.textContent = `Your saved capstones are connected to your account (${user.email}).`;
+            } else {
+                syncEmail.textContent = 'Your saved capstones are connected to your CTU account.';
+            }
+        }
     }
 
-    // Render Saved Projects as cards on the dashboard
+    // Render Saved Projects as cards on the dashboard (Elevated with Screen 1 UI/UX)
     function renderSavedProjects() {
         let savedProjects = [];
         try {
@@ -208,9 +239,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             const homeLink = isInPagesFolder ? '../index.html' : 'index.html';
             savedProjectsList.innerHTML = `
                 <div class="saved-empty-state">
-                    <span class="saved-empty-icon">🔖</span>
-                    <p>No saved projects yet.</p>
-                    <a href="${homeLink}" class="saved-empty-link">Explore Projects →</a>
+                    <div class="saved-empty-icon-wrap">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            <line x1="8" y1="10" x2="16" y2="10"></line>
+                            <line x1="8" y1="14" x2="13" y2="14"></line>
+                        </svg>
+                    </div>
+                    <h3 class="saved-empty-title">No saved projects yet</h3>
+                    <p class="saved-empty-desc">
+                        Browse our undergraduate research catalog and bookmark capstone projects for your study, reference, and citations.
+                    </p>
+                    <a href="${homeLink}" class="saved-empty-btn">Explore Projects Catalog &rarr;</a>
                 </div>
             `;
             return;
@@ -220,40 +260,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             const card = document.createElement('div');
             card.className = 'saved-project-card';
 
-            const authors = Array.isArray(project.rawData?.authors)
-                ? project.rawData.authors.join(', ')
-                : (project.rawData?.authors || 'Unknown Authors');
+            const raw = project.rawData || project;
+            let authors = 'CTU Researchers';
+            if (Array.isArray(raw.authors)) authors = raw.authors.join(' · ');
+            else if (typeof raw.authors === 'string' && raw.authors.trim()) authors = raw.authors;
 
-            const year = project.rawData?.year || '';
-            const program = project.rawData?.program || '';
+            const year = raw.year || '2024';
+            const program = raw.program || 'Capstone';
+            const abstract = raw.abstract || 'No abstract preview available for this capstone project.';
 
             card.innerHTML = `
+                <div class="saved-card-header">
+                    <span class="saved-badge-program">${escapeHtml(program)}</span>
+                    <span class="saved-badge-year">${escapeHtml(year)}</span>
+                </div>
                 <div class="saved-card-body">
-                    <p class="saved-card-meta">${[program, year].filter(Boolean).join(' · ')}</p>
                     <h3 class="saved-card-title">${escapeHtml(project.title)}</h3>
-                    <p class="saved-card-authors">${escapeHtml(authors)}</p>
+                    <div class="saved-card-authors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span>${escapeHtml(authors)}</span>
+                    </div>
+                    <p class="saved-card-abstract">${escapeHtml(abstract)}</p>
                 </div>
                 <div class="saved-card-actions">
-                    <button class="saved-card-view-btn" data-id="${project.id}">View Details →</button>
-                    <button class="saved-card-remove-btn" title="Remove" data-id="${project.id}">
-                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('close') : '✕'}
+                    <button class="saved-card-view-btn" data-id="${project.id}">View Details &rarr;</button>
+                    <button class="saved-card-remove-btn" title="Remove from saved" data-id="${project.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        <span>Remove</span>
                     </button>
                 </div>
             `;
 
             // View button
             card.querySelector('.saved-card-view-btn').addEventListener('click', () => {
-                // Add ripple effect
                 const btn = card.querySelector('.saved-card-view-btn');
                 btn.style.transform = 'scale(0.95)';
                 setTimeout(() => {
                     btn.style.transform = '';
                 }, 100);
-                
-                sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project.rawData));
-                // Set flag to show details view
+
+                sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(raw));
                 sessionStorage.setItem('showProjectDetails', 'true');
-                // Navigate to index.html which will handle the view
                 setTimeout(() => {
                     const isInPagesFolder = window.location.pathname.includes('/pages/');
                     window.location.href = isInPagesFolder ? '../index.html' : 'index.html';

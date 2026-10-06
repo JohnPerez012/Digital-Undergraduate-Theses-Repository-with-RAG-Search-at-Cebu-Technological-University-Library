@@ -180,21 +180,40 @@ const Citation = {
   },
 
   /**
+   * Helper: Parse author into structured academic name
+   */
+  parseAuthor(author) {
+    if (!author) return null;
+    if (typeof AcademicNameParser !== 'undefined' && AcademicNameParser.parse) {
+      return AcademicNameParser.parse(author);
+    }
+    const parts = author.trim().split(/[\s,]+/);
+    if (parts.length === 0) return null;
+    const lastName = parts[parts.length - 1];
+    const initials = parts.slice(0, -1).map(p => p.charAt(0).toUpperCase() + '.').join(' ');
+    const firstName = parts.slice(0, -1).join(' ');
+    return {
+      surname: lastName,
+      firstName: firstName,
+      initials: initials,
+      apaAuthor: initials ? `${lastName}, ${initials}` : lastName,
+      mlaAuthor: firstName ? `${lastName}, ${firstName}` : lastName,
+      ieeeAuthor: initials ? `${initials} ${lastName}` : lastName
+    };
+  },
+
+  /**
    * Format authors for APA
    */
   formatAuthorsAPA(authors) {
     if (!authors || authors.length === 0) return 'Author Unknown';
     
     const formatted = authors.map(author => {
-      const parts = author.trim().split(/[\s,]+/);
-      if (parts.length === 0) return '';
-      
-      const lastName = parts[parts.length - 1];
-      const initials = parts.slice(0, -1).map(p => p.charAt(0).toUpperCase() + '.').join(' ');
-      
-      return initials ? `${lastName}, ${initials}` : lastName;
-    });
+      const parsed = this.parseAuthor(author);
+      return parsed ? parsed.apaAuthor : '';
+    }).filter(Boolean);
 
+    if (formatted.length === 0) return 'Author Unknown';
     if (formatted.length === 1) return formatted[0];
     if (formatted.length === 2) return `${formatted[0]}, & ${formatted[1]}`;
     
@@ -210,15 +229,11 @@ const Citation = {
     if (!authors || authors.length === 0) return 'Author Unknown';
     
     const formatted = authors.map(author => {
-      const parts = author.trim().split(/[\s,]+/);
-      if (parts.length === 0) return '';
-      
-      const lastName = parts[parts.length - 1];
-      const firstName = parts.slice(0, -1).join(' ');
-      
-      return firstName ? `${lastName}, ${firstName}` : lastName;
-    });
+      const parsed = this.parseAuthor(author);
+      return parsed ? parsed.mlaAuthor : '';
+    }).filter(Boolean);
 
+    if (formatted.length === 0) return 'Author Unknown.';
     if (formatted.length === 1) return formatted[0] + '.';
     if (formatted.length === 2) return `${formatted[0]}, and ${formatted[1]}.`;
     
@@ -234,15 +249,11 @@ const Citation = {
     if (!authors || authors.length === 0) return 'Author Unknown';
     
     const formatted = authors.map(author => {
-      const parts = author.trim().split(/[\s,]+/);
-      if (parts.length === 0) return '';
-      
-      const lastName = parts[parts.length - 1];
-      const firstName = parts.slice(0, -1).join(' ');
-      
-      return firstName ? `${lastName}, ${firstName}` : lastName;
-    });
+      const parsed = this.parseAuthor(author);
+      return parsed ? parsed.mlaAuthor : '';
+    }).filter(Boolean);
 
+    if (formatted.length === 0) return 'Author Unknown.';
     if (formatted.length === 1) return formatted[0] + '.';
     if (formatted.length === 2) return `${formatted[0]} and ${formatted[1]}.`;
     if (formatted.length === 3) return `${formatted[0]}, ${formatted[1]}, and ${formatted[2]}.`;
@@ -257,15 +268,11 @@ const Citation = {
     if (!authors || authors.length === 0) return 'Author Unknown';
     
     const formatted = authors.map(author => {
-      const parts = author.trim().split(/[\s,]+/);
-      if (parts.length === 0) return '';
-      
-      const lastName = parts[parts.length - 1];
-      const initials = parts.slice(0, -1).map(p => p.charAt(0).toUpperCase() + '.').join(' ');
-      
-      return initials ? `${initials} ${lastName}` : lastName;
-    });
+      const parsed = this.parseAuthor(author);
+      return parsed ? parsed.ieeeAuthor : '';
+    }).filter(Boolean);
 
+    if (formatted.length === 0) return 'Author Unknown,';
     if (formatted.length === 1) return formatted[0] + ',';
     if (formatted.length === 2) return `${formatted[0]} and ${formatted[1]},`;
     

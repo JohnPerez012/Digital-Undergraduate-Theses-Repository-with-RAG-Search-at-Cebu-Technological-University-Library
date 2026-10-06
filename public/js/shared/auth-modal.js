@@ -403,6 +403,41 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        // Saved Projects Row Navigation (directs logged-in users to their personal dashboard saved section)
+        const pdSavedRow = document.getElementById('pd-saved-row');
+        if (pdSavedRow) {
+            pdSavedRow.addEventListener('click', async (e) => {
+                e.preventDefault();
+                closeDropdown();
+                let userType = sessionStorage.getItem('userType');
+                if (!userType && window.AuthService) {
+                    userType = await AuthService.getUserType();
+                }
+                const isSubpage = window.location.pathname.includes('/pages/');
+                let targetUrl = '';
+                if (userType === 'student') {
+                    targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
+                } else if (userType === 'teacher') {
+                    targetUrl = isSubpage ? 'teacher_page.html#saved' : 'pages/teacher_page.html#saved';
+                } else if (userType === 'librarian') {
+                    targetUrl = isSubpage ? 'librarian_page.html#saved' : 'pages/librarian_page.html#saved';
+                } else {
+                    targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
+                }
+
+                // If already on the target page, trigger rail switch directly
+                const currentPage = window.location.pathname.split('/').pop();
+                const targetPage = targetUrl.split('#')[0].split('/').pop();
+                if (currentPage === targetPage) {
+                    const savedNav = document.querySelector('.rail-nav-item[data-section="saved"]');
+                    if (savedNav) savedNav.click();
+                    else window.location.hash = '#saved';
+                } else {
+                    window.location.href = targetUrl;
+                }
+            });
+        }
+
         // Sync theme switch inside dropdown
         function syncThemePill() {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -438,6 +473,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateHeader(user) {
         const themeToggleBtn = document.getElementById('theme-toggle');
         const aboutNavLink = document.getElementById('about-nav-link');
+        const pdSavedRow = document.getElementById('pd-saved-row');
+        const pdSavedDivider = document.getElementById('pd-saved-divider');
+
         if (user) {
             localStorage.setItem('cachedAuthState', 'true');
             if (loginNavLink) loginNavLink.style.display = 'none';
@@ -446,12 +484,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (avatarImg) avatarImg.src = user.photoURL || avatarImg.src;
             if (themeToggleBtn) themeToggleBtn.style.display = 'none';
             if (aboutNavLink) aboutNavLink.style.display = 'none'; // moved into dropdown
+
+            // LOGGED-IN: Show Saved Projects row inside profile dropdown
+            if (pdSavedRow) pdSavedRow.style.display = 'flex';
+            if (pdSavedDivider) pdSavedDivider.style.display = 'block';
+
+            if (window.ViewManager && typeof window.ViewManager.updateSecondaryNavSavedCount === 'function') {
+                window.ViewManager.updateSecondaryNavSavedCount();
+            }
         } else {
             localStorage.removeItem('cachedAuthState');
             if (loginNavLink) loginNavLink.style.display = 'block';
             if (profileLink) profileLink.style.display = 'none';
             if (themeToggleBtn) themeToggleBtn.style.display = 'block';
             if (aboutNavLink) aboutNavLink.style.display = 'flex'; // show when logged out
+
+            // ANONYMOUS: Hide Saved Projects row from profile dropdown
+            if (pdSavedRow) pdSavedRow.style.display = 'none';
+            if (pdSavedDivider) pdSavedDivider.style.display = 'none';
+
+            if (window.ViewManager && typeof window.ViewManager.updateSecondaryNavSavedCount === 'function') {
+                window.ViewManager.updateSecondaryNavSavedCount();
+            }
         }
     }
 

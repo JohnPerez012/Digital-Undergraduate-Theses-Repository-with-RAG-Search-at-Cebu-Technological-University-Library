@@ -21,11 +21,11 @@
         rel="stylesheet">
 
 
-    <link rel="stylesheet" href="css/shared/style.css?v=2.3">
-    <link rel="stylesheet" href="css/home/project-list.css?v=2.1">
+    <link rel="stylesheet" href="css/shared/style.css?v=2.4">
+    <link rel="stylesheet" href="css/home/project-list.css?v=2.2">
     <link rel="stylesheet" href="css/shared/toast.css">
     <link rel="stylesheet" href="css/shared/modal-dialog.css">
-    <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.1">
+    <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.2">
     <link rel="stylesheet" href="css/home/rag-styles.css">
     <link rel="stylesheet" href="css/projectDetails/view_project_details.css?v=2.1">
     <link rel="stylesheet" href="css/chatbot/chatbot.css">
@@ -115,6 +115,20 @@
                                         </div>
 
                                         <div class="pd-divider"></div>
+
+                                        <!-- Saved Projects Row (for logged-in users) -->
+                                        <div class="pd-row" id="pd-saved-row" style="cursor:pointer; display:none;">
+                                            <span class="pd-row-label">
+                                                <span id="pd-saved-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
+                                                Saved Projects
+                                            </span>
+                                            <div class="pd-row-right" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                                                <span class="pd-saved-badge" id="pd-saved-count" style="display:none;">0</span>
+                                                <span id="pd-saved-arrow" style="display:inline-flex;"></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="pd-divider" id="pd-saved-divider" style="display:none;"></div>
 
                                         <!-- About Row -->
                                         <div class="pd-row" id="pd-about-row" style="cursor:pointer;" onclick="window.location.href='pages/about_page.html'">
@@ -363,6 +377,21 @@
                                         <span id="pd-dashboard-arrow" style="display:inline-flex;"></span>
                                     </div>
                                     <div class="pd-divider"></div>
+
+                                    <!-- Saved Projects Row (for logged-in users) -->
+                                    <div class="pd-row" id="pd-saved-row" style="cursor:pointer; display:none;">
+                                        <span class="pd-row-label">
+                                            <span id="pd-saved-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
+                                            Saved Projects
+                                        </span>
+                                        <div class="pd-row-right" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                                            <span class="pd-saved-badge" id="pd-saved-count" style="display:none;">0</span>
+                                            <span id="pd-saved-arrow" style="display:inline-flex;"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="pd-divider" id="pd-saved-divider" style="display:none;"></div>
+
                                     <div class="pd-row" id="pd-about-row" style="cursor:pointer;" onclick="window.location.href='pages/about_page.html'">
                                         <span class="pd-row-label">
                                             <span id="pd-about-icon" style="display:inline-flex; margin-right:0.5rem; vertical-align:middle;"></span>
@@ -396,13 +425,37 @@
         <!-- Secondary Sticky Header -->
         <nav class="secondary-header secondary-inside-header" aria-label="Secondary navigation">
             <div class="secondary-header-container">
-                <a href="home" class="nav-item" data-page="index">
+                <a href="#home" class="nav-item active" data-page="index" aria-label="Home" title="Home">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                    </span>
                     <span class="nav-label">Home</span>
                 </a>
-                <a href="project detail" class="nav-item" data-page="project-detail" style="display: none;">
+                <a href="#project-detail" class="nav-item" data-page="project-detail" style="display: none;" aria-label="Project Detail" title="Project Detail">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <line x1="10" y1="9" x2="8" y2="9"></line>
+                        </svg>
+                    </span>
                     <span class="nav-label">Project Detail</span>
                 </a>
-                <a href="ai chatbot" class="nav-item" data-page="ai-chatbot">
+                <a href="#ai-chatbot" class="nav-item" data-page="ai-chatbot" aria-label="AI Chatbot" title="AI Chatbot">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path>
+                            <rect x="4" y="8" width="16" height="12" rx="4"></rect>
+                            <circle cx="9" cy="13" r="1.5" fill="currentColor"></circle>
+                            <circle cx="15" cy="13" r="1.5" fill="currentColor"></circle>
+                            <path d="M9 17h6"></path>
+                        </svg>
+                    </span>
                     <span class="nav-label">AI Chatbot</span>
                 </a>
             </div>
@@ -473,8 +526,22 @@
 
                 <div class="container">
                     <div class="projects-header-bar">
-                        <h2 class="section-title-index" style="margin: 0;">Total Projects: <span
-                                id="total-projects-count">...</span></h2>
+                        <div class="projects-title-and-filter">
+                            <h2 class="section-title-index" style="margin: 0;">Total Projects: <span
+                                    id="total-projects-count">...</span></h2>
+                            <div class="projects-scope-filter" id="projects-scope-filter" role="tablist" aria-label="Project view filter">
+                                <button type="button" class="scope-filter-btn active" id="filter-all-projects" data-scope="all">
+                                    All Projects
+                                </button>
+                                <button type="button" class="scope-filter-btn" id="filter-saved-projects" data-scope="saved">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                    <span>Saved</span>
+                                    <span class="scope-saved-badge" id="scope-saved-count" style="display: none;">0</span>
+                                </button>
+                            </div>
+                        </div>
                         <div class="header-controls">
                             <div class="sort-control dropdown">
                                 <button class="sort-toggle-btn" id="sort-toggle-btn">
@@ -508,6 +575,11 @@
                                             <input type="radio" name="sortField" value="authorsCount">
                                             <span class="radio-custom"></span>
                                             Authors Length (Count)
+                                        </label>
+                                        <label class="sort-radio-label">
+                                            <input type="radio" name="sortField" value="saveCount">
+                                            <span class="radio-custom"></span>
+                                            Most Saved (Popularity)
                                         </label>
                                     </div>
                                     <div class="sort-divider"></div>
@@ -1112,8 +1184,11 @@
     <!-- RAG Service for AI Semantic Search -->
     <script src="RAG/rag-service.js"></script>
 
-    <script src="js/home/project-list.js"></script>
-    <script src="js/home/search-handler.js"></script>
+    <!-- Academic Name & Credential Parser -->
+    <script src="js/shared/academic-name-parser.js"></script>
+
+    <script src="js/home/project-list.js?v=2.2"></script>
+    <script src="js/home/search-handler.js?v=2.2"></script>
     <script src="js/shared/user-dashboard.js"></script>
 
     <!-- Chatbot Scripts -->

@@ -76,16 +76,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearHistoryBtn = document.getElementById('clear-search-history-btn');
     if (clearHistoryBtn) {
         clearHistoryBtn.addEventListener('click', async () => {
-            const confirmed = window.ModalDialog
-                ? await ModalDialog.confirm({
+            const confirmed = await ModalDialog.confirm({
                     title: 'Clear Search History',
                     message: 'Are you sure you want to clear your local search history? This action cannot be undone.',
                     confirmText: 'Clear History',
                     cancelText: 'Cancel',
                     isDanger: true,
                     icon: 'trash'
-                })
-                : confirm('Are you sure you want to clear your search history? This cannot be undone.');
+                });
 
             if (confirmed) {
                 localStorage.removeItem('recap_search_history');
@@ -294,16 +292,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!clearBtn) return;
 
         clearBtn.addEventListener('click', async () => {
-            const confirmed = window.ModalDialog
-                ? await ModalDialog.confirm({
+            const confirmed = await ModalDialog.confirm({
                     title: 'Clear Account Data',
                     message: 'Are you sure you want to clear your account data? This will permanently erase your saved capstones, search queries, reading history, and chat conversations. Your login credentials and account will remain active.',
                     confirmText: 'Yes, Clear All Data',
                     cancelText: 'Cancel',
                     isDanger: true,
                     icon: 'trash'
-                })
-                : confirm('Are you sure you want to clear all your account data?');
+                });
 
             if (!confirmed) return;
 

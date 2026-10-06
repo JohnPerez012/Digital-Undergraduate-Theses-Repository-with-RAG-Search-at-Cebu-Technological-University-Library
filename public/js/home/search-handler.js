@@ -8,6 +8,7 @@ const SearchHandler = {
   isSearching: false,
   useAISearch: false, // Default to traditional search
   searchTimeout: null,
+  realtimeDebounceTimer: null,
   
   /**
    * Initialize search functionality
@@ -25,6 +26,10 @@ const SearchHandler = {
     
     // Handle search button click
     searchBtn.addEventListener('click', () => {
+      if (this.realtimeDebounceTimer) {
+        clearTimeout(this.realtimeDebounceTimer);
+        this.realtimeDebounceTimer = null;
+      }
       const query = searchInput.value.trim();
       if (query) {
         this.performSearch(query);
@@ -62,21 +67,63 @@ const SearchHandler = {
       });
     }
     
-    // Show/hide clear button based on input
+    // Real-time output on typing (WORD-BY-WORD traditional search ONLY; NOT in AI semantic search)
     searchInput.addEventListener('input', () => {
+      const cleanQuery = searchInput.value.trim();
+
+      // Show/hide clear button based on input
       if (searchClearBtn) {
-        if (searchInput.value.trim()) {
-          searchClearBtn.style.display = 'flex';
-        } else {
-          searchClearBtn.style.display = 'none';
-        }
+        searchClearBtn.style.display = cleanQuery ? 'flex' : 'none';
       }
+
+      // CRITICAL REQUIREMENT: Do NOT execute real-time search when in AI Semantic Search mode
+      if (this.useAISearch) {
+        return;
+      }
+
+      // Cancel previous debounce timer
+      if (this.realtimeDebounceTimer) {
+        clearTimeout(this.realtimeDebounceTimer);
+        this.realtimeDebounceTimer = null;
+      }
+
+      // If user erased all characters, immediately restore all projects in real-time
+      if (!cleanQuery) {
+        if (window.ProjectList && typeof window.ProjectList.resetRealtimeSearch === 'function') {
+          window.ProjectList.resetRealtimeSearch();
+        } else if (window.ProjectList && typeof window.ProjectList.loadProjects === 'function') {
+          window.ProjectList.loadProjects();
+        }
+        return;
+      }
+
+      // Debounce real-time search slightly (120ms) for instant responsiveness without thrashing
+      this.realtimeDebounceTimer = setTimeout(() => {
+        const q = searchInput.value.trim();
+        if (!this.useAISearch) {
+          if (q) {
+            if (window.ProjectList && typeof window.ProjectList.searchRealtime === 'function') {
+              window.ProjectList.searchRealtime(q);
+            } else {
+              this.performTraditionalSearch(q);
+            }
+          } else {
+            if (window.ProjectList && typeof window.ProjectList.resetRealtimeSearch === 'function') {
+              window.ProjectList.resetRealtimeSearch();
+            }
+          }
+        }
+      }, 120);
     });
     
     // Handle Enter key in search input
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (this.realtimeDebounceTimer) {
+          clearTimeout(this.realtimeDebounceTimer);
+          this.realtimeDebounceTimer = null;
+        }
         const query = searchInput.value.trim();
         if (query) {
           this.performSearch(query);
@@ -177,8 +224,13 @@ const SearchHandler = {
         
         // User is logged in or turning OFF - allow the change
         this.useAISearch = e.target.checked;
-        // No localStorage - preference is NOT saved
         
+        // If switching modes, cancel any running debounce timer
+        if (this.realtimeDebounceTimer) {
+          clearTimeout(this.realtimeDebounceTimer);
+          this.realtimeDebounceTimer = null;
+        }
+
         // Notify particle system of actual state
         this.notifyParticleSystem(this.useAISearch);
         
@@ -187,12 +239,17 @@ const SearchHandler = {
           searchInput.placeholder = 'Try: "projects about machine learning in agriculture" or "IoT systems for monitoring" (Press Enter)';
         } else {
           console.log('🔤 Traditional Search ENABLED');
-          searchInput.placeholder = 'Search by title, author, or keyword... (Press Enter)';
+          searchInput.placeholder = 'Search by title, author, or keyword...';
+          // Trigger real-time search immediately if there is already a query typed
+          const currentText = searchInput.value.trim();
+          if (currentText && window.ProjectList && typeof window.ProjectList.searchRealtime === 'function') {
+            window.ProjectList.searchRealtime(currentText);
+          }
         }
       });
       
       // Set initial placeholder (always traditional since default is OFF)
-      searchInput.placeholder = 'Search by title, author, or keyword... (Press Enter)';
+      searchInput.placeholder = 'Search by title, author, or keyword...';
     }
     
     console.log('✓ Search handler initialized with AI semantic search support');
@@ -354,26 +411,22 @@ const SearchHandler = {
     if (searchClearBtn) {
       searchClearBtn.style.display = 'none';
     }
-    
-    // Show loading state briefly
-    const container = document.getElementById('projects-container');
-    if (container) {
-      container.innerHTML = `
-        <div class="loading-text" style="text-align: center; padding: 3rem;">
-          <div class="loading-spinner" style="margin: 0 auto 1rem; width: 40px; height: 40px; border: 3px solid rgba(74, 143, 216, 0.2); border-top-color: #4a8fd8; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-          <p style="animation: loadingPulse 1.5s ease-in-out infinite;">Loading all projects...</p>
-        </div>
-      `;
+
+    if (this.realtimeDebounceTimer) {
+      clearTimeout(this.realtimeDebounceTimer);
+      this.realtimeDebounceTimer = null;
     }
     
     // Focus back on input
     searchInput.focus();
     
-    // Reload all projects (reset to default view) without page refresh
-    if (typeof window.ProjectList !== 'undefined' && typeof window.ProjectList.loadProjects === 'function') {
+    // Reset view instantly without full page reload
+    if (window.ProjectList && typeof window.ProjectList.resetRealtimeSearch === 'function') {
+      window.ProjectList.resetRealtimeSearch();
+    } else if (typeof window.ProjectList !== 'undefined' && typeof window.ProjectList.loadProjects === 'function') {
       window.ProjectList.loadProjects();
     } else {
-      console.warn('ProjectList.loadProjects not available, reloading page...');
+      console.warn('ProjectList not available, reloading page...');
       location.reload();
     }
     
@@ -538,6 +591,15 @@ const SearchHandler = {
   async performTraditionalSearch(query) {
     console.log('🔤 Performing traditional search:', query);
     
+    // Fast path: if ProjectList realtime search is available and ready, use it instantly without extra network trips
+    if (window.ProjectList && typeof window.ProjectList.searchRealtime === 'function') {
+      const matchCount = window.ProjectList.searchRealtime(query);
+      if (window.ActivityService && typeof window.ActivityService.logSearch === 'function') {
+        window.ActivityService.logSearch(query, matchCount || 0, false);
+      }
+      return;
+    }
+
     // Show loading state
     this.showLoading();
     
@@ -555,8 +617,9 @@ const SearchHandler = {
         allProjects.push(data);
       });
       
-      // Filter projects by query with academic program synonyms support
+      // Filter projects by query with academic program synonyms support and word-by-word matching
       const lowerQuery = query.toLowerCase().trim();
+      const rawTokens = lowerQuery.split(/\s+/).filter(t => t.length > 0);
       const programAliases = {
         'bsie': ['bsie', 'industrial engineering', 'industrial'],
         'industrial engineering': ['bsie', 'industrial engineering', 'industrial'],
@@ -567,11 +630,6 @@ const SearchHandler = {
         'bit-automotive': ['bit-automotive', 'automotive', 'automotive technology', 'bit automotive'],
         'automotive': ['bit-automotive', 'automotive', 'automotive technology']
       };
-
-      const matchTerms = [lowerQuery];
-      if (programAliases[lowerQuery]) {
-        matchTerms.push(...programAliases[lowerQuery]);
-      }
 
       const filteredProjects = allProjects.filter(project => {
         const title = (project.title || '').toLowerCase();
@@ -584,17 +642,26 @@ const SearchHandler = {
         const keywords = Array.isArray(project.keywords)
           ? project.keywords.join(' ').toLowerCase()
           : (project.keywords || '').toLowerCase();
+        const year = String(project.year || '').toLowerCase();
         const adviser = (project.adviser || '').toLowerCase();
+        let adviserSearchPool = adviser;
+        if (typeof AcademicNameParser !== 'undefined' && AcademicNameParser.parse) {
+          const pAdv = AcademicNameParser.parse(project.adviser);
+          if (pAdv) {
+            adviserSearchPool = `${adviser} ${pAdv.surname} ${pAdv.firstName} ${pAdv.fullDisplay}`.toLowerCase();
+          }
+        }
         
-        return matchTerms.some(term => 
-          title.includes(term) || 
-          abstract.includes(term) ||
-          program.includes(term) ||
-          department.includes(term) ||
-          authors.includes(term) ||
-          keywords.includes(term) ||
-          adviser.includes(term)
-        );
+        let programPool = program;
+        for (const [key, aliases] of Object.entries(programAliases)) {
+          if (program.includes(key)) {
+            programPool += ' ' + aliases.join(' ');
+          }
+        }
+
+        const fullSearchPool = `${title} ${abstract} ${programPool} ${department} ${authors} ${keywords} ${year} ${adviserSearchPool}`;
+
+        return rawTokens.every(token => fullSearchPool.includes(token));
       });
       
       console.log(`✓ Found ${filteredProjects.length} matching projects`);

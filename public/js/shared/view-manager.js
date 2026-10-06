@@ -1,4 +1,232 @@
-document.addEventListener('DOMContentLoaded', () => {
+(function() {
+    function initViewManagerSystem() {
+    /**
+     * Unified Project Bookmark / Save Service for RE-CAPS
+     * Supports guest mode (local storage) and authenticated users (Firestore).
+     * Enforces administrator restrictions.
+     */
+    const ProjectBookmarkService = {
+        isAdmin() {
+            return sessionStorage.getItem('userType') === 'admin';
+        },
+
+        isSaved(projectId) {
+            if (!projectId || this.isAdmin()) return false;
+
+            const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            if (!currentUser) {
+                return Boolean(window.GuestSavedProjects && window.GuestSavedProjects.isSaved(projectId));
+            }
+
+            if (Array.isArray(window.savedProjectIds) && window.savedProjectIds.includes(projectId)) {
+                return true;
+            }
+
+            try {
+                const savedList = JSON.parse(localStorage.getItem('savedProjects')) || [];
+                if (savedList.some(p => (p.id || p.UIDproject) === projectId)) {
+                    return true;
+                }
+            } catch (e) {}
+
+            if (window.GuestSavedProjects && window.GuestSavedProjects.isSaved(projectId)) {
+                return true;
+            }
+
+            return false;
+        },
+
+        async toggleSave(project) {
+            if (!project) return false;
+            if (this.isAdmin()) {
+                if (typeof showToast === 'function') {
+                    showToast('Administrators are restricted from saving projects.', 'warning');
+                }
+                return false;
+            }
+
+            const projectId = project.id || project.UIDproject;
+            if (!projectId) return false;
+
+            const isCurrentlySaved = this.isSaved(projectId);
+            const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+
+            // 1. Guest mode (device-only storage + community counter update)
+            if (!currentUser) {
+                if (isCurrentlySaved) {
+                    if (window.GuestSavedProjects) {
+                        window.GuestSavedProjects.remove(projectId);
+                    }
+                    if (Array.isArray(window.savedProjectIds)) {
+                        window.savedProjectIds = window.savedProjectIds.filter(id => id !== projectId);
+                    }
+                    const updatedCount = Math.max(0, (Number(project.saveCount) || 1) - 1);
+                    project.saveCount = updatedCount;
+
+                    // Sync counter to Firestore (allowed by rule for saveCount)
+                    if (typeof db !== 'undefined' && db.collection) {
+                        try {
+                            db.collection('projects').doc(projectId).set({
+                                saveCount: firebase.firestore.FieldValue.increment(-1)
+                            }, { merge: true }).catch(err => console.warn('[RE-CAPS] Guest saveCount decrement warning:', err));
+                        } catch (e) {}
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast('Project removed from this device', 'info');
+                    }
+                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                        detail: { projectId, isSaved: false, saveCount: updatedCount }
+                    }));
+                    return false;
+                } else {
+                    if (window.GuestSavedProjects) {
+                        window.GuestSavedProjects.save(project);
+                    }
+                    if (Array.isArray(window.savedProjectIds)) {
+                        if (!window.savedProjectIds.includes(projectId)) {
+                            window.savedProjectIds.push(projectId);
+                        }
+                    }
+                    const updatedCount = (Number(project.saveCount) || 0) + 1;
+                    project.saveCount = updatedCount;
+
+                    // Sync counter to Firestore (allowed by rule for saveCount)
+                    if (typeof db !== 'undefined' && db.collection) {
+                        try {
+                            db.collection('projects').doc(projectId).set({
+                                saveCount: firebase.firestore.FieldValue.increment(1)
+                            }, { merge: true }).catch(err => console.warn('[RE-CAPS] Guest saveCount increment warning:', err));
+                        } catch (e) {}
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast('Project saved locally on this device. Sign in to sync to your account.', 'success');
+                    }
+                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                        detail: { projectId, isSaved: true, saveCount: updatedCount }
+                    }));
+                    return true;
+                }
+            }
+
+            // 2. Authenticated user mode (Firebase Firestore)
+            try {
+                if (typeof db === 'undefined') {
+                    throw new Error('Database is not initialized');
+                }
+
+                const docRef = db.collection('usersSavedProjects').doc(currentUser.uid);
+                const projectRef = db.collection('projects').doc(projectId);
+
+                if (isCurrentlySaved) {
+                    // Remove from Firestore
+                    await docRef.set({
+                        UIDproject: firebase.firestore.FieldValue.arrayRemove(projectId)
+                    }, { merge: true });
+
+                    // Decrement community saveCount on project
+                    try {
+                        await projectRef.set({
+                            saveCount: firebase.firestore.FieldValue.increment(-1)
+                        }, { merge: true });
+                    } catch (e) {
+                        console.warn('[RE-CAPS] Project saveCount decrement non-critical warning:', e);
+                    }
+
+                    // Update memory state
+                    if (Array.isArray(window.savedProjectIds)) {
+                        window.savedProjectIds = window.savedProjectIds.filter(id => id !== projectId);
+                    }
+
+                    // Update localStorage 'savedProjects'
+                    try {
+                        let savedList = JSON.parse(localStorage.getItem('savedProjects')) || [];
+                        savedList = savedList.filter(p => (p.id || p.UIDproject) !== projectId);
+                        localStorage.setItem('savedProjects', JSON.stringify(savedList));
+                    } catch (e) {}
+
+                    // Log activity
+                    if (window.ActivityService && typeof window.ActivityService.logBookmark === 'function') {
+                        window.ActivityService.logBookmark(projectId, project.title || 'Capstone Project', 'removed');
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast('Project removed from saved projects', 'info');
+                    }
+
+                    const updatedCount = Math.max(0, (Number(project.saveCount) || 1) - 1);
+                    project.saveCount = updatedCount;
+
+                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                        detail: { projectId, isSaved: false, saveCount: updatedCount }
+                    }));
+                    return false;
+                } else {
+                    // Add to Firestore
+                    await docRef.set({
+                        UIDproject: firebase.firestore.FieldValue.arrayUnion(projectId)
+                    }, { merge: true });
+
+                    // Increment community saveCount on project
+                    try {
+                        await projectRef.set({
+                            saveCount: firebase.firestore.FieldValue.increment(1)
+                        }, { merge: true });
+                    } catch (e) {
+                        console.warn('[RE-CAPS] Project saveCount increment non-critical warning:', e);
+                    }
+
+                    // Update memory state
+                    if (Array.isArray(window.savedProjectIds)) {
+                        if (!window.savedProjectIds.includes(projectId)) {
+                            window.savedProjectIds.push(projectId);
+                        }
+                    }
+
+                    // Update localStorage 'savedProjects'
+                    try {
+                        let savedList = JSON.parse(localStorage.getItem('savedProjects')) || [];
+                        if (!savedList.some(p => (p.id || p.UIDproject) === projectId)) {
+                            savedList.push({
+                                id: projectId,
+                                title: project.title,
+                                year: project.year,
+                                program: project.program,
+                                rawData: project
+                            });
+                            localStorage.setItem('savedProjects', JSON.stringify(savedList));
+                        }
+                    } catch (e) {}
+
+                    // Log activity
+                    if (window.ActivityService && typeof window.ActivityService.logBookmark === 'function') {
+                        window.ActivityService.logBookmark(projectId, project.title || 'Capstone Project', 'saved');
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast('Project saved to your account', 'success');
+                    }
+
+                    const updatedCount = (Number(project.saveCount) || 0) + 1;
+                    project.saveCount = updatedCount;
+
+                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                        detail: { projectId, isSaved: true, saveCount: updatedCount }
+                    }));
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error toggling project bookmark in Firestore:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Unable to update saved project. Please try again.', 'error');
+                }
+                return isCurrentlySaved;
+            }
+        }
+    };
+    window.ProjectBookmarkService = ProjectBookmarkService;
+
     // View controller for managing different views
     const ViewManager = {
         init() {
@@ -6,6 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
             this.setupProjectSelection();
             this.initializeChatbot();
             this.setupCustomEventListener();
+            this.setupSavedProjectsListeners();
+            this.syncSavedNavVisibility();
+            this.updateSecondaryNavSavedCount();
         },
 
         setupNavigation() {
@@ -25,7 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Don't switch if already on this view
                     const currentView = document.querySelector('.view-mode-container.active');
-                    if (currentView && currentView.id === page + '-view') {
+                    const isAlreadyActive = currentView && (
+                        (page === 'index' && currentView.id === 'home-view') ||
+                        (page === 'project-detail' && currentView.id === 'details-view') ||
+                        (page === 'ai-chatbot' && currentView.id === 'chatbot-view')
+                    );
+                    if (isAlreadyActive) {
                         return;
                     }
 
@@ -33,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, { capture: true });
             });
 
-            // Back to search button
+            // Back to search button in details view
             const backBtn = document.getElementById('back-to-search');
             if (backBtn) {
                 backBtn.addEventListener('click', (e) => {
@@ -61,10 +297,62 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+
+            // Profile Dropdown Saved Projects item (for logged-in user: opens their dashboard's Saved Projects tab)
+            const pdSavedRow = document.getElementById('pd-saved-row');
+            if (pdSavedRow && !pdSavedRow.dataset.vmBound) {
+                pdSavedRow.dataset.vmBound = 'true';
+                pdSavedRow.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const dropPanel = document.getElementById('profile-dropdown-panel');
+                    const trigger = document.getElementById('profile-img-trigger');
+                    if (dropPanel) dropPanel.classList.remove('open');
+                    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+
+                    let userType = sessionStorage.getItem('userType');
+                    if (!userType && window.AuthService) {
+                        userType = await AuthService.getUserType();
+                    }
+                    const isSubpage = window.location.pathname.includes('/pages/');
+                    let targetUrl = '';
+                    if (userType === 'student') {
+                        targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
+                    } else if (userType === 'teacher') {
+                        targetUrl = isSubpage ? 'teacher_page.html#saved' : 'pages/teacher_page.html#saved';
+                    } else if (userType === 'librarian') {
+                        targetUrl = isSubpage ? 'librarian_page.html#saved' : 'pages/librarian_page.html#saved';
+                    } else {
+                        targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
+                    }
+                    window.location.href = targetUrl;
+                });
+            }
+        },
+
+        syncSavedNavVisibility(user) {
+            const currentUser = user || ((typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null);
+            const isAuth = Boolean(currentUser || localStorage.getItem('cachedAuthState') === 'true');
+            const isAdmin = ProjectBookmarkService.isAdmin();
+            const navSaved = document.getElementById('nav-saved-projects');
+            const pdSaved = document.getElementById('pd-saved-row');
+            const pdDivider = document.getElementById('pd-saved-divider');
+
+            if (isAuth) {
+                // LOGGED-IN: Minimize secondary header by hiding Saved Projects action from secondary nav
+                if (navSaved) navSaved.style.display = 'none';
+                // Show Saved Projects in profile dropdown if not admin
+                if (pdSaved) pdSaved.style.display = isAdmin ? 'none' : 'flex';
+                if (pdDivider) pdDivider.style.display = isAdmin ? 'none' : 'block';
+            } else {
+                // ANONYMOUS / GUEST: Show Saved Projects in secondary header
+                if (navSaved) navSaved.style.display = 'inline-flex';
+                if (pdSaved) pdSaved.style.display = 'none';
+                if (pdDivider) pdDivider.style.display = 'none';
+            }
         },
 
         setupProjectSelection() {
-            // Check if we should show chatbot or project details on page load (coming from another page)
+            // Check if we should show chatbot, saved projects, or project details on page load
             const currentPath = window.location.pathname;
             const isHomePage = currentPath.endsWith('index.html') || currentPath.endsWith('/') || currentPath === '';
 
@@ -76,6 +364,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.removeItem('showChatbotView');
                     setTimeout(() => {
                         this.switchView('ai-chatbot');
+                    }, 100);
+                    return;
+                }
+
+                const shouldShowSaved = sessionStorage.getItem('showSavedProjectsView') === 'true' ||
+                                        new URLSearchParams(window.location.search).get('view') === 'saved' ||
+                                        window.location.hash === '#saved';
+                if (shouldShowSaved) {
+                    sessionStorage.removeItem('showSavedProjectsView');
+                    setTimeout(() => {
+                        this.switchView('saved-projects');
                     }, 100);
                     return;
                 }
@@ -153,20 +452,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (chatbotFullpage) {
                         chatbotFullpage.classList.add('active');
                     }
-                    // Trigger check login to show guest modal if user is not authenticated
                     if (typeof Chatbot !== 'undefined' && typeof Chatbot.checkLoginAndShowGuest === 'function') {
                         Chatbot.checkLoginAndShowGuest();
                     }
                 } else {
-                    // Deactivate chatbot when switching away
                     const chatbotFullpage = document.querySelector('.chatbot-fullpage');
                     if (chatbotFullpage) {
                         chatbotFullpage.classList.remove('active');
                     }
-                    // Hide guest dialog modal if we switch away from chatbot
                     if (typeof Chatbot !== 'undefined' && Chatbot.guestDialog) {
                         Chatbot.guestDialog.classList.remove('active');
                     }
+                }
+
+                // Trigger saved projects rendering if switching to saved-projects
+                if (viewName === 'saved-projects') {
+                    this.renderSavedProjectsView();
                 }
 
                 // Trigger project details rendering if switching to details
@@ -197,15 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // ALWAYS show project detail nav item if there's project data in sessionStorage
-            // Don't hide it when navigating away
             const projectDetailNav = document.querySelector('.nav-item[data-page="project-detail"]');
             const projectData = sessionStorage.getItem('selectedProjectForViewDetails');
             if (projectDetailNav) {
                 if (projectData) {
-                    // Keep it visible if we have project data
                     projectDetailNav.style.display = '';
                 } else {
-                    // Only hide if no project data exists
                     projectDetailNav.style.display = 'none';
                 }
             }
@@ -215,6 +513,159 @@ document.addEventListener('DOMContentLoaded', () => {
             // Initialize chatbot when DOM is ready
             if (typeof Chatbot !== 'undefined' && Chatbot.init) {
                 Chatbot.init();
+            }
+        },
+
+        getSavedProjectsList() {
+            if (ProjectBookmarkService.isAdmin()) return [];
+
+            const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+
+            // 1. If guest, read from GuestSavedProjects
+            if (!currentUser && window.GuestSavedProjects) {
+                const guestList = window.GuestSavedProjects.getAll();
+                const master = (window.ProjectList && typeof window.ProjectList.getMasterProjects === 'function')
+                    ? window.ProjectList.getMasterProjects()
+                    : [];
+
+                return guestList.map(item => {
+                    const id = typeof item === 'string' ? item : item.id;
+                    const found = master.find(p => p.id === id);
+                    if (found) {
+                        return {
+                            id: found.id,
+                            title: found.title,
+                            authors: found.authors,
+                            program: found.program,
+                            year: found.year,
+                            abstract: found.abstract,
+                            saveCount: found.saveCount,
+                            rawData: found
+                        };
+                    }
+                    return typeof item === 'object' ? item : { id: item, title: 'Capstone Project' };
+                });
+            }
+
+            // 2. If authenticated user, read from localStorage['savedProjects'] and window.savedProjectIds
+            let savedList = [];
+            try {
+                savedList = JSON.parse(localStorage.getItem('savedProjects')) || [];
+            } catch (e) {}
+
+            const ids = Array.isArray(window.savedProjectIds) ? window.savedProjectIds : [];
+            const master = (window.ProjectList && typeof window.ProjectList.getMasterProjects === 'function')
+                ? window.ProjectList.getMasterProjects()
+                : [];
+
+            // If we have savedProjectIds not in savedList, merge from master
+            ids.forEach(id => {
+                if (!savedList.some(p => (p.id || p.UIDproject) === id)) {
+                    const found = master.find(p => p.id === id);
+                    if (found) {
+                        savedList.push({
+                            id: found.id,
+                            title: found.title,
+                            authors: found.authors,
+                            program: found.program,
+                            year: found.year,
+                            abstract: found.abstract,
+                            saveCount: found.saveCount,
+                            rawData: found
+                        });
+                    } else {
+                        savedList.push({ id, title: 'Capstone Project' });
+                    }
+                }
+            });
+
+            return savedList;
+        },
+
+        getSavedProjectsCount() {
+            if (ProjectBookmarkService.isAdmin()) return 0;
+            const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            if (!currentUser && window.GuestSavedProjects) {
+                return window.GuestSavedProjects.getIds().length;
+            }
+            if (Array.isArray(window.savedProjectIds)) {
+                return window.savedProjectIds.length;
+            }
+            return this.getSavedProjectsList().length;
+        },
+
+        updateSecondaryNavSavedCount() {
+            const count = this.getSavedProjectsCount();
+            
+            // Secondary header badge (shown when guest / logged out)
+            const secBadge = document.getElementById('secondary-saved-count');
+            if (secBadge) {
+                if (count > 0) {
+                    secBadge.textContent = count;
+                    secBadge.style.display = 'inline-flex';
+                    secBadge.classList.remove('badge-bounce');
+                    void secBadge.offsetWidth; // trigger reflow
+                    secBadge.classList.add('badge-bounce');
+                } else {
+                    secBadge.style.display = 'none';
+                    secBadge.textContent = '0';
+                }
+            }
+
+            // Profile dropdown badge (shown when logged in)
+            const pdBadge = document.getElementById('pd-saved-count');
+            if (pdBadge) {
+                if (count > 0) {
+                    pdBadge.textContent = count;
+                    pdBadge.style.display = 'inline-flex';
+                    pdBadge.classList.remove('badge-bounce');
+                    void pdBadge.offsetWidth; // trigger reflow
+                    pdBadge.classList.add('badge-bounce');
+                } else {
+                    pdBadge.style.display = 'none';
+                    pdBadge.textContent = '0';
+                }
+            }
+
+            // Scope filter badge on home page
+            const scopeBadge = document.getElementById('scope-saved-count');
+            if (scopeBadge) {
+                if (count > 0) {
+                    scopeBadge.textContent = count;
+                    scopeBadge.style.display = 'inline-flex';
+                } else {
+                    scopeBadge.style.display = 'none';
+                    scopeBadge.textContent = '0';
+                }
+            }
+
+            // Dedicated saved view counter pill
+            const viewPill = document.getElementById('saved-total-counter-pill');
+            if (viewPill) {
+                viewPill.textContent = `${count} ${count === 1 ? 'saved' : 'saved'}`;
+            }
+
+            // Clear all button visibility
+            const clearBtn = document.getElementById('saved-clear-all-btn');
+            if (clearBtn) {
+                clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
+        },
+
+        setupSavedProjectsListeners() {
+            window.addEventListener('projectSavedStateChanged', () => {
+                this.updateSecondaryNavSavedCount();
+            });
+
+            window.addEventListener('guestSavedProjectsChanged', () => {
+                this.updateSecondaryNavSavedCount();
+            });
+
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().onAuthStateChanged((user) => {
+                    this.syncSavedNavVisibility(user);
+                    this.updateSecondaryNavSavedCount();
+                });
             }
         }
     };
@@ -229,6 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeView = document.getElementById('home-view');
     const detailsView = document.getElementById('details-view');
     const chatbotView = document.getElementById('chatbot-view');
+    const savedProjectsView = document.getElementById('saved-projects-view');
 
     // Check if we should show a specific view based on sessionStorage
     const shouldShowDetails = sessionStorage.getItem('showProjectDetails');
@@ -236,10 +688,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const shouldShowChatbot = sessionStorage.getItem('showChatbotView') === 'true' || 
                               new URLSearchParams(window.location.search).get('view') === 'chatbot' ||
                               window.location.hash === '#chatbot';
+    const shouldShowSaved = sessionStorage.getItem('showSavedProjectsView') === 'true' ||
+                            new URLSearchParams(window.location.search).get('view') === 'saved' ||
+                            window.location.hash === '#saved';
 
     if (shouldShowChatbot) {
         sessionStorage.removeItem('showChatbotView');
         ViewManager.switchView('ai-chatbot');
+    } else if (shouldShowSaved) {
+        sessionStorage.removeItem('showSavedProjectsView');
+        if (window.ProjectList && typeof window.ProjectList.applyScopeFilter === 'function') {
+            window.ProjectList.applyScopeFilter('saved');
+        }
     } else if (shouldShowDetails === 'true' && projectData) {
         // Coming from another page to view project details
         sessionStorage.removeItem('showProjectDetails');
@@ -264,6 +724,8 @@ document.addEventListener('DOMContentLoaded', () => {
             projectDetailNav.style.display = 'none';
         }
     }
+
+
 
 
     // Make renderProjectDetails globally available
@@ -309,6 +771,28 @@ document.addEventListener('DOMContentLoaded', () => {
         detailsEmpty.style.display = 'none';
         detailsGrid.hidden = false;
 
+        const projectId = project.id || project.UIDproject;
+        const isAdmin = ProjectBookmarkService.isAdmin();
+        let isSaved = (!isAdmin && projectId) ? ProjectBookmarkService.isSaved(projectId) : false;
+
+        function formatSaveCount(count) {
+            const num = Number(count) || 0;
+            if (num < 0) return '0';
+            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+            return String(num);
+        }
+
+        let effectiveSaveCount = (typeof project.saveCount === 'number' && !isNaN(project.saveCount))
+            ? Math.max(0, project.saveCount)
+            : (isSaved ? 1 : 0);
+
+        const getBookmarkSvg = (saved) => `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="${saved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bookmark-icon-svg" aria-hidden="true">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+        `;
+
         const authors = Array.isArray(project.authors)
             ? project.authors.map(author => escapeHtml(author)).join(' · ')
             : escapeHtml(project.authors || 'Unknown Authors');
@@ -319,10 +803,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const adviser = escapeHtml(project.adviser || 'Not listed');
         const updatedAtStr = formatDate(project.updatedAt || project.createdAt);
 
-
+        const headerSaveButtonHtml = isAdmin ? `
+            <div class="project-header-save-pill ${effectiveSaveCount > 0 ? 'has-saves' : ''}" title="${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'} saved this project">
+                <span class="save-icon-svg">${getBookmarkSvg(effectiveSaveCount > 0)}</span>
+                <span class="save-pill-count">${formatSaveCount(effectiveSaveCount)}</span>
+                <span class="save-pill-label">${effectiveSaveCount === 1 ? 'save' : 'saves'}</span>
+            </div>
+        ` : `
+            <button class="project-header-save-btn ${isSaved ? 'saved' : ''}" id="header-save-btn" type="button" title="${isSaved ? 'Saved to Bookmarks (click to remove)' : 'Save this project'}" aria-label="${isSaved ? 'Remove from saved' : 'Save project'}">
+                <span class="save-icon-svg">${getBookmarkSvg(isSaved)}</span>
+                <span class="save-btn-label">${isSaved ? 'Saved' : 'Save'}</span>
+                <span class="save-btn-count-divider" aria-hidden="true"></span>
+                <span class="save-btn-count" id="header-save-count">${formatSaveCount(effectiveSaveCount)}</span>
+            </button>
+        `;
 
         detailsLeft.innerHTML = `
-            <div class="project-badge">${program} - ${year} - ${status}</div>
+            <div class="project-details-header-bar">
+                <div class="project-badge">${program} - ${year} - ${status}</div>
+                ${headerSaveButtonHtml}
+            </div>
             <h1 class="project-title-large">${escapeHtml(project.title || 'Untitled Project')}</h1>
             <p class="project-authors-line">
                 ${authors} &mdash; Adviser: ${adviser}
@@ -332,6 +832,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <h3 class="section-title">ABSTRACT</h3>
                 <p class="section-text">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
             </div>
+        `;
+
+        const sidebarSaveButtonHtml = isAdmin ? '' : `
+            <button class="detail-save-btn ${isSaved ? 'saved' : ''}" id="detail-save-btn" type="button" aria-label="${isSaved ? 'Remove from saved' : 'Save project'}">
+                <span class="detail-save-icon">${getBookmarkSvg(isSaved)}</span>
+                <span class="detail-save-text">${isSaved ? 'Saved to Bookmarks' : 'Save Project'}</span>
+                <span class="detail-save-count-badge" id="sidebar-save-count" title="${effectiveSaveCount} researchers saved this project">${formatSaveCount(effectiveSaveCount)}</span>
+            </button>
         `;
 
         detailsSidebar.innerHTML = `
@@ -367,10 +875,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </li>
                 </ul>
-                <button class="cite-btn">
-                    <span id="cite-icon"></span>
-                Cite This Project
-                </button>
+                <div class="project-detail-actions">
+                    ${sidebarSaveButtonHtml}
+                    <button class="cite-btn" type="button">
+                        <span id="cite-icon"></span>
+                        Cite This Project
+                    </button>
+                </div>
             </div>
 
             <div class="sidebar-card">
@@ -395,11 +906,190 @@ document.addEventListener('DOMContentLoaded', () => {
                     <strong>${updatedAtStr}</strong>
                 </div>
                 <div class="info-row">
+                    <span>Saved by</span>
+                    <strong id="sidebar-saved-count-text">
+                        <span class="save-stat-badge" title="Community saves">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                            ${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'}
+                        </span>
+                    </strong>
+                </div>
+                <div class="info-row">
                     <span>Full file</span>
                     <em>Restricted (Library only)</em>
                 </div>
             </div>
         `;
+
+        // Attach event listeners for Save buttons
+        const sidebarSaveBtn = detailsSidebar.querySelector('#detail-save-btn');
+        const headerSaveBtn = detailsLeft.querySelector('#header-save-btn');
+        const adminHeaderPill = detailsLeft.querySelector('.project-header-save-pill');
+
+        const updateButtonsVisuals = (savedState, count, triggerPop = false) => {
+            isSaved = savedState;
+            if (typeof count === 'number') {
+                effectiveSaveCount = Math.max(0, count);
+                project.saveCount = effectiveSaveCount;
+            }
+            const saveLabelText = savedState ? 'Saved to Bookmarks' : 'Save Project';
+            const headerLabelText = savedState ? 'Saved' : 'Save';
+            const formattedCount = formatSaveCount(effectiveSaveCount);
+
+            if (sidebarSaveBtn) {
+                sidebarSaveBtn.classList.toggle('saved', savedState);
+                const textSpan = sidebarSaveBtn.querySelector('.detail-save-text');
+                if (textSpan) textSpan.textContent = saveLabelText;
+                const iconContainer = sidebarSaveBtn.querySelector('.detail-save-icon');
+                if (iconContainer) iconContainer.innerHTML = getBookmarkSvg(savedState);
+                sidebarSaveBtn.setAttribute('aria-label', savedState ? 'Remove from saved' : 'Save project');
+                const badge = sidebarSaveBtn.querySelector('#sidebar-save-count');
+                if (badge) {
+                    badge.textContent = formattedCount;
+                    badge.title = `${effectiveSaveCount} researchers saved this project`;
+                }
+                if (triggerPop) {
+                    sidebarSaveBtn.classList.remove('optimistic-pop');
+                    void sidebarSaveBtn.offsetWidth;
+                    sidebarSaveBtn.classList.add('optimistic-pop');
+                    setTimeout(() => sidebarSaveBtn.classList.remove('optimistic-pop'), 400);
+                }
+            }
+
+            if (headerSaveBtn) {
+                headerSaveBtn.classList.toggle('saved', savedState);
+                const labelSpan = headerSaveBtn.querySelector('.save-btn-label');
+                if (labelSpan) labelSpan.textContent = headerLabelText;
+                const iconContainer = headerSaveBtn.querySelector('.save-icon-svg');
+                if (iconContainer) iconContainer.innerHTML = getBookmarkSvg(savedState);
+                headerSaveBtn.title = savedState ? 'Saved to Bookmarks (click to remove)' : 'Save this project';
+                headerSaveBtn.setAttribute('aria-label', savedState ? 'Remove from saved' : 'Save project');
+                const countSpan = headerSaveBtn.querySelector('#header-save-count');
+                if (countSpan) countSpan.textContent = formattedCount;
+                if (triggerPop) {
+                    headerSaveBtn.classList.remove('optimistic-pop');
+                    void headerSaveBtn.offsetWidth;
+                    headerSaveBtn.classList.add('optimistic-pop');
+                    setTimeout(() => headerSaveBtn.classList.remove('optimistic-pop'), 400);
+                }
+            }
+
+            if (adminHeaderPill) {
+                adminHeaderPill.classList.toggle('has-saves', effectiveSaveCount > 0);
+                const countSpan = adminHeaderPill.querySelector('.save-pill-count');
+                if (countSpan) countSpan.textContent = formattedCount;
+                const labelSpan = adminHeaderPill.querySelector('.save-pill-label');
+                if (labelSpan) labelSpan.textContent = effectiveSaveCount === 1 ? 'save' : 'saves';
+                adminHeaderPill.title = `${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'} saved this project`;
+            }
+
+            const infoCountText = detailsSidebar.querySelector('#sidebar-saved-count-text');
+            if (infoCountText) {
+                infoCountText.innerHTML = `
+                    <span class="save-stat-badge" title="Community saves">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                        ${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'}
+                    </span>
+                `;
+            }
+        };
+
+        const handleSaveClick = async (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            if (sidebarSaveBtn?.classList.contains('saving') || headerSaveBtn?.classList.contains('saving')) {
+                return;
+            }
+
+            const wasSaved = isSaved;
+            const nextSaved = !wasSaved;
+            const prevCount = effectiveSaveCount;
+            const nextCount = Math.max(0, prevCount + (nextSaved ? 1 : -1));
+
+            // 1. OPTIMISTIC UI: Instantly update visual state and counters without waiting for network
+            updateButtonsVisuals(nextSaved, nextCount, true /* trigger pop micro-animation */);
+
+            // Persist updated count in memory and session
+            project.saveCount = nextCount;
+            try {
+                sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
+            } catch (err) {}
+
+            // Broadcast optimistic state to all other views (cards, dashboard)
+            window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                detail: { projectId, isSaved: nextSaved, saveCount: nextCount }
+            }));
+
+            // 2. Perform background persistence
+            sidebarSaveBtn?.classList.add('saving');
+            headerSaveBtn?.classList.add('saving');
+
+            try {
+                const confirmedSavedState = await ProjectBookmarkService.toggleSave(project);
+                if (confirmedSavedState !== nextSaved) {
+                    // Reconcile if server returned unexpected state
+                    updateButtonsVisuals(confirmedSavedState, prevCount, false);
+                    project.saveCount = prevCount;
+                    window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                        detail: { projectId, isSaved: confirmedSavedState, saveCount: prevCount }
+                    }));
+                }
+            } catch (err) {
+                console.error('Error toggling bookmark from details view:', err);
+                // Rollback on failure
+                updateButtonsVisuals(wasSaved, prevCount, false);
+                project.saveCount = prevCount;
+                try {
+                    sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
+                } catch (e) {}
+                window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
+                    detail: { projectId, isSaved: wasSaved, saveCount: prevCount }
+                }));
+                if (typeof showToast === 'function') {
+                    showToast('Failed to update bookmark. Reverting changes...', 'error');
+                }
+            } finally {
+                sidebarSaveBtn?.classList.remove('saving');
+                headerSaveBtn?.classList.remove('saving');
+            }
+        };
+
+        if (sidebarSaveBtn) {
+            sidebarSaveBtn.addEventListener('click', handleSaveClick);
+        }
+        if (headerSaveBtn) {
+            headerSaveBtn.addEventListener('click', handleSaveClick);
+        }
+
+        // Keep detail view in sync with bookmark changes from anywhere (e.g. dashboard, home card)
+        if (window._detailSavedStateCleanup) {
+            window._detailSavedStateCleanup();
+            window._detailSavedStateCleanup = null;
+        }
+
+        const onExternalSavedStateChanged = (e) => {
+            const matchesProject = e && e.detail && (
+                e.detail.projectId === projectId ||
+                (project && e.detail.projectId === (project.id || project.UIDproject))
+            );
+
+            if (matchesProject) {
+                const nextSaved = Boolean(e.detail.isSaved);
+                const nextCount = typeof e.detail.saveCount === 'number' ? e.detail.saveCount : effectiveSaveCount;
+                updateButtonsVisuals(nextSaved, nextCount, false);
+            } else if (!e || !e.detail) {
+                const currentSaved = ProjectBookmarkService.isSaved(projectId);
+                updateButtonsVisuals(currentSaved, effectiveSaveCount, false);
+            }
+        };
+
+        window.addEventListener('projectSavedStateChanged', onExternalSavedStateChanged);
+        window._detailSavedStateCleanup = () => {
+            window.removeEventListener('projectSavedStateChanged', onExternalSavedStateChanged);
+        };
 
         // Attach event listener to the cite button
         const citeBtn = detailsSidebar.querySelector('.cite-btn');
@@ -553,4 +1243,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-});
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initViewManagerSystem);
+    } else {
+        initViewManagerSystem();
+    }
+})();
