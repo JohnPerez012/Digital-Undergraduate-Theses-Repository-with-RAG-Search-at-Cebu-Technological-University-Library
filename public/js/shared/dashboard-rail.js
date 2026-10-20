@@ -51,6 +51,9 @@
                 if (targetSection) {
                     targetSection.classList.add('active');
                 }
+
+                // Dispatch custom event for reactive dashboard section changes
+                window.dispatchEvent(new CustomEvent('rail:section-change', { detail: { sectionId } }));
                 
                 // Update page title
                 if (pageTitle) {
@@ -281,7 +284,13 @@
         toggleMobileMenu,
         closeMobileMenu,
         toggleTheme,
-        updateUserProfile
+        updateUserProfile,
+        switchToSection: function(sectionId) {
+            const targetNav = document.querySelector(`.rail-nav-item[data-section="${sectionId}"]`);
+            if (targetNav) {
+                targetNav.click();
+            }
+        }
     };
 
 })();

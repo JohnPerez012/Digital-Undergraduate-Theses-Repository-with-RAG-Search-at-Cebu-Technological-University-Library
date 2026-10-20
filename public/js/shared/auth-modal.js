@@ -409,9 +409,13 @@ document.addEventListener('DOMContentLoaded', function() {
             pdSavedRow.addEventListener('click', async (e) => {
                 e.preventDefault();
                 closeDropdown();
-                let userType = sessionStorage.getItem('userType');
+                let userType = sessionStorage.getItem('userType') || localStorage.getItem('userType');
                 if (!userType && window.AuthService) {
                     userType = await AuthService.getUserType();
+                }
+                if (userType === 'admin' || userType === 'librarian') {
+                    // Librarians and admins cannot save projects
+                    return;
                 }
                 const isSubpage = window.location.pathname.includes('/pages/');
                 let targetUrl = '';
@@ -419,8 +423,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
                 } else if (userType === 'teacher') {
                     targetUrl = isSubpage ? 'teacher_page.html#saved' : 'pages/teacher_page.html#saved';
-                } else if (userType === 'librarian') {
-                    targetUrl = isSubpage ? 'librarian_page.html#saved' : 'pages/librarian_page.html#saved';
                 } else {
                     targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
                 }
@@ -470,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to update header based on auth state
-    function updateHeader(user) {
+    async function updateHeader(user) {
         const themeToggleBtn = document.getElementById('theme-toggle');
         const aboutNavLink = document.getElementById('about-nav-link');
         const pdSavedRow = document.getElementById('pd-saved-row');
@@ -485,23 +487,67 @@ document.addEventListener('DOMContentLoaded', function() {
             if (themeToggleBtn) themeToggleBtn.style.display = 'none';
             if (aboutNavLink) aboutNavLink.style.display = 'none'; // moved into dropdown
 
-            // LOGGED-IN: Show Saved Projects row inside profile dropdown
-            if (pdSavedRow) pdSavedRow.style.display = 'flex';
-            if (pdSavedDivider) pdSavedDivider.style.display = 'block';
+            let userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+            if (!userRole && window.AuthService) {
+                try {
+                    userRole = await AuthService.getUserType(user.uid);
+                } catch (e) {}
+            }
+            if (userRole) {
+                sessionStorage.setItem('userType', userRole);
+                localStorage.setItem('userType', userRole);
+                document.documentElement.classList.add(`role-${userRole}`);
+                document.documentElement.setAttribute('data-user-role', userRole);
+            }
+
+            const isRestricted = userRole === 'admin' || userRole === 'librarian';
+
+            // Show Saved Projects row inside profile dropdown ONLY for roles that can save projects (student, teacher)
+            if (pdSavedRow) {
+                if (isRestricted) {
+                    pdSavedRow.style.setProperty('display', 'none', 'important');
+                    pdSavedRow.classList.add('role-hidden');
+                } else {
+                    pdSavedRow.style.removeProperty('display');
+                    pdSavedRow.style.display = 'flex';
+                    pdSavedRow.classList.remove('role-hidden');
+                }
+            }
+            if (pdSavedDivider) {
+                if (isRestricted) {
+                    pdSavedDivider.style.setProperty('display', 'none', 'important');
+                    pdSavedDivider.classList.add('role-hidden');
+                } else {
+                    pdSavedDivider.style.removeProperty('display');
+                    pdSavedDivider.style.display = 'block';
+                    pdSavedDivider.classList.remove('role-hidden');
+                }
+            }
 
             if (window.ViewManager && typeof window.ViewManager.updateSecondaryNavSavedCount === 'function') {
                 window.ViewManager.updateSecondaryNavSavedCount();
             }
         } else {
             localStorage.removeItem('cachedAuthState');
+            localStorage.removeItem('userType');
+            ['student', 'teacher', 'librarian', 'admin'].forEach(r => {
+                document.documentElement.classList.remove(`role-${r}`);
+            });
+            document.documentElement.removeAttribute('data-user-role');
             if (loginNavLink) loginNavLink.style.display = 'block';
             if (profileLink) profileLink.style.display = 'none';
             if (themeToggleBtn) themeToggleBtn.style.display = 'block';
             if (aboutNavLink) aboutNavLink.style.display = 'flex'; // show when logged out
 
             // ANONYMOUS: Hide Saved Projects row from profile dropdown
-            if (pdSavedRow) pdSavedRow.style.display = 'none';
-            if (pdSavedDivider) pdSavedDivider.style.display = 'none';
+            if (pdSavedRow) {
+                pdSavedRow.style.setProperty('display', 'none', 'important');
+                pdSavedRow.classList.add('role-hidden');
+            }
+            if (pdSavedDivider) {
+                pdSavedDivider.style.setProperty('display', 'none', 'important');
+                pdSavedDivider.classList.add('role-hidden');
+            }
 
             if (window.ViewManager && typeof window.ViewManager.updateSecondaryNavSavedCount === 'function') {
                 window.ViewManager.updateSecondaryNavSavedCount();
@@ -510,9 +556,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Check auth state changes
-    if (typeof auth !== 'undefined') {
-        auth.onAuthStateChanged(async (user) => {
-            updateHeader(user);
+    const authInstance = (typeof auth !== 'undefined' && auth) ? auth : (typeof window !== 'undefined' ? window.auth : null);
+    if (authInstance && typeof authInstance.onAuthStateChanged === 'function') {
+        authInstance.onAuthStateChanged(async (user) => {
+            if (user) {
+                let userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+                if (!userRole && window.AuthService) {
+                    try {
+                        userRole = await AuthService.getUserType(user.uid);
+                    } catch (e) {}
+                }
+                if (userRole) {
+                    sessionStorage.setItem('userType', userRole);
+                    localStorage.setItem('userType', userRole);
+                    document.documentElement.classList.add(`role-${userRole}`);
+                    document.documentElement.setAttribute('data-user-role', userRole);
+                }
+            }
+            await updateHeader(user);
             
             if (user) {
                 if (userName) {
@@ -520,7 +581,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 // Pre-fetch and cache user profile in session storage
                 if (window.AuthService) {
-                    await AuthService.getUserType(user.uid);
+                    const fetchedRole = await AuthService.getUserType(user.uid);
+                    if (fetchedRole) {
+                        sessionStorage.setItem('userType', fetchedRole);
+                        localStorage.setItem('userType', fetchedRole);
+                        document.documentElement.classList.add(`role-${fetchedRole}`);
+                        document.documentElement.setAttribute('data-user-role', fetchedRole);
+                        await updateHeader(user);
+                        if (window.ViewManager && typeof window.ViewManager.syncSavedNavVisibility === 'function') {
+                            window.ViewManager.syncSavedNavVisibility(user);
+                        }
+                    }
                     if (userName && !user.displayName) {
                         const cachedName = sessionStorage.getItem('userName');
                         if (cachedName) userName.textContent = cachedName;

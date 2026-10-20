@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduled Maintenance | RE-CAPS - CTU Daanbantayan</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+    <!-- Google Fonts: Atkinson Hyperlegible & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --font-primary: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+            /* RE-CAPS Brand Colors */
+            --brand-green: #08D488;
+            --brand-green-dark: #069F66;
+            --brand-green-glow: rgba(8, 212, 136, 0.25);
+            --brand-yellow: #FCCC56;
+            --brand-yellow-glow: rgba(252, 204, 86, 0.2);
+            --brand-accent: #2563eb;
+            --brand-maroon: #800000;
+
+            /* Light Theme Tokens */
+            --bg-gradient: radial-gradient(circle at 15% 15%, rgba(8, 212, 136, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(252, 204, 86, 0.08) 0%, transparent 45%),
+                #F7F8FA;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --card-border: rgba(226, 232, 240, 0.9);
+            --card-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.1), 0 8px 16px -6px rgba(15, 23, 42, 0.06);
+            --text-title: #0f172a;
+            --text-body: #475569;
+            --text-muted: #64748b;
+            --surface-subtle: #f8fafc;
+            --border-subtle: #e2e8f0;
+            --pill-bg: #fffbeb;
+            --pill-text: #b45309;
+            --pill-border: #fde68a;
+        }
+
+        [data-theme="dark"] {
+            --bg-gradient: radial-gradient(circle at 15% 15%, rgba(8, 212, 136, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(252, 204, 86, 0.08) 0%, transparent 45%),
+                #12161a;
+            --card-bg: rgba(26, 32, 38, 0.92);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 25px rgba(8, 212, 136, 0.05);
+            --text-title: #f8fafc;
+            --text-body: #cbd5e1;
+            --text-muted: #94a3b8;
+            --surface-subtle: #1f272f;
+            --border-subtle: #2d3748;
+            --pill-bg: rgba(245, 158, 11, 0.15);
+            --pill-text: #fbbf24;
+            --pill-border: rgba(245, 158, 11, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px 16px;
+            color: var(--text-body);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Animated Grid / Glow */
+        .ambient-glow {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--brand-green-glow) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            pointer-events: none;
+            z-index: 0;
+            animation: pulse-ambient 8s ease-in-out infinite alternate;
+        }
+
+        .ambient-glow-2 {
+            position: fixed;
+            width: 450px;
+            height: 450px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--brand-yellow-glow) 0%, transparent 70%);
+            bottom: -120px;
+            left: -120px;
+            pointer-events: none;
+            z-index: 0;
+            animation: pulse-ambient 10s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes pulse-ambient {
+            0% {
+                transform: scale(0.9) translate(0, 0);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(1.15) translate(20px, 20px);
+                opacity: 0.9;
+            }
+        }
+
+        /* Top Bar Controls */
+        .top-nav {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            max-width: 680px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 10;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-title);
+            font-weight: 700;
+            font-size: 14.5px;
+            letter-spacing: -0.2px;
+        }
+
+        .brand-badge img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        .brand-badge span.sub {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 12px;
+            margin-left: 2px;
+        }
+
+        .theme-toggle-btn {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-title);
+            padding: 7px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .theme-toggle-btn:hover {
+            border-color: var(--brand-green);
+        }
+
+        /* Maintenance Main Card */
+        .maintenance-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 40px 32px;
+            max-width: 620px;
+            width: 100%;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            text-align: center;
+            position: relative;
+            z-index: 5;
+            margin-top: 40px;
+            margin-bottom: 24px;
+            animation: cardAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(18px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Status Pill */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--pill-bg);
+            color: var(--pill-text);
+            border: 1px solid var(--pill-border);
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-size: 12.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+
+        .pulsing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: currentColor;
+            border-radius: 50%;
+            box-shadow: 0 0 0 rgba(245, 158, 11, 0.7);
+            animation: dotPulse 1.8s infinite;
+        }
+
+        @keyframes dotPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 7px rgba(245, 158, 11, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+
+        /* Animated Gear Graphic */
+        .icon-hero-wrapper {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-hero-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(8, 212, 136, 0.15), rgba(252, 204, 86, 0.15));
+            border-radius: 22px;
+            transform: rotate(-6deg);
+            transition: transform 0.3s ease;
+        }
+
+        .icon-hero-wrapper:hover .icon-hero-bg {
+            transform: rotate(0deg) scale(1.05);
+        }
+
+        .icon-hero {
+            position: relative;
+            z-index: 2;
+            width: 52px;
+            height: 52px;
+            color: var(--brand-green-dark);
+            animation: slowRotate 24s linear infinite;
+        }
+
+        [data-theme="dark"] .icon-hero {
+            color: var(--brand-green);
+        }
+
+        @keyframes slowRotate {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Typography */
+        h1.title {
+            font-family: var(--font-display);
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-title);
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+            line-height: 1.25;
+        }
+
+        p.description {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Estimated Restoration Schedule Card */
+        .schedule-card {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .schedule-header {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .schedule-main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 4px 0;
+        }
+
+        @media (min-width: 480px) {
+            .schedule-main {
+                flex-direction: row;
+                justify-content: space-around;
+                text-align: left;
+            }
+        }
+
+        .date-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        @media (min-width: 480px) {
+            .date-hero {
+                align-items: flex-start;
+            }
+        }
+
+        .mm-dd-yy-badge {
+            font-family: var(--font-display);
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--brand-green-dark);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        [data-theme="dark"] .mm-dd-yy-badge {
+            color: var(--brand-green);
+        }
+
+        .date-expanded {
+            font-size: 13px;
+            color: var(--text-body);
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .schedule-divider {
+            display: none;
+            width: 1px;
+            height: 48px;
+            background: var(--border-subtle);
+        }
+
+        @media (min-width: 480px) {
+            .schedule-divider {
+                display: block;
+            }
+        }
+
+        .days-estimate-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        @media (min-width: 480px) {
+            .days-estimate-box {
+                align-items: flex-start;
+            }
+        }
+
+        .days-val {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 800;
+            color: #b45309;
+            background: #fef3c7;
+            padding: 4px 12px;
+            border-radius: 8px;
+            border: 1px solid #fde68a;
+            display: inline-block;
+        }
+
+        [data-theme="dark"] .days-val {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .days-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        /* Subsystem Status Indicators */
+        .status-accordion {
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .status-accordion summary {
+            font-weight: 600;
+            color: var(--text-title);
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-accordion summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .status-accordion summary span.chevron {
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+
+        .status-accordion[open] summary span.chevron {
+            transform: rotate(180deg);
+        }
+
+        .system-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-subtle);
+        }
+
+        .system-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12.5px;
+            color: var(--text-body);
+        }
+
+        .subsystem-state {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .subsystem-state.updating {
+            color: #f59e0b;
+        }
+
+        .subsystem-state.healthy {
+            color: #10b981;
+        }
+
+        .state-bullet {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        /* Action Buttons */
+        .actions-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--brand-green), var(--brand-green-dark));
+            color: #ffffff;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px var(--brand-green-glow);
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(8, 212, 136, 0.35);
+        }
+
+        .btn-secondary {
+            background: var(--surface-subtle);
+            color: var(--text-title);
+            border: 1px solid var(--border-subtle);
+            padding: 13px 20px;
+            border-radius: 12px;
+            font-size: 14.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background: var(--card-bg);
+            border-color: var(--brand-green);
+            color: var(--brand-green-dark);
+        }
+
+        [data-theme="dark"] .btn-secondary:hover {
+            color: var(--brand-green);
+        }
+
+        /* Trivia Game Section */
+        .trivia-wrapper {
+            display: none;
+            background: var(--surface-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px 20px;
+            margin-top: 14px;
+            text-align: left;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .trivia-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .program-badge {
+            background: rgba(8, 212, 136, 0.15);
+            color: var(--brand-green-dark);
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        [data-theme="dark"] .program-badge {
+            color: var(--brand-green);
+        }
+
+        .streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #f59e0b;
+        }
+
+        .trivia-question {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-title);
+            line-height: 1.45;
+            margin-bottom: 16px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .opt-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-body);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .opt-btn:hover:not(:disabled) {
+            border-color: var(--brand-green);
+            background: var(--surface-subtle);
+            transform: translateX(3px);
+        }
+
+        .opt-btn.correct {
+            background: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #15803d !important;
+            font-weight: 700;
+        }
+
+        .opt-btn.incorrect {
+            background: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #b91c1c !important;
+            font-weight: 600;
+        }
+
+        .opt-letter {
+            width: 22px;
+            height: 22px;
+            background: var(--surface-subtle);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .hint-box {
+            display: none;
+            background: var(--pill-bg);
+            border: 1px solid var(--pill-border);
+            color: var(--pill-text);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }
+
+        .trivia-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .link-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12.5px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+
+        .link-btn:hover {
+            color: var(--brand-green-dark);
+            text-decoration: underline;
+        }
+
+        [data-theme="dark"] .link-btn:hover {
+            color: var(--brand-green);
+        }
+
+        /* Program Selector Drawer */
+        .program-selector {
+            display: none;
+            margin-top: 16px;
+            text-align: left;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .program-selector h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .programs-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        @media (min-width: 480px) {
+            .programs-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .prog-chip {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-title);
+            padding: 10px 8px;
+            border-radius: 10px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s ease;
+        }
+
+        .prog-chip:hover {
+            border-color: var(--brand-green);
+            background: rgba(8, 212, 136, 0.08);
+            color: var(--brand-green-dark);
+        }
+
+        [data-theme="dark"] .prog-chip:hover {
+            color: var(--brand-green);
+        }
+
+        /* Support / Helpdesk Section */
+        .support-footer {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .support-links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .support-links a {
+            color: var(--text-title);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 12.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .support-links a:hover {
+            color: var(--brand-green-dark);
+            text-decoration: underline;
+        }
+
+        [data-theme="dark"] .support-links a:hover {
+            color: var(--brand-green);
+        }
+
+        /* Toast Alert Notification */
+        .toast-banner {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+
+        .toast-banner.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Spinning indicator for checks */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #ffffff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Ambient background glows -->
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+        <a href="/" class="brand-badge" title="RE-CAPS Repository">
+            <img src="/assets/logo.png" alt="CTU RE-CAPS Logo"
+                onerror="this.src='../assets/logo.png'; this.onerror=null;">
+            <div>
+                RE-CAPS <span class="sub">CTU-Daanbantayan</span>
+            </div>
+        </a>
+
+        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()"
+            aria-label="Toggle Dark/Light Mode">
+            <span id="themeIcon">🌓</span>
+            <span id="themeLabel">Theme</span>
+        </button>
+    </header>
+
+    <!-- Main Maintenance Window -->
+    <main class="maintenance-card" role="main">
+
+        <!-- Live Status Badge -->
+        <div class="status-pill">
+            <div class="pulsing-dot"></div>
+            Scheduled Maintenance In Progress
+        </div>
+
+        <!-- Hero Graphic -->
+        <div class="icon-hero-wrapper" aria-hidden="true">
+            <div class="icon-hero-bg"></div>
+            <svg class="icon-hero" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
+                </path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </div>
+
+        <h1 class="title">System Under Routine Upgrade</h1>
+        <p class="description">
+            The Cebu Technological University - Daanbantayan Campus Undergraduate Theses Repository (RE-CAPS) is
+            undergoing scheduled maintenance to improve RAG search performance and security. <br><br>Thank you for your
+            cooperation and patience.
+            — The Development Team
+        </p>
+
+        <!-- Estimated Restoration Schedule Card (MM/DD/YYYY & Days) -->
+        <div class="schedule-card">
+            <div class="schedule-header">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Estimated Service Restoration</span>
+            </div>
+            <div class="schedule-main">
+                <div class="date-hero">
+                    <div class="mm-dd-yy-badge" id="mmddyyBadge">10 / 22 / 2026</div>
+                    <div class="date-expanded" id="displayDateText">October 22, 2026</div>
+                </div>
+                <div class="schedule-divider"></div>
+                <div class="days-estimate-box">
+                    <div class="days-val" id="estimatedDaysVal">3 Days</div>
+                    <div class="days-sub" id="targetTimeText">Target: 6:00 PM (PHT)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subsystems Accordion Status -->
+        <details class="status-accordion">
+            <summary>
+                <span>Subsystem Status & Updates</span>
+                <span class="chevron">▼</span>
+            </summary>
+            <div class="system-list">
+                <div class="system-item">
+                    <span>Web Portal & Search Gateway</span>
+                    <span class="subsystem-state updating"><span class="state-bullet"></span> In Maintenance</span>
+                </div>
+                <div class="system-item">
+                    <span>Pinecone Vector RAG Pipeline</span>
+                    <span class="subsystem-state updating"><span class="state-bullet"></span> Index Optimization</span>
+                </div>
+                <div class="system-item">
+                    <span>Firebase Database & Authentication</span>
+                    <span class="subsystem-state healthy"><span class="state-bullet"></span> Nominal (Locked)</span>
+                </div>
+                <div class="system-item">
+                    <span>PDF Full-Text Document Store</span>
+                    <span class="subsystem-state healthy"><span class="state-bullet"></span> Backup Completed</span>
+                </div>
+            </div>
+        </details>
+
+        <!-- Main Action Buttons -->
+        <div class="actions-group" id="mainActions">
+            <button class="btn-primary" id="checkOnlineBtn" onclick="checkSystemStatus()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span id="checkOnlineText">Check If Back Online</span>
+            </button>
+            <button class="btn-secondary" onclick="openProgramSelector()">
+                <span>🧠</span> Play CTU Academic Trivia While Waiting
+            </button>
+        </div>
+
+        <!-- Academic Program Selector Drawer -->
+        <div class="program-selector" id="programSelector">
+            <h3>Select Your Academic Program:</h3>
+            <div class="programs-grid">
+                <button class="prog-chip" onclick="selectProgram(0)">BSIT</button>
+                <button class="prog-chip" onclick="selectProgram(1)">BSFI</button>
+                <button class="prog-chip" onclick="selectProgram(2)">BSHM</button>
+                <button class="prog-chip" onclick="selectProgram(3)">BSIE</button>
+                <button class="prog-chip" onclick="selectProgram(4)">BIT-Comp</button>
+                <button class="prog-chip" onclick="selectProgram(5)">BIT-Electro</button>
+                <button class="prog-chip" onclick="selectProgram(6)">BIT-Auto</button>
+                <button class="prog-chip" onclick="selectProgram(7)">BEEd</button>
+                <button class="prog-chip" onclick="selectProgram(8)">BSEd-Math</button>
+                <button class="prog-chip" onclick="selectProgram(9)">BTLEd-HE</button>
+            </div>
+            <div style="text-align: center;">
+                <button class="link-btn" onclick="closeTriviaSection()">← Return to Status Overview</button>
+            </div>
+        </div>
+
+        <!-- Interactive Trivia Section -->
+        <section class="trivia-wrapper" id="triviaSection" aria-live="polite">
+            <div class="trivia-header">
+                <span class="program-badge" id="programLabel">BSIT</span>
+                <div class="streak-badge">
+                    🔥 Streak: <strong id="streakCount">0</strong> (Best: <span id="bestStreak">0</span>)
+                </div>
+            </div>
+
+            <div class="trivia-question" id="questionBox">
+                Loading academic question...
+            </div>
+
+            <div class="hint-box" id="hintBox"></div>
+
+            <div class="options-list" id="optionsBox">
+                <!-- Dynamically populated options -->
+            </div>
+
+            <div class="trivia-controls">
+                <button class="link-btn" onclick="toggleHint()">💡 Need a hint?</button>
+                <div style="display:flex; gap: 8px;">
+                    <button class="link-btn" onclick="openProgramSelector()">Change Program</button>
+                    <button class="link-btn" onclick="closeTriviaSection()">Exit Game</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Helpdesk & Support Footer -->
+        <footer class="support-footer">
+            <div>Need urgent access to capstone materials or research papers?</div>
+            <div class="support-links">
+                <a href="mailto:support@recaps.cebutech.digital" title="Send email to Recaps Support">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    support@recaps.cebutech.digital
+                </a>
+                <span>•</span>
+                <a href="javascript:void(0)" onclick="copySupportEmail()">Copy Email</a>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Toast Notification Banner -->
+    <div class="toast-banner" id="toastBanner" role="status">
+        <span id="toastIcon">✓</span>
+        <span id="toastMsg">System status checked</span>
+    </div>
+
+    <script>
+        /* -------------------------------------------------------------
+           Theme Initialization & Toggle (Synced with RE-CAPS app)
+        ------------------------------------------------------------- */
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const currentTheme = savedTheme ? savedTheme : (prefersDark ? 'dark' : 'light');
+
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            updateThemeUI(currentTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeUI(newTheme);
+        }
+
+        function updateThemeUI(theme) {
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            if (theme === 'dark') {
+                icon.textContent = '☀️';
+                label.textContent = 'Light';
+            } else {
+                icon.textContent = '🌙';
+                label.textContent = 'Dark';
+            }
+        }
+
+        initTheme();
+
+        /* -------------------------------------------------------------
+           Dynamic Developer Configuration for Schedule & Maintenance
+           (Developers can edit public/maintenance-config.json or the defaults below)
+        ------------------------------------------------------------- */
+        const DEFAULT_MAINTENANCE_CONFIG = {
+            targetDate: "10/22/2026",      // Format: MM/DD/YYYY
+            displayDate: "October 22, 2026",
+            estimatedDays: "3 Days",
+            targetTime: "6:00 PM (PHT)",
+            statusBadge: "Scheduled Maintenance In Progress"
+        };
+
+        async function loadMaintenanceSchedule() {
+            let config = { ...DEFAULT_MAINTENANCE_CONFIG };
+
+            try {
+                // Fetch external config file dynamically with cache-busting
+                const res = await fetch('/maintenance-config.json?cacheBust=' + Date.now(), { cache: 'no-store' });
+                if (res.ok) {
+                    const rawText = await res.text();
+                    // Strip comments so comments in JSON won't break the page
+                    const sanitized = rawText.replace(/\/\/.*$/gm, '');
+                    const data = JSON.parse(sanitized);
+                    config = { ...config, ...data };
+                }
+            } catch (e) {
+                // Default fallback in effect if offline or config file unavailable
+            }
+
+            // Dynamically calculate days remaining if targetDate is in MM/DD/YYYY format
+            let computedDaysText = config.estimatedDays;
+            if (config.targetDate) {
+                const parts = config.targetDate.split('/');
+                if (parts.length === 3) {
+                    const targetYear = parseInt(parts[2].length === 2 ? '20' + parts[2] : parts[2], 10);
+                    const targetMonth = parseInt(parts[0], 10) - 1;
+                    const targetDay = parseInt(parts[1], 10);
+                    const targetDateObj = new Date(targetYear, targetMonth, targetDay, 23, 59, 59);
+                    const now = new Date();
+                    const diffMs = targetDateObj.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                    if (diffDays > 0) {
+                        computedDaysText = `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
+                    } else if (diffDays === 0) {
+                        computedDaysText = "Today (Finalizing)";
+                    }
+                }
+            }
+
+            const mmddyyEl = document.getElementById('mmddyyBadge');
+            const displayDateEl = document.getElementById('displayDateText');
+            const estimatedDaysEl = document.getElementById('estimatedDaysVal');
+            const targetTimeEl = document.getElementById('targetTimeText');
+
+            if (mmddyyEl) mmddyyEl.textContent = config.targetDate;
+            if (displayDateEl) displayDateEl.textContent = config.displayDate || config.targetDate;
+            if (estimatedDaysEl) estimatedDaysEl.textContent = computedDaysText || config.estimatedDays;
+            if (targetTimeEl) targetTimeEl.textContent = `Target: ${config.targetTime || 'End of Day'}`;
+        }
+
+        loadMaintenanceSchedule();
+
+        /* -------------------------------------------------------------
+           Real-time Health Check / Reconnect Detection
+        ------------------------------------------------------------- */
+        async function checkSystemStatus() {
+            const btn = document.getElementById('checkOnlineBtn');
+            const text = document.getElementById('checkOnlineText');
+            btn.disabled = true;
+            text.innerHTML = '<span class="spinner"></span> Pinging System...';
+
+            try {
+                // Try pinging the root document or backend
+                const response = await fetch('/?cacheBust=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+
+                // If it resolves and is not routing directly back to maintenance
+                if (response.ok) {
+                    showToast('Connection verified! Verifying portal status...', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1200);
+                } else {
+                    showToast('System is still updating. Thank you for your patience!', 'warn');
+                }
+            } catch (err) {
+                showToast('Maintenance still in progress. Please check back shortly.', 'info');
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    text.textContent = 'Check If Back Online';
+                }, 1500);
+            }
+        }
+
+        /* -------------------------------------------------------------
+           Academic Trivia Engine (Offline Fallback + OpenTDB Live)
+        ------------------------------------------------------------- */
+        const academicPrograms = [
+            { code: "BSIT", name: "Information Technology", cat: 18 },
+            { code: "BSFI", name: "Fisheries & Marine Science", cat: 17 },
+            { code: "BSHM", name: "Hospitality Management", cat: 22 },
+            { code: "BSIE", name: "Industrial Engineering", cat: 19 },
+            { code: "BIT-Computer", name: "Computer Technology", cat: 18 },
+            { code: "BIT-Electronics", name: "Electronics Technology", cat: 30 },
+            { code: "BIT-Automotive", name: "Automotive Technology", cat: 17 },
+            { code: "BEEd", name: "Elementary Education", cat: 9 },
+            { code: "BSEd-Math", name: "Secondary Education - Mathematics", cat: 19 },
+            { code: "BTLEd-HE", name: "Home Economics Education", cat: 26 }
+        ];
+
+        // Curated offline question bank tailored to CTU fields
+        const offlineQuestions = {
+            "BSIT": [
+                {
+                    q: "In Retrieval-Augmented Generation (RAG), what vector search component indexes high-dimensional embeddings?",
+                    choices: ["Vector Database (e.g. Pinecone)", "Relational Schema", "DOM Parser", "CSS Compiler"],
+                    ans: "Vector Database (e.g. Pinecone)",
+                    hint: "It stores dense mathematical vector representations of document chunks."
+                },
+                {
+                    q: "Which protocol provides secure bidirectional real-time communication for web clients?",
+                    choices: ["WebSocket", "FTP", "POP3", "SMTP"],
+                    ans: "WebSocket",
+                    hint: "It operates over a single TCP connection and powers real-time apps."
+                },
+                {
+                    q: "What does the 'R' in the RAG search architecture stand for?",
+                    choices: ["Retrieval", "Relational", "Redundant", "Recursive"],
+                    ans: "Retrieval",
+                    hint: "It fetches relevant context from the database before generating answers."
+                }
+            ],
+            "BSFI": [
+                {
+                    q: "Which parameter is most crucial for monitoring water quality in coastal aquaculture?",
+                    choices: ["Dissolved Oxygen (DO)", "Atmospheric Pressure", "Cloud Cover", "Soil Nitrogen"],
+                    ans: "Dissolved Oxygen (DO)",
+                    hint: "Aquatic organisms require sufficient levels of this dissolved gas to breathe."
+                },
+                {
+                    q: "What is the primary ecological role of mangrove ecosystems in Visayan coastal waters?",
+                    choices: ["Nursery grounds for marine life", "Agricultural farming", "Freshwater reservoirs", "Industrial mining"],
+                    ans: "Nursery grounds for marine life",
+                    hint: "They shield coastlines and shelter juvenile fish species."
+                }
+            ],
+            "BSHM": [
+                {
+                    q: "What international safety management standard focuses on food safety hazard prevention?",
+                    choices: ["HACCP", "ISO 9001", "IEEE 802.11", "OSHA 10"],
+                    ans: "HACCP",
+                    hint: "Hazard Analysis Critical Control Point."
+                },
+                {
+                    q: "What culinary term describes preparing and organizing all ingredients before cooking?",
+                    choices: ["Mise en place", "Sous vide", "Flambé", "Julienne"],
+                    ans: "Mise en place",
+                    hint: "French for 'everything in its place'."
+                }
+            ],
+            "BSIE": [
+                {
+                    q: "In Lean Manufacturing, what Japanese philosophy emphasizes continuous incremental improvement?",
+                    choices: ["Kaizen", "Kanban", "Poka-yoke", "Muda"],
+                    ans: "Kaizen",
+                    hint: "Translates broadly to 'change for the better'."
+                },
+                {
+                    q: "Which chart is universally used in project management to illustrate task dependencies and schedules?",
+                    choices: ["Gantt Chart", "Pareto Histogram", "Scatter Plot", "Fishbone Diagram"],
+                    ans: "Gantt Chart",
+                    hint: "Displays project schedules horizontally along a timeline."
+                }
+            ],
+            "BIT-Computer": [
+                {
+                    q: "Which memory layer offers the lowest latency and highest access speed to the CPU?",
+                    choices: ["L1 Cache", "RAM", "NVMe SSD", "SATA Hard Drive"],
+                    ans: "L1 Cache",
+                    hint: "It is built directly inside the processor core."
+                }
+            ],
+            "BIT-Electronics": [
+                {
+                    q: "According to Ohm's Law, what is the formula connecting Voltage (V), Current (I), and Resistance (R)?",
+                    choices: ["V = I × R", "V = I / R", "V = I + R", "V = R / I"],
+                    ans: "V = I × R",
+                    hint: "Current multiplied by resistance equals the potential difference."
+                }
+            ],
+            "BIT-Automotive": [
+                {
+                    q: "In an internal combustion engine, what component synchronizes the camshaft and crankshaft rotation?",
+                    choices: ["Timing Belt / Chain", "Alternator", "Differential Gear", "Radiator Hose"],
+                    ans: "Timing Belt / Chain",
+                    hint: "Keeps engine valves opening and closing at precise strokes."
+                }
+            ],
+            "BEEd": [
+                {
+                    q: "Who formulated the Theory of Cognitive Development featuring the sensorimotor and concrete operational stages?",
+                    choices: ["Jean Piaget", "B.F. Skinner", "Lev Vygotsky", "Erik Erikson"],
+                    ans: "Jean Piaget",
+                    hint: "Renowned Swiss psychologist known for developmental stages in children."
+                }
+            ],
+            "BSEd-Math": [
+                {
+                    q: "What is the derivative of sin(x) with respect to x?",
+                    choices: ["cos(x)", "-cos(x)", "tan(x)", "-sin(x)"],
+                    ans: "cos(x)",
+                    hint: "The fundamental trigonometric derivative rate of change."
+                }
+            ],
+            "BTLEd-HE": [
+                {
+                    q: "In garment construction, what is the finished border of cloth folded under and stitched called?",
+                    choices: ["Hem", "Pleat", "Dart", "Basting"],
+                    ans: "Hem",
+                    hint: "Commonly found at the bottom edge of shirts, trousers, or skirts."
+                }
+            ]
+        };
+
+        let currentProgramIndex = 0;
+        let streak = 0;
+        let bestStreak = parseInt(localStorage.getItem('recaps_trivia_best') || '0', 10);
+        let currentQuestion = null;
+
+        document.getElementById('bestStreak').textContent = bestStreak;
+
+        function openProgramSelector() {
+            document.getElementById('mainActions').style.display = 'none';
+            document.getElementById('triviaSection').style.display = 'none';
+            document.getElementById('programSelector').style.display = 'block';
+        }
+
+        function closeTriviaSection() {
+            document.getElementById('programSelector').style.display = 'none';
+            document.getElementById('triviaSection').style.display = 'none';
+            document.getElementById('mainActions').style.display = 'flex';
+        }
+
+        function selectProgram(index) {
+            currentProgramIndex = index;
+            document.getElementById('programSelector').style.display = 'none';
+            document.getElementById('triviaSection').style.display = 'block';
+            loadQuestion();
+        }
+
+        async function loadQuestion() {
+            const prog = academicPrograms[currentProgramIndex];
+            document.getElementById('programLabel').textContent = prog.code + " • " + prog.name;
+            const qBox = document.getElementById('questionBox');
+            const optBox = document.getElementById('optionsBox');
+            const hintBox = document.getElementById('hintBox');
+
+            hintBox.style.display = 'none';
+            qBox.textContent = 'Curating academic question...';
+            optBox.innerHTML = '<div style="text-align:center; padding: 12px; color:var(--text-muted); font-size:13px;">Preparing challenges...</div>';
+
+            // Try Live API first with short timeout
+            let questionLoaded = false;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+                const res = await fetch(`https://opentdb.com/api.php?amount=1&category=${prog.cat}&difficulty=easy&type=multiple`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        const item = data.results[0];
+                        const cleanAns = decodeHTML(item.correct_answer);
+                        const cleanQ = decodeHTML(item.question);
+                        let choices = [...item.incorrect_answers.map(decodeHTML), cleanAns];
+                        choices.sort(() => Math.random() - 0.5);
+
+                        currentQuestion = {
+                            q: cleanQ,
+                            ans: cleanAns,
+                            choices: choices,
+                            hint: `Clue: The correct answer begins with letter "${cleanAns.charAt(0)}".`
+                        };
+                        renderQuestion(currentQuestion);
+                        questionLoaded = true;
+                    }
+                }
+            } catch (err) {
+                // Network error or timeout, will fall back
+            }
+
+            // Fallback to local curated question bank
+            if (!questionLoaded) {
+                const list = offlineQuestions[prog.code] || offlineQuestions["BSIT"];
+                const item = list[Math.floor(Math.random() * list.length)];
+                let shuffledChoices = [...item.choices].sort(() => Math.random() - 0.5);
+
+                currentQuestion = {
+                    q: item.q,
+                    ans: item.ans,
+                    choices: shuffledChoices,
+                    hint: item.hint
+                };
+                renderQuestion(currentQuestion);
+            }
+        }
+
+        function renderQuestion(qObj) {
+            const qBox = document.getElementById('questionBox');
+            const optBox = document.getElementById('optionsBox');
+            const hintBox = document.getElementById('hintBox');
+
+            qBox.innerHTML = qObj.q;
+            hintBox.textContent = qObj.hint;
+            optBox.innerHTML = '';
+
+            const letters = ['A', 'B', 'C', 'D'];
+            qObj.choices.forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'opt-btn';
+                btn.innerHTML = `<span class="opt-letter">${letters[idx] || '•'}</span> <span>${choice}</span>`;
+                btn.onclick = () => handleAnswer(choice, btn);
+                optBox.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(selectedChoice, btn) {
+            const allBtns = document.querySelectorAll('.opt-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selectedChoice === currentQuestion.ans) {
+                btn.classList.add('correct');
+                streak++;
+                if (streak > bestStreak) {
+                    bestStreak = streak;
+                    localStorage.setItem('recaps_trivia_best', bestStreak);
+                    document.getElementById('bestStreak').textContent = bestStreak;
+                }
+                document.getElementById('streakCount').textContent = streak;
+                showToast('Correct! Great job!', 'success');
+                setTimeout(loadQuestion, 1600);
+            } else {
+                btn.classList.add('incorrect');
+                allBtns.forEach(b => {
+                    if (b.innerText.includes(currentQuestion.ans)) {
+                        b.classList.add('correct');
+                    }
+                });
+                streak = 0;
+                document.getElementById('streakCount').textContent = streak;
+                showToast(`Incorrect! The correct answer was: ${currentQuestion.ans}`, 'warn');
+                setTimeout(loadQuestion, 2400);
+            }
+        }
+
+        function toggleHint() {
+            const hintBox = document.getElementById('hintBox');
+            hintBox.style.display = hintBox.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function decodeHTML(str) {
+            const txt = document.createElement('textarea');
+            txt.innerHTML = str;
+            return txt.value;
+        }
+
+        /* -------------------------------------------------------------
+           Toast Notification & Clipboard Helpers
+        ------------------------------------------------------------- */
+        let toastTimeout;
+        function showToast(msg, type = 'info') {
+            const banner = document.getElementById('toastBanner');
+            const msgEl = document.getElementById('toastMsg');
+            const iconEl = document.getElementById('toastIcon');
+
+            clearTimeout(toastTimeout);
+            msgEl.textContent = msg;
+            iconEl.textContent = type === 'success' ? '✓' : (type === 'warn' ? '⚠️' : 'ℹ️');
+            banner.classList.add('show');
+
+            toastTimeout = setTimeout(() => {
+                banner.classList.remove('show');
+            }, 3200);
+        }
+
+        function copySupportEmail() {
+            navigator.clipboard.writeText('support@recaps.cebutech.digital').then(() => {
+                showToast('Library email copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Email: support@recaps.cebutech.digital', 'info');
+            });
+        }
+    </script>
+</body>
+
+</html>

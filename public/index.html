@@ -10,6 +10,11 @@
         if (localStorage.getItem('cachedAuthState') === 'true') {
             document.documentElement.classList.add('auth-cached-logged-in');
         }
+        const cachedUserRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+        if (cachedUserRole) {
+            document.documentElement.classList.add('role-' + cachedUserRole);
+            document.documentElement.setAttribute('data-user-role', cachedUserRole);
+        }
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

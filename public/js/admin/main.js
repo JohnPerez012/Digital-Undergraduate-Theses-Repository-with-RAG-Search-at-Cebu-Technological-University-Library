@@ -89,6 +89,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ===== Chart References =====
     let analyticsCharts = {};
 
+    // ===== Pending Approvals State =====
+    let allPendingApprovals = [];
+    let unsubscribePendingProjects = null;
+
     // ===== DOM Elements =====
     const sidebar = document.getElementById('sidebar-rail');
     const menuToggleBtn = document.getElementById('menu-toggle-btn');
@@ -173,6 +177,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'projects':
                 await loadProjectsData();
                 break;
+            case 'approvals':
+                await loadPendingApprovalsData();
+                break;
             case 'users':
                 await loadUsersData();
                 break;
@@ -201,6 +208,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('total-users-stat').textContent = totalUsers;
             document.getElementById('student-users-stat').textContent = `${studentUsers} Students / ${librarianUsers} Librarians`;
             document.getElementById('recent-activity-stat').textContent = totalProjects + totalUsers;
+
+            db.collection('pendingProjects').get().then(snap => {
+                if (typeof updatePendingCounters === 'function') {
+                    updatePendingCounters(snap.size);
+                }
+            }).catch(() => {});
 
             // Load recent projects
             const recentProjectsList = document.getElementById('recent-projects-list');
@@ -847,7 +860,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>${highlightSearchTerms(data.year || 'N/A', searchQuery)}</td>
                 <td>${highlightSearchTerms(data.adviser || 'N/A', searchQuery)}</td>
                 <td>
-                    <div class="table-actions">
+                    <div class="table-actions projects-action-grid">
                         <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details" aria-label="View details">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                             <span class="action-btn-text">View</span>
@@ -987,6 +1000,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
                         </button>
                         <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>
+                        ${data.isLockedByAdmin
+                            ? `<span class="badge badge-locked-admin" style="background:rgba(239,68,68,0.15);color:#f87171;font-size:0.68rem;padding:2px 7px;border-radius:4px;border:1px solid rgba(239,68,68,0.35);margin-left:6px;display:inline-flex;align-items:center;gap:3px;" title="Locked by Admin — Cataloging and editing are disabled"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>`
+                            : ''
+                        }
                     </div>
                 </td>
                 <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
@@ -994,20 +1011,110 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>${highlightSearchTerms(data.year || 'N/A', searchQuery)}</td>
                 <td>${highlightSearchTerms(data.adviser || 'N/A', searchQuery)}</td>
                 <td>
-                    <div class="table-actions">
-                        <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details" aria-label="View details">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <span class="action-btn-text">View</span>
-                        </button>
-                        <button class="action-btn action-edit" onclick="editProject('${data.id}')" title="Edit project" aria-label="Edit project">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                            <span class="action-btn-text">Edit</span>
-                        </button>
-                        <button class="action-btn action-delete" onclick="deleteProject('${data.id}', '${escapeHtml(data.title || 'this project').replace(/'/g, "\\'")}')" title="Delete project" aria-label="Delete project">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            <span class="action-btn-text">Delete</span>
-                        </button>
-                    </div>
+                    ${(() => {
+                        const isLocked = Boolean(data.isLockedByAdmin);
+                        const isBeingCataloged = Boolean(data.isBeingCataloged);
+                        const isBeingEdited = Boolean(data.isBeingEdited);
+
+                        const lockBtn = isLocked
+                            ? `<button type="button" class="action-btn action-unlock" onclick="window.__adminToggleLockProject('${data.id}', false)" title="Unlock project">
+                                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                                   <span class="action-btn-text">Unlock</span>
+                               </button>`
+                            : `<button type="button" class="action-btn action-lock" onclick="window.__adminToggleLockProject('${data.id}', true)" title="Lock project (Freeze cataloging and modifications)">
+                                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                   <span class="action-btn-text">Lock</span>
+                               </button>`;
+
+                        // Stale Lock Guard (15 minutes TTL): Auto-expire abandoned cataloging/editing locks
+                        let isCatalogLockStale = false;
+                        if (isBeingCataloged && data.catalogingStartedAt) {
+                            try {
+                                const started = data.catalogingStartedAt.toDate ? data.catalogingStartedAt.toDate() : new Date(data.catalogingStartedAt);
+                                if (Date.now() - started.getTime() > 15 * 60 * 1000) {
+                                    isCatalogLockStale = true;
+                                    db.collection('projects').doc(data.id).update({
+                                        isBeingCataloged: false,
+                                        catalogingBy: null,
+                                        catalogingByName: null,
+                                        catalogingStartedAt: null
+                                    }).catch(() => {});
+                                }
+                            } catch (e) {}
+                        }
+
+                        let isEditLockStale = false;
+                        if (isBeingEdited && data.editingStartedAt) {
+                            try {
+                                const started = data.editingStartedAt.toDate ? data.editingStartedAt.toDate() : new Date(data.editingStartedAt);
+                                if (Date.now() - started.getTime() > 15 * 60 * 1000) {
+                                    isEditLockStale = true;
+                                    db.collection('projects').doc(data.id).update({
+                                        isBeingEdited: false,
+                                        editingBy: null,
+                                        editingByName: null,
+                                        editingStartedAt: null
+                                    }).catch(() => {});
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (isBeingCataloged && !isCatalogLockStale) {
+                            const cataloger = escapeHtml(data.catalogingByName || 'Librarian');
+                            return `
+                                <div class="approvals-live-editing-pill" title="Currently being cataloged by ${cataloger}. Click × to release lock.">
+                                    <span class="live-editing-dot"></span>
+                                    <span class="live-editing-text">In catalog by: <strong>${cataloger}</strong></span>
+                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleaseCatalogLock('${data.id}')" title="Force release lock">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        if (isBeingEdited && !isEditLockStale) {
+                            const editor = escapeHtml(data.editingByName || 'Librarian');
+                            return `
+                                <div class="approvals-live-editing-pill" title="Currently being edited by ${editor}. Click × to release lock.">
+                                    <span class="live-editing-dot"></span>
+                                    <span class="live-editing-text">In edit by: <strong>${editor}</strong></span>
+                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleaseCatalogLock('${data.id}')" title="Force release lock">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        if (isLocked) {
+                            return `
+                                <div class="table-actions projects-action-grid">
+                                    <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details (Locked)" aria-label="View details">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <span class="action-btn-text">View</span>
+                                    </button>
+                                    ${lockBtn}
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div class="table-actions projects-action-grid">
+                                <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details" aria-label="View details">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    <span class="action-btn-text">View</span>
+                                </button>
+                                <button class="action-btn action-edit" onclick="editProject('${data.id}')" title="Edit project" aria-label="Edit project">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                    <span class="action-btn-text">Edit</span>
+                                </button>
+                                <button class="action-btn action-delete" onclick="deleteProject('${data.id}', '${escapeHtml(data.title || 'this project').replace(/'/g, "\\'")}')" title="Delete project" aria-label="Delete project">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span class="action-btn-text">Delete</span>
+                                </button>
+                                ${lockBtn}
+                            </div>
+                        `;
+                    })()}
                 </td>
             `;
             tbody.appendChild(row);
@@ -2848,13 +2955,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.editProject = async (projectId) => {
         console.log('Edit project:', projectId);
         try {
-            // showToast('Loading project details...', 'ℹ️');
+            // Fresh live Firestore check to prevent fast-hand bypass or modifying locked/in-use projects
             const doc = await db.collection('projects').doc(projectId).get();
             if (!doc.exists) {
                 showToast('Project not found', '❌');
                 return;
             }
-            const data = doc.data();
+            const data = doc.data() || {};
+
+            // Mutual exclusion: If project is locked by Admin, require unlock first
+            if (data.isLockedByAdmin) {
+                showToast('This project is locked by the Administrator. Please unlock it before editing.', '🔒');
+                return;
+            }
+
+            // Mutual exclusion: If project is being cataloged by a librarian, block access
+            if (data.isBeingCataloged) {
+                const cataloger = data.catalogingByName || 'a librarian';
+                showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+                return;
+            }
+
+            // Mutual exclusion: If project is being edited in real-time, block access
+            if (data.isBeingEdited) {
+                const editor = data.editingByName || 'another user';
+                showToast(`This project is currently being edited by ${editor}. Simultaneous editing is locked out.`, '⚠️');
+                return;
+            }
             
             // Save original data for change detection
             const editAuthors = Array.isArray(data.authors) ? data.authors : (data.authors ? data.authors.split(',').map(a => a.trim()) : []);
@@ -2884,8 +3011,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-abstract-input').value = data.abstract || '';
 
             // Populate dynamic fields
-            initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
-
+            initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
+
             // Load and populate Section 5: Cataloging & Accountability
             try {
                 const cnDoc = await db.collection('catalogNotes').doc(projectId).get();
@@ -2990,6 +3117,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     window.deleteProject = async (projectId, title) => {
+        try {
+            const doc = await db.collection('projects').doc(projectId).get();
+            if (doc.exists) {
+                const data = doc.data() || {};
+                if (data.isLockedByAdmin) {
+                    showToast('Cannot delete: This project is locked by the Administrator. Please unlock it first.', '🔒');
+                    return;
+                }
+                if (data.isBeingCataloged) {
+                    const cataloger = data.catalogingByName || 'a librarian';
+                    showToast(`Cannot delete: This project is currently being cataloged by ${cataloger}.`, '⚠️');
+                    return;
+                }
+                if (data.isBeingEdited) {
+                    const editor = data.editingByName || 'another user';
+                    showToast(`Cannot delete: This project is currently being edited by ${editor}.`, '⚠️');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('deleteProject pre-check warning:', e);
+        }
         showSecureDeleteModal(projectId, title);
     };
     
@@ -3080,12 +3229,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             setDeleteProcessing(true);
             showToast('Deleting project...', 'ℹ️');
 
-            // Fetch project data to get image URLs before deletion
+            // Fetch project data to verify lock status and get image URLs before deletion
             let projectImages = [];
             try {
                 const projectDoc = await db.collection('projects').doc(secureDeleteProjectId).get();
                 if (projectDoc.exists) {
-                    const projectData = projectDoc.data();
+                    const projectData = projectDoc.data() || {};
+                    if (projectData.isLockedByAdmin) {
+                        showToast('Delete blocked: This project is locked by the Administrator.', '🔒');
+                        setDeleteProcessing(false);
+                        closeSecureDeleteModal();
+                        return;
+                    }
+                    if (projectData.isBeingCataloged) {
+                        const cataloger = projectData.catalogingByName || 'a librarian';
+                        showToast(`Delete blocked: This project is currently being cataloged by ${cataloger}.`, '⚠️');
+                        setDeleteProcessing(false);
+                        closeSecureDeleteModal();
+                        return;
+                    }
+                    if (projectData.isBeingEdited) {
+                        const editor = projectData.editingByName || 'another user';
+                        showToast(`Delete blocked: This project is currently being edited by ${editor}.`, '⚠️');
+                        setDeleteProcessing(false);
+                        closeSecureDeleteModal();
+                        return;
+                    }
                     projectImages = projectData.images || [];
                     console.log(`📸 Found ${projectImages.length} images to delete`);
                 }
@@ -4673,7 +4842,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setSaveProcessing(false);
                 return;
             }
-            const oldData = currentDoc.data();
+            const oldData = currentDoc.data() || {};
+            
+            if (oldData.isLockedByAdmin) {
+                showToast('Operation blocked: This project is locked by the Administrator.', '🔒');
+                setSaveProcessing(false);
+                return;
+            }
+            if (oldData.isBeingCataloged) {
+                const cataloger = oldData.catalogingByName || 'a librarian';
+                showToast(`Operation blocked: This project is currently being cataloged by ${cataloger}.`, '⚠️');
+                setSaveProcessing(false);
+                return;
+            }
+            if (oldData.isBeingEdited) {
+                const editor = oldData.editingByName || 'another user';
+                showToast(`Operation blocked: This project is currently being edited by ${editor}.`, '⚠️');
+                setSaveProcessing(false);
+                return;
+            }
             
             const changedFields = [];
             
@@ -5269,6 +5456,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         );
 
+        // Real-time pending projects listener
+        if (unsubscribePendingProjects) unsubscribePendingProjects();
+        unsubscribePendingProjects = db.collection('pendingProjects').onSnapshot(
+            (snapshot) => {
+                console.log('Pending projects updated in real-time');
+                if (snapshot && snapshot.docs) {
+                    const freshPending = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    freshPending.sort((a, b) => {
+                        const dateA = getTimestamp(a.createdAt);
+                        const dateB = getTimestamp(b.createdAt);
+                        return dateB - dateA;
+                    });
+                    allPendingApprovals = freshPending;
+                    savePendingApprovalsToCache(freshPending);
+                    updatePendingCounters(freshPending.length);
+
+                    const activeSection = document.querySelector('.content-section.active');
+                    if (activeSection && activeSection.id === 'section-approvals') {
+                        filterAndRenderApprovals();
+                    }
+                }
+            },
+            (error) => {
+                console.warn('Real-time pending projects listener error:', error);
+            }
+        );
+
         console.log('Real-time listeners activated ✓');
     }
 
@@ -5277,16 +5491,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const projectsSnapshot = await db.collection('projects').get();
             const usersSnapshot = await db.collection('users').get();
+            const pendingSnapshot = await db.collection('pendingProjects').get().catch(() => ({ size: 0, docs: [] }));
 
             const totalProjects = projectsSnapshot.size;
             const totalUsers = usersSnapshot.size;
             const studentUsers = usersSnapshot.docs.filter(doc => doc.data().userType === 'student').length;
             const librarianUsers = usersSnapshot.docs.filter(doc => doc.data().userType === 'librarian').length;
+            const pendingCount = pendingSnapshot.size || 0;
 
             document.getElementById('total-projects-stat').textContent = totalProjects;
             document.getElementById('total-users-stat').textContent = totalUsers;
             document.getElementById('student-users-stat').textContent = `${studentUsers} Students / ${librarianUsers} Librarians`;
             document.getElementById('recent-activity-stat').textContent = totalProjects + totalUsers;
+
+            updatePendingCounters(pendingCount);
         } catch (error) {
             console.warn('Stats update failed:', error);
         }
@@ -5296,6 +5514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeunload', () => {
         if (unsubscribeProjects) unsubscribeProjects();
         if (unsubscribeUsers) unsubscribeUsers();
+        if (unsubscribePendingProjects) unsubscribePendingProjects();
     });
 
     // ===== Table Sorting =====
@@ -5343,11 +5562,716 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast(`Sorted by ${header.textContent} (${newSort === 'asc' ? 'A-Z' : 'Z-A'})`, 'ℹ️');
     };
 
+    // ====================================================
+    // LIBRARIAN PROJECT APPROVALS FEATURE
+    // ====================================================
+
+    function updatePendingCounters(count) {
+        const badgeEl = document.getElementById('pending-approvals-badge');
+        if (badgeEl) {
+            badgeEl.textContent = count;
+            badgeEl.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        const statEl = document.getElementById('pending-approvals-stat');
+        if (statEl) statEl.textContent = count;
+        const liveCounter = document.getElementById('approvals-live-counter');
+        if (liveCounter) {
+            liveCounter.textContent = `${count} Pending`;
+            liveCounter.style.background = count > 0 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(8, 212, 136, 0.12)';
+            liveCounter.style.color = count > 0 ? '#f59e0b' : '#08D488';
+            liveCounter.style.borderColor = count > 0 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(8, 212, 136, 0.3)';
+        }
+    }
+
+    // ===== Pending Approvals Cache Helpers (Instant Render Strategy) =====
+    function loadPendingApprovalsFromCache() {
+        try {
+            const cached = localStorage.getItem('pendingApprovalsData');
+            return cached ? JSON.parse(cached) : null;
+        } catch (e) {
+            console.warn('Error reading pendingApprovals cache:', e);
+            return null;
+        }
+    }
+
+    function savePendingApprovalsToCache(data) {
+        try {
+            localStorage.setItem('pendingApprovalsData', JSON.stringify(data));
+            localStorage.setItem('pendingApprovalsMetadata', JSON.stringify({
+                count: data.length,
+                lastCached: new Date().toISOString()
+            }));
+            console.log(`✓ Cached ${data.length} pending submissions`);
+        } catch (e) {
+            console.warn('Error saving pendingApprovals cache:', e);
+        }
+    }
+
+    function invalidatePendingApprovalsCache() {
+        try {
+            localStorage.removeItem('pendingApprovalsData');
+            localStorage.removeItem('pendingApprovalsMetadata');
+            console.log('🗑️ Pending approvals cache invalidated');
+        } catch (e) {}
+    }
+
+    async function loadPendingApprovalsData(forceRefresh = false, showFeedback = false) {
+        const tbody = document.getElementById('approvals-table-body');
+        let renderedFromCache = false;
+
+        // 1. Instant Cache Render Trick (Zero wait time)
+        if (!forceRefresh) {
+            let cached = (allPendingApprovals && allPendingApprovals.length > 0)
+                ? allPendingApprovals
+                : loadPendingApprovalsFromCache();
+            if (cached && Array.isArray(cached)) {
+                allPendingApprovals = cached;
+                updatePendingCounters(allPendingApprovals.length);
+                filterAndRenderApprovals();
+                renderedFromCache = true;
+                console.log('🚀 Using cached pending approvals for instant render - revalidating in background...');
+            }
+        }
+
+        // Only show loading spinner if no cache exists
+        if (!renderedFromCache && tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div> Loading submissions...</td></tr>';
+        }
+
+        // 2. Asynchronous Background Revalidation (Stale-While-Revalidate)
+        try {
+            const snap = await db.collection('pendingProjects').orderBy('createdAt', 'desc').get()
+                .catch(async () => db.collection('pendingProjects').get());
+            const fresh = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // Update in-memory and persistent cache
+            allPendingApprovals = fresh;
+            savePendingApprovalsToCache(fresh);
+            updatePendingCounters(allPendingApprovals.length);
+            filterAndRenderApprovals();
+
+            if (showFeedback) showToast('Pending submissions refreshed', '✓');
+        } catch (err) {
+            console.error('loadPendingApprovalsData error:', err);
+            if (!renderedFromCache && tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="table-error" style="color:#ef4444;text-align:center;padding:2rem;">⚠️ Error loading submissions. Please check connection.</td></tr>';
+            } else if (renderedFromCache) {
+                console.warn('Background sync failed for approvals, using cached data.');
+            }
+        }
+    }
+
+    function filterAndRenderApprovals() {
+        const tbody = document.getElementById('approvals-table-body');
+        const emptyState = document.getElementById('approvals-empty-state');
+        const tableContainer = document.getElementById('approvals-table-container');
+        if (!tbody) return;
+
+        const searchTerm = (document.getElementById('approvals-search')?.value || '').trim().toLowerCase();
+        const programFilter = (document.getElementById('approvals-program-filter')?.value || '').trim().toLowerCase();
+
+        const filtered = allPendingApprovals.filter(item => {
+            const matchSearch = !searchTerm ||
+                (item.title || '').toLowerCase().includes(searchTerm) ||
+                (Array.isArray(item.authors) ? item.authors.join(' ') : String(item.authors || '')).toLowerCase().includes(searchTerm) ||
+                (item.adviser || '').toLowerCase().includes(searchTerm) ||
+                (item.program || '').toLowerCase().includes(searchTerm) ||
+                (item.submittedByName || '').toLowerCase().includes(searchTerm) ||
+                (item.submittedByEmail || '').toLowerCase().includes(searchTerm) ||
+                (Array.isArray(item.keywords) ? item.keywords.join(' ') : String(item.keywords || '')).toLowerCase().includes(searchTerm);
+
+            const matchProgram = !programFilter || (item.program || '').toLowerCase() === programFilter;
+
+            return matchSearch && matchProgram;
+        });
+
+        if (allPendingApprovals.length === 0) {
+            if (emptyState) emptyState.style.display = 'block';
+            if (tableContainer) tableContainer.style.display = 'none';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'block';
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="table-empty" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">No matching submissions found for the selected criteria.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(item => {
+            const authorsStr = Array.isArray(item.authors) ? item.authors.join(', ') : (item.authors || 'N/A');
+            const keywordsList = Array.isArray(item.keywords) ? item.keywords : String(item.keywords || '').split(',').map(k => k.trim()).filter(Boolean);
+            const dateStr = formatDate(item.createdAt);
+            const submitterName = escapeHtml(item.submittedByName || 'Librarian');
+            const submitterEmail = escapeHtml(item.submittedByEmail || '');
+
+            const keywordsHtml = keywordsList.slice(0, 3).map(k => `<span class="approvals-keyword-tag">${escapeHtml(k)}</span>`).join('');
+
+            return `<tr>
+                <td style="max-width:320px;">
+                    <div class="approvals-title-cell">
+                        <span class="approvals-title-text">${escapeHtml(item.title || 'Untitled')}</span>
+                        ${item.adviser ? `<span style="font-size:0.75rem;color:var(--text-secondary);">Adv: ${escapeHtml(item.adviser)}</span>` : ''}
+                        ${item.isLockedByAdmin
+                            ? `<span class="badge badge-locked-admin" style="background:rgba(239,68,68,0.15);color:#f87171;font-size:0.68rem;padding:2px 7px;border-radius:4px;border:1px solid rgba(239,68,68,0.35);margin-top:3px;display:inline-flex;align-items:center;gap:3px;width:fit-content;" title="Locked by Admin — Librarian has View Only access"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked by Admin</span>`
+                            : ''
+                        }
+                        ${keywordsHtml ? `<div class="approvals-keywords-tags">${keywordsHtml}</div>` : ''}
+                    </div>
+                </td>
+                <td>
+                    <div class="approvals-submitter-wrap">
+                        <span class="approvals-submitter-name">${submitterName}</span>
+                        <span class="approvals-submitter-meta">${submitterEmail}</span>
+                        <span class="approvals-submitter-meta" style="font-size:0.7rem;opacity:0.8;">📅 ${dateStr}</span>
+                    </div>
+                </td>
+                <td><span class="badge badge-info" style="font-weight:700;">${escapeHtml(item.program || 'N/A')}</span></td>
+                <td><span style="font-weight:600;">${escapeHtml(String(item.year || 'N/A'))}</span></td>
+                <td style="max-width:220px;font-size:0.85rem;">${escapeHtml(authorsStr)}</td>
+                <td style="text-align:center;">
+                    ${(() => {
+                        const isBeingEdited = Boolean(item.isBeingEdited);
+                        const editorName = escapeHtml(item.editingByName || 'Librarian');
+                        const isLocked = Boolean(item.isLockedByAdmin);
+
+                        if (isBeingEdited) {
+                            // While librarian is editing: Admin CANNOT see evaluate, approve, or reject!
+                            // Only seen is the real-time indication: "Being edited by: [librarian name]"
+                            return `
+                                <div class="approvals-live-editing-pill" title="Project metadata is currently being edited in real-time by ${editorName}. Evaluation actions are paused until freed.">
+                                    <span class="live-editing-dot"></span>
+                                    <span class="live-editing-text">Being edited by: <strong>${editorName}</strong></span>
+                                </div>
+                            `;
+                        }
+
+                        if (isLocked) {
+                            // When locked by Admin: NO ONE can touch it, not even Admin!
+                            // Only View (read-only) and Unlock action are available!
+                            return `
+                                <div class="table-actions approvals-action-grid">
+                                    <button type="button" class="action-btn action-view" onclick="window.__adminEvaluateSubmission('${escapeHtml(item.id)}')" title="View submission details (Locked)" aria-label="View submission">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        <span class="action-btn-text">View</span>
+                                    </button>
+                                    <button type="button" class="action-btn action-unlock" onclick="window.__adminToggleLockPendingProject('${escapeHtml(item.id)}', false)" title="Unlock project (Allow evaluation and librarian editing)" aria-label="Unlock submission">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                                        <span class="action-btn-text">Unlock</span>
+                                    </button>
+                                </div>
+                            `;
+                        }
+
+                        // When freed & unlocked: Admin sees Evaluate, Approve, Reject, and Lock Project!
+                        return `
+                            <div class="table-actions approvals-action-grid">
+                                <button type="button" class="action-btn action-evaluate" onclick="window.__adminEvaluateSubmission('${escapeHtml(item.id)}')" title="Evaluate and edit details" aria-label="Evaluate submission">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <span class="action-btn-text">Evaluate</span>
+                                </button>
+                                <button type="button" class="action-btn action-approve" onclick="window.__adminQuickApproveSubmission('${escapeHtml(item.id)}')" title="Approve and publish to repository" aria-label="Approve submission">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span class="action-btn-text">Approve</span>
+                                </button>
+                                <button type="button" class="action-btn action-reject" onclick="window.__adminQuickRejectSubmission('${escapeHtml(item.id)}')" title="Reject and discard" aria-label="Reject submission">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    <span class="action-btn-text">Reject</span>
+                                </button>
+                                <button type="button" class="action-btn action-lock" onclick="window.__adminToggleLockPendingProject('${escapeHtml(item.id)}', true)" title="Lock project (Freeze all actions)" aria-label="Lock submission">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                    <span class="action-btn-text">Lock</span>
+                                </button>
+                            </div>
+                        `;
+                    })()}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function openApprovalReviewModal(id) {
+        const item = allPendingApprovals.find(x => x.id === id);
+        if (!item) {
+            showToast('Submission not found.', '❌');
+            return;
+        }
+
+        document.getElementById('approval-pending-id').value = item.id;
+        document.getElementById('approval-title').value = item.title || '';
+        document.getElementById('approval-authors').value = Array.isArray(item.authors) ? item.authors.join(', ') : (item.authors || '');
+        document.getElementById('approval-program').value = item.program || 'BSIT';
+        document.getElementById('approval-year').value = item.year || new Date().getFullYear();
+        document.getElementById('approval-adviser').value = item.adviser || '';
+        document.getElementById('approval-keywords').value = Array.isArray(item.keywords) ? item.keywords.join(', ') : (item.keywords || '');
+        document.getElementById('approval-abstract').value = item.abstract || '';
+
+        const nameEl = document.getElementById('approval-submitter-name');
+        if (nameEl) nameEl.textContent = item.submittedByName || 'Librarian';
+        const emailEl = document.getElementById('approval-submitter-email');
+        if (emailEl) emailEl.textContent = item.submittedByEmail || 'N/A';
+        const dateEl = document.getElementById('approval-submitted-date');
+        if (dateEl) dateEl.textContent = formatDate(item.createdAt);
+
+        // Render submitted book/preview images if available
+        const imagesSection = document.getElementById('approval-images-section');
+        const imagesGrid = document.getElementById('approval-images-grid');
+        if (imagesSection && imagesGrid) {
+            const imgs = item.images || [];
+            if (imgs.length > 0) {
+                imagesSection.style.display = 'block';
+                imagesGrid.innerHTML = imgs.map((img, i) => {
+                    const rawUrl = typeof img === 'string' ? img : (img.secure_url || img.url);
+                    const isCover = i === 0;
+                    return `
+                        <div class="image-preview-card ${isCover ? 'is-cover' : ''}">
+                            <img src="${escapeHtml(rawUrl)}" alt="Submission Image ${i + 1}">
+                            ${isCover ? '<span class="cover-badge">Cover</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                imagesSection.style.display = 'none';
+                imagesGrid.innerHTML = '';
+            }
+        }
+
+        // Lock enforcement inside review modal
+        const isLocked = Boolean(item.isLockedByAdmin);
+        const confirmBtn = document.getElementById('approval-confirm-btn');
+        const rejectBtn = document.getElementById('approval-reject-btn');
+        const formFields = document.getElementById('approval-evaluate-form')?.querySelectorAll('input, textarea, select');
+        if (formFields) {
+            formFields.forEach(el => {
+                if (el.id === 'approval-pending-id') return;
+                el.disabled = isLocked;
+            });
+        }
+        if (confirmBtn) {
+            confirmBtn.disabled = isLocked;
+            confirmBtn.title = isLocked ? 'Project is locked by Admin. Unlock to approve.' : '';
+            confirmBtn.style.opacity = isLocked ? '0.45' : '1';
+        }
+        if (rejectBtn) {
+            rejectBtn.disabled = isLocked;
+            rejectBtn.title = isLocked ? 'Project is locked by Admin. Unlock to reject.' : '';
+            rejectBtn.style.opacity = isLocked ? '0.45' : '1';
+        }
+
+        const modal = document.getElementById('approval-review-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            void modal.offsetHeight;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            const modalBody = modal.querySelector('.pmodal-body');
+            if (modalBody) modalBody.scrollTop = 0;
+        }
+    }
+
+    function closeApprovalReviewModal() {
+        const modal = document.getElementById('approval-review-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+
+    async function approvePendingSubmission(id, customData = null) {
+        const item = allPendingApprovals.find(x => x.id === id);
+        if (!item && !customData) {
+            showToast('Submission not found.', '❌');
+            return;
+        }
+
+        const title = (customData?.title || item?.title || 'Untitled').trim();
+        const abstract = (customData?.abstract || item?.abstract || '').trim();
+        const authors = customData?.authors || (Array.isArray(item?.authors) ? item.authors : String(item?.authors || '').split(',').map(a => a.trim()).filter(Boolean));
+        const adviser = (customData?.adviser || item?.adviser || '').trim();
+        const program = (customData?.program || item?.program || 'BSIT').trim();
+        const year = parseInt(customData?.year || item?.year, 10) || new Date().getFullYear();
+        const keywords = customData?.keywords || (Array.isArray(item?.keywords) ? item.keywords : String(item?.keywords || '').split(',').map(k => k.trim()).filter(Boolean));
+        const topics = customData?.topics || item?.topics || [];
+        const images = item?.images || [];
+        const coverImage = item?.coverImage || (images.length > 0 ? (images[0].secure_url || images[0].url || images[0]) : '');
+
+        const submitBtn = document.getElementById('approval-confirm-btn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Approving & Publishing...';
+        }
+
+        try {
+            // Fast-hand race condition guard: fresh read from Firestore
+            const freshDoc = await db.collection('pendingProjects').doc(id).get();
+            if (!freshDoc.exists) {
+                showToast('Submission is no longer in pending approvals queue.', '❌');
+                closeApprovalReviewModal();
+                return;
+            }
+            const freshData = freshDoc.data() || {};
+            if (freshData.isLockedByAdmin) {
+                showToast('Action Blocked: This project is locked. Please unlock it before approving.', '🔒');
+                closeApprovalReviewModal();
+                return;
+            }
+            if (freshData.isBeingEdited) {
+                showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`, '⚠️');
+                closeApprovalReviewModal();
+                return;
+            }
+
+            const approvedProject = {
+                title,
+                abstract,
+                authors,
+                adviser,
+                program,
+                year,
+                keywords,
+                topics,
+                images,
+                coverImage,
+                status: 'Completed',
+                isPublic: true,
+                createdAt: item?.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
+                approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                approvedBy: auth.currentUser?.uid || 'admin',
+                approvedByName: auth.currentUser?.displayName || 'Administrator',
+                approvedByEmail: auth.currentUser?.email || '',
+                submittedBy: item?.submittedBy || '',
+                submittedByName: item?.submittedByName || 'Librarian',
+                submittedByEmail: item?.submittedByEmail || '',
+                pineconeSynced: false
+            };
+
+            // 1. Add to main projects collection
+            const docRef = await db.collection('projects').add(approvedProject);
+
+            // 2. Remove from pendingProjects collection
+            await db.collection('pendingProjects').doc(id).delete();
+
+            // 3. Trigger Pinecone background vector sync
+            try {
+                const backendUrl = getBackendUrl();
+                fetch(`${backendUrl}/api/projects/sync`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: docRef.id,
+                        projectData: approvedProject
+                    })
+                }).then(res => {
+                    if (res.ok) {
+                        db.collection('projects').doc(docRef.id).update({ pineconeSynced: true }).catch(() => {});
+                    }
+                }).catch(e => console.warn('Background Pinecone sync error on approval:', e));
+            } catch (syncErr) {
+                console.warn('Pinecone sync trigger failed:', syncErr);
+            }
+
+            // 4. Log admin audit activity
+            if (typeof ActivityService !== 'undefined') {
+                ActivityService.logAdmin('project_approved', `Approved "${title}" submitted by ${approvedProject.submittedByName}`);
+            }
+
+            closeApprovalReviewModal();
+            showToast(`✓ Project "${title}" approved and published publicly!`, '✅');
+
+            // 5. Update local state & persistent cache optimistically
+            allPendingApprovals = allPendingApprovals.filter(x => x.id !== id);
+            savePendingApprovalsToCache(allPendingApprovals);
+            updatePendingCounters(allPendingApprovals.length);
+            filterAndRenderApprovals();
+
+            // Refresh projects cache and dashboard
+            if (typeof loadProjectsData === 'function') loadProjectsData(true);
+            if (typeof updateDashboardStats === 'function') updateDashboardStats();
+
+        } catch (err) {
+            console.error('approvePendingSubmission error:', err);
+            showToast('Error approving project. Please try again.', '❌');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Approve &amp; Publish Publicly`;
+            }
+        }
+    }
+
+    async function rejectPendingSubmission(id) {
+        const item = allPendingApprovals.find(x => x.id === id);
+        const title = item ? item.title : 'this submission';
+
+        let confirmed = false;
+        if (typeof ModalDialog !== 'undefined' && ModalDialog.confirm) {
+            confirmed = await ModalDialog.confirm({
+                title: 'Reject Project Submission',
+                message: `Are you sure you want to reject and discard "${escapeHtml(title)}"? This will delete the submission from the pending queue.`,
+                confirmText: 'Reject & Discard',
+                confirmClass: 'btn-danger',
+                icon: 'warning'
+            });
+        } else {
+            confirmed = confirm(`Are you sure you want to reject and discard "${title}"?`);
+        }
+
+        if (!confirmed) return;
+
+        try {
+            // Fast-hand race condition guard: fresh read from Firestore
+            const freshDoc = await db.collection('pendingProjects').doc(id).get();
+            if (freshDoc.exists) {
+                const freshData = freshDoc.data() || {};
+                if (freshData.isLockedByAdmin) {
+                    showToast('Action Blocked: This project is locked. Please unlock it before rejecting.', '🔒');
+                    closeApprovalReviewModal();
+                    return;
+                }
+                if (freshData.isBeingEdited) {
+                    showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`, '⚠️');
+                    closeApprovalReviewModal();
+                    return;
+                }
+            }
+
+            await db.collection('pendingProjects').doc(id).delete();
+
+            if (typeof ActivityService !== 'undefined') {
+                ActivityService.logAdmin('project_rejected', `Rejected submission: "${title}"`);
+            }
+
+            closeApprovalReviewModal();
+            showToast('Project submission rejected and discarded.', 'ℹ️');
+
+            // Optimistically update local state & persistent cache
+            allPendingApprovals = allPendingApprovals.filter(x => x.id !== id);
+            savePendingApprovalsToCache(allPendingApprovals);
+            updatePendingCounters(allPendingApprovals.length);
+            filterAndRenderApprovals();
+            if (typeof updateDashboardStats === 'function') updateDashboardStats();
+        } catch (err) {
+            console.error('rejectPendingSubmission error:', err);
+            showToast('Error rejecting submission.', '❌');
+        }
+    }
+
+    async function batchApproveAllPending() {
+        if (!allPendingApprovals.length) {
+            showToast('No pending submissions to approve.', 'ℹ️');
+            return;
+        }
+
+        let confirmed = false;
+        const total = allPendingApprovals.length;
+        if (typeof ModalDialog !== 'undefined' && ModalDialog.confirm) {
+            confirmed = await ModalDialog.confirm({
+                title: 'Approve All Submissions',
+                message: `Are you sure you want to approve all ${total} pending project submissions at once and publish them to the repository?`,
+                confirmText: `Approve All (${total})`,
+                confirmClass: 'btn-primary',
+                icon: 'question'
+            });
+        } else {
+            confirmed = confirm(`Approve all ${total} pending submissions at once?`);
+        }
+
+        if (!confirmed) return;
+
+        const batchBtn = document.getElementById('batch-approve-all-btn');
+        if (batchBtn) { batchBtn.disabled = true; batchBtn.textContent = 'Approving All...'; }
+
+        let successCount = 0;
+        const itemsToApprove = [...allPendingApprovals];
+
+        for (const item of itemsToApprove) {
+            try {
+                await approvePendingSubmission(item.id);
+                successCount++;
+            } catch (e) {
+                console.error(`Batch approval error on ${item.id}:`, e);
+            }
+        }
+
+        showToast(`Successfully approved and published ${successCount} of ${total} projects!`, '✅');
+        if (batchBtn) {
+            batchBtn.disabled = false;
+            batchBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                Approve All`;
+        }
+    }
+
+    function initPendingApprovals() {
+        // Wire Pending Approvals card in dashboard overview
+        document.getElementById('pending-approvals-card')?.addEventListener('click', () => {
+            const approvalsNav = document.getElementById('rail-nav-approvals');
+            if (approvalsNav) approvalsNav.click();
+        });
+
+        // Search and Program filter listeners
+        document.getElementById('approvals-search')?.addEventListener('input', filterAndRenderApprovals);
+        document.getElementById('approvals-program-filter')?.addEventListener('change', filterAndRenderApprovals);
+
+        // Refresh & Batch Approve
+        document.getElementById('refresh-approvals-btn')?.addEventListener('click', () => loadPendingApprovalsData(true));
+        document.getElementById('batch-approve-all-btn')?.addEventListener('click', batchApproveAllPending);
+
+        // Modal buttons
+        document.getElementById('approval-modal-close-btn')?.addEventListener('click', closeApprovalReviewModal);
+        document.getElementById('approval-cancel-btn')?.addEventListener('click', closeApprovalReviewModal);
+        document.getElementById('approval-modal-overlay')?.addEventListener('click', closeApprovalReviewModal);
+
+        document.getElementById('approval-reject-btn')?.addEventListener('click', () => {
+            const id = document.getElementById('approval-pending-id')?.value;
+            if (id) rejectPendingSubmission(id);
+        });
+
+        // Form submission inside evaluation modal
+        document.getElementById('approval-evaluate-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('approval-pending-id')?.value;
+            if (!id) return;
+
+            const title = document.getElementById('approval-title')?.value.trim();
+            const abstract = document.getElementById('approval-abstract')?.value.trim();
+            const authorsRaw = document.getElementById('approval-authors')?.value.trim();
+            const program = document.getElementById('approval-program')?.value;
+            const year = document.getElementById('approval-year')?.value;
+
+            if (!title || !abstract || !authorsRaw || !program || !year) {
+                showToast('Please fill all required fields.', '❌');
+                return;
+            }
+
+            const customData = {
+                title,
+                abstract,
+                authors: authorsRaw.split(',').map(a => a.trim()).filter(Boolean),
+                program,
+                year: parseInt(year, 10) || year,
+                adviser: document.getElementById('approval-adviser')?.value.trim(),
+                keywords: (document.getElementById('approval-keywords')?.value || '').split(',').map(k => k.trim()).filter(Boolean)
+            };
+
+            await approvePendingSubmission(id, customData);
+        });
+
+        // Register window globals for inline table action clicks
+        window.__adminEvaluateSubmission = (id) => openApprovalReviewModal(id);
+        window.__adminQuickApproveSubmission = (id) => approvePendingSubmission(id);
+        window.__adminQuickRejectSubmission = (id) => rejectPendingSubmission(id);
+        window.__adminToggleLockPendingProject = async (id, lockState) => {
+            try {
+                const isLock = Boolean(lockState);
+                await db.collection('pendingProjects').doc(id).update({
+                    isLockedByAdmin: isLock,
+                    lockedBy: isLock ? (auth.currentUser?.uid || 'admin') : null,
+                    lockedByName: isLock ? (auth.currentUser?.displayName || 'Administrator') : null,
+                    lockedAt: isLock ? firebase.firestore.FieldValue.serverTimestamp() : null
+                });
+
+                const item = allPendingApprovals.find(x => x.id === id);
+                if (item) {
+                    item.isLockedByAdmin = isLock;
+                    item.lockedByName = isLock ? (auth.currentUser?.displayName || 'Administrator') : null;
+                }
+                savePendingApprovalsToCache(allPendingApprovals);
+                filterAndRenderApprovals();
+
+                if (isLock) {
+                    showToast('Project locked! Librarian can only view this submission.', '🔒');
+                } else {
+                    showToast('Project unlocked! Librarian can now edit their submission.', '🔓');
+                }
+
+                if (typeof ActivityService !== 'undefined') {
+                    ActivityService.logAdmin('project_lock_toggle', `${isLock ? 'Locked' : 'Unlocked'} pending project: ${item?.title || id}`);
+                }
+            } catch (err) {
+                console.error('toggleLockPendingProject error:', err);
+                showToast('Failed to update project lock status.', '❌');
+            }
+        };
+
+        window.__adminToggleLockProject = async (id, lockState) => {
+            try {
+                const isLock = Boolean(lockState);
+                await db.collection('projects').doc(id).update({
+                    isLockedByAdmin: isLock,
+                    lockedBy: isLock ? (auth.currentUser?.uid || 'admin') : null,
+                    lockedByName: isLock ? (auth.currentUser?.displayName || 'Administrator') : null,
+                    lockedAt: isLock ? firebase.firestore.FieldValue.serverTimestamp() : null
+                });
+
+                const item = allProjectsData.find(x => x.id === id);
+                if (item) {
+                    item.isLockedByAdmin = isLock;
+                    item.lockedByName = isLock ? (auth.currentUser?.displayName || 'Administrator') : null;
+                }
+                saveProjectsToCache(allProjectsData);
+                const tbody = document.getElementById('projects-table-body');
+                if (tbody) renderProjectsTablePaginated(tbody);
+
+                if (isLock) {
+                    showToast('Project locked! Cataloging and edits are disabled.', '🔒');
+                } else {
+                    showToast('Project unlocked! Cataloging and edits are enabled.', '🔓');
+                }
+
+                if (typeof ActivityService !== 'undefined') {
+                    ActivityService.logAdmin('project_lock_toggle', `${isLock ? 'Locked' : 'Unlocked'} published project: ${item?.title || id}`);
+                }
+            } catch (err) {
+                console.error('toggleLockProject error:', err);
+                showToast('Failed to update project lock status.', '❌');
+            }
+        };
+
+        window.__adminForceReleaseCatalogLock = async (id) => {
+            try {
+                await db.collection('projects').doc(id).update({
+                    isBeingCataloged: false,
+                    catalogingBy: null,
+                    catalogingByName: null,
+                    catalogingStartedAt: null,
+                    isBeingEdited: false,
+                    editingBy: null,
+                    editingByName: null,
+                    editingStartedAt: null
+                });
+
+                const item = allProjectsData.find(x => x.id === id);
+                if (item) {
+                    item.isBeingCataloged = false;
+                    item.catalogingBy = null;
+                    item.catalogingByName = null;
+                    item.isBeingEdited = false;
+                    item.editingBy = null;
+                    item.editingByName = null;
+                }
+                saveProjectsToCache(allProjectsData);
+                const tbody = document.getElementById('projects-table-body');
+                if (tbody) renderProjectsTablePaginated(tbody);
+
+                showToast('Session lock released successfully.', '🔓');
+            } catch (err) {
+                console.error('forceReleaseCatalogLock error:', err);
+                showToast('Failed to release lock.', '❌');
+            }
+        };
+    }
+
     // ===== Initial Load =====
     await loadDashboardData();
     
     // Setup real-time listeners
     setupRealtimeListeners();
+    initPendingApprovals();
 
     // ===== Create Librarian Functionality (Enhanced & Aligned) =====
     const createLibrarianBtn = document.getElementById('create-librarian-btn');
@@ -6992,4 +7916,1005 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // ===== END BULK IMPORT FEATURE =====
+
+    // ===== LIBRARIAN AI COPILOT INTERACTION & FLOATING CHAT WIDGET HANDLERS =====
+    const floatingCopilotContainer = document.getElementById('admin-floating-copilot-container');
+    const floatingCopilotBtn = document.getElementById('admin-floating-copilot-btn');
+    const copilotWidget = document.getElementById('admin-copilot-widget');
+    const copilotWidgetCloseBtn = document.getElementById('copilot-widget-close-btn');
+    const copilotWidgetFullscreenBtn = document.getElementById('copilot-widget-fullscreen-btn');
+    const copilotWidgetInput = document.getElementById('copilot-widget-input');
+    const copilotWidgetForm = document.getElementById('copilot-widget-form');
+    const copilotWidgetChips = document.querySelectorAll('.copilot-widget-chip');
+
+    // Section workspace copilot elements
+    const sectionCopilotInput = document.getElementById('copilot-input-text');
+    const sectionCopilotSendBtn = document.getElementById('copilot-send-btn');
+    const sectionPromptPills = document.querySelectorAll('.copilot-prompt-pill');
+
+    /**
+     * Open floating chat widget with animation and persistence
+     */
+    function openCopilotWidget() {
+        if (!copilotWidget) return;
+        copilotWidget.style.display = 'flex';
+        requestAnimationFrame(() => {
+            copilotWidget.classList.add('active');
+        });
+        sessionStorage.setItem('admin_copilot_widget_open', 'true');
+        if (copilotWidgetInput) {
+            setTimeout(() => copilotWidgetInput.focus(), 120);
+        }
+        const body = document.getElementById('copilot-widget-body');
+        if (body) body.scrollTop = body.scrollHeight;
+    }
+
+    /**
+     * Close floating chat widget on explicit user close
+     */
+    function closeCopilotWidget() {
+        if (!copilotWidget) return;
+        copilotWidget.classList.remove('active');
+        sessionStorage.setItem('admin_copilot_widget_open', 'false');
+        setTimeout(() => {
+            if (!copilotWidget.classList.contains('active')) {
+                copilotWidget.style.display = 'none';
+            }
+        }, 280);
+    }
+
+    /**
+     * Toggle floating chat widget state
+     */
+    function toggleCopilotWidget() {
+        if (!copilotWidget) return;
+        if (copilotWidget.classList.contains('active')) {
+            closeCopilotWidget();
+        } else {
+            openCopilotWidget();
+        }
+    }
+
+    /**
+     * Dynamic visibility controller based on sidebar rail navigation:
+     * - When viewing the dedicated sidebar chatbot (data-section="copilot"), hide the floating button & widget.
+     * - When away in any other section, show the floating button again.
+     * - Keep the chat widget active unless the user explicitly clicked close.
+     */
+    function syncCopilotVisibility(sectionId) {
+        const isCopilotSection = (sectionId === 'copilot');
+
+        if (isCopilotSection) {
+            // In the dedicated chatbot section: hide floating button & floating widget
+            if (floatingCopilotContainer) {
+                floatingCopilotContainer.style.display = 'none';
+            }
+            if (copilotWidget) {
+                copilotWidget.style.display = 'none';
+                copilotWidget.classList.remove('active');
+            }
+        } else {
+            // In any other section: display floating button
+            if (floatingCopilotContainer) {
+                floatingCopilotContainer.style.display = 'flex';
+            }
+            // If the widget was previously opened, keep it active
+            const wasWidgetOpen = sessionStorage.getItem('admin_copilot_widget_open') === 'true';
+            if (wasWidgetOpen) {
+                openCopilotWidget();
+            } else {
+                if (copilotWidget) {
+                    copilotWidget.style.display = 'none';
+                    copilotWidget.classList.remove('active');
+                }
+            }
+        }
+    }
+
+    // Floating Copilot Button click -> automatically open chat widget
+    if (floatingCopilotBtn) {
+        floatingCopilotBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openCopilotWidget();
+        });
+    }
+
+    // Close button -> explicitly close widget
+    if (copilotWidgetCloseBtn) {
+        copilotWidgetCloseBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeCopilotWidget();
+        });
+    }
+
+    // Fullscreen / Expand button -> switch to dedicated section-copilot
+    if (copilotWidgetFullscreenBtn) {
+        copilotWidgetFullscreenBtn.addEventListener('click', function() {
+            closeCopilotWidget();
+            const railCopilot = document.getElementById('rail-nav-copilot');
+            if (railCopilot) {
+                railCopilot.click();
+            } else if (window.dashboardRail && window.dashboardRail.switchToSection) {
+                window.dashboardRail.switchToSection('copilot');
+            }
+        });
+    }
+
+    // Outside admin dashboard handling (Rule 4: ALWAYS close chat widget outside admin dashboard)
+    if (backToHomeBtn) {
+        backToHomeBtn.addEventListener('click', function() {
+            sessionStorage.removeItem('admin_copilot_widget_open');
+            sessionStorage.setItem('admin_copilot_widget_open', 'false');
+            if (copilotWidget) {
+                copilotWidget.style.display = 'none';
+                copilotWidget.classList.remove('active');
+            }
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            sessionStorage.removeItem('admin_copilot_widget_open');
+            sessionStorage.setItem('admin_copilot_widget_open', 'false');
+            if (copilotWidget) {
+                copilotWidget.style.display = 'none';
+                copilotWidget.classList.remove('active');
+            }
+        });
+    }
+
+    // Listen to section change event from dashboard rail
+    window.addEventListener('rail:section-change', function(e) {
+        if (e.detail && e.detail.sectionId) {
+            syncCopilotVisibility(e.detail.sectionId);
+        }
+    });
+
+    // Also attach click listeners to all rail navigation items for instant synchronization
+    document.querySelectorAll('.rail-nav-item[data-section]').forEach(item => {
+        item.addEventListener('click', function() {
+            const sec = this.getAttribute('data-section');
+            if (sec) {
+                syncCopilotVisibility(sec);
+            }
+        });
+    });
+
+    // Check initial section state on load
+    const activeRailItem = document.querySelector('.rail-nav-item.active');
+    const initialSection = activeRailItem ? activeRailItem.getAttribute('data-section') : 'dashboard';
+    syncCopilotVisibility(initialSection);
+
+    // Global Copilot Interaction Helpers
+    window.navigateAdminDashboard = function(section, actionId) {
+        if (section) {
+            const item = document.querySelector(`.rail-nav-item[data-section="${section}"]`);
+            if (item) {
+                item.click();
+                window.location.hash = section;
+            }
+        }
+        if (actionId) {
+            setTimeout(() => {
+                const el = document.getElementById(actionId);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.click();
+                }
+            }, 320);
+        }
+    };
+
+    window.copyCopilotGuidance = function(btn) {
+        const card = btn.closest('.copilot-dynamic-response') || btn.closest('.copilot-msg-bubble');
+        if (!card) return;
+        const textToCopy = card.innerText
+            .replace(/Trigger Sync|Open Form|Bulk Import|Go to [^\n]+/g, '')
+            .replace(/Copy Guidance|Copied!/g, '')
+            .trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!`;
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {});
+        }
+    };
+
+    // Universal Dynamic NLP Normalizer & Renderer
+    function dynamicCopilotNormalizer(rawText, provider = 'Mistral AI') {
+        if (!rawText || typeof rawText !== 'string') return '';
+
+        let text = rawText
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .trim();
+
+        // 1. Remove meta-conversational preambles before landmark or steps (line-bound)
+        text = text.replace(/^(?:Here['’‘]?[^\n]*|Sure[^\n]*|Certainly[^\n]*|Below is[^\n]*)\r?\n+/i, '');
+
+        // Strip decorative horizontal rules (---, ----, ***, ___, etc.)
+        text = text.replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, '');
+
+        // 2. Extract Spatial Landmark
+        let landmarkArea = '';
+        let landmarkElement = '';
+
+        const landmarkRegex = /(?:\*\*)?\[Area:\s*([^\]]+?)\s*\](?:\*\*)?(?:\s*(?:>|->|\|)?\s*(?:\r?\n\s*)?(?:\*\*)?\[Element:\s*([^\]]+?)\s*\](?:\*\*)?)?/i;
+        const landmarkMatch = text.match(landmarkRegex);
+
+        if (landmarkMatch) {
+            landmarkArea = landmarkMatch[1].trim();
+            if (landmarkMatch[2]) {
+                landmarkElement = landmarkMatch[2].trim();
+            }
+            text = text.replace(landmarkMatch[0], '');
+        }
+
+        // Check if there is still a standalone [Element: ...] left on adjacent or separate line
+        if (!landmarkElement) {
+            const standaloneElemMatch = text.match(/(?:\*\*)?\[Element:\s*([^\]]+?)\s*\](?:\*\*)?/i);
+            if (standaloneElemMatch) {
+                landmarkElement = standaloneElemMatch[1].trim();
+                text = text.replace(standaloneElemMatch[0], '');
+            }
+        }
+
+        // Strip leftover anchor markers like "** > **" or ">" or standalone "**"
+        text = text.replace(/^[ \t]*(?:\*\*)?\s*(?:>|->|\|)?\s*(?:\*\*)?[ \t]*$/gm, '');
+
+        // Also remove parenthetical locator notes like *(Locate the left sidebar rail...)*
+        text = text.replace(/\*?\([^*)]*(?:sidebar|dashboard|screen|button|rail|card|table)[^*)]*\)\*?/gi, '');
+
+        // 3. Extract Precaution / Policy Alert
+        let precautionText = '';
+        const precautionRegex = /(?:###\s*)?(?:\*\*)?(?:[1-3]\.\s*)?(?:⚠️|⚠)?\s*(?:\*\*)?(?:PRECAUTION|Precaution|POLICY ALERT|Policy Alert|CRITICAL NOTE)[^\n\r:]*:?\s*(?:\*\*)?([\s\S]*?)(?=(?:\r?\n\s*###|\r?\n\s*\d+\.\s+[A-Z]|$))/i;
+        const precautionMatch = text.match(precautionRegex);
+        if (precautionMatch) {
+            precautionText = precautionMatch[1].trim();
+            text = text.replace(precautionMatch[0], '');
+        }
+
+        // 4. Clean up section headers from remaining text
+        text = text.replace(/(?:###\s*)?(?:\*\*)?(?:\d+\.)?\s*(?:SPATIAL LANDMARK|STEP-BY-STEP ACTION|ACTION STEPS|PROCEDURAL GUIDANCE)[^\n\r]*(\*\*)?/gi, '');
+        text = text.replace(/^(?:\*\*)?(?:\d+\.)?\s*(?:SPATIAL LANDMARK|STEP-BY-STEP ACTION|ACTION STEPS):?(?:\*\*)?$/gmi, '');
+        text = text.replace(/###\s*(?:\*\*)?\s*$/gm, '');
+        text = text.replace(/^[ \t]*[-*_]{2,}[ \t]*$/gm, '');
+
+        // Trim remaining text
+        text = text.trim();
+
+        // 5. Build the Structured HTML Output
+        let html = '<div class="copilot-dynamic-response">';
+
+        // A. Render Landmark Breadcrumbs Card
+        if (landmarkArea || landmarkElement) {
+            let breadcrumbs = [];
+            if (landmarkArea) {
+                const parts = landmarkArea.split(/\s*>\s*/);
+                parts.forEach(p => {
+                    const clean = p.replace(/\*\*/g, '').replace(/[*_]/g, '').trim();
+                    if (clean) breadcrumbs.push(`<span class="crumb-area">${clean}</span>`);
+                });
+            }
+            if (landmarkElement) {
+                const cleanElem = landmarkElement.replace(/\*\*/g, '').replace(/[*_]/g, '').trim();
+                breadcrumbs.push(`<span class="crumb-element">${cleanElem}</span>`);
+            }
+
+            // Detect dynamic quick jump target using deterministic hierarchical resolver
+            const jumpButton = buildAdminCopilotJumpButton(landmarkArea, landmarkElement, text);
+
+            html += `
+            <div class="copilot-landmark-card">
+                <div class="landmark-meta">
+                    <div class="landmark-icon">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </div>
+                    <div class="landmark-crumbs">
+                        ${breadcrumbs.join('<span class="crumb-sep">›</span>')}
+                    </div>
+                </div>
+                ${jumpButton ? `<div class="landmark-action-wrap">${jumpButton}</div>` : ''}
+            </div>`;
+        }
+
+        // B. Parse Action Steps
+        const stepPattern = /(?:^|\n)(?:\*\*)?(?:Step\s*)?(\d+)[\.\):](?:\*\*)?\s*([\s\S]*?)(?=(?:\n(?:\*\*)?(?:Step\s*)?\d+[\.\):]|$))/gi;
+        const stepMatches = [...text.matchAll(stepPattern)];
+
+        if (stepMatches.length > 0) {
+            html += `<div class="copilot-stepper-container">`;
+            stepMatches.forEach(m => {
+                const stepNum = m[1];
+                let stepContent = m[2].trim();
+
+                stepContent = stepContent
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\r?\n[ \t]*[-*•]\s*(.*?)(?=\r?\n|$)/g, '<div class="step-sub-bullet">• $1</div>')
+                    .replace(/\r?\n\r?\n/g, '<br>')
+                    .replace(/\r?\n/g, '<br>');
+
+                html += `
+                <div class="copilot-step-card">
+                    <div class="step-badge">${stepNum}</div>
+                    <div class="step-content">${stepContent}</div>
+                </div>`;
+            });
+            html += `</div>`;
+        } else {
+            let bodyHTML = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/^-\s+(.*?)$/gm, '<li class="copilot-bullet-item">$1</li>')
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n/g, '<br>');
+
+            if (bodyHTML.includes('<li class="copilot-bullet-item">')) {
+                bodyHTML = `<ul class="copilot-bullet-list">${bodyHTML}</ul>`;
+            }
+
+            if (bodyHTML.trim()) {
+                html += `<div class="copilot-text-body">${bodyHTML}</div>`;
+            }
+        }
+
+        // C. Render Institutional Precaution / Policy Alert
+        if (precautionText) {
+            let cleanPrecaution = precautionText
+                .replace(/^(?:⚠️|⚠)?\s*(?:\*\*)?(?:Precaution:?|POLICY ALERT:?)\s*(?:\*\*)?/i, '')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\r?\n[ \t]*[-*•]\s*(.*?)(?=\r?\n|$)/g, '<div class="step-sub-bullet">• $1</div>')
+                .replace(/\r?\n\r?\n/g, '<br>')
+                .replace(/\r?\n/g, '<br>')
+                .trim();
+
+            html += `
+            <div class="copilot-precaution-card">
+                <div class="precaution-badge">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <span>Institutional Precaution &amp; Policy</span>
+                </div>
+                <div class="precaution-body">${cleanPrecaution}</div>
+            </div>`;
+        }
+
+        // D. Footer with Grounding and Copy Guidance Action
+        html += `
+        <div class="copilot-footer-meta">
+            <span class="rag-indicator">
+                <span class="pulse-dot"></span>
+                <span>Grounded Pinecone RAG • Powered by ${provider}</span>
+            </span>
+            <button type="button" class="copilot-copy-btn" onclick="window.copyCopilotGuidance(this)" title="Copy guidance text">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>Copy Guidance</span>
+            </button>
+        </div>
+        </div>`;
+
+        return html;
+    }
+
+    // Deterministic Admin Quick-Jump Button Generator
+    function buildAdminCopilotJumpButton(landmarkArea, landmarkElement, rawText) {
+        const area = (landmarkArea || '').toLowerCase();
+        const elem = (landmarkElement || '').toLowerCase();
+        const text = (rawText || '').toLowerCase();
+
+        // Step 1: Resolve the target section deterministically
+        let targetSection = '';
+
+        // Priority 1: Check landmarkArea for primary domain keywords
+        // Approvals takes precedence if specifically referencing evaluating librarian submissions
+        if (area.includes('approv') || area.includes('evaluat') || area.includes('pending submission')) {
+            targetSection = 'approvals';
+        } else if (area.includes('user') || area.includes('student') || area.includes('faculty') || area.includes('account') || area.includes('librarian')) {
+            targetSection = 'users';
+        } else if (area.includes('analytic') || area.includes('accredit') || area.includes('report') || area.includes('chart') || area.includes('statistic')) {
+            targetSection = 'analytics';
+        } else if (area.includes('activity') || area.includes('audit') || area.includes('log') || area.includes('history')) {
+            targetSection = 'activity';
+        } else if (area.includes('setting') || area.includes('maintenance')) {
+            targetSection = 'settings';
+        } else if (area.includes('dashboard') || area.includes('overview') || area.includes('kpi') || area.includes('metric')) {
+            targetSection = 'dashboard';
+        } else if (area.includes('project') || area.includes('thesis') || area.includes('theses') || area.includes('capstone') || area.includes('shelf') || area.includes('dewey') || area.includes('call number') || area.includes('accession')) {
+            targetSection = 'projects';
+        }
+
+        // Priority 2: Check landmarkElement if area was generic (e.g., "Sidebar Rail", "Header", "Actions Column")
+        if (!targetSection) {
+            if (elem.includes('approv') || elem.includes('evaluat') || elem.includes('submission')) {
+                targetSection = 'approvals';
+            } else if (elem.includes('user') || elem.includes('student') || elem.includes('faculty') || elem.includes('account') || elem.includes('librarian')) {
+                targetSection = 'users';
+            } else if (elem.includes('analytic') || elem.includes('accredit') || elem.includes('report') || elem.includes('print')) {
+                targetSection = 'analytics';
+            } else if (elem.includes('activity') || elem.includes('audit') || elem.includes('log')) {
+                targetSection = 'activity';
+            } else if (elem.includes('setting') || elem.includes('maintenance')) {
+                targetSection = 'settings';
+            } else if (elem.includes('dashboard') || elem.includes('kpi')) {
+                targetSection = 'dashboard';
+            } else if (elem.includes('project') || elem.includes('thesis') || elem.includes('capstone') || elem.includes('shelf') || elem.includes('pinecone') || elem.includes('sync') || elem.includes('bulk import')) {
+                targetSection = 'projects';
+            }
+        }
+
+        // Priority 3: Fall back to raw text keywords (e.g. "Click 'Users'", "Click 'Approvals'")
+        if (!targetSection) {
+            if (text.includes('click "users"') || text.includes("click 'users'") || text.includes('user account') || text.includes('delete a user') || text.includes('#section-users')) {
+                targetSection = 'users';
+            } else if (text.includes('click "approvals"') || text.includes("click 'approvals'") || text.includes('evaluate') || text.includes('#section-approvals')) {
+                targetSection = 'approvals';
+            } else if (text.includes('click "analytics"') || text.includes("click 'analytics'") || text.includes('accreditation') || text.includes('#section-analytics')) {
+                targetSection = 'analytics';
+            } else if (text.includes('click "activity"') || text.includes("click 'activity'") || text.includes('audit trail') || text.includes('#section-activity')) {
+                targetSection = 'activity';
+            } else if (text.includes('click "settings"') || text.includes("click 'settings'") || text.includes('maintenance mode') || text.includes('#section-settings')) {
+                targetSection = 'settings';
+            } else if (text.includes('click "dashboard"') || text.includes("click 'dashboard'") || text.includes('#section-dashboard')) {
+                targetSection = 'dashboard';
+            } else if (text.includes('click "projects"') || text.includes("click 'projects'") || text.includes('#section-projects') || text.includes('pinecone')) {
+                targetSection = 'projects';
+            }
+        }
+
+        // Default fallback if still unresolved
+        if (!targetSection) {
+            targetSection = 'projects';
+        }
+
+        // Step 2: Determine specific action and button appearance based on resolved section
+        const combined = `${area} ${elem} ${text}`.toLowerCase();
+
+        switch (targetSection) {
+            case 'users':
+                if (elem.includes('create librarian') || combined.includes('create librarian') || combined.includes('register librarian')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('users', 'create-librarian-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg> + Create Librarian</button>`;
+                }
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('users');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Go to Users</button>`;
+
+            case 'approvals':
+                if (elem.includes('batch approve') || combined.includes('batch approve')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('approvals', 'batch-approve-all-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Batch Approve</button>`;
+                }
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('approvals');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Go to Approvals</button>`;
+
+            case 'analytics':
+                if (elem.includes('print') || combined.includes('print report') || combined.includes('print official')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('analytics', 'analytics-print-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> Print Report</button>`;
+                }
+                if (elem.includes('export') || combined.includes('export csv')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('analytics', 'analytics-export-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export CSV</button>`;
+                }
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('analytics');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg> Go to Analytics</button>`;
+
+            case 'activity':
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('activity');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Go to Activity Logs</button>`;
+
+            case 'settings':
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('settings');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Go to Settings</button>`;
+
+            case 'dashboard':
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('dashboard');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Go to Dashboard</button>`;
+
+            case 'projects':
+            default:
+                if (elem.includes('sync pinecone') || combined.includes('sync pinecone') || combined.includes('sync all')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects', 'sync-pinecone-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Trigger Sync</button>`;
+                }
+                if (elem.includes('+ add project') || combined.includes('+ add project') || combined.includes('add project') || combined.includes('open form') || combined.includes('upload new project')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects', 'add-project-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Open Form</button>`;
+                }
+                if (elem.includes('bulk import') || combined.includes('bulk import') || combined.includes('import excel')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects', 'bulk-import-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Bulk Import</button>`;
+                }
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Go to Projects</button>`;
+        }
+    }
+
+    // Comprehensive Fallback Guidance Engine (Subject-Disambiguated & Anti-Hallucination)
+    function getAdminCopilotResponse(query) {
+        const q = (query || '').toLowerCase().trim();
+
+        // 1. USER MANAGEMENT DOMAIN (Evaluated first to prevent general keywords like 'delete', 'edit', 'browse', 'search' from colliding with Projects)
+        const isUserScope = q.includes('user') || q.includes('student') || q.includes('faculty') || q.includes('account') || (q.includes('librarian') && !q.includes('submission') && !q.includes('evaluate') && !q.includes('pending'));
+
+        if (isUserScope) {
+            // 1A. Create / Register Librarian Staff
+            if (q.includes('create') || q.includes('register') || q.includes('new staff') || q.includes('add librarian') || q.includes('new librarian')) {
+                return {
+                    landmark: 'Users Section > Header Toolbar > "+ Create Librarian" (Emerald Button #create-librarian-btn)',
+                    steps: [
+                        'Click <strong>"Users"</strong> in the left sidebar rail.',
+                        'Click the emerald green <strong>"+ Create Librarian"</strong> button at the top right of the Users section.',
+                        'Enter the staff member’s Full Name, CTU Institutional Email (<code>@ctu.edu.ph</code>), and initial temporary password.',
+                        'Click <strong>"Register Librarian"</strong>.',
+                        'Copy the generated credentials card displayed on the success screen to securely share with the staff member.'
+                    ],
+                    precaution: 'Librarians can draft and propose capstone theses with shelf locations, but all their entries require Head Librarian / Admin evaluation before publishing.'
+                };
+            }
+
+            // 1B. Delete / Remove User Account (Permanent Purge)
+            if (q.includes('delete') || q.includes('remove') || q.includes('purge') || q.includes('trash') || q.includes('can i delete') || q.includes('can administrator delete')) {
+                return {
+                    landmark: 'Users Section > Users Catalog Table > Actions Column (Red Trash Can Icon)',
+                    steps: [
+                        'Click <strong>"Users"</strong> in the left sidebar rail.',
+                        'Use the <strong>Role Filter Pills</strong> (e.g., <code>All Users</code>, <code>Students</code>, <code>Faculty</code>, <code>Librarians</code>) or the <code>#users-search</code> box to locate the target account.',
+                        'Hover over the user row and locate the <strong>Actions</strong> column on the right.',
+                        'Click the red <strong>Trash Can icon</strong> to trigger the account removal modal.',
+                        'Review the verification prompt (<em>"Are you sure you want to permanently remove this user account?"</em>).',
+                        'Click <strong>"Delete"</strong> to confirm the permanent purge.'
+                    ],
+                    precaution: 'Deleted user accounts are permanently purged from Firebase Authentication and Firestore records. Ensure the user has no pending thesis submissions or active evaluations before deletion. Administrator accounts cannot be deleted to prevent institutional lockout.'
+                };
+            }
+
+            // 1C. Reset Password
+            if (q.includes('password') || q.includes('reset') || q.includes('forgot') || q.includes('credential')) {
+                return {
+                    landmark: 'Users Section > Users Catalog Table > Actions Column (Key Icon)',
+                    steps: [
+                        'Click <strong>"Users"</strong> in the left sidebar rail.',
+                        'Locate the user by name or CTU email using the search box (<code>#users-search</code>).',
+                        'Click the <strong>Key icon</strong> in the user row’s Actions column.',
+                        'In the Reset Credentials modal, generate verified temporary login credentials.',
+                        'Copy the credentials card to deliver to the user.'
+                    ],
+                    precaution: 'Inform the user to update their temporary password immediately upon their next login.'
+                };
+            }
+
+            // 1D. Unlock Locked Account
+            if (q.includes('unlock') || q.includes('lock') || q.includes('failed login') || q.includes('attempts') || q.includes('suspended')) {
+                return {
+                    landmark: 'Users Section > Users Catalog Table > Actions Column (Gold Shield/Unlock Icon)',
+                    steps: [
+                        'Click <strong>"Users"</strong> in the left sidebar rail.',
+                        'Find the locked account in the table (locked accounts feature a red/amber status tag).',
+                        'Click the gold <strong>Unlock/Shield button</strong> in the row’s Actions column.',
+                        'Confirm the security verification modal to reset the failed login counter to zero.'
+                    ],
+                    precaution: 'Always verify user identity before manually releasing account lockout.'
+                };
+            }
+
+            // 1E. Edit User Role / Privileges
+            if (q.includes('role') || q.includes('privilege') || q.includes('promote') || q.includes('demote') || q.includes('edit')) {
+                return {
+                    landmark: 'Users Section > Users Catalog Table > Actions Column (Pencil Icon)',
+                    steps: [
+                        'Click <strong>"Users"</strong> in the left sidebar rail.',
+                        'Locate the target user using the search box or Role Filter Pills.',
+                        'Click the <strong>Edit icon</strong> (Pencil) in the Actions column.',
+                        'In the user management modal, update the assigned role (Student, Faculty, or Librarian).',
+                        'Click <strong>"Save Changes"</strong> to immediately update account RBAC privileges.'
+                    ],
+                    precaution: 'Administrator privileges cannot be altered from this table to prevent institutional lockout.'
+                };
+            }
+
+            // 1F. General User Management / Search / Filter
+            return {
+                landmark: 'Users Section > Users Catalog Table > Role Filter Pills & Search (#users-search)',
+                steps: [
+                    'Click <strong>"Users"</strong> in the left sidebar rail.',
+                    'Filter accounts by role using the Filter Pills: <code>All Users</code>, <code>Students</code>, <code>Faculty</code>, <code>Librarians</code>, or <code>Administrators</code>.',
+                    'Use the live search bar (<code>#users-search</code>) to search by name or CTU institutional email.',
+                    'Use row action icons to Reset Password (Key), Edit Role (Pencil), Unlock (Shield), or Delete (Trash bin).'
+                ],
+                precaution: 'Institutional accounts are linked to CTU Google authentication. Preserve user records for historical thesis authorship verification.'
+            };
+        }
+
+        // 2. APPROVALS / EVALUATIONS DOMAIN
+        if (q.includes('approv') || q.includes('evaluate') || q.includes('pending') || (q.includes('librarian') && (q.includes('submission') || q.includes('thesis') || q.includes('draft') || q.includes('review')))) {
+            return {
+                landmark: 'Sidebar Rail > Approvals (Checkmark Badge) OR Dashboard Overview > "Pending Approvals" Card',
+                steps: [
+                    'Click <strong>"Approvals"</strong> in the sidebar rail (or the amber <strong>"Pending Approvals"</strong> card on the dashboard).',
+                    'Locate the submission in the Librarian Submissions table and click the <strong>"Evaluate"</strong> button (Eye icon).',
+                    'In the modal, review <strong>Section 01 (Core Information)</strong>: check project title and authors.',
+                    'Review <strong>Section 02 (Academic Classification)</strong>: verify academic program, academic year, and faculty adviser.',
+                    'Review <strong>Section 03 (Abstract &amp; Summary)</strong> and <strong>Section 04 (Submitted Images)</strong>: inspect abstract and verify uploaded physical book photos (cover and documentation).',
+                    'Click the emerald <strong>"Approve &amp; Publish Publicly"</strong> button to publish and index in Pinecone AI search, or click <strong>"Reject &amp; Discard"</strong> with feedback.'
+                ],
+                precaution: 'Approved capstones immediately become searchable to students in the public catalog and AI RAG interface. If locked by Admin, unlock the record before evaluating.'
+            };
+        }
+
+        // 3. ACCREDITATION & ANALYTICS DOMAIN
+        if (q.includes('accredit') || q.includes('report') || q.includes('print') || q.includes('dean') || q.includes('ched') || q.includes('pdf') || q.includes('chart') || q.includes('statistic') || q.includes('intake') || q.includes('export csv') || q.includes('analytic')) {
+            return {
+                landmark: 'Analytics Section > Top Command Toolbar > "Print Official Accreditation Report"',
+                steps: [
+                    'Click <strong>"Analytics"</strong> in the left sidebar rail.',
+                    'Use the dropdown filters at the top to select the target Academic Year and Academic Program.',
+                    'Review the generated charts: Program Distribution, Intake Timeline, and Faculty Advisers.',
+                    'Click <strong>"Print Official Accreditation Report"</strong> in the top toolbar.',
+                    'A formatted, printable institutional document with CTU header and thesis counts will generate.'
+                ],
+                precaution: 'Only approved, cataloged theses are tallied in official accreditation reports.'
+            };
+        }
+
+        // 4. AUDIT LOGS & ACTIVITY DOMAIN
+        if (q.includes('log') || q.includes('audit') || q.includes('activity') || q.includes('history') || q.includes('who deleted') || q.includes('who added') || q.includes('trail')) {
+            return {
+                landmark: 'Sidebar Rail > "Activity" (Clock Icon) > System Audit Trail',
+                steps: [
+                    'Click <strong>"Activity"</strong> in the left sidebar rail to view the comprehensive audit trail.',
+                    'Inspect chronological logs of all institutional actions: project uploads, evaluations, deletions, user logins, and Pinecone vector syncs.',
+                    'Filter logs by action type or date range to audit librarian cataloging contributions or security events.',
+                    'Click any entry to inspect actor email, timestamp, IP address, and changed fields.'
+                ],
+                precaution: 'System audit trails are immutable and permanent for CHED accreditation compliance.'
+            };
+        }
+
+        // 5. SETTINGS & MAINTENANCE DOMAIN
+        if (q.includes('maintenance') || q.includes('setting') || q.includes('offline') || q.includes('advisory') || q.includes('downtime') || q.includes('allow registration')) {
+            return {
+                landmark: 'Settings Section > General Settings Card > "Maintenance Mode" Switch',
+                steps: [
+                    'Click <strong>"Settings"</strong> at the bottom of the left sidebar rail.',
+                    'Under the <strong>General Settings</strong> card, locate <strong>Maintenance Mode</strong>.',
+                    'Toggle the switch to <strong>ON</strong>.',
+                    'A confirmation toast will notify that the public portal is locked.'
+                ],
+                precaution: 'When active, students and guests will see the maintenance advisory screen. Only logged-in Administrators retain system access.'
+            };
+        }
+
+        // 6. DASHBOARD DOMAIN
+        if (q.includes('dashboard') || q.includes('kpi') || q.includes('overview') || q.includes('counter') || q.includes('metric') || q.includes('executive summary')) {
+            return {
+                landmark: 'Sidebar Rail > "Dashboard" (Grid Icon) > Institutional KPI Metrics',
+                steps: [
+                    'Click <strong>"Dashboard"</strong> at the top of the left sidebar rail.',
+                    'Inspect the top KPI cards: Total Projects, Pending Approvals, Total Users, and Recent Activity.',
+                    'Click the amber <strong>"Pending Approvals"</strong> card for direct navigation to pending submissions.',
+                    'Inspect Recent Projects and Recent Users widget feeds for latest repository events.'
+                ],
+                precaution: 'KPI metrics reflect live Firestore repository counters refreshed in real-time.'
+            };
+        }
+
+        // 7. PROJECTS & REPOSITORY OPERATIONS DOMAIN
+
+        // 7A. Add / Upload Project
+        if (q.includes('shelf') || q.includes('location') || q.includes('call number') || q.includes('accession') || q.includes('add project') || q.includes('upload') || q.includes('new project') || q.includes('catalog thesis') || (q.includes('add') && q.includes('project'))) {
+            return {
+                landmark: 'Projects Section > Table Header Action Bar > "+ Add Project" (Emerald Green Button #add-project-btn)',
+                steps: [
+                    'Click <strong>"Projects"</strong> in the left sidebar rail.',
+                    'Click the emerald green <strong>"+ Add Project"</strong> button in the table header action bar.',
+                    'Fill in <strong>Section 01 (Core Identity)</strong>: Project Title and Authors.',
+                    'Fill in <strong>Section 02 (Academic Details)</strong>: Academic Program (BSFi, BSIT, BSHM, BSIE, BSEd, BEEd, BIT, BTLEd), Academic Year, and Faculty Adviser.',
+                    'Fill in <strong>Section 03 (Research Content)</strong>: Abstract and search Keywords.',
+                    'Fill in <strong>Section 04 (Physical Book &amp; Shelf Details)</strong>: Enter <em>Physical Location Note</em> (e.g., <code>Rack 1, Row 2, Stand 3, Color Blue</code>), <em>Call Number</em> (e.g., <code>025.5 / Dea / 2024</code>), <em>Accession Number</em> (e.g., <code>CTU-2024-001</code>), and upload 4 to 6 physical book representation photos.',
+                    'Click <strong>"Save Capstone Project"</strong>. As an Administrator, your submission is immediately published to the institutional catalog without requiring an approval review.'
+                ],
+                precaution: 'Accession numbers must be unique across all campus holdings. For bulk uploading multiple theses from a spreadsheet, click the blue "Bulk Import" button instead.'
+            };
+        }
+
+        // 7B. Bulk Import Excel
+        if (q.includes('bulk') || q.includes('excel') || q.includes('import') || q.includes('spreadsheet') || q.includes('xlsx')) {
+            return {
+                landmark: 'Projects Section > Table Header Action Bar > "Bulk Import" (Blue Button #bulk-import-btn)',
+                steps: [
+                    'Go to <strong>Projects</strong> in the sidebar rail.',
+                    'Click the blue <strong>"Bulk Import"</strong> button located right beside the search bar.',
+                    'If you need the template format, click <strong>"Download Excel Template"</strong> inside the modal.',
+                    'Upload your completed <code>.xlsx</code> or <code>.xls</code> file into the dropzone.',
+                    'Review the batch validation checklist (Title, Authors, Year, Adviser).',
+                    'Click <strong>"Execute Import"</strong> to batch-insert the theses into Firestore.'
+                ],
+                precaution: 'Ensure author names are separated by commas and years are valid 4-digit numbers to avoid parsing rejections.'
+            };
+        }
+
+        // 7C. Pinecone AI Sync
+        if (q.includes('pinecone') || q.includes('sync') || q.includes('vector') || q.includes('rag') || q.includes('embedding') || q.includes('ai search')) {
+            return {
+                landmark: 'Projects Section > Table Header Action Bar > "Sync Pinecone" (Amber Button #sync-pinecone-btn)',
+                steps: [
+                    'Navigate to <strong>Projects</strong> in the sidebar rail.',
+                    'Look at the action bar immediately above the search input and table.',
+                    'Click the amber <strong>"Sync Pinecone"</strong> button with the lightning bolt icon.',
+                    'Confirm the modal dialog when prompted. Watch the sync progress counter update.',
+                    'Once completed, a green dot <code>🟢 Synced</code> will appear beside verified thesis titles.'
+                ],
+                precaution: 'Ensure network connection is stable during embedding generation. Do not close or refresh the tab while sync is active.'
+            };
+        }
+
+        // 7D. Delete / Unlock Project
+        if (q.includes('delete') || q.includes('disabled') || q.includes('lock') || q.includes('unlock') || q.includes('purge')) {
+            return {
+                landmark: 'Projects Table > Actions Column > "Unlock" (Gold Lock Icon)',
+                steps: [
+                    'Find the target capstone row in the <strong>All Projects</strong> table.',
+                    'Notice that the red Delete button is initially hidden or disabled to prevent accidental catalog loss.',
+                    'Click the gold <strong>"Unlock"</strong> (lock-shaped) button in the row’s action buttons.',
+                    'Confirm the catalog security verification modal.',
+                    'The red <strong>"Delete"</strong> button will now become active and clickable for that row.'
+                ],
+                precaution: 'Permanent deletion wipes the record from both Firestore and Pinecone vector search. This action cannot be undone.'
+            };
+        }
+
+        // 7E. Edit Existing Project
+        if (q.includes('edit') || q.includes('modify') || q.includes('update') || q.includes('change title') || q.includes('replace photo')) {
+            return {
+                landmark: 'Projects Section > All Projects Table > "Edit Record" (Pencil Icon in Actions Column)',
+                steps: [
+                    'Navigate to <strong>Projects</strong> in the left sidebar rail.',
+                    'Locate the thesis in the catalog using the search box or program filter pills.',
+                    'Click the gold <strong>Pencil icon</strong> (Edit) in the row\'s Actions column.',
+                    'In the Edit Capstone Project modal, update title, authors, academic program, abstract, keywords, or physical shelf location note (Rack, Row, Stand, Color).',
+                    'To update representation images, drag and drop new photos into Section 04.',
+                    'Click <strong>"Update Capstone Project"</strong>. Changes will immediately update Firestore and queue Pinecone AI embeddings for automatic re-indexing.'
+                ],
+                precaution: 'Modifying the title or abstract alters the vector embedding representation; verify data accuracy before updating.'
+            };
+        }
+
+        // 7F. Troubleshooting Missing Theses
+        if (q.includes('troubleshoot') || q.includes('search not working') || q.includes('not showing') || q.includes('can\'t find') || q.includes('unsynced')) {
+            return {
+                landmark: 'Projects Section > Filter Pills > "🔴 Unsynced" Pill (#filter-unsynced)',
+                steps: [
+                    'Navigate to <strong>Projects</strong> in the left sidebar rail.',
+                    'Check for Unsynced Status: Click the <strong>"🔴 Unsynced"</strong> filter pill above the table. If the project appears here, its vector embedding has not been indexed in Pinecone.',
+                    'Check Approval Status: Go to <strong>"Approvals"</strong> in the sidebar rail. If drafted by a librarian, it must be evaluated and approved before entering the public index.',
+                    'Trigger Pinecone Sync: In Projects, click the amber <strong>"Sync Pinecone"</strong> button (#sync-pinecone-btn) in the header action bar.',
+                    'Verify Green Dot: Once sync finishes, verify that the green dot ( 🟢 ) appears beside the thesis title.'
+                ],
+                precaution: 'The student AI chatbot and semantic RAG search only retrieve theses with active Pinecone embeddings and "Published" status.'
+            };
+        }
+
+        // 7G. Browse / Search Projects
+        if (q.includes('exist') || q.includes('browse') || q.includes('see project') || q.includes('view project') || q.includes('filter project') || q.includes('find project') || q.includes('project') || q.includes('thesis') || q.includes('catalog')) {
+            return {
+                landmark: 'Sidebar Rail > "Projects" (2nd Tab from Top, Document Icon) > All Projects Section',
+                steps: [
+                    'Click <strong>"Projects"</strong> in the left sidebar rail (2nd item from the top with the document icon).',
+                    'The <strong>All Projects</strong> section (#section-projects) will open with the complete institutional catalog.',
+                    '<strong>Filter by Program:</strong> Click any one-click Filter Pill above the table (e.g., <code>All Projects</code>, <code>BSIT</code>, <code>BSFi</code>, <code>BSHM</code>, <code>BSIE</code>, <code>Recent (30 days)</code>, or <code>🔴 Unsynced</code>).',
+                    '<strong>Live Keyword Search:</strong> Use the search box (<code>#projects-search</code>) above the table to filter by title, author names, or keywords.',
+                    '<strong>Row Actions:</strong> Each project row features action icons: <strong>View</strong> (Eye icon to preview abstract and shelf coordinates), <strong>Edit</strong> (Pencil icon), <strong>Lock/Unlock</strong> (Gold lock icon), and <strong>Delete</strong> (Trash bin icon).'
+                ],
+                precaution: 'Cataloged projects are live in the institutional repository. Unlock project rows before performing edits or deletions.'
+            };
+        }
+
+        // 8. General Workspace Guidance
+        return {
+            landmark: 'Sidebar Rail & Executive Dashboard Workspace',
+            steps: [
+                'You can manage all repository operations using the left <strong>Sidebar Rail</strong>:',
+                '<strong>Projects:</strong> Catalog theses, assign shelf locations, or sync Pinecone AI.',
+                '<strong>Approvals:</strong> Evaluate submissions drafted by librarians.',
+                '<strong>Users:</strong> Manage student, faculty, and librarian accounts.',
+                '<strong>Analytics:</strong> Print accreditation reports and monitor research intake.',
+                '<strong>Activity:</strong> Review compliance audit logs and historical changes.',
+                '<strong>Settings:</strong> Toggle maintenance mode and registration.'
+            ],
+            precaution: 'Feel free to ask for specific step-by-step instructions (e.g., "How to sync Pinecone", "Can administrator delete a user account?", or "How to approve a project").'
+        };
+    }
+
+    function formatCopilotGuidanceHTML(guidance) {
+        // Construct markdown representation and normalize through dynamicCopilotNormalizer
+        let md = '';
+        if (guidance.landmark) {
+            md += `[Area: ${guidance.landmark}]\n\n`;
+        }
+        if (guidance.steps && guidance.steps.length > 0) {
+            guidance.steps.forEach((step, idx) => {
+                md += `${idx + 1}. ${step}\n`;
+            });
+            md += '\n';
+        }
+        if (guidance.precaution) {
+            md += `⚠️ Precaution: ${guidance.precaution}\n`;
+        }
+        return dynamicCopilotNormalizer(md, 'Local Institutional KB');
+    }
+
+    function appendCopilotMessage(sender, contentHTML, targetContainer = 'widget') {
+        const messagesList = targetContainer === 'widget' 
+            ? document.getElementById('copilot-widget-messages') 
+            : document.getElementById('copilot-messages-list');
+        if (!messagesList) return;
+
+        const row = document.createElement('div');
+        row.className = `copilot-msg-row ${sender}`;
+
+        if (sender === 'bot') {
+            const avatar = document.createElement('div');
+            avatar.className = 'copilot-msg-avatar';
+            avatar.innerHTML = `<img src="../assets/svgs/BotLang.svg" alt="BotLang">`;
+            row.appendChild(avatar);
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = 'copilot-msg-bubble';
+        bubble.innerHTML = contentHTML;
+        row.appendChild(bubble);
+
+        messagesList.appendChild(row);
+
+        const body = targetContainer === 'widget'
+            ? document.getElementById('copilot-widget-body')
+            : document.getElementById('copilot-chat-body');
+        if (body) {
+            body.scrollTop = body.scrollHeight;
+            setTimeout(() => {
+                body.scrollTop = body.scrollHeight;
+            }, 60);
+        }
+    }
+
+    function handleSendQuery(queryText, source = 'widget') {
+        const text = (queryText || '').trim();
+        if (!text) return;
+
+        // Hide welcome greeting once user asks something
+        const widgetWelcome = document.getElementById('copilot-widget-welcome');
+        if (widgetWelcome) widgetWelcome.style.display = 'none';
+        const sectionWelcome = document.getElementById('copilot-welcome-box');
+        if (sectionWelcome) sectionWelcome.style.display = 'none';
+
+        // Display user message in widget
+        appendCopilotMessage('user', text, 'widget');
+
+        // Also sync to section if open
+        const sectionMessages = document.getElementById('copilot-messages-list');
+        if (sectionMessages) {
+            sectionMessages.style.display = 'flex';
+            sectionMessages.style.flexDirection = 'column';
+            appendCopilotMessage('user', text, 'section');
+        }
+
+        // Show typing indicator in widget and section
+        const widgetTyping = document.getElementById('copilot-widget-typing');
+        if (widgetTyping) widgetTyping.style.display = 'flex';
+        const sectionTyping = document.getElementById('copilot-section-typing');
+        if (sectionTyping) sectionTyping.style.display = 'flex';
+        const widgetBody = document.getElementById('copilot-widget-body');
+        if (widgetBody) widgetBody.scrollTop = widgetBody.scrollHeight;
+        const sectionBody = document.getElementById('copilot-chat-body');
+        if (sectionBody) {
+            setTimeout(() => { sectionBody.scrollTop = sectionBody.scrollHeight; }, 30);
+        }
+
+        const copilotConversationHistory = window._copilotHistory = window._copilotHistory || [];
+
+        (async () => {
+            let replyHTML = '';
+            let backendSucceeded = false;
+
+            try {
+                const apiBase = typeof getBackendUrl === 'function' 
+                    ? getBackendUrl() 
+                    : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                        ? 'http://localhost:3001'
+                        : 'https://recap-backend-jy5b.onrender.com');
+
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timeoutId = setTimeout(() => {
+                    if (controller) controller.abort();
+                }, 25000);
+
+                const response = await fetch(`${apiBase}/api/staff-copilot/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: text,
+                        userRole: 'admin',
+                        history: copilotConversationHistory.slice(-4)
+                    }),
+                    signal: controller ? controller.signal : undefined
+                });
+
+                if (timeoutId) clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.success && data.reply) {
+                        backendSucceeded = true;
+                        // Universal Dynamic NLP Normalizer & Ast Renderer
+                        replyHTML = dynamicCopilotNormalizer(data.reply, data.provider || 'Mistral AI');
+                    }
+                }
+            } catch (err) {
+                console.warn('Backend RAG endpoint unavailable, utilizing verified local knowledge base fallback:', err.message);
+            }
+
+            // Fallback to local verified knowledge base if backend is not reachable
+            if (!backendSucceeded) {
+                const guidance = getAdminCopilotResponse(text);
+                replyHTML = formatCopilotGuidanceHTML(guidance);
+            }
+
+            if (widgetTyping) widgetTyping.style.display = 'none';
+            if (sectionTyping) sectionTyping.style.display = 'none';
+            appendCopilotMessage('bot', replyHTML, 'widget');
+            if (sectionMessages) {
+                appendCopilotMessage('bot', replyHTML, 'section');
+            }
+
+            copilotConversationHistory.push({ role: 'user', content: text });
+            copilotConversationHistory.push({ role: 'assistant', content: replyHTML.replace(/<[^>]+>/g, '') });
+        })();
+    }
+
+    // Widget quick chips
+    if (copilotWidgetChips && copilotWidgetChips.length > 0) {
+        copilotWidgetChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                const prompt = this.getAttribute('data-copilot-prompt');
+                if (prompt) {
+                    handleSendQuery(prompt, 'widget');
+                }
+            });
+        });
+    }
+
+    // Widget form submit
+    if (copilotWidgetForm) {
+        copilotWidgetForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (copilotWidgetInput) {
+                const text = copilotWidgetInput.value;
+                copilotWidgetInput.value = '';
+                handleSendQuery(text, 'widget');
+            }
+        });
+    }
+
+    // Section workspace prompt pills
+    if (sectionPromptPills && sectionPromptPills.length > 0) {
+        sectionPromptPills.forEach(pill => {
+            pill.addEventListener('click', function() {
+                const prompt = this.getAttribute('data-copilot-prompt');
+                if (prompt) {
+                    handleSendQuery(prompt, 'section');
+                }
+            });
+        });
+    }
+
+    // Section workspace input and send button
+    if (sectionCopilotSendBtn && sectionCopilotInput) {
+        sectionCopilotSendBtn.addEventListener('click', function() {
+            const text = sectionCopilotInput.value;
+            sectionCopilotInput.value = '';
+            handleSendQuery(text, 'section');
+        });
+        sectionCopilotInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const text = sectionCopilotInput.value;
+                sectionCopilotInput.value = '';
+                handleSendQuery(text, 'section');
+            }
+        });
+    }
 });

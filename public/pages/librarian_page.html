@@ -73,6 +73,7 @@
 
     <!-- ====================================================
          ADD NEW PROJECT MODAL (single submission — pending approval)
+         Modern 1:1 Admin-Consistent UI/UX with Librarian Guardrails
          ==================================================== -->
     <div id="upload-metadata-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="um-title">
         <div class="modal-overlay" id="um-modal-overlay"></div>
@@ -87,12 +88,12 @@
                     <div>
                         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
                             <h3 id="um-title" class="pmodal-title" style="margin:0;">Add New Project</h3>
-                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);">
+                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;border:1px solid;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                                 Pending Approval
                             </span>
                         </div>
-                        <p class="pmodal-subtitle">Submitted to admin queue — status will remain <strong>Pending</strong> until admin approves</p>
+                        <p class="pmodal-subtitle">Submitted to admin queue &mdash; requires admin evaluation and approval to become public</p>
                     </div>
                 </div>
                 <div class="pmodal-header-right">
@@ -120,11 +121,14 @@
                                 <label class="pform-label" for="um-title-field">Project Title <span class="pform-required">*</span></label>
                                 <input type="text" id="um-title-field" class="pform-input" placeholder="e.g., AI-Based Crop Disease Detection System" required>
                             </div>
+
                             <div class="pform-field">
-                                <label class="pform-label" for="um-authors">Authors <span class="pform-required">*</span>
-                                    <span class="pform-label-hint">Separate multiple authors with commas</span>
+                                <label class="pform-label">
+                                    Authors <span class="pform-required">*</span>
+                                    <span class="pform-label-hint">Add each author separately</span>
                                 </label>
-                                <input type="text" id="um-authors" class="pform-input" placeholder="e.g. Juan Dela Cruz, Maria Santos" required>
+                                <div id="um-authors-container" class="dynamic-inputs-container pform-dynamic-list"></div>
+                                <button type="button" class="pform-add-btn" id="um-add-author-btn">+ Add Author</button>
                             </div>
                         </div>
                     </div>
@@ -135,7 +139,7 @@
                             <div class="pform-section-badge">02</div>
                             <div>
                                 <div class="pform-section-title">Academic Details</div>
-                                <div class="pform-section-desc">Adviser, year, and program</div>
+                                <div class="pform-section-desc">Adviser, year, program, and approval status</div>
                             </div>
                         </div>
                         <div class="pform-section-body">
@@ -146,7 +150,13 @@
                                 </div>
                                 <div class="pform-field">
                                     <label class="pform-label" for="um-year">Year <span class="pform-required">*</span></label>
-                                    <input type="number" id="um-year" class="pform-input" placeholder="2025" min="2000" max="2099" required>
+                                    <div class="year-selector-wrapper">
+                                        <input type="number" id="um-year" class="pform-input year-selector-input" placeholder="2025" required min="2000" max="2100" readonly>
+                                        <div class="year-controls">
+                                            <button type="button" class="year-btn year-btn-up" id="um-year-up" aria-label="Increase year"></button>
+                                            <button type="button" class="year-btn year-btn-down" id="um-year-down" aria-label="Decrease year"></button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="pform-grid-two">
@@ -168,7 +178,7 @@
                                 </div>
                                 <div class="pform-field">
                                     <!-- Status is LOCKED for librarian — always pending -->
-                                    <label class="pform-label">Status</label>
+                                    <label class="pform-label">Status <span class="pform-label-hint">Locked for librarian</span></label>
                                     <div class="lib-status-locked-display">
                                         <span class="lib-status-locked-dot"></span>
                                         <span class="lib-status-locked-text">Pending Approval</span>
@@ -186,7 +196,7 @@
                             <div class="pform-section-badge">03</div>
                             <div>
                                 <div class="pform-section-title">Research Content</div>
-                                <div class="pform-section-desc">Abstract and keywords</div>
+                                <div class="pform-section-desc">Abstract, topics, and keywords</div>
                             </div>
                         </div>
                         <div class="pform-section-body">
@@ -194,119 +204,292 @@
                                 <label class="pform-label" for="um-abstract">Abstract <span class="pform-required">*</span></label>
                                 <textarea id="um-abstract" class="pform-input pform-textarea" placeholder="Describe the project background, objectives, methodology, and results..." required></textarea>
                             </div>
+
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label">
+                                        Topics
+                                        <span class="pform-tooltip" title="Add core research topics/subjects"></span>
+                                    </label>
+                                    <div id="um-topics-container" class="dynamic-inputs-container pform-dynamic-list"></div>
+                                    <button type="button" class="pform-add-btn" id="um-add-topic-btn">+ Add Topic</button>
+                                </div>
+                                <div class="pform-field">
+                                    <label class="pform-label">Keywords</label>
+                                    <div id="um-keywords-container" class="dynamic-inputs-container pform-dynamic-list"></div>
+                                    <button type="button" class="pform-add-btn" id="um-add-keyword-btn">+ Add Keyword</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Book & Representation Images -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">04</div>
+                            <div>
+                                <div class="pform-section-title">Book &amp; Representation Images</div>
+                                <div class="pform-section-desc">Upload book cover, approval sheet, diagrams, or physical book photos</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
                             <div class="pform-field">
-                                <label class="pform-label" for="um-keywords">Keywords
-                                    <span class="pform-label-hint">Separate with commas</span>
+                                <label class="pform-label">
+                                    Project Images
+                                    <span class="pform-label-hint">PNG, JPG, or WEBP up to 10MB each (first image is default cover)</span>
                                 </label>
-                                <input type="text" id="um-keywords" class="pform-input" placeholder="e.g. machine learning, IoT, web development">
+
+                                <div class="image-upload-dropzone" id="um-image-dropzone">
+                                    <input type="file" id="um-images-input" multiple accept="image/png, image/jpeg, image/webp, image/jpg" style="display: none;">
+                                    <div class="dropzone-content">
+                                        <div class="dropzone-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                <polyline points="21 15 16 10 5 21"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="dropzone-text">
+                                            <strong>Click to upload</strong> or drag and drop images here
+                                        </div>
+                                        <div class="dropzone-subtext">Upload 4 to 6 photos representing the physical capstone book</div>
+                                        <button type="button" class="dropzone-browse-btn" id="um-images-browse-btn">Browse Files</button>
+                                    </div>
+                                </div>
+
+                                <div class="project-images-preview-grid" id="um-images-preview-grid"></div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Footer Actions -->
                     <div class="pmodal-footer">
+                        <button type="button" class="pmodal-btn-clear" id="um-clear-btn">Clear</button>
                         <button type="button" class="pmodal-btn-cancel" id="um-cancel-btn">Cancel</button>
                         <button type="submit" class="pmodal-btn-submit" id="um-submit-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                             Submit for Approval
                         </button>
                     </div>
                 </form>
+
+                <!-- Save Processing overlay: blocks all interaction while submitting -->
+                <div class="save-processing-overlay" id="um-save-processing-overlay" aria-hidden="true">
+                    <div class="save-processing-spinner">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                    </div>
+                    <p class="save-processing-label" id="um-save-processing-label">Submitting project for admin approval&hellip;</p>
+                    <p class="save-processing-sublabel">Please wait, do not close this window.</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- ====================================================
-         BULK ADD PROJECTS MODAL (pending approval for each)
+         BULK IMPORT PROJECTS MODAL
+         Modern 1:1 Admin-Consistent UI/UX with Librarian Guardrails
          ==================================================== -->
     <div id="bulk-add-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="bulk-modal-title">
         <div class="modal-overlay" id="bulk-modal-overlay"></div>
-        <div class="modal-content project-modal-content">
+        <div class="modal-content bulk-import-modal-content">
 
-            <!-- Header -->
-            <div class="pmodal-header">
-                <div class="pmodal-header-left">
-                    <div class="pmodal-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); box-shadow: 0 4px 16px rgba(99,102,241,0.4);">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <div style="display:flex;align-items:center;gap:.75rem;">
+                    <div class="pmodal-icon" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </div>
                     <div>
                         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-                            <h3 id="bulk-modal-title" class="pmodal-title" style="margin:0;">Bulk Add Projects</h3>
-                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);">
+                            <h3 id="bulk-modal-title" style="margin:0;font-size:1.25rem;font-weight:700;">Bulk Import Projects</h3>
+                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;border:1px solid;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                                 All Pending Approval
                             </span>
                         </div>
-                        <p class="pmodal-subtitle">Upload a JSON file — each project is sent to the admin queue with <strong>pending</strong> status</p>
                     </div>
                 </div>
-                <div class="pmodal-header-right">
-                    <button type="button" class="pmodal-close-btn" id="bulk-close-btn" aria-label="Close modal">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
+                <button type="button" class="modal-close-btn" id="bulk-close-btn" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body">
+                <div class="bulk-import-instructions">
+                    <h4>Instructions</h4>
+                    <ol>
+                        <li>Prepare an <strong>Excel file (.xlsx, .xls)</strong> or <strong>JSON file</strong></li>
+                        <li>Each row/project must include: <code>title</code>, <code>authors</code>, <code>program</code>, <code>year</code></li>
+                        <li>Optional but recommended: <code>adviser</code>, <code>abstract</code>, <code>keywords</code>, <code>topics</code></li>
+                        <li>Click "Browse Files" and select one or multiple Excel / JSON files to stage them</li>
+                        <li>Review the staged batches &amp; preview, then click "Submit All for Admin Approval"</li>
+                    </ol>
+
+                    <div class="template-download-section">
+                        <h5>Download Template Files</h5>
+                        <div class="template-download-buttons">
+                            <button type="button" class="btn-secondary template-download-btn" id="bulk-download-excel-template">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Excel Template (.xlsx)
+                            </button>
+                            <button type="button" class="btn-secondary template-download-btn" id="bulk-download-json-template">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                JSON Template (.json)
+                            </button>
+                        </div>
+                        <p class="template-download-note">
+                            <strong>Recommended:</strong> Download the Excel template, fill it with student capstone data, then upload it here.
+                        </p>
+                    </div>
+
+                    <details class="bulk-import-example">
+                        <summary>View Excel Format</summary>
+                        <div class="excel-format-guide">
+                            <p><strong>Column Headers (First Row):</strong></p>
+                            <div class="format-table-wrapper">
+                                <table class="format-table">
+                                    <thead>
+                                        <tr>
+                                            <th>title</th>
+                                            <th>authors</th>
+                                            <th>program</th>
+                                            <th>year</th>
+                                            <th>adviser</th>
+                                            <th>abstract</th>
+                                            <th>keywords</th>
+                                            <th>topics</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>AI System</td>
+                                            <td>Juan Dela Cruz, Allan De Jesus</td>
+                                            <td>BSIT</td>
+                                            <td>2024</td>
+                                            <td>Prof. Villanueva</td>
+                                            <td>This study explores...</td>
+                                            <td>AI, Agriculture</td>
+                                            <td>Technology</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p><strong>Notes:</strong></p>
+                            <ul>
+                                <li>Separate multiple authors with commas: <code>Author1, Author2, Author3</code></li>
+                                <li>Separate keywords/topics with commas</li>
+                                <li><strong>Academic Metadata Only:</strong> Do not include a <code>status</code> column. The system automatically tags all imported records as <code>Pending</code> and routes them to the Admin Approval Queue upon ingestion.</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="bulk-import-example">
+                        <summary>View JSON Format</summary>
+                        <pre><code>[
+  {
+    "title": "AI-Powered Agricultural System",
+    "authors": ["Allan P. De Jesus Jr.", "Allan Dela Vina"],
+    "program": "BSIT",
+    "year": 2024,
+    "adviser": "Prof. Elena Villanueva",
+    "abstract": "This study explores the use of AI...",
+    "keywords": ["AI", "Agriculture", "Machine Learning"],
+    "topics": ["Artificial Intelligence", "Smart Farming"]
+  }
+]</code></pre>
+                    </details>
+                </div>
+
+                <div class="bulk-import-file-selector">
+                    <!-- Hidden file input (multiple files allowed, Excel + JSON) -->
+                    <input type="file" id="bulk-import-file-input" multiple accept=".json,.xlsx,.xls,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display: none;">
+
+                    <!-- Drag & Drop Zone -->
+                    <div class="bulk-import-dropzone" id="bulk-import-dropzone">
+                        <div class="bulk-dropzone-content">
+                            <div class="bulk-dropzone-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </div>
+                            <p class="bulk-dropzone-text" id="bulk-dropzone-title"><strong>Drag &amp; drop files here to add a batch</strong></p>
+                            <p class="bulk-dropzone-subtext" id="bulk-dropzone-subtext">Supports JSON (.json) and Excel (.xlsx, .xls) &bull; Add multiple files as Batch 1, Batch 2...</p>
+                            <button type="button" class="dropzone-browse-btn" id="bulk-import-choose-btn">Browse Files</button>
+                        </div>
+                    </div>
+
+                    <!-- Staged Batches Container -->
+                    <div class="bulk-batches-container" id="bulk-batches-container" style="display: none;">
+                        <div class="bulk-batches-header">
+                            <div class="bulk-batches-header-title">
+                                <span class="bulk-batches-icon">📦</span>
+                                <strong>Staged Batches</strong>
+                                <span class="bulk-batches-pill" id="bulk-batches-pill">0 batches</span>
+                            </div>
+                            <button type="button" class="bulk-clear-all-btn" id="bulk-clear-all-batches-btn" title="Remove all staged batches">Clear All</button>
+                        </div>
+                        <div class="bulk-batches-list" id="bulk-batches-list"></div>
+                    </div>
+                </div>
+
+                <div class="bulk-import-preview" id="bulk-import-preview" style="display: none;">
+                    <div class="bulk-preview-heading-row">
+                        <h4>Preview (<span id="bulk-import-count">0</span> projects across <span id="bulk-import-batch-count">0</span> batches)</h4>
+                    </div>
+                    <div class="bulk-import-preview-list" id="bulk-import-preview-list"></div>
+                </div>
+
+                <div class="bulk-import-progress" id="bulk-import-progress" style="display: none;">
+                    <h4>Submission Progress</h4>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="bulk-import-progress-bar"></div>
+                    </div>
+                    <div class="progress-text" id="bulk-import-progress-text">0 / 0 submitted</div>
+                </div>
+
+                <div class="bulk-import-results" id="bulk-import-results" style="display: none;">
+                    <h4>Submission Complete</h4>
+                    <div class="bulk-import-stats">
+                        <div class="bulk-stat success">
+                            <div class="bulk-stat-value" id="bulk-success-count">0</div>
+                            <div class="bulk-stat-label">Submitted</div>
+                        </div>
+                        <div class="bulk-stat error">
+                            <div class="bulk-stat-value" id="bulk-error-count">0</div>
+                            <div class="bulk-stat-label">Failed</div>
+                        </div>
+                    </div>
+                    <div class="bulk-import-errors" id="bulk-import-errors" style="display: none;">
+                        <h5>Errors</h5>
+                        <ul id="bulk-import-error-list"></ul>
+                    </div>
                 </div>
             </div>
 
-            <!-- Body -->
-            <div class="pmodal-body">
+            <!-- Modal Actions -->
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" id="bulk-import-cancel-btn">Cancel</button>
+                <button type="button" class="btn-primary" id="bulk-import-submit-btn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span id="bulk-import-submit-text">Submit All for Admin Approval</span>
+                </button>
+            </div>
 
-                <!-- Instructions notice -->
-                <div class="libm-notice libm-notice-info" style="margin-bottom:1.5rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    Upload a <strong>.json</strong> file where each item contains: <code>title</code>, <code>authors</code> (array), <code>abstract</code>, <code>program</code>, <code>year</code>, and optionally <code>adviser</code> and <code>keywords</code>. All entries are submitted as <strong>pending</strong>.
+            <!-- Bulk Import Processing overlay -->
+            <div class="save-processing-overlay bulk-import-processing-overlay" id="bulk-processing-overlay" aria-hidden="true">
+                <div class="save-processing-spinner">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
                 </div>
-
-                <!-- Drop Zone -->
-                <div class="image-upload-dropzone" id="bulk-dropzone" style="margin-bottom:1.5rem;">
-                    <input type="file" id="bulk-json-input" accept=".json" style="display:none;">
-                    <div class="dropzone-content">
-                        <div class="dropzone-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        </div>
-                        <div class="dropzone-text"><strong>Click to upload</strong> or drag and drop a JSON file here</div>
-                        <div class="dropzone-subtext">Maximum 100 projects per batch</div>
-                        <button type="button" class="dropzone-browse-btn" id="bulk-browse-btn">Browse JSON File</button>
+                <p class="save-processing-label" id="bulk-processing-label">Submitting projects for admin approval&hellip;</p>
+                <p class="save-processing-sublabel" id="bulk-processing-sublabel">Please wait, do not close this window.</p>
+                <div style="width: 82%; max-width: 380px; margin-top: 0.5rem; text-align: center;">
+                    <div style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 0.5rem;">
+                        <div id="bulk-overlay-progress-bar" style="width: 0%; height: 100%; background: var(--admin-primary, #08D488); transition: width 0.2s;"></div>
                     </div>
-                </div>
-
-                <!-- Preview (shown after file picked) -->
-                <div id="bulk-preview-area" style="display:none;">
-                    <div class="pform-section-header" style="margin-bottom:.75rem;">
-                        <div class="pform-section-badge" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">&#x2713;</div>
-                        <div>
-                            <div class="pform-section-title">File Preview</div>
-                            <div class="pform-section-desc" id="bulk-preview-count">0 projects detected</div>
-                        </div>
-                    </div>
-                    <div class="table-container" style="max-height:260px;overflow-y:auto;">
-                        <table class="data-table" id="bulk-preview-table">
-                            <thead>
-                                <tr><th>#</th><th>Title</th><th>Authors</th><th>Program</th><th>Year</th></tr>
-                            </thead>
-                            <tbody id="bulk-preview-tbody">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Progress bar (shown during upload) -->
-                <div id="bulk-progress-area" style="display:none;margin-top:1rem;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;">
-                        <span class="pform-section-desc">Submitting projects...</span>
-                        <span id="bulk-progress-label" class="pform-section-desc">0 / 0</span>
-                    </div>
-                    <div style="background:var(--border-color,#e5e7eb);border-radius:999px;height:8px;overflow:hidden;">
-                        <div id="bulk-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#4f46e5);border-radius:999px;transition:width .3s ease;"></div>
-                    </div>
-                </div>
-
-                <!-- Footer Actions -->
-                <div class="pmodal-footer">
-                    <button type="button" class="pmodal-btn-cancel" id="bulk-cancel-btn">Cancel</button>
-                    <button type="button" class="pmodal-btn-submit" id="bulk-submit-btn" disabled style="background:linear-gradient(135deg,#6366f1,#4f46e5);">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        <span id="bulk-submit-label">Submit All for Approval</span>
-                    </button>
+                    <div id="bulk-overlay-progress-text" style="color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 500;">0%</div>
                 </div>
             </div>
         </div>
@@ -389,95 +572,579 @@
          CATALOG NOTE MODAL (Free editing for published projects)
          ==================================================== -->
     <div id="catalog-note-modal" class="libm-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="cn-title">
-        <div class="libm-card">
-            <div class="libm-header">
-                <div class="libm-header-icon libm-icon-teal">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <div class="libm-card cn-modal-card">
+            <!-- Modal Header -->
+            <div class="cn-modal-header">
+                <div class="cn-header-left">
+                    <div class="cn-header-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            <path d="M9 7h6"/>
+                            <path d="M9 11h4"/>
+                        </svg>
+                    </div>
+                    <div class="cn-header-titles">
+                        <div class="cn-header-badge-row">
+                            <h2 id="cn-title" class="cn-modal-title">Catalog &amp; Physical Archival Studio</h2>
+                            <span class="cn-badge-tag">Librarian Desk</span>
+                        </div>
+                        <p class="cn-modal-subtitle">Specify physical shelf placement, Dewey/LC classification numbers, and accession inventory indexing.</p>
+                    </div>
                 </div>
-                <div class="libm-header-text">
-                    <h2 id="cn-title" class="libm-title">Catalog Note</h2>
-                    <p class="libm-subtitle">Physical location and classification details</p>
-                </div>
-                <button class="libm-close" id="cn-close-btn" aria-label="Close">
+                <button class="cn-modal-close" id="cn-close-btn" aria-label="Close modal">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
-            <div class="cn-project-strip" id="cn-project-strip">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <strong id="cn-project-title">Loading...</strong>
-            </div>
-            <form id="catalog-note-form" class="libm-form" novalidate>
+
+            <form id="catalog-note-form" class="cn-form-wrapper" novalidate>
                 <input type="hidden" id="cn-project-id">
-                <!-- Read-only status indicator (Librarian cannot alter status) -->
-                <div class="cn-status-badge-row">
-                    <div class="cn-status-indicator">
-                        <span class="cn-status-dot"></span>
-                        <span class="cn-status-label">Project Status:</span>
-                        <strong class="cn-status-value">Completed</strong>
+
+                <div class="cn-modal-body">
+                    <!-- Exclusive Archival Session Live Banner -->
+                    <div class="ppe-live-session-banner" id="cn-live-session-banner" style="margin-bottom:0.85rem;border-radius:10px;">
+                        <div class="ppe-live-pulse-dot"></div>
+                        <div class="ppe-live-banner-content">
+                            <span class="ppe-live-banner-title">Active Exclusive Archival Session</span>
+                            <span class="ppe-live-banner-desc">This catalog record is checked out by you. Simultaneous edits and cataloging by other staff or administrators are locked out until closed.</span>
+                        </div>
                     </div>
-                    <span class="cn-status-admin-lock" title="Status is controlled by Administrator">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Admin Managed
-                    </span>
+
+                    <!-- Catalog Studio Preferences & Collapsible Control Toolbar -->
+                    <div class="cn-studio-toolbar">
+                        <div class="cn-toolbar-left">
+                            <span class="cn-pref-chip" id="cn-pref-indicator" title="Your section collapse and expand choices are dynamically remembered on this device">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                <span id="cn-pref-status-text">Device Memory Active</span>
+                            </span>
+                            <span class="cn-toolbar-caption">Focus mode: unfold only what you need</span>
+                        </div>
+                        <div class="cn-toolbar-actions">
+                            <button type="button" class="cn-toolbar-btn" id="cn-expand-all-btn" title="Expand all sections">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 11 12 6 17 11"/><polyline points="7 18 12 13 17 18"/></svg>
+                                <span>Expand All</span>
+                            </button>
+                            <button type="button" class="cn-toolbar-btn" id="cn-collapse-all-btn" title="Collapse all sections">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>
+                                <span>Collapse All</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 1: Thesis Hero / Context Card -->
+                    <div class="cn-collapsible-section is-collapsed" id="cn-sec-hero" data-section-key="hero">
+                        <button type="button" class="cn-collapse-header" aria-expanded="false" aria-controls="cn-sec-hero-body">
+                            <div class="cn-collapse-title-group">
+                                <div class="cn-collapse-icon cn-icon-thesis">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+                                </div>
+                                <div class="cn-collapse-text">
+                                    <span class="cn-collapse-title">Thesis Context &amp; Metadata</span>
+                                    <span class="cn-collapse-subtitle">Title, authors, program, department &amp; status</span>
+                                </div>
+                            </div>
+                            <div class="cn-collapse-meta">
+                                <span class="cn-collapse-preview" id="cn-hero-summary-preview">Undergraduate Thesis</span>
+                                <div class="cn-collapse-chevron-box" aria-hidden="true">
+                                    <svg class="cn-collapse-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                            </div>
+                        </button>
+                        <div class="cn-collapse-body" id="cn-sec-hero-body">
+                            <div class="cn-collapse-body-inner">
+                                <div class="cn-project-hero" id="cn-project-hero">
+                                    <div class="cn-hero-top-row">
+                                        <div class="cn-hero-chips">
+                                            <span class="cn-chip cn-chip-program" id="cn-project-program">Program / Department</span>
+                                            <span class="cn-chip cn-chip-year" id="cn-project-year">AY 2024</span>
+                                            <span class="cn-chip cn-chip-type">Undergraduate Thesis</span>
+                                        </div>
+                                        <div class="cn-hero-status-pill">
+                                            <span class="cn-status-glow-dot"></span>
+                                            <span class="cn-status-text">Status: <strong>Completed</strong></span>
+                                            <span class="cn-lock-tag cn-locked-admin-tag" id="cn-admin-locked-pill" style="display:none;background:rgba(239,68,68,0.18);color:#f87171;border:1px solid rgba(239,68,68,0.35);" title="Locked by Administrator — Cataloging and editing are disabled">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                                Locked by Admin
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <h3 class="cn-hero-title" id="cn-project-title">Loading project title...</h3>
+
+                                    <div class="cn-hero-meta-row">
+                                        <div class="cn-hero-meta-item">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                            <span class="cn-meta-label">Authors:</span>
+                                            <span class="cn-meta-val" id="cn-project-authors">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Physical Shelf Location -->
+                    <div class="cn-collapsible-section is-collapsed" id="cn-sec-location" data-section-key="location">
+                        <button type="button" class="cn-collapse-header" aria-expanded="false" aria-controls="cn-sec-location-body">
+                            <div class="cn-collapse-title-group">
+                                <div class="cn-collapse-icon cn-icon-location">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <div class="cn-collapse-text">
+                                    <span class="cn-collapse-title">Physical Location Note</span>
+                                    <span class="cn-collapse-subtitle">Specific shelf, rack, tier, cabinet or bookstand</span>
+                                </div>
+                            </div>
+                            <div class="cn-collapse-meta">
+                                <span class="cn-collapse-preview" id="cn-location-summary-preview">Not set</span>
+                                <div class="cn-collapse-chevron-box" aria-hidden="true">
+                                    <svg class="cn-collapse-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                            </div>
+                        </button>
+                        <div class="cn-collapse-body" id="cn-sec-location-body">
+                            <div class="cn-collapse-body-inner">
+                                <div class="cn-section-inner-header">
+                                    <p class="cn-section-desc" style="margin:0 0 0.5rem 0;">Describe exactly where this material is physically shelved or stored in the library.</p>
+                                    
+                                    <!-- Quick Format Helper Tags -->
+                                    <div class="cn-quick-tags" aria-label="Quick format cues">
+                                        <span class="cn-quick-tags-label">Quick cues:</span>
+                                        <button type="button" class="cn-quick-tag" onclick="window.__cnInsertHelper('📍 Shelf: ')">+ Shelf</button>
+                                        <button type="button" class="cn-quick-tag" onclick="window.__cnInsertHelper('🗄️ Cabinet: ')">+ Cabinet</button>
+                                        <button type="button" class="cn-quick-tag" onclick="window.__cnInsertHelper('📚 Row/Tier: ')">+ Row/Tier</button>
+                                        <button type="button" class="cn-quick-tag" onclick="window.__cnInsertHelper('🏷️ Color: ')">+ Color</button>
+                                    </div>
+                                </div>
+
+                                <div class="cn-textarea-wrap">
+                                    <textarea id="cn-note" class="cn-textarea" rows="3"
+                                        placeholder="Describe exactly where this material is physically located.&#10;&#10;Examples:&#10;• Rack 1, Row 2, Book Ends Stand 3, Color Blue&#10;• Cabinet A, Section 3, Green hardbound cover&#10;• Top shelf near window, red binder"></textarea>
+                                </div>
+                                <div class="cn-hint-bar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                    <span>No fixed format — write naturally. Color, shelf, rack, stand — anything that helps locate the physical copy.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Library Classification & Indexing (Dewey / LC / CTU Standards) -->
+                    <div class="cn-collapsible-section is-collapsed" id="cn-sec-classification" data-section-key="classification">
+                        <button type="button" class="cn-collapse-header" aria-expanded="false" aria-controls="cn-sec-classification-body">
+                            <div class="cn-collapse-title-group">
+                                <div class="cn-collapse-icon cn-icon-classification">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                                </div>
+                                <div class="cn-collapse-text">
+                                    <span class="cn-collapse-title">Library Classification &amp; Indexing</span>
+                                    <span class="cn-collapse-subtitle">Dewey Decimal, Accession number &amp; Subject Headings</span>
+                                </div>
+                            </div>
+                            <div class="cn-collapse-meta">
+                                <span class="cn-optional-badge">Optional Standards</span>
+                                <span class="cn-collapse-preview" id="cn-class-summary-preview">Not indexed</span>
+                                <div class="cn-collapse-chevron-box" aria-hidden="true">
+                                    <svg class="cn-collapse-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                            </div>
+                        </button>
+                        <div class="cn-collapse-body" id="cn-sec-classification-body">
+                            <div class="cn-collapse-body-inner">
+                                <p class="cn-section-desc" style="margin:0 0 0.75rem 0;">Academic cataloging identifiers adhering to CTU Daanbantayan Library archival standards.</p>
+
+                                <div class="cn-grid-3col">
+                                    <!-- Call Number -->
+                                    <div class="cn-field">
+                                        <label for="cn-call-number" class="cn-field-label">
+                                            <span>Call Number</span>
+                                            <span class="cn-opt-tag">Optional</span>
+                                        </label>
+                                        <div class="cn-input-wrapper">
+                                            <span class="cn-input-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                                            </span>
+                                            <input type="text" id="cn-call-number" class="cn-input" placeholder="e.g. 025.5 / Dea / 2024">
+                                        </div>
+                                        <span class="cn-field-hint">Dewey Decimal / Cutter notation</span>
+                                    </div>
+
+                                    <!-- Accession No. -->
+                                    <div class="cn-field">
+                                        <label for="cn-accession" class="cn-field-label">
+                                            <span>Accession Number</span>
+                                            <span class="cn-opt-tag">Optional</span>
+                                        </label>
+                                        <div class="cn-input-wrapper">
+                                            <span class="cn-input-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                                            </span>
+                                            <input type="text" id="cn-accession" class="cn-input" placeholder="e.g. CTU-2024-001">
+                                        </div>
+                                        <span class="cn-field-hint">Campus physical inventory code</span>
+                                    </div>
+
+                                    <!-- Subject Heading -->
+                                    <div class="cn-field">
+                                        <label for="cn-subject" class="cn-field-label">
+                                            <span>Subject Heading</span>
+                                            <span class="cn-opt-tag">Optional</span>
+                                        </label>
+                                        <div class="cn-input-wrapper">
+                                            <span class="cn-input-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                                            </span>
+                                            <input type="text" id="cn-subject" class="cn-input" placeholder="e.g. Information Technology">
+                                        </div>
+                                        <span class="cn-field-hint">Library of Congress / Sears subject</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Librarian Accountability Log Card -->
+                    <div class="cn-collapsible-section is-collapsed" id="cn-sec-accountability" data-section-key="accountability" style="display:none;">
+                        <button type="button" class="cn-collapse-header" aria-expanded="false" aria-controls="cn-sec-acc-body">
+                            <div class="cn-collapse-title-group">
+                                <div class="cn-collapse-icon cn-icon-accountability">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                </div>
+                                <div class="cn-collapse-text">
+                                    <span class="cn-collapse-title">Librarian Accountability &amp; Audit Trail</span>
+                                    <span class="cn-collapse-subtitle">Session provenance, editor history &amp; audit log</span>
+                                </div>
+                            </div>
+                            <div class="cn-collapse-meta">
+                                <span class="cn-collapse-preview" id="cn-acc-summary-preview">Audit Log</span>
+                                <div class="cn-collapse-chevron-box" aria-hidden="true">
+                                    <svg class="cn-collapse-chevron" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                            </div>
+                        </button>
+                        <div class="cn-collapse-body" id="cn-sec-acc-body">
+                            <div class="cn-collapse-body-inner">
+                                <div class="cn-accountability-card" id="cn-accountability-card" style="margin-bottom:0;">
+                                    <div class="cn-accountability-header">
+                                        <div class="cn-acc-title-wrap">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                            <span>Accountability Details</span>
+                                        </div>
+                                        <button type="button" class="cn-history-toggle-btn" id="cn-history-toggle-btn">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                                            <span>Toggle Audit Log</span>
+                                        </button>
+                                    </div>
+                                    <div class="cn-accountability-body">
+                                        <div class="cn-acc-row" id="cn-acc-created" style="display:none;">
+                                            <span class="cn-acc-label">First cataloged by:</span>
+                                            <span class="cn-acc-value" id="cn-created-by-val">—</span>
+                                        </div>
+                                        <div class="cn-acc-row" id="cn-acc-updated" style="display:none;">
+                                            <span class="cn-acc-label">Last modified by:</span>
+                                            <span class="cn-acc-value" id="cn-updated-by-val">—</span>
+                                        </div>
+                                    </div>
+                                    <div class="cn-history-dropdown" id="cn-history-dropdown" style="display:none;">
+                                        <div class="cn-history-title">Audit History Log</div>
+                                        <div class="cn-history-list" id="cn-history-list"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cn-last-updated" id="cn-last-updated" style="display:none;"></div>
                 </div>
 
-                <!-- Librarian Accountability Card -->
-                <div class="cn-accountability-card" id="cn-accountability-card" style="display:none;">
-                    <div class="cn-accountability-header">
-                        <div class="cn-acc-title-wrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                            <span>Librarian Accountability Log</span>
-                        </div>
-                        <button type="button" class="cn-history-toggle-btn" id="cn-history-toggle-btn">View Log</button>
+                <!-- Fixed Modal Actions Footer -->
+                <div class="cn-modal-actions">
+                    <div class="cn-actions-left">
+                        <button type="button" class="cn-btn-danger-outline" id="cn-delete-btn" style="display:none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <span>Clear Catalog Record</span>
+                        </button>
                     </div>
-                    <div class="cn-accountability-body">
-                        <div class="cn-acc-row" id="cn-acc-created" style="display:none;">
-                            <span class="cn-acc-label">First cataloged by:</span>
-                            <span class="cn-acc-value" id="cn-created-by-val">—</span>
-                        </div>
-                        <div class="cn-acc-row" id="cn-acc-updated" style="display:none;">
-                            <span class="cn-acc-label">Last modified by:</span>
-                            <span class="cn-acc-value" id="cn-updated-by-val">—</span>
-                        </div>
+                    <div class="cn-actions-right">
+                        <button type="button" class="cn-btn-cancel" id="cn-cancel-btn">Cancel</button>
+                        <button type="submit" class="cn-btn-save" id="cn-save-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            <span>Save Catalog Note</span>
+                        </button>
                     </div>
-                    <div class="cn-history-dropdown" id="cn-history-dropdown" style="display:none;">
-                        <div class="cn-history-title">Audit History</div>
-                        <div class="cn-history-list" id="cn-history-list"></div>
-                    </div>
-                </div>
-                <div class="libm-field">
-                    <label for="cn-note" class="libm-label">Location Note</label>
-                    <textarea id="cn-note" class="libm-input libm-textarea cn-note-big" rows="6"
-                        placeholder="Describe exactly where this material is physically located.&#10;&#10;Examples:&#10;• Rack 1, Row 2, Book Ends Stand 3, Color Blue&#10;• Cabinet A, Section 3, Green cover&#10;• Top shelf near window, red binder"></textarea>
-                    <span class="libm-hint">No fixed format — write naturally. Color, shelf, rack, stand — anything that helps locate it.</span>
-                </div>
-                <div class="libm-grid libm-grid-3col">
-                    <div class="libm-field">
-                        <label for="cn-call-number" class="libm-label">Call Number <span class="libm-opt">(optional)</span></label>
-                        <input type="text" id="cn-call-number" class="libm-input" placeholder="e.g. 025.5 / Dea / 2024">
-                    </div>
-                    <div class="libm-field">
-                        <label for="cn-accession" class="libm-label">Accession No. <span class="libm-opt">(optional)</span></label>
-                        <input type="text" id="cn-accession" class="libm-input" placeholder="e.g. CTU-2024-001">
-                    </div>
-                    <div class="libm-field">
-                        <label for="cn-subject" class="libm-label">Subject Heading <span class="libm-opt">(optional)</span></label>
-                        <input type="text" id="cn-subject" class="libm-input" placeholder="e.g. Information Technology">
-                    </div>
-                </div>
-                <div class="cn-last-updated" id="cn-last-updated" style="display:none;"></div>
-                <div class="libm-actions">
-                    <button type="button" class="libm-btn libm-btn-danger-outline" id="cn-delete-btn" style="margin-right:auto;display:none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        Clear Note
-                    </button>
-                    <button type="button" class="libm-btn libm-btn-ghost" id="cn-cancel-btn">Cancel</button>
-                    <button type="submit" class="libm-btn libm-btn-teal" id="cn-save-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        Save Catalog Note
-                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         CATALOG THESIS PREVIEW MODAL (Quick Archival Summary)
+         ==================================================== -->
+    <div id="catalog-thesis-modal" class="libm-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ctm-title">
+        <div class="libm-card ctm-modal-card">
+            <!-- Modal Header -->
+            <div class="ctm-modal-header">
+                <div class="ctm-header-left">
+                    <div class="ctm-header-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                    </div>
+                    <div class="ctm-header-titles">
+                        <div class="ctm-header-badge-row">
+                            <h2 id="ctm-title" class="ctm-modal-title">Thesis Archival Summary</h2>
+                            <span class="ctm-badge-tag">Quick Overview</span>
+                        </div>
+                        <p class="ctm-modal-subtitle">Quick overview of physical library shelf placement and core thesis metadata.</p>
+                    </div>
+                </div>
+                <button class="ctm-modal-close" id="ctm-close-btn" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Scrollable Modal Body -->
+            <div class="ctm-modal-body">
+                <!-- Thesis Context Hero Card -->
+                <div class="ctm-project-banner">
+                    <div class="ctm-banner-top">
+                        <div class="ctm-badges">
+                            <span class="ctm-status-pill">
+                                <span class="cn-status-glow-dot"></span>
+                                Completed
+                            </span>
+                            <span class="ctm-chip ctm-chip-program" id="ctm-program">—</span>
+                            <span class="ctm-chip ctm-chip-year" id="ctm-year">—</span>
+                        </div>
+                        <span class="ctm-shelf-pill" id="ctm-shelf-pill">📍 Unassigned</span>
+                    </div>
+
+                    <h3 class="ctm-thesis-title" id="ctm-project-title">Loading project title...</h3>
+
+                    <div class="ctm-meta-row">
+                        <div class="ctm-meta-card ctm-meta-authors">
+                            <div class="ctm-meta-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div class="ctm-meta-details">
+                                <span class="ctm-meta-label">Researchers</span>
+                                <span class="ctm-meta-val" id="ctm-authors">—</span>
+                            </div>
+                        </div>
+
+                        <div class="ctm-meta-card ctm-meta-adviser">
+                            <div class="ctm-meta-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div class="ctm-meta-details">
+                                <span class="ctm-meta-label">Adviser</span>
+                                <span class="ctm-meta-val" id="ctm-adviser">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Physical Shelving 4-Tile Quick Status -->
+                <div class="ctm-placement-card">
+                    <div class="ctm-section-header">
+                        <div class="ctm-sec-title-wrap">
+                            <div class="ctm-sec-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            </div>
+                            <span class="ctm-sec-title">Physical Archival Placement</span>
+                        </div>
+                        <span class="ctm-sec-badge">Library Registry</span>
+                    </div>
+                    <div class="ctm-placement-grid">
+                        <div class="ctm-tile">
+                            <div class="ctm-tile-icon ctm-icon-shelf">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            </div>
+                            <div class="ctm-tile-info">
+                                <span class="ctm-tile-label">Shelf / Cabinet</span>
+                                <span class="ctm-tile-val" id="ctm-shelf-note">—</span>
+                            </div>
+                        </div>
+                        <div class="ctm-tile">
+                            <div class="ctm-tile-icon ctm-icon-call">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                            </div>
+                            <div class="ctm-tile-info">
+                                <span class="ctm-tile-label">Call Number</span>
+                                <span class="ctm-tile-val" id="ctm-call-number">—</span>
+                            </div>
+                        </div>
+                        <div class="ctm-tile">
+                            <div class="ctm-tile-icon ctm-icon-acc">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                            </div>
+                            <div class="ctm-tile-info">
+                                <span class="ctm-tile-label">Accession No.</span>
+                                <span class="ctm-tile-val" id="ctm-accession">—</span>
+                            </div>
+                        </div>
+                        <div class="ctm-tile">
+                            <div class="ctm-tile-icon ctm-icon-subj">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                            </div>
+                            <div class="ctm-tile-info">
+                                <span class="ctm-tile-label">Subject Heading</span>
+                                <span class="ctm-tile-val" id="ctm-subject">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abstract / Scope (Clean Collapsible Card to Minimize Text Overload) -->
+                <div class="ctm-abstract-card">
+                    <div class="ctm-abstract-header">
+                        <div class="ctm-sec-title-wrap">
+                            <div class="ctm-sec-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            </div>
+                            <span class="ctm-sec-title">Abstract &amp; Summary</span>
+                        </div>
+                        <button type="button" class="ctm-abstract-toggle" id="ctm-abstract-toggle" aria-expanded="false">
+                            <span>Read More</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                    </div>
+                    <div class="ctm-abstract-wrap" id="ctm-abstract-wrap">
+                        <p class="ctm-abstract-text" id="ctm-abstract">No abstract available for this project.</p>
+                        <div class="ctm-abstract-fade" id="ctm-abstract-fade"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixed Modal Actions Footer -->
+            <div class="ctm-modal-actions">
+                <button type="button" class="ctm-btn-close" id="ctm-cancel-btn">Close</button>
+                <div class="ctm-actions-right">
+                    <button type="button" class="ctm-btn-reader" id="ctm-full-view-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        <span>Full Thesis Reader</span>
+                    </button>
+                    <button type="button" class="ctm-btn-edit" id="ctm-edit-note-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 16.5-3.5z"/></svg>
+                        <span>Edit Shelf &amp; Classification</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================
+         PENDING PROJECT EDIT MODAL (Self-Submission Management & Edit Lock Control)
+         ==================================================== -->
+    <div id="pending-project-edit-modal" class="libm-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ppe-modal-title">
+        <div class="libm-card ppe-modal-card">
+            <!-- Modal Header -->
+            <div class="ppe-modal-header">
+                <div class="ppe-header-left">
+                    <div class="ppe-header-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </div>
+                    <div>
+                        <div class="ppe-title-row">
+                            <h2 id="ppe-modal-title" class="ppe-modal-title">Edit Pending Submission</h2>
+                            <span class="ppe-status-pill">
+                                <span class="ppe-status-dot"></span>
+                                Awaiting Admin Review
+                            </span>
+                        </div>
+                        <p class="ppe-modal-subtitle">Modify metadata details for your submitted project before admin evaluation</p>
+                    </div>
+                </div>
+                <button type="button" class="libm-close" id="ppe-close-btn" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Real-Time Concurrency Presence Banner -->
+            <div class="ppe-live-session-banner">
+                <span class="live-editing-dot"></span>
+                <span class="ppe-session-banner-text">Live Editing Session &mdash; Administrator evaluation actions are paused in real time until this window is saved or closed.</span>
+            </div>
+
+            <!-- Scrollable Body with Form -->
+            <div class="ppe-modal-body">
+                <form id="pending-project-edit-form" novalidate>
+                    <input type="hidden" id="ppe-project-id">
+
+                    <!-- Title -->
+                    <div class="ppe-field-group">
+                        <label for="ppe-title-field" class="ppe-label">Project Title <span class="ppe-req">*</span></label>
+                        <input type="text" id="ppe-title-field" class="ppe-input" placeholder="e.g. Assessment of Vibration Levels..." required>
+                    </div>
+
+                    <!-- Authors & Adviser -->
+                    <div class="ppe-grid-2col">
+                        <div class="ppe-field-group">
+                            <label for="ppe-authors" class="ppe-label">Authors <span class="ppe-req">*</span> <span class="ppe-hint">Separate with commas</span></label>
+                            <input type="text" id="ppe-authors" class="ppe-input" placeholder="e.g. Carlo Cañete, Shiela Dabucol" required>
+                        </div>
+                        <div class="ppe-field-group">
+                            <label for="ppe-adviser" class="ppe-label">Adviser</label>
+                            <input type="text" id="ppe-adviser" class="ppe-input" placeholder="e.g. Annalie C. Rubio, MSME">
+                        </div>
+                    </div>
+
+                    <!-- Program & Year -->
+                    <div class="ppe-grid-2col">
+                        <div class="ppe-field-group">
+                            <label for="ppe-program" class="ppe-label">Academic Program <span class="ppe-req">*</span></label>
+                            <select id="ppe-program" class="ppe-input ppe-select" required>
+                                <option value="" disabled>-- Select Program --</option>
+                                <option value="BSFi">BSFi — Bachelor of Science in Fisheries</option>
+                                <option value="BSIT">BSIT — Bachelor of Science in Information Technology</option>
+                                <option value="BSHM">BSHM — Bachelor of Science in Hospitality Management</option>
+                                <option value="BSIE">BSIE — Bachelor of Science in Industrial Engineering</option>
+                                <option value="BSEd-Math">BSEd-Math — Secondary Education (Math)</option>
+                                <option value="BEEd">BEEd — Elementary Education</option>
+                                <option value="BIT-Computer">BIT-Computer — Industrial Tech (Computer)</option>
+                                <option value="BIT-Electronics">BIT-Electronics — Industrial Tech (Electronics)</option>
+                                <option value="BIT-Automotive">BIT-Automotive — Industrial Tech (Automotive)</option>
+                                <option value="BTLEd-HE">BTLEd-HE — Technology &amp; Livelihood Ed (HE)</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="ppe-field-group">
+                            <label for="ppe-year" class="ppe-label">Academic Year <span class="ppe-req">*</span></label>
+                            <input type="number" id="ppe-year" class="ppe-input" min="2000" max="2100" placeholder="2024" required>
+                        </div>
+                    </div>
+
+                    <!-- Abstract -->
+                    <div class="ppe-field-group">
+                        <label for="ppe-abstract" class="ppe-label">Abstract &amp; Scope Summary <span class="ppe-req">*</span></label>
+                        <textarea id="ppe-abstract" class="ppe-input ppe-textarea" rows="4" placeholder="Brief summary of capstone problem, methodology, and results..." required></textarea>
+                    </div>
+
+                    <!-- Keywords & Topics -->
+                    <div class="ppe-grid-2col">
+                        <div class="ppe-field-group">
+                            <label for="ppe-keywords" class="ppe-label">Keywords <span class="ppe-hint">Separate with commas</span></label>
+                            <input type="text" id="ppe-keywords" class="ppe-input" placeholder="e.g. Ergonomics, Vibration, Safety">
+                        </div>
+                        <div class="ppe-field-group">
+                            <label for="ppe-topics" class="ppe-label">Topics / Fields <span class="ppe-hint">Separate with commas</span></label>
+                            <input type="text" id="ppe-topics" class="ppe-input" placeholder="e.g. Industrial Engineering, Occupational Health">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Pinned Actions Footer -->
+            <div class="ppe-modal-actions">
+                <button type="button" class="ppe-btn-close" id="ppe-cancel-btn">Cancel</button>
+                <div class="ppe-actions-right">
+                    <button type="button" class="ppe-btn-save" id="ppe-save-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Save Pending Changes</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -757,7 +1424,7 @@
                                     <th>Program</th>
                                     <th>Year</th>
                                     <th>Status</th>
-                                    <th style="width:140px;">Actions</th>
+                                    <th style="min-width:180px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="projects-table-body">
@@ -772,22 +1439,123 @@
 
                 <!-- ===== CATALOG ===== -->
                 <section id="section-catalog" class="content-section">
-                    <div class="section-header">
-                        <div>
-                            <h1 class="section-title">Cataloging</h1>
-                            <p class="section-desc">Only <strong>Completed</strong> projects are shown here. Add physical location notes freely — no admin permission needed.</p>
-                        </div>
-                        <div class="lib-search-wrap">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                            <input type="text" id="catalog-search" placeholder="Search catalog...">
+                    <div class="catalog-studio-header">
+                        <div class="catalog-studio-header-main">
+                            <div class="catalog-studio-icon-badge">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            </div>
+                            <div>
+                                <div class="catalog-studio-title-row">
+                                    <h1 class="section-title">Physical Shelf Cataloging &amp; Archival Studio</h1>
+                                    <span class="catalog-access-badge">
+                                        <span class="catalog-pulse-dot"></span>
+                                        Librarian Direct Access · No Admin Bottleneck
+                                    </span>
+                                </div>
+                                <p class="section-desc">Manage physical shelf locations, Dewey/LC call numbers, accession codes, and subject headings for <strong>Completed</strong> capstone theses.</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="lib-catalog-info">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        Cataloging is always open for you. Add shelf location, call number, accession number, and subject heading for any <strong>Completed</strong> project.
+                    <!-- Studio KPI Metrics Bar (Interactive Quick Filters) -->
+                    <div class="catalog-kpi-grid">
+                        <div class="catalog-kpi-card active" id="catalog-kpi-total" data-filter="all" title="Click to view all theses">
+                            <div class="catalog-kpi-icon icon-total">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                            </div>
+                            <div class="catalog-kpi-info">
+                                <span class="catalog-kpi-label">Archive Theses</span>
+                                <div class="catalog-kpi-val" id="catalog-kpi-val-total">0</div>
+                                <span class="catalog-kpi-sub">Total Completed</span>
+                            </div>
+                        </div>
+
+                        <div class="catalog-kpi-card" id="catalog-kpi-shelved" data-filter="shelved" title="Click to view shelved theses">
+                            <div class="catalog-kpi-icon icon-shelved">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            </div>
+                            <div class="catalog-kpi-info">
+                                <span class="catalog-kpi-label">Shelved &amp; Located</span>
+                                <div class="catalog-kpi-val text-emerald" id="catalog-kpi-val-shelved">0</div>
+                                <span class="catalog-kpi-sub">Location Assigned</span>
+                            </div>
+                        </div>
+
+                        <div class="catalog-kpi-card" id="catalog-kpi-needs" data-filter="needs-shelf" title="Click to view theses needing shelving">
+                            <div class="catalog-kpi-icon icon-needs">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            </div>
+                            <div class="catalog-kpi-info">
+                                <span class="catalog-kpi-label">Needs Shelving</span>
+                                <div class="catalog-kpi-val text-amber" id="catalog-kpi-val-needs">0</div>
+                                <span class="catalog-kpi-sub">Awaiting Physical Shelf</span>
+                            </div>
+                        </div>
+
+                        <div class="catalog-kpi-card coverage-card">
+                            <div class="catalog-kpi-icon icon-coverage">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            </div>
+                            <div class="catalog-kpi-info" style="flex:1;">
+                                <div class="catalog-kpi-row-header">
+                                    <span class="catalog-kpi-label">Cataloging Coverage</span>
+                                    <span class="catalog-kpi-pct" id="catalog-kpi-val-pct">0%</span>
+                                </div>
+                                <div class="catalog-progress-track">
+                                    <div class="catalog-progress-bar" id="catalog-progress-bar" style="width: 0%;"></div>
+                                </div>
+                                <span class="catalog-kpi-sub" id="catalog-kpi-sub-progress">0 of 0 cataloged</span>
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- Studio Toolbar (Filters, Search, Sort) -->
+                    <div class="catalog-toolbar">
+                        <!-- Left Status Tabs -->
+                        <div class="catalog-filter-tabs" id="catalog-filter-tabs">
+                            <button type="button" class="catalog-filter-tab active" data-tab="all">
+                                <span>All Theses</span>
+                                <span class="catalog-tab-badge" id="catalog-count-all">0</span>
+                            </button>
+                            <button type="button" class="catalog-filter-tab" data-tab="needs-shelf">
+                                <span class="catalog-tab-dot dot-amber"></span>
+                                <span>Needs Shelving</span>
+                                <span class="catalog-tab-badge badge-amber" id="catalog-count-needs">0</span>
+                            </button>
+                            <button type="button" class="catalog-filter-tab" data-tab="shelved">
+                                <span class="catalog-tab-dot dot-emerald"></span>
+                                <span>Shelved &amp; Located</span>
+                                <span class="catalog-tab-badge badge-emerald" id="catalog-count-shelved">0</span>
+                            </button>
+                        </div>
+
+                        <!-- Right Filters & Controls -->
+                        <div class="catalog-controls-group">
+                            <div class="catalog-select-wrap">
+                                <select id="catalog-program-filter" class="catalog-select" aria-label="Filter by Program">
+                                    <option value="all">All Programs</option>
+                                </select>
+                            </div>
+                            <div class="catalog-select-wrap">
+                                <select id="catalog-sort-filter" class="catalog-select" aria-label="Sort by">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="title-asc">Title (A-Z)</option>
+                                    <option value="shelf-asc">Shelf Location (A-Z)</option>
+                                </select>
+                            </div>
+                            <div class="lib-search-wrap catalog-search-wrap">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                <input type="text" id="catalog-search" placeholder="Search title, shelf, call #, author...">
+                            </div>
+                            <button class="btn-secondary" id="lib-refresh-catalog-btn" title="Refresh catalog">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Catalog Grid -->
                     <div class="catalog-grid" id="catalog-grid">
                         <div class="lib-loading-text" style="grid-column:1/-1;text-align:center;padding:3rem;">Loading completed projects...</div>
                     </div>
@@ -895,6 +1663,9 @@
     <script src="../js/shared/guest-storage.js"></script>
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
+    <!-- Excel (.xlsx) Processing & Cloudinary Image Upload -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="../js/shared/cloudinary-service.js"></script>
     <script src="../js/pages/settings-handler.js"></script>
     <script src="../js/pages/librarian_main.js"></script>
 </body>

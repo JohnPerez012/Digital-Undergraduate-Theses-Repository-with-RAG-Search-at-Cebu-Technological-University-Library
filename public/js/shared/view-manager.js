@@ -7,11 +7,17 @@
      */
     const ProjectBookmarkService = {
         isAdmin() {
-            return sessionStorage.getItem('userType') === 'admin';
+            const role = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+            return role === 'admin';
+        },
+
+        isRestrictedRole() {
+            const role = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+            return role === 'admin' || role === 'librarian';
         },
 
         isSaved(projectId) {
-            if (!projectId || this.isAdmin()) return false;
+            if (!projectId || this.isRestrictedRole()) return false;
 
             const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
             if (!currentUser) {
@@ -38,9 +44,11 @@
 
         async toggleSave(project) {
             if (!project) return false;
-            if (this.isAdmin()) {
+            if (this.isRestrictedRole()) {
                 if (typeof showToast === 'function') {
-                    showToast('Administrators are restricted from saving projects.', 'warning');
+                    const role = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+                    const roleLabel = role === 'librarian' ? 'Librarians' : 'Administrators';
+                    showToast(`${roleLabel} cannot save projects.`, 'warning');
                 }
                 return false;
             }
@@ -240,9 +248,19 @@
         },
 
         setupNavigation() {
+            // Check if current user is admin
+            const userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+            const isAdmin = userRole === 'admin';
+
             // Update secondary header navigation
             const navItems = document.querySelectorAll('.secondary-header .nav-item');
             navItems.forEach(item => {
+                // If user is admin, suppress the student research chatbot from the secondary header
+                if (isAdmin && item.dataset.page === 'ai-chatbot') {
+                    item.style.display = 'none';
+                    return;
+                }
+
                 // Remove any existing listeners by cloning
                 const newItem = item.cloneNode(true);
                 item.parentNode.replaceChild(newItem, item);
@@ -253,6 +271,14 @@
                     e.stopImmediatePropagation();
 
                     const page = newItem.dataset.page;
+
+                    // If admin somehow clicks ai-chatbot, redirect to admin dashboard
+                    if (isAdmin && page === 'ai-chatbot') {
+                        if (typeof showToast === 'function') {
+                            showToast('Librarian AI Copilot is located in your Admin Dashboard.', 'info');
+                        }
+                        return;
+                    }
 
                     // Don't switch if already on this view
                     const currentView = document.querySelector('.view-mode-container.active');
@@ -309,9 +335,13 @@
                     if (dropPanel) dropPanel.classList.remove('open');
                     if (trigger) trigger.setAttribute('aria-expanded', 'false');
 
-                    let userType = sessionStorage.getItem('userType');
+                    let userType = sessionStorage.getItem('userType') || localStorage.getItem('userType');
                     if (!userType && window.AuthService) {
                         userType = await AuthService.getUserType();
+                    }
+                    if (userType === 'admin' || userType === 'librarian') {
+                        // Librarians and admins cannot save projects
+                        return;
                     }
                     const isSubpage = window.location.pathname.includes('/pages/');
                     let targetUrl = '';
@@ -319,8 +349,6 @@
                         targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
                     } else if (userType === 'teacher') {
                         targetUrl = isSubpage ? 'teacher_page.html#saved' : 'pages/teacher_page.html#saved';
-                    } else if (userType === 'librarian') {
-                        targetUrl = isSubpage ? 'librarian_page.html#saved' : 'pages/librarian_page.html#saved';
                     } else {
                         targetUrl = isSubpage ? 'student_page.html#saved' : 'pages/student_page.html#saved';
                     }
@@ -332,7 +360,8 @@
         syncSavedNavVisibility(user) {
             const currentUser = user || ((typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null);
             const isAuth = Boolean(currentUser || localStorage.getItem('cachedAuthState') === 'true');
-            const isAdmin = ProjectBookmarkService.isAdmin();
+            const userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+            const isRestricted = userRole === 'admin' || userRole === 'librarian' || ProjectBookmarkService.isRestrictedRole();
             const navSaved = document.getElementById('nav-saved-projects');
             const pdSaved = document.getElementById('pd-saved-row');
             const pdDivider = document.getElementById('pd-saved-divider');
@@ -340,14 +369,38 @@
             if (isAuth) {
                 // LOGGED-IN: Minimize secondary header by hiding Saved Projects action from secondary nav
                 if (navSaved) navSaved.style.display = 'none';
-                // Show Saved Projects in profile dropdown if not admin
-                if (pdSaved) pdSaved.style.display = isAdmin ? 'none' : 'flex';
-                if (pdDivider) pdDivider.style.display = isAdmin ? 'none' : 'block';
+                // Show Saved Projects in profile dropdown ONLY if not librarian and not admin
+                if (pdSaved) {
+                    if (isRestricted) {
+                        pdSaved.style.setProperty('display', 'none', 'important');
+                        pdSaved.classList.add('role-hidden');
+                    } else {
+                        pdSaved.style.removeProperty('display');
+                        pdSaved.style.display = 'flex';
+                        pdSaved.classList.remove('role-hidden');
+                    }
+                }
+                if (pdDivider) {
+                    if (isRestricted) {
+                        pdDivider.style.setProperty('display', 'none', 'important');
+                        pdDivider.classList.add('role-hidden');
+                    } else {
+                        pdDivider.style.removeProperty('display');
+                        pdDivider.style.display = 'block';
+                        pdDivider.classList.remove('role-hidden');
+                    }
+                }
             } else {
                 // ANONYMOUS / GUEST: Show Saved Projects in secondary header
                 if (navSaved) navSaved.style.display = 'inline-flex';
-                if (pdSaved) pdSaved.style.display = 'none';
-                if (pdDivider) pdDivider.style.display = 'none';
+                if (pdSaved) {
+                    pdSaved.style.setProperty('display', 'none', 'important');
+                    pdSaved.classList.add('role-hidden');
+                }
+                if (pdDivider) {
+                    pdDivider.style.setProperty('display', 'none', 'important');
+                    pdDivider.classList.add('role-hidden');
+                }
             }
         },
 
@@ -403,6 +456,16 @@
 
         switchView(viewName) {
             console.log('Switching to view:', viewName);
+
+            // Guard: Admins should not use the student research chatbot
+            const userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+            if (viewName === 'ai-chatbot' && userRole === 'admin') {
+                console.log('Admins use the dedicated Librarian AI Copilot in the Admin Dashboard.');
+                if (typeof showToast === 'function') {
+                    showToast('Librarian AI Copilot is located in your Admin Dashboard.', 'info');
+                }
+                return;
+            }
 
             const views = {
                 'index': document.getElementById('home-view'),
@@ -517,7 +580,7 @@
         },
 
         getSavedProjectsList() {
-            if (ProjectBookmarkService.isAdmin()) return [];
+            if (ProjectBookmarkService.isRestrictedRole()) return [];
 
             const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
 
@@ -583,7 +646,7 @@
         },
 
         getSavedProjectsCount() {
-            if (ProjectBookmarkService.isAdmin()) return 0;
+            if (ProjectBookmarkService.isRestrictedRole()) return 0;
             const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
             if (!currentUser && window.GuestSavedProjects) {
                 return window.GuestSavedProjects.getIds().length;
@@ -772,8 +835,8 @@
         detailsGrid.hidden = false;
 
         const projectId = project.id || project.UIDproject;
-        const isAdmin = ProjectBookmarkService.isAdmin();
-        let isSaved = (!isAdmin && projectId) ? ProjectBookmarkService.isSaved(projectId) : false;
+        const isRestricted = ProjectBookmarkService.isRestrictedRole();
+        let isSaved = (!isRestricted && projectId) ? ProjectBookmarkService.isSaved(projectId) : false;
 
         function formatSaveCount(count) {
             const num = Number(count) || 0;
@@ -803,7 +866,7 @@
         const adviser = escapeHtml(project.adviser || 'Not listed');
         const updatedAtStr = formatDate(project.updatedAt || project.createdAt);
 
-        const headerSaveButtonHtml = isAdmin ? `
+        const headerSaveButtonHtml = isRestricted ? `
             <div class="project-header-save-pill ${effectiveSaveCount > 0 ? 'has-saves' : ''}" title="${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'} saved this project">
                 <span class="save-icon-svg">${getBookmarkSvg(effectiveSaveCount > 0)}</span>
                 <span class="save-pill-count">${formatSaveCount(effectiveSaveCount)}</span>
@@ -834,7 +897,7 @@
             </div>
         `;
 
-        const sidebarSaveButtonHtml = isAdmin ? '' : `
+        const sidebarSaveButtonHtml = isRestricted ? '' : `
             <button class="detail-save-btn ${isSaved ? 'saved' : ''}" id="detail-save-btn" type="button" aria-label="${isSaved ? 'Remove from saved' : 'Save project'}">
                 <span class="detail-save-icon">${getBookmarkSvg(isSaved)}</span>
                 <span class="detail-save-text">${isSaved ? 'Saved to Bookmarks' : 'Save Project'}</span>

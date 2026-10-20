@@ -175,6 +175,8 @@
     const _RAIL_ICON_MAP = {
         'dashboard':   'dashboard',
         'projects':    'projects',
+        'approvals':   'check',
+        'copilot':     'aichatbot',
         'users':       'users',
         'analytics':   'analytics',
         'settings':    'settings',

@@ -52,15 +52,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectsContainer = document.getElementById('projects-container');
     const paginationContainer = document.getElementById('pagination-container');
     
-    // User role state & Admin limitation check
-    let currentUserRole = sessionStorage.getItem('userType') || null;
+    // User role state & Admin/Librarian limitation check
+    let currentUserRole = sessionStorage.getItem('userType') || localStorage.getItem('userType') || null;
 
-    function isAdminUser() {
-        return currentUserRole === 'admin' || sessionStorage.getItem('userType') === 'admin';
+    function isSaveRestrictedRole() {
+        const role = currentUserRole || sessionStorage.getItem('userType') || localStorage.getItem('userType');
+        return role === 'admin' || role === 'librarian';
     }
 
-    // Saved projects state (Admins cannot save or bookmark projects)
-    let savedProjectIds = (!isAdminUser() && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
+    function isAdminUser() {
+        const role = currentUserRole || sessionStorage.getItem('userType') || localStorage.getItem('userType');
+        return role === 'admin';
+    }
+
+    // Saved projects state (Admins & Librarians cannot save or bookmark projects)
+    let savedProjectIds = (!isSaveRestrictedRole() && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
         ? window.GuestSavedProjects.getIds()
         : [];
     window.savedProjectIds = savedProjectIds;
@@ -255,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to load saved projects from Firestore
     async function loadSavedProjectsFromFirestore(userId) {
-        if (isAdminUser()) {
+        if (isSaveRestrictedRole()) {
             savedProjectIds = [];
             savedProjectsFull = [];
             return;
@@ -315,8 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to save project to Firestore
     async function saveProjectToFirestore(userId, projectId) {
-        if (isAdminUser()) {
-            console.warn('[RE-CAPS] Administrators are restricted from saving or bookmarking projects.');
+        if (isSaveRestrictedRole()) {
+            console.warn('[RE-CAPS] Role is restricted from saving or bookmarking projects.');
             return;
         }
         try {
@@ -353,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to remove project from Firestore
     async function removeProjectFromFirestore(userId, projectId) {
-        if (isAdminUser()) {
+        if (isSaveRestrictedRole()) {
             return;
         }
         try {
@@ -727,9 +733,10 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('📡 Fetching fresh data from Firestore...');
             projectsContainer.innerHTML = '<p class="loading-text">Loading projects...</p>';
             
-            if (typeof db === 'undefined') {
-                console.error('Firestore db is not initialized.');
-                projectsContainer.innerHTML = '<p class="loading-text">Database configuration missing.</p>';
+            const firestoreDb = (typeof db !== 'undefined' && db) ? db : (typeof window !== 'undefined' ? window.db : null);
+            if (!firestoreDb) {
+                console.warn('Firestore db is not initialized.');
+                projectsContainer.innerHTML = '<p class="loading-text">Database configuration missing or offline.</p>';
                 return;
             }
 
@@ -743,7 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let querySnapshot;
             try {
-                querySnapshot = await db.collection('projects').get();
+                querySnapshot = await firestoreDb.collection('projects').get();
             } finally {
                 clearTimeout(slowTimer);
             }
@@ -1001,9 +1008,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = `project-card ${cardTierClass}`.trim();
             
-            // Admin limitation: Admins cannot save projects, but can see community save metrics
-            const isAdmin = isAdminUser();
-            const saveButtonHtml = isAdmin ? `
+            // Role limitation: Admins and Librarians cannot save projects, but can see community save metrics
+            const isRestricted = isSaveRestrictedRole();
+            const saveButtonHtml = isRestricted ? `
                 <div class="project-save-counter-pill ${effectiveSaveCount > 0 ? 'has-saves' : ''}" data-id="${projectId}" title="${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'} saved this project">
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="${effectiveSaveCount > 0 ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
@@ -1061,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const saveButton = card.querySelector('.btn-save');
-            if (saveButton && !isAdmin) {
+            if (saveButton && !isRestricted) {
                 saveButton.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     const wasSaved = saveButton.classList.contains('saved');
@@ -1522,8 +1529,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 currentUserRole = role;
 
-                if (isAdminUser()) {
-                    // Admin limitation: Admins cannot save projects. Clear bookmarks and re-render without save buttons
+                if (isSaveRestrictedRole()) {
+                    // Admin & Librarian limitation: cannot save projects. Clear bookmarks and re-render without save buttons
                     savedProjectIds = [];
                     savedProjectsFull = [];
                     localStorage.removeItem('savedProjects');
@@ -1550,7 +1557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('authRoleUpdated', (e) => {
             if (e.detail && e.detail.role) {
                 currentUserRole = e.detail.role;
-                if (isAdminUser()) {
+                if (isSaveRestrictedRole()) {
                     savedProjectIds = [];
                     savedProjectsFull = [];
                     localStorage.removeItem('savedProjects');
@@ -1562,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Listen for guest storage updates (e.g. after sync or delete)
         window.addEventListener('guestSavedProjectsChanged', () => {
             const currentUser = firebase.auth().currentUser;
-            if (!currentUser && window.GuestSavedProjects && !isAdminUser()) {
+            if (!currentUser && window.GuestSavedProjects && !isSaveRestrictedRole()) {
                 savedProjectIds = window.GuestSavedProjects.getIds();
                 window.savedProjectIds = savedProjectIds;
                 updateScopeBadges();
@@ -1581,7 +1588,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isNowSaved = Boolean(e.detail.isSaved);
                 const newCount = typeof e.detail.saveCount === 'number' ? e.detail.saveCount : null;
 
-                if (!isAdminUser()) {
+                if (!isSaveRestrictedRole()) {
                     if (isNowSaved) {
                         if (!savedProjectIds.includes(targetId)) {
                             savedProjectIds.push(targetId);

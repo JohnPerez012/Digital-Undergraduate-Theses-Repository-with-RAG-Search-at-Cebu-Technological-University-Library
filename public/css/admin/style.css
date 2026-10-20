@@ -663,8 +663,10 @@ body {
 
 #projects-table th:nth-child(6),
 #projects-table td:nth-child(6) {
-    min-width: 200px;
-    white-space: nowrap;
+    width: 100px;
+    min-width: 90px;
+    text-align: center !important;
+    vertical-align: middle !important;
 }
 
 /* Explicit column widths for Users Table */
@@ -833,6 +835,18 @@ body {
     background: rgba(16, 185, 129, 0.04);
 }
 
+.action-btn.action-evaluate {
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.action-btn.action-reject {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.04);
+}
+
 /* 2. HOVERED (OR FOCUSED): SHOW TEXT, HIDE ICON */
 .action-btn:hover,
 .action-btn:focus-visible {
@@ -894,6 +908,22 @@ body {
     border-color: #10b981 !important;
     color: #ffffff !important;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.action-btn.action-evaluate:hover,
+.action-btn.action-evaluate:focus-visible {
+    background: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.action-btn.action-reject:hover,
+.action-btn.action-reject:focus-visible {
+    background: var(--admin-danger, #ef4444) !important;
+    border-color: var(--admin-danger, #ef4444) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
 }
 
 @keyframes actionBtnTextFadeIn {
@@ -7167,3 +7197,1528 @@ form #project-id-input {
     margin-left: 0.45rem;
     vertical-align: middle;
 }
+
+/* ====================================================
+   LIBRARIAN APPROVALS UI STYLES
+   ==================================================== */
+.rail-badge-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f59e0b;
+    color: #111827;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
+    50% { transform: scale(1.08); box-shadow: 0 0 14px rgba(245, 158, 11, 0.7); }
+}
+
+.approvals-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 0.3rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.stat-card-amber:hover {
+    border-color: rgba(245, 158, 11, 0.45);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+}
+
+.approvals-actions-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+}
+
+.btn-action-evaluate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 8px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.btn-action-evaluate:hover {
+    background: #6366f1;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.btn-action-approve {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 8px;
+    background: rgba(8, 212, 136, 0.12);
+    color: #08D488;
+    border: 1px solid rgba(8, 212, 136, 0.35);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.btn-action-approve:hover {
+    background: linear-gradient(135deg, #08D488 0%, #10b981 100%);
+    color: #fff;
+    border-color: transparent;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.35);
+}
+
+.btn-action-reject {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.btn-action-reject:hover {
+    background: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.approvals-submitter-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.approvals-submitter-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+.approvals-submitter-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.approvals-title-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.approvals-title-text {
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.35;
+}
+.approvals-keywords-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.2rem;
+}
+.approvals-keyword-tag {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.action-btn.action-lock:hover,
+.action-btn.action-lock:focus-visible {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.action-btn.action-unlock:hover,
+.action-btn.action-unlock:focus-visible {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.approvals-live-editing-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 20px;
+    color: #fbbf24;
+    font-size: 0.8rem;
+    font-weight: 500;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
+    white-space: nowrap;
+}
+
+.approvals-live-editing-pill strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.force-release-lock-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    cursor: pointer;
+    margin-left: 5px;
+    padding: 0;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+
+.force-release-lock-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+    transform: scale(1.15);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.live-editing-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.9);
+    animation: liveEditPulse 1.4s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes liveEditPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.9);
+    }
+    50% {
+        transform: scale(1.35);
+        opacity: 0.7;
+        box-shadow: 0 0 14px rgba(245, 158, 11, 1);
+    }
+}
+
+/* ==========================================================================
+   2 ROW x 2 COL ACTION BUTTON GRID (ALL PROJECTS & LIBRARIAN APPROVALS)
+   ========================================================================== */
+#projects-table th:last-child,
+#approvals-table th:last-child {
+    width: 100px;
+    text-align: center !important;
+}
+
+#projects-table td:last-child,
+#approvals-table td:last-child {
+    text-align: center !important;
+    vertical-align: middle !important;
+    padding: 0.75rem 0.5rem !important;
+}
+
+#projects-table .table-actions,
+#approvals-table .table-actions,
+.approvals-action-grid,
+.projects-action-grid {
+    display: inline-grid !important;
+    grid-template-columns: repeat(2, 34px) !important;
+    grid-template-rows: repeat(2, 34px) !important;
+    gap: 6px !important;
+    justify-content: center !important;
+    align-content: center !important;
+    vertical-align: middle !important;
+}
+
+#projects-table .table-actions .action-btn,
+#approvals-table .table-actions .action-btn,
+.approvals-action-grid .action-btn,
+.projects-action-grid .action-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 9px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    position: relative;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.2s ease,
+                background-color 0.2s ease,
+                border-color 0.2s ease,
+                color 0.2s ease !important;
+}
+
+/* Maintain crisp icon centering without expanding layout */
+#projects-table .table-actions .action-btn svg,
+#approvals-table .table-actions .action-btn svg,
+.approvals-action-grid .action-btn svg,
+.projects-action-grid .action-btn svg {
+    display: block !important;
+    width: 15px !important;
+    height: 15px !important;
+    margin: 0 auto !important;
+    stroke: currentColor;
+    transition: transform 0.18s ease;
+}
+
+/* Prevent text node expansion from shifting grid geometry */
+#projects-table .table-actions .action-btn .action-btn-text,
+#projects-table .table-actions .action-btn .btn-text,
+#projects-table .table-actions .action-btn span:not(.sync-dot),
+#approvals-table .table-actions .action-btn .action-btn-text,
+#approvals-table .table-actions .action-btn .btn-text,
+#approvals-table .table-actions .action-btn span:not(.sync-dot),
+.approvals-action-grid .action-btn .action-btn-text,
+.approvals-action-grid .action-btn .btn-text,
+.approvals-action-grid .action-btn span:not(.sync-dot),
+.projects-action-grid .action-btn .action-btn-text,
+.projects-action-grid .action-btn .btn-text,
+.projects-action-grid .action-btn span:not(.sync-dot) {
+    display: none !important;
+}
+
+/* Tactile micro-pop hover effect */
+#projects-table .table-actions .action-btn:hover,
+#projects-table .table-actions .action-btn:focus-visible,
+#approvals-table .table-actions .action-btn:hover,
+#approvals-table .table-actions .action-btn:focus-visible,
+.approvals-action-grid .action-btn:hover,
+.approvals-action-grid .action-btn:focus-visible,
+.projects-action-grid .action-btn:hover,
+.projects-action-grid .action-btn:focus-visible {
+    transform: scale(1.14) !important;
+    z-index: 2;
+    outline: none !important;
+}
+
+#projects-table .table-actions .action-btn:hover svg,
+#approvals-table .table-actions .action-btn:hover svg,
+.approvals-action-grid .action-btn:hover svg,
+.projects-action-grid .action-btn:hover svg {
+    transform: scale(1.08) !important;
+}
+
+/* Subtle idle tints for fast cognitive recognition */
+#projects-table .action-btn.action-view,
+#approvals-table .action-btn.action-view {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.28);
+}
+#projects-table .action-btn.action-edit {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.28);
+}
+#projects-table .action-btn.action-delete,
+#approvals-table .action-btn.action-reject {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.28);
+}
+#approvals-table .action-btn.action-evaluate {
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.28);
+}
+#approvals-table .action-btn.action-approve {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.28);
+}
+#projects-table .action-btn.action-lock,
+#approvals-table .action-btn.action-lock {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.28);
+}
+#projects-table .action-btn.action-unlock,
+#approvals-table .action-btn.action-unlock {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.28);
+}
+
+/* Rich glowing hover accents */
+#projects-table .table-actions .action-btn.action-view:hover,
+#approvals-table .table-actions .action-btn.action-view:hover {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.45) !important;
+}
+
+#projects-table .table-actions .action-btn.action-edit:hover {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45) !important;
+}
+
+#projects-table .table-actions .action-btn.action-delete:hover,
+#approvals-table .table-actions .action-btn.action-reject:hover {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45) !important;
+}
+
+#approvals-table .table-actions .action-btn.action-evaluate:hover {
+    background: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45) !important;
+}
+
+#approvals-table .table-actions .action-btn.action-approve:hover {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45) !important;
+}
+
+#projects-table .table-actions .action-btn.action-lock:hover,
+#approvals-table .table-actions .action-btn.action-lock:hover {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45) !important;
+}
+
+#projects-table .table-actions .action-btn.action-unlock:hover,
+#approvals-table .table-actions .action-btn.action-unlock:hover {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45) !important;
+}
+
+/* When only 2 buttons are present (e.g. locked state: View & Unlock) */
+#projects-table .table-actions:has(.action-unlock),
+#approvals-table .table-actions:has(.action-unlock) {
+    grid-template-columns: repeat(2, 34px) !important;
+    grid-template-rows: 34px !important;
+}
+
+/* ========================================================
+   LIBRARIAN AI COPILOT FLOATING BUTTON & SECTION STYLES
+   ======================================================== */
+
+/* Floating Button (Bottom-Right Corner) */
+.admin-floating-copilot-container {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 999;
+}
+
+.admin-floating-copilot-btn {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #08D488 0%, #059669 100%);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(8, 212, 136, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+}
+
+.admin-floating-copilot-btn:hover {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 14px 32px rgba(8, 212, 136, 0.55), 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.admin-floating-copilot-btn:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+/* Pulsing Aura Ring */
+.copilot-pulse-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid rgba(8, 212, 136, 0.5);
+    animation: copilotAuraPulse 2.4s infinite cubic-bezier(0.25, 0, 0, 1);
+    pointer-events: none;
+}
+
+@keyframes copilotAuraPulse {
+    0% { transform: scale(0.92); opacity: 0.9; }
+    50% { transform: scale(1.22); opacity: 0; }
+    100% { transform: scale(1.25); opacity: 0; }
+}
+
+.copilot-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copilot-btn-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #f59e0b;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 9999px;
+    border: 2px solid var(--surface, #ffffff);
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.copilot-tooltip {
+    position: absolute;
+    right: calc(100% + 14px);
+    top: 50%;
+    transform: translateY(-50%) translateX(10px);
+    background: #0f172a;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.copilot-tooltip::after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 5px 0 5px 5px;
+    border-style: solid;
+    border-color: transparent transparent transparent #0f172a;
+}
+
+.admin-floating-copilot-btn:hover .copilot-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Copilot Section Badge */
+.copilot-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(8, 212, 136, 0.14);
+    color: #08D488;
+    border: 1px solid rgba(8, 212, 136, 0.35);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Copilot Workspace Card */
+.copilot-workspace-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    margin-top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 190px);
+    min-height: 620px;
+    overflow: hidden;
+}
+
+.copilot-chat-body {
+    flex: 1;
+    padding: 2rem 2.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+#copilot-messages-list,
+.copilot-messages-list {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+#copilot-messages-list .copilot-msg-row,
+.copilot-messages-list .copilot-msg-row {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+}
+
+#copilot-messages-list .copilot-msg-row.user,
+.copilot-messages-list .copilot-msg-row.user {
+    justify-content: flex-end !important;
+}
+
+#copilot-messages-list .copilot-msg-row.bot,
+.copilot-messages-list .copilot-msg-row.bot {
+    justify-content: flex-start !important;
+}
+
+#copilot-messages-list .copilot-msg-row.user .copilot-msg-bubble,
+.copilot-messages-list .copilot-msg-row.user .copilot-msg-bubble {
+    max-width: 80% !important;
+    width: auto !important;
+    align-self: flex-end !important;
+    padding: 14px 22px !important;
+    font-size: 13.5px !important;
+    height: auto !important;
+    min-height: unset !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+#copilot-messages-list .copilot-msg-row.bot .copilot-msg-bubble,
+.copilot-messages-list .copilot-msg-row.bot .copilot-msg-bubble {
+    max-width: 96% !important;
+    width: auto !important;
+    align-self: flex-start !important;
+    padding: 22px 30px !important;
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+    height: auto !important;
+    flex-grow: 1 !important;
+}
+
+.copilot-welcome-box {
+    text-align: center;
+    max-width: 860px;
+    margin: auto;
+}
+
+.copilot-avatar-large {
+    width: 68px;
+    height: 68px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(8, 212, 136, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+    color: #08D488;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    border: 1px solid rgba(8, 212, 136, 0.25);
+}
+
+.copilot-welcome-box h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.copilot-welcome-box p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.copilot-quick-prompts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 640px) {
+    .copilot-quick-prompts {
+        grid-template-columns: 1fr;
+    }
+}
+
+.copilot-prompt-pill {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.copilot-prompt-pill:hover {
+    border-color: #08D488;
+    background: rgba(8, 212, 136, 0.06);
+    color: #08D488;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.15);
+}
+
+/* Copilot Input Bar */
+.copilot-input-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.copilot-input-inner {
+    width: 100%;
+    max-width: 1280px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.copilot-input-field {
+    flex: 1;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.copilot-input-field:focus {
+    border-color: #08D488;
+    box-shadow: 0 0 0 3px rgba(8, 212, 136, 0.18);
+}
+
+.copilot-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #08D488 0%, #10b981 100%);
+    border: none;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.copilot-send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(8, 212, 136, 0.35);
+}
+
+.copilot-send-btn:active {
+    transform: scale(0.96);
+}
+
+/* Mobile responsive for floating button */
+@media (max-width: 768px) {
+    .admin-floating-copilot-container {
+        bottom: 20px;
+        right: 20px;
+    }
+    .admin-floating-copilot-btn {
+        width: 50px;
+        height: 50px;
+    }
+    .copilot-tooltip {
+        display: none;
+    }
+}
+
+/* ========================================================
+   ADMIN COPILOT FLOATING CHAT WIDGET STYLES
+   ======================================================== */
+.copilot-btn-botlang-img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    border-radius: 8px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+}
+
+.admin-copilot-widget {
+    position: fixed;
+    bottom: 96px;
+    right: 28px;
+    width: 400px;
+    max-width: calc(100vw - 36px);
+    height: 570px;
+    max-height: calc(100vh - 120px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(8, 212, 136, 0.18);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+    transform: translateY(18px) scale(0.96);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.admin-copilot-widget.active {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Widget Header */
+.copilot-widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(8, 212, 136, 0.08) 0%, rgba(83, 74, 183, 0.08) 100%);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.copilot-widget-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.copilot-widget-avatar-wrap {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #534AB7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(83, 74, 183, 0.3);
+}
+
+.botlang-avatar-img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.copilot-status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #08D488;
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.copilot-widget-title-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.copilot-widget-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+}
+
+.copilot-widget-subtitle {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.2;
+}
+
+.copilot-widget-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.copilot-widget-action-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.copilot-widget-action-btn:hover {
+    background: var(--background);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+.copilot-widget-action-btn.close:hover {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+/* Widget Body */
+.copilot-widget-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.copilot-widget-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.copilot-widget-body::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+/* Welcome Card */
+.copilot-widget-welcome {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.copilot-widget-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #08D488;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.copilot-widget-welcome-badge .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #08D488;
+}
+
+.copilot-widget-welcome-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.copilot-widget-welcome-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin: 0;
+}
+
+.copilot-widget-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.copilot-widget-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+}
+
+.copilot-widget-chip:hover {
+    border-color: #08D488;
+    background: rgba(8, 212, 136, 0.08);
+    color: #08D488;
+    transform: translateX(3px);
+}
+
+/* Messages */
+.copilot-widget-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.copilot-msg-row {
+    display: flex;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.copilot-msg-row.user {
+    justify-content: flex-end;
+}
+
+.copilot-msg-row.bot {
+    justify-content: flex-start;
+}
+
+.copilot-msg-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #534AB7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.copilot-msg-avatar img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.copilot-msg-bubble {
+    padding: 10px 13px;
+    border-radius: 14px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    max-width: 86%;
+    word-break: break-word;
+}
+
+.copilot-msg-row.user .copilot-msg-bubble {
+    background: linear-gradient(135deg, #08D488 0%, #059669 100%);
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.25);
+}
+
+.copilot-msg-row.bot .copilot-msg-bubble {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+}
+
+/* Dynamic Copilot Response Architecture */
+.copilot-dynamic-response {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+/* Spatial landmark card & breadcrumbs */
+.copilot-landmark-card {
+    background: rgba(8, 212, 136, 0.08);
+    border: 1px solid rgba(8, 212, 136, 0.28);
+    border-radius: 10px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(8, 212, 136, 0.05);
+}
+
+.landmark-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.landmark-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(8, 212, 136, 0.16);
+    color: #08D488;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.landmark-crumbs {
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--text-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.crumb-area {
+    color: var(--text-secondary);
+}
+
+.crumb-sep {
+    color: #08D488;
+    opacity: 0.7;
+    font-size: 11px;
+}
+
+.crumb-element {
+    color: #08D488;
+    font-weight: 700;
+    background: rgba(8, 212, 136, 0.12);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.landmark-action-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.copilot-jump-action {
+    background: linear-gradient(135deg, #08D488 0%, #059669 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 3px 8px rgba(8, 212, 136, 0.25);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.copilot-jump-action:hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 14px rgba(8, 212, 136, 0.35);
+    background: linear-gradient(135deg, #10e094 0%, #059669 100%);
+}
+
+.copilot-jump-action:active {
+    transform: translateY(0);
+}
+
+/* Stepper List & Cards */
+.copilot-stepper-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.copilot-step-card {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 9px;
+    padding: 10px 12px;
+    transition: all 0.2s ease;
+}
+
+.copilot-step-card:hover {
+    border-color: rgba(8, 212, 136, 0.3);
+    background: rgba(8, 212, 136, 0.02);
+}
+
+.step-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #08D488 0%, #059669 100%);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    box-shadow: 0 2px 6px rgba(8, 212, 136, 0.3);
+}
+
+.step-content {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text-primary);
+    flex: 1;
+    word-break: break-word;
+}
+
+.step-content strong {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.step-content code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 11.5px;
+    color: #a7f3d0;
+}
+
+.step-sub-bullet {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    padding-left: 2px;
+    line-height: 1.45;
+}
+
+/* Fallback Text Body */
+.copilot-text-body {
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--text-primary);
+}
+
+.copilot-bullet-list {
+    margin: 6px 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.copilot-bullet-item {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Precaution Card */
+.copilot-precaution-card {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    border-left: 3px solid #f59e0b;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.precaution-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #f59e0b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.precaution-body {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+.precaution-body strong {
+    color: #fde68a;
+}
+
+/* Footer Metadata & Actions */
+.copilot-footer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rag-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #08D488;
+    box-shadow: 0 0 6px rgba(8, 212, 136, 0.8);
+    animation: ragPulse 2s infinite ease-in-out;
+}
+
+@keyframes ragPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.copilot-copy-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-secondary);
+    padding: 3px 8px;
+    font-size: 10.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.copilot-copy-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.copilot-copy-btn.copied {
+    color: #08D488;
+    border-color: #08D488;
+    background: rgba(8, 212, 136, 0.1);
+}
+
+/* Backwards compatibility */
+.copilot-landmark-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(8, 212, 136, 0.12);
+    border: 1px solid rgba(8, 212, 136, 0.3);
+    color: #08D488;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.copilot-steps-list {
+    margin: 6px 0;
+    padding-left: 18px;
+    font-size: 12px;
+}
+
+.copilot-steps-list li {
+    margin-bottom: 4px;
+}
+
+.copilot-precaution-alert {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid #f59e0b;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: var(--text-primary);
+    margin-top: 6px;
+}
+
+/* Typing Indicator */
+.copilot-widget-typing {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+}
+
+.copilot-typing-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 12px;
+}
+
+.copilot-typing-bubble .typing-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #08D488;
+    animation: typingPulse 1.2s infinite ease-in-out;
+}
+
+.copilot-typing-bubble .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.copilot-typing-bubble .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingPulse {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-3px); opacity: 1; }
+}
+
+.copilot-typing-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Footer & Input */
+.copilot-widget-footer {
+    padding: 10px 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.copilot-widget-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.copilot-widget-input {
+    flex: 1;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.copilot-widget-input:focus {
+    border-color: #08D488;
+    box-shadow: 0 0 0 2px rgba(8, 212, 136, 0.2);
+}
+
+.copilot-widget-send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #08D488 0%, #059669 100%);
+    border: none;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.copilot-widget-send-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.35);
+}
+
+.copilot-widget-send-btn:active {
+    transform: scale(0.96);
+}
+
+/* Mobile responsive for chat widget */
+@media (max-width: 480px) {
+    .admin-copilot-widget {
+        right: 12px;
+        left: 12px;
+        bottom: 84px;
+        width: auto;
+        max-width: none;
+        height: 75vh;
+        max-height: calc(100vh - 100px);
+    }
+}
+
+
+
+

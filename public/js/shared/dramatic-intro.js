@@ -117,6 +117,9 @@ class DramaticIntro {
     const fontLink = document.createElement('link');
     fontLink.rel = 'stylesheet';
     fontLink.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@900&display=swap`;
+    fontLink.onerror = () => {
+      console.warn(`[DramaticIntro] Google Font ${fontName} could not be loaded (offline or DNS error). Falling back to system fonts.`);
+    };
 
     document.head.appendChild(preconnect1);
     document.head.appendChild(preconnect2);
@@ -242,10 +245,15 @@ class DramaticIntro {
       return;
     }
 
-    // Check if GSAP is loaded
+    // Check if GSAP is loaded, attempt dynamic load with graceful fallback
     if (typeof gsap === 'undefined') {
-      console.error('DramaticIntro: GSAP library not found. Please include GSAP before using this module.');
-      await this.loadGSAP();
+      try {
+        await this.loadGSAP();
+      } catch (err) {
+        console.warn('DramaticIntro: GSAP library not reachable (offline mode or CDN unreachable). Using native CSS fallback intro.');
+        this.runFallbackIntro();
+        return;
+      }
     }
 
     this.isAnimating = true;
@@ -346,6 +354,61 @@ class DramaticIntro {
       };
       document.head.appendChild(script);
     });
+  }
+
+  /**
+   * Run graceful CSS-driven fallback intro animation when GSAP/network is unavailable.
+   * Guarantees that scrolling is restored and the intro overlay is cleanly dismissed.
+   */
+  runFallbackIntro() {
+    this.isAnimating = true;
+
+    // Immediately ensure scrolling is enabled so user is never locked out
+    this.enableScroll();
+
+    if (!this.elements.wrapper) {
+      this.onAnimationComplete();
+      return;
+    }
+
+    // Wrap characters for fallback CSS animation
+    const chars = this.wrapCharacters();
+    if (chars && chars.length > 0) {
+      chars.forEach((c, idx) => {
+        setTimeout(() => {
+          c.style.transition = 'color 0.4s ease, -webkit-text-stroke 0.4s ease, transform 0.4s ease';
+          c.style.color = this.options.solidColor;
+          c.style.webkitTextStroke = '2px transparent';
+        }, idx * 50);
+      });
+    } else if (this.elements.title) {
+      this.elements.title.style.transition = 'color 0.5s ease, -webkit-text-stroke 0.5s ease';
+      this.elements.title.style.color = this.options.solidColor;
+      this.elements.title.style.webkitTextStroke = '2px transparent';
+    }
+
+    // Fade out background and wrapper cleanly
+    setTimeout(() => {
+      if (this.elements.bg) {
+        this.elements.bg.style.transition = 'opacity 0.6s ease';
+        this.elements.bg.style.opacity = '0';
+      }
+      if (this.elements.wrapper) {
+        this.elements.wrapper.style.transition = 'opacity 0.6s ease';
+        this.elements.wrapper.style.opacity = '0';
+      }
+
+      setTimeout(() => {
+        if (this.elements.wrapper) {
+          this.elements.wrapper.style.visibility = 'hidden';
+          this.elements.wrapper.style.pointerEvents = 'none';
+          this.elements.wrapper.style.display = 'none';
+          this.elements.wrapper.style.position = 'absolute';
+          this.elements.wrapper.style.zIndex = '-9999';
+        }
+        this.onAnimationComplete();
+      }, 650);
+    }, 600);
   }
 
   /**

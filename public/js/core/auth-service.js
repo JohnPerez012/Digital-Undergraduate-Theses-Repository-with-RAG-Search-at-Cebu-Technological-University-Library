@@ -134,6 +134,16 @@
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_EMAIL, userData.email || '');
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_NAME, userData.displayName || userData.fullName || '');
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_TYPE, userData.userType || '');
+            if (userData.userType) {
+                localStorage.setItem(CONFIG.STORAGE_KEYS.USER_TYPE, userData.userType);
+                if (typeof document !== 'undefined' && document.documentElement) {
+                    ['student', 'teacher', 'librarian', 'admin'].forEach(r => {
+                        document.documentElement.classList.remove(`role-${r}`);
+                    });
+                    document.documentElement.classList.add(`role-${userData.userType}`);
+                    document.documentElement.setAttribute('data-user-role', userData.userType);
+                }
+            }
         },
 
         /**
@@ -142,6 +152,13 @@
         clearSession() {
             sessionStorage.clear();
             localStorage.removeItem(CONFIG.STORAGE_KEYS.CACHED_AUTH_STATE);
+            localStorage.removeItem(CONFIG.STORAGE_KEYS.USER_TYPE);
+            if (typeof document !== 'undefined' && document.documentElement) {
+                ['student', 'teacher', 'librarian', 'admin'].forEach(r => {
+                    document.documentElement.classList.remove(`role-${r}`);
+                });
+                document.documentElement.removeAttribute('data-user-role');
+            }
         },
 
         /**

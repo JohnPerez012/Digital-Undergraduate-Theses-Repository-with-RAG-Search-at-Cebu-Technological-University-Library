@@ -448,3 +448,10 @@
     animation: none;
   }
 }
+
+/* Role-based suppression: Hide student research AI Chatbot from secondary header when user is Admin */
+html.role-admin .secondary-header .nav-item[data-page="ai-chatbot"],
+html[data-user-role="admin"] .secondary-header .nav-item[data-page="ai-chatbot"],
+body.role-admin .secondary-header .nav-item[data-page="ai-chatbot"] {
+  display: none !important;
+}

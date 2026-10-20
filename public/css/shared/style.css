@@ -454,12 +454,30 @@ html.auth-cached-logged-in #nav-saved-projects {
     display: none !important;
 }
 
-html.auth-cached-logged-in #pd-saved-row {
-    display: flex !important;
+/* Saved projects row in dropdown for logged-in students and teachers */
+html.auth-cached-logged-in:not(.role-librarian):not(.role-admin):not([data-user-role="librarian"]):not([data-user-role="admin"]) #pd-saved-row {
+    display: flex;
 }
 
-html.auth-cached-logged-in #pd-saved-divider {
-    display: block !important;
+html.auth-cached-logged-in:not(.role-librarian):not(.role-admin):not([data-user-role="librarian"]):not([data-user-role="admin"]) #pd-saved-divider {
+    display: block;
+}
+
+/* Librarians and Admins cannot save projects: strictly hide Saved Projects in profile dropdown */
+html.role-librarian #pd-saved-row,
+html.role-admin #pd-saved-row,
+html[data-user-role="librarian"] #pd-saved-row,
+html[data-user-role="admin"] #pd-saved-row,
+#pd-saved-row.role-hidden {
+    display: none !important;
+}
+
+html.role-librarian #pd-saved-divider,
+html.role-admin #pd-saved-divider,
+html[data-user-role="librarian"] #pd-saved-divider,
+html[data-user-role="admin"] #pd-saved-divider,
+#pd-saved-divider.role-hidden {
+    display: none !important;
 }
 
 /* Welcome Modal Styles */

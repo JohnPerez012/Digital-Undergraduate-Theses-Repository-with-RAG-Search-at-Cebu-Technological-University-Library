@@ -74,10 +74,21 @@
      */
     async function _fetchRaw(name) {
         if (_cache[name]) return _cache[name];
-        const res = await fetch(`${_BASE}${name}.svg`);
-        if (!res.ok) throw new Error(`[SVGLoader] Icon "${name}" not found at ${_BASE}${name}.svg`);
-        _cache[name] = await res.text();
-        return _cache[name];
+        try {
+            const res = await fetch(`${_BASE}${name}.svg`);
+            if (!res.ok) throw new Error(`[SVGLoader] Icon "${name}" not found at ${_BASE}${name}.svg`);
+            _cache[name] = await res.text();
+            return _cache[name];
+        } catch (err) {
+            if (typeof window !== 'undefined' && window.SVGRegistry && typeof window.SVGRegistry.get === 'function') {
+                const fallback = window.SVGRegistry.get(name);
+                if (fallback) {
+                    _cache[name] = fallback;
+                    return fallback;
+                }
+            }
+            throw err;
+        }
     }
 
     // ─── Public API ──────────────────────────────────────────────────────────

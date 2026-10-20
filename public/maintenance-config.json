@@ -1,0 +1,8 @@
+{
+  "targetDate": "10/26/2026",
+  "displayDate": "October 26, 2026",
+  "estimatedDays": "8 to 10 Days",
+  "targetTime": "6:00 PM (PHT)",
+  "statusBadge": "Scheduled Maintenance In Progress",
+  "statusNote": "Routine database migration & Pinecone vector indexing in progress."
+}

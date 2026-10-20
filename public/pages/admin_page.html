@@ -18,7 +18,7 @@
     <title>Admin Dashboard - RE-CAPS</title>
     <link rel="stylesheet" href="../css/shared/style.css?v=3">
     <link rel="stylesheet" href="../css/shared/dashboard-rail.css?v=2">
-    <link rel="stylesheet" href="../css/admin/style.css?v=22">
+    <link rel="stylesheet" href="../css/admin/style.css?v=25">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="stylesheet" href="../css/shared/password-change.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,6 +62,13 @@
                         </span>
                         <span class="rail-nav-text">Projects</span>
                     </a>
+                    <a href="#approvals" class="rail-nav-item" data-section="approvals" id="rail-nav-approvals">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        </span>
+                        <span class="rail-nav-text">Approvals</span>
+                        <span class="rail-badge-count" id="pending-approvals-badge" style="display:none;">0</span>
+                    </a>
                     <a href="#users" class="rail-nav-item" data-section="users">
                         <span class="rail-nav-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -73,6 +80,12 @@
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
                         </span>
                         <span class="rail-nav-text">Analytics</span>
+                    </a>
+                    <a href="#copilot" class="rail-nav-item" data-section="copilot" id="rail-nav-copilot">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path><rect x="4" y="8" width="16" height="12" rx="4"></rect><circle cx="9" cy="13" r="1.5" fill="currentColor"></circle><circle cx="15" cy="13" r="1.5" fill="currentColor"></circle><path d="M9 17h6"></path><path d="M2 14h2"></path><path d="M20 14h2"></path></svg>
+                        </span>
+                        <span class="rail-nav-text">AI Copilot</span>
                     </a>
                 </div>
 
@@ -164,6 +177,16 @@
                             </div>
                         </div>
 
+                        <div class="stat-card stat-card-amber" id="pending-approvals-card" style="cursor: pointer;" title="Click to view pending librarian submissions">
+                            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <h3 class="stat-value" id="pending-approvals-stat">0</h3>
+                                <p class="stat-label">Pending Approvals</p>
+                            </div>
+                        </div>
+
                         <div class="stat-card">
                             <div class="stat-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -248,17 +271,17 @@
                         </div>
                     </div>
 
-<!--
-BSIT
-BSFI
-BSHM
-BSIE
-BIT-Computer
-BIT-Electronics
-BIT-Automotive
-BEEd
-BSEd-Math
-BTLEd-HE 
+<!-- 123
+BSIT - Bachelor of Science in Information Technology
+BSFI - Bachelor of Science in Fisheries 
+BSHM - Bachelor of Science in Hospitality Management
+BSIE - Bachelor of Science in Industrial Engineering
+BIT-Computer - Bachelor of Information Technology - Computer Engineering
+BIT-Electronics - Bachelor of Information Technology - Electronics Engineering
+BIT-Automotive - Bachelor of Information Technology - Automotive Engineering
+BEEd - Bachelor of Elementary Education
+BSEd-Math - Bachelor of Secondary Education major in Mathematics
+BTLEd-HE - Bachelor of Technical Teacher Education major in Home Economics 
 -->
                     
                     <div class="filter-pills" id="project-filters">
@@ -286,7 +309,7 @@ BTLEd-HE
                                     <th class="sortable-header" onclick="sortTable('projects-table', 2, 'string')">Program</th>
                                     <th class="sortable-header" onclick="sortTable('projects-table', 3, 'number')">Year</th>
                                     <th class="sortable-header" onclick="sortTable('projects-table', 4, 'string')">Adviser</th>
-                                    <th>Actions</th>
+                                    <th style="text-align:center;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="projects-table-body">
@@ -299,6 +322,82 @@ BTLEd-HE
                     
                     <!-- Pagination Container -->
                     <div class="pagination-container" id="projects-pagination-container"></div>
+                </section>
+
+                <!-- Pending Approvals Section -->
+                <section id="section-approvals" class="content-section">
+                    <div class="section-header">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                                <h2 style="margin:0;">Librarian Submissions</h2>
+                                <span class="approvals-badge" id="approvals-live-counter">0 Pending</span>
+                            </div>
+                            <p class="section-desc" style="margin:0.35rem 0 0;color:var(--text-secondary);font-size:0.875rem;">
+                                Evaluate and approve project metadata uploaded by librarians before publishing to the public repository.
+                            </p>
+                        </div>
+                        <div class="section-actions">
+                            <div class="search-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                                <input type="text" id="approvals-search" placeholder="Search submissions...">
+                            </div>
+                            <div class="action-buttons-group">
+                                <select class="lib-filter-select" id="approvals-program-filter">
+                                    <option value="">All Programs</option>
+                                    <option value="BSFi">BSFi</option>
+                                    <option value="BSIT">BSIT</option>
+                                    <option value="BSHM">BSHM</option>
+                                    <option value="BSIE">BSIE</option>
+                                    <option value="BSEd-Math">BSEd-Math</option>
+                                    <option value="BEEd">BEEd</option>
+                                    <option value="BIT-Computer">BIT-Computer</option>
+                                    <option value="BIT-Electronics">BIT-Electronics</option>
+                                    <option value="BIT-Automotive">BIT-Automotive</option>
+                                    <option value="BTLEd-HE">BTLEd-HE</option>
+                                </select>
+                                <button class="btn-secondary" id="refresh-approvals-btn" title="Refresh submissions">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                    Refresh
+                                </button>
+                                <button class="btn-primary" id="batch-approve-all-btn" style="background:linear-gradient(135deg, #08D488 0%, #10b981 100%);">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                    Approve All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container" id="approvals-table-container">
+                        <table class="data-table" id="approvals-table">
+                            <thead>
+                                <tr>
+                                    <th>Project Title</th>
+                                    <th>Submitted By</th>
+                                    <th>Program</th>
+                                    <th>Year</th>
+                                    <th>Authors</th>
+                                    <th style="text-align:center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="approvals-table-body">
+                                <tr>
+                                    <td colspan="6" class="table-loading">Loading submissions...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty state illustration -->
+                    <div id="approvals-empty-state" style="display:none; text-align:center; padding: 4rem 2rem; background: var(--surface); border-radius: 14px; border: 1px dashed var(--border); margin-top: 1rem;">
+                        <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(8, 212, 136, 0.12); color: #08D488; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-primary);">All Caught Up!</h3>
+                        <p style="color: var(--text-secondary); max-width: 440px; margin: 0 auto; font-size: 0.875rem;">There are currently no projects awaiting admin approval. When campus librarians submit metadata, they will appear here in real time.</p>
+                    </div>
+
+                    <!-- Pagination Container -->
+                    <div class="pagination-container" id="approvals-pagination-container"></div>
                 </section>
 
                 <!-- Users Section -->
@@ -658,6 +757,77 @@ BTLEd-HE
                 <section id="section-activity" class="content-section">
                     <!-- Populated dynamically by ActivityUI -->
                 </section>
+
+                <!-- Librarian AI Copilot Section -->
+                <section id="section-copilot" class="content-section">
+                    <div class="section-header">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                                <h2 style="margin:0;">Librarian AI Copilot</h2>
+                                <span class="copilot-badge">Advisory Guidance System</span>
+                            </div>
+                            <p class="section-desc" style="margin:0.35rem 0 0;color:var(--text-secondary);font-size:0.875rem;">
+                                Step-by-step guidance for repository management, thesis cataloging, Pinecone vector search, and accreditation reports.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Copilot Workspace Card -->
+                    <div class="copilot-workspace-card">
+                        <div class="copilot-chat-body" id="copilot-chat-body">
+                            <div class="copilot-welcome-box" id="copilot-welcome-box">
+                                <div class="copilot-avatar-large">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path>
+                                        <rect x="4" y="8" width="16" height="12" rx="4"></rect>
+                                        <circle cx="9" cy="13" r="1.5" fill="currentColor"></circle>
+                                        <circle cx="15" cy="13" r="1.5" fill="currentColor"></circle>
+                                        <path d="M9 17h6"></path>
+                                        <path d="M2 14h2"></path>
+                                        <path d="M20 14h2"></path>
+                                    </svg>
+                                </div>
+                                <h3>Welcome to the Librarian AI Copilot</h3>
+                                <p>Ask any operational question about managing RE-CAPS. I will guide you with exact screen locations, button colors, and step-by-step precautions.</p>
+                                
+                                <div class="copilot-quick-prompts">
+                                    <button type="button" class="copilot-prompt-pill" data-copilot-prompt="How do I add a new capstone project with physical shelf location?">
+                                        📖 Add a project with shelf location
+                                    </button>
+                                    <button type="button" class="copilot-prompt-pill" data-copilot-prompt="How do I sync newly uploaded capstones to Pinecone AI search?">
+                                        ⚡ Sync Pinecone AI search index
+                                    </button>
+                                    <button type="button" class="copilot-prompt-pill" data-copilot-prompt="How do I bulk import 40 capstones from an Excel file?">
+                                        📊 Bulk import Excel spreadsheet
+                                    </button>
+                                    <button type="button" class="copilot-prompt-pill" data-copilot-prompt="How do I print an accreditation research report for the Dean?">
+                                        🖨️ Print official accreditation report
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="copilot-messages-list" id="copilot-messages-list" style="display:none; width: 100%; flex-direction: column;"></div>
+                            <!-- Section Typing Indicator -->
+                            <div class="copilot-section-typing" id="copilot-section-typing" style="display:none; width:100%; max-width:1280px; margin:14px auto 0; align-items:center; gap:10px;">
+                                <div class="copilot-typing-bubble" style="display:inline-flex; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--border); padding:8px 14px; border-radius:12px;">
+                                    <span class="typing-dot"></span>
+                                    <span class="typing-dot"></span>
+                                    <span class="typing-dot"></span>
+                                </div>
+                                <span style="font-size:12px; color:var(--text-secondary);">Consulting library operational manual &amp; Pinecone RAG...</span>
+                            </div>
+                        </div>
+
+                        <!-- Copilot Input Bar -->
+                        <div class="copilot-input-bar">
+                            <div class="copilot-input-inner">
+                                <input type="text" id="copilot-input-text" class="copilot-input-field" placeholder="Ask how to perform any task (e.g., 'How do I approve submissions?' or 'Why is delete disabled?')...">
+                                <button type="button" id="copilot-send-btn" class="copilot-send-btn" aria-label="Send question">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </main>
     </div>
@@ -859,7 +1029,7 @@ BTLEd-HE
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>
                     <!-- Footer Actions -->
                     <div class="pmodal-footer">
                         <button type="button" class="pmodal-btn-clear" id="clear-librarian-btn" style="display: none;">Clear</button>
@@ -922,6 +1092,157 @@ BTLEd-HE
         </div>
     </div>
 
+
+    <!-- ====================================================
+         EVALUATE & APPROVE LIBRARIAN SUBMISSION MODAL
+         ==================================================== -->
+    <div class="modal" id="approval-review-modal" role="dialog" aria-modal="true" aria-labelledby="approval-modal-title">
+        <div class="modal-overlay" id="approval-modal-overlay"></div>
+        <div class="modal-content project-modal-content">
+            <!-- Header -->
+            <div class="pmodal-header">
+                <div class="pmodal-header-left">
+                    <div class="pmodal-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 4px 16px rgba(245,158,11,0.4);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    </div>
+                    <div>
+                        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                            <h3 id="approval-modal-title" class="pmodal-title" style="margin:0;">Evaluate Project Submission</h3>
+                            <span class="librarian-role-pill" style="background:rgba(245,158,11,0.15);color:#f59e0b;border-color:rgba(245,158,11,0.3);">
+                                Pending Approval
+                            </span>
+                        </div>
+                        <p class="pmodal-subtitle">Submitted by <strong id="approval-submitter-name">Librarian</strong> (<span id="approval-submitter-email">email</span>) • <span id="approval-submitted-date">Date</span></p>
+                    </div>
+                </div>
+                <div class="pmodal-header-right">
+                    <button type="button" class="pmodal-close-btn" id="approval-modal-close-btn" aria-label="Close modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="pmodal-body">
+                <form id="approval-evaluate-form" novalidate>
+                    <input type="hidden" id="approval-pending-id">
+
+                    <!-- Section 1: Core Details -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">01</div>
+                            <div>
+                                <div class="pform-section-title">Core Information</div>
+                                <div class="pform-section-desc">Verify or adjust project title and author metadata</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-field">
+                                <label class="pform-label" for="approval-title">Project Title <span class="pform-required">*</span></label>
+                                <input type="text" id="approval-title" class="pform-input" required>
+                            </div>
+                            <div class="pform-field">
+                                <label class="pform-label" for="approval-authors">Authors <span class="pform-required">*</span>
+                                    <span class="pform-label-hint">Comma-separated</span>
+                                </label>
+                                <input type="text" id="approval-authors" class="pform-input" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Academic Program & Year -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">02</div>
+                            <div>
+                                <div class="pform-section-title">Academic Classification</div>
+                                <div class="pform-section-desc">Program department, year level, and adviser</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label" for="approval-program">Program <span class="pform-required">*</span></label>
+                                    <select id="approval-program" class="pform-input pform-select" required>
+                                        <option value="BSFi">BSFi — Bachelor of Science in Fisheries</option>
+                                        <option value="BSIT">BSIT — Bachelor of Science in Information Technology</option>
+                                        <option value="BSHM">BSHM — Bachelor of Science in Hospitality Management</option>
+                                        <option value="BSIE">BSIE — Bachelor of Science in Industrial Engineering</option>
+                                        <option value="BSEd-Math">BSEd-Math — Bachelor of Secondary Education (Math)</option>
+                                        <option value="BEEd">BEEd — Bachelor of Elementary Education</option>
+                                        <option value="BIT-Computer">BIT-Computer — Industrial Technology (Computer)</option>
+                                        <option value="BIT-Electronics">BIT-Electronics — Industrial Technology (Electronics)</option>
+                                        <option value="BIT-Automotive">BIT-Automotive — Industrial Technology (Automotive)</option>
+                                        <option value="BTLEd-HE">BTLEd-HE — Technology &amp; Livelihood Ed. (HE)</option>
+                                    </select>
+                                </div>
+                                <div class="pform-field">
+                                    <label class="pform-label" for="approval-year">Academic Year <span class="pform-required">*</span></label>
+                                    <input type="number" id="approval-year" class="pform-input" min="2000" max="2099" required>
+                                </div>
+                            </div>
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label" for="approval-adviser">Faculty Adviser</label>
+                                    <input type="text" id="approval-adviser" class="pform-input" placeholder="e.g. Dr. Juan Santos">
+                                </div>
+                                <div class="pform-field">
+                                    <label class="pform-label" for="approval-keywords">Keywords
+                                        <span class="pform-label-hint">Comma-separated</span>
+                                    </label>
+                                    <input type="text" id="approval-keywords" class="pform-input" placeholder="e.g. IoT, Machine Learning, Web App">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Abstract & Research Description -->
+                    <div class="pform-section">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">03</div>
+                            <div>
+                                <div class="pform-section-title">Abstract &amp; Summary</div>
+                                <div class="pform-section-desc">Review full manuscript abstract</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="pform-field">
+                                <label class="pform-label" for="approval-abstract">Abstract <span class="pform-required">*</span></label>
+                                <textarea id="approval-abstract" class="pform-input pform-textarea" style="min-height:140px;" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Submitted Images (if any) -->
+                    <div class="pform-section" id="approval-images-section" style="display:none;">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">04</div>
+                            <div>
+                                <div class="pform-section-title">Submitted Images</div>
+                                <div class="pform-section-desc">Uploaded book cover and physical book representation photos</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <div class="project-images-preview-grid" id="approval-images-grid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="pmodal-footer">
+                        <button type="button" class="pmodal-btn-clear" id="approval-reject-btn" style="color:#ef4444;border-color:rgba(239,68,68,0.4);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                            Reject &amp; Discard
+                        </button>
+                        <button type="button" class="pmodal-btn-cancel" id="approval-cancel-btn">Close</button>
+                        <button type="submit" class="pmodal-btn-submit" id="approval-confirm-btn" style="background: linear-gradient(135deg, #08D488 0%, #10b981 100%);">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            Approve &amp; Publish Publicly
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Project Modal (Add/Edit) - Modern Redesign -->
     <div class="modal" id="project-modal">
@@ -1675,7 +1996,7 @@ BTLEd-HE
     <script src="../js/core/auth-service.js"></script>
     <script src="../js/shared/svg/svg-loader.js"></script>
     <script src="../js/shared/svg/svg-registry.js"></script>
-    <script src="../js/shared/svg/svg-init.js"></script>
+    <script src="../js/shared/svg/svg-init.js?v=2"></script>
     <script src="../js/shared/toast.js"></script>
     <script src="../js/shared/modal-dialog.js"></script>
     <script src="../js/shared/text-protection.js"></script>
@@ -1683,12 +2004,106 @@ BTLEd-HE
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/password-change.js"></script>
-    <script src="../js/shared/dashboard-rail.js"></script>
+    <script src="../js/shared/dashboard-rail.js?v=2"></script>
     <script src="../js/shared/guest-storage.js"></script>
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
     <script src="../js/shared/academic-name-parser.js"></script>
-    <script src="../js/admin/main.js?v=26"></script>
+    <script src="../js/admin/main.js?v=36"></script>
+
+    <!-- Admin Floating AI Copilot Trigger (Bottom-Right Corner) -->
+    <div class="admin-floating-copilot-container" id="admin-floating-copilot-container">
+        <button type="button" class="admin-floating-copilot-btn" id="admin-floating-copilot-btn" aria-label="Open Librarian AI Copilot" title="Librarian AI Copilot">
+            <span class="copilot-pulse-ring"></span>
+            <span class="copilot-btn-icon">
+                <img src="../assets/svgs/BotLang.svg" alt="BotLang Copilot" class="copilot-btn-botlang-img">
+            </span>
+            <span class="copilot-btn-badge">AI</span>
+            <span class="copilot-tooltip">Librarian AI Copilot</span>
+        </button>
+    </div>
+
+    <!-- Admin Floating AI Copilot Chat Widget (Interactive Screen Overlay) -->
+    <div class="admin-copilot-widget" id="admin-copilot-widget" role="dialog" aria-modal="false" aria-label="Librarian AI Copilot Assistant" style="display: none;">
+        <!-- Header -->
+        <div class="copilot-widget-header">
+            <div class="copilot-widget-header-brand">
+                <div class="copilot-widget-avatar-wrap">
+                    <img src="../assets/svgs/BotLang.svg" alt="BotLang Copilot" class="botlang-avatar-img">
+                    <span class="copilot-status-dot" title="Ready to assist"></span>
+                </div>
+                <div class="copilot-widget-title-wrap">
+                    <div class="copilot-widget-title">RE-CAPS Admin Copilot</div>
+                    <div class="copilot-widget-subtitle">Librarian Guidance &amp; Operations</div>
+                </div>
+            </div>
+            <div class="copilot-widget-header-actions">
+                <button type="button" class="copilot-widget-action-btn" id="copilot-widget-fullscreen-btn" title="Open Full Screen AI Workspace" aria-label="Open Full Screen AI Workspace">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
+                </button>
+                <button type="button" class="copilot-widget-action-btn close" id="copilot-widget-close-btn" title="Close Copilot Widget" aria-label="Close Copilot Widget">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body / Chat Scroll Area -->
+        <div class="copilot-widget-body" id="copilot-widget-body">
+            <!-- Welcome Greeting Card -->
+            <div class="copilot-widget-welcome" id="copilot-widget-welcome">
+                <div class="copilot-widget-welcome-badge">
+                    <span class="badge-dot"></span> Admin Advisory Guide
+                </div>
+                <h4 class="copilot-widget-welcome-title">How can I assist your workflow?</h4>
+                <p class="copilot-widget-welcome-desc">
+                    Ask me how to catalog theses, locate physical shelves, sync to Pinecone AI, or manage permissions safely.
+                </p>
+                <div class="copilot-widget-chips" id="copilot-widget-chips">
+                    <button type="button" class="copilot-widget-chip" data-copilot-prompt="How do I add a new capstone project with physical shelf location?">
+                        📖 Add project &amp; shelf location
+                    </button>
+                    <button type="button" class="copilot-widget-chip" data-copilot-prompt="How do I sync newly uploaded capstones to Pinecone AI search?">
+                        ⚡ Sync Pinecone AI search
+                    </button>
+                    <button type="button" class="copilot-widget-chip" data-copilot-prompt="How do I approve or evaluate a librarian submission?">
+                        🛡️ Approve librarian submissions
+                    </button>
+                    <button type="button" class="copilot-widget-chip" data-copilot-prompt="How do I bulk import 40 capstones from an Excel file?">
+                        📊 Bulk import Excel spreadsheet
+                    </button>
+                    <button type="button" class="copilot-widget-chip" data-copilot-prompt="Why is the delete button disabled on project rows?">
+                        🔒 Why is Delete locked/disabled?
+                    </button>
+                    <button type="button" class="copilot-widget-chip" data-copilot-prompt="How do I print an official research accreditation report?">
+                        🖨️ Print accreditation report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            <div class="copilot-widget-messages" id="copilot-widget-messages"></div>
+
+            <!-- Typing indicator -->
+            <div class="copilot-widget-typing" id="copilot-widget-typing" style="display: none;">
+                <div class="copilot-typing-bubble">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+                <span class="copilot-typing-text">Copilot is referencing guidelines…</span>
+            </div>
+        </div>
+
+        <!-- Footer / Input Form -->
+        <div class="copilot-widget-footer">
+            <form id="copilot-widget-form" class="copilot-widget-form" onsubmit="return false;">
+                <input type="text" id="copilot-widget-input" class="copilot-widget-input" placeholder="Ask an operational question..." autocomplete="off">
+                <button type="submit" id="copilot-widget-send-btn" class="copilot-widget-send-btn" aria-label="Send question" title="Send question">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
 
