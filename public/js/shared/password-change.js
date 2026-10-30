@@ -1,18 +1,24 @@
 /**
  * ============================================================================
- * Password Change with Security Question Verification
+ * Password Change with 6-Layer Enterprise Defense Architecture
  * ============================================================================
  * 
- * Allows users to change their password after verifying their security question
+ * - Layer 1: Step-Up Verification (Admin/Librarian: Current Password AND Telegram OTP;
+ *            Student/Teacher: Current Password OR Security Question)
+ * - Layer 2: Rate Limiting & Lockout Guard (10 attempts/24h, 5 failures = 1 hour lockout)
+ * - Layer 3: Strict Password Policy (Complexity, Max Length 128, Personal Info Check, Breached Dict Check)
+ * - Layer 4: Server-Side RBAC & Admin SDK Token Authentication
+ * - Layer 5: Immediate Session Revocation across all devices via admin.auth().revokeRefreshTokens
+ * - Layer 6: Security Notifications (Student/Teacher: Telegram only; Admin/Librarian: Telegram + Resend Email)
  * 
  * @module PasswordChange
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 (function(window) {
     'use strict';
 
-    // Question mapping (same as registration)
+    // Question mapping
     const QUESTION_MAP = {
         'pet': 'What was the name of your first pet?',
         'school': 'What was the name of your first school?',
@@ -25,17 +31,21 @@
     const CHECK_ICON_SVG = '<svg class="req-icon req-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" fill="rgba(39, 174, 96, 0.15)"></circle><polyline points="16 9 10 15 8 13"></polyline></svg>';
     const CIRCLE_ICON_SVG = '<svg class="req-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle></svg>';
 
+    function getBackendUrl() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3001';
+        }
+        return 'https://recap-backend-jy5b.onrender.com';
+    }
+
     /**
      * Initialize password change modal
      */
     function initPasswordChange() {
         const changePasswordBtn = document.getElementById('change-password-btn');
-        
         if (!changePasswordBtn) {
-            console.warn('[PasswordChange] Button not found on this page');
             return;
         }
-
         changePasswordBtn.addEventListener('click', openPasswordChangeModal);
     }
 
@@ -43,54 +53,170 @@
      * Open password change modal
      */
     async function openPasswordChangeModal() {
-        // Get current user
         const user = typeof auth !== 'undefined' ? auth.currentUser : null;
-        
         if (!user) {
             showToast('❌ Please log in to change your password', 'error');
             return;
         }
 
         try {
-            // Fetch user data from Firestore
             const userDoc = await db.collection('users').doc(user.uid).get();
-            
             if (!userDoc.exists) {
-                showToast('❌ User data not found', 'error');
+                showToast('❌ User profile not found in database', 'error');
                 return;
             }
 
-            const userData = userDoc.data();
-
-            // Check if user has security question set
-            if (!userData.securityQuestion || !userData.securityAnswer) {
-                showToast('❌ No security question set. Please contact admin.', 'error');
-                return;
-            }
-
-            // Get readable question text
-            const questionText = QUESTION_MAP[userData.securityQuestion] || userData.securityQuestion;
-
-            // Create and show modal
-            createPasswordChangeModal(questionText, userData.securityAnswer, user);
-
+            const userData = userDoc.data() || {};
+            createPasswordChangeModal(userData, user);
         } catch (error) {
-            console.error('[PasswordChange] Error fetching user data:', error);
-            showToast('❌ Error loading security question', 'error');
+            console.error('[PasswordChange] Error fetching user profile:', error);
+            showToast('❌ Error loading account credentials', 'error');
         }
     }
 
     /**
      * Create password change modal
-     * @param {string} questionText - Security question text
-     * @param {string} correctAnswer - Stored security answer
-     * @param {firebase.User} user - Current Firebase user
      */
-    function createPasswordChangeModal(questionText, correctAnswer, user) {
-        // Remove existing modal if present
+    function createPasswordChangeModal(userData, user) {
         const existingModal = document.getElementById('password-change-modal');
-        if (existingModal) {
-            existingModal.remove();
+        if (existingModal) existingModal.remove();
+
+        const userRole = (userData.role || userData.userType || 'student').toLowerCase();
+        const isStaff = (userRole === 'admin' || userRole === 'librarian');
+        const questionKey = userData.securityQuestion || '';
+        const questionText = QUESTION_MAP[questionKey] || questionKey || 'What is your security question?';
+        const hasTelegram = Boolean(userData.telegramChatId);
+
+        let verificationStepHTML = '';
+
+        if (isStaff) {
+            // ADMIN & LIBRARIAN: MUST be Current Password AND Telegram OTP
+            verificationStepHTML = `
+                <div class="password-change-step" id="verification-step">
+                    <div class="role-security-badge staff">
+                        <span class="badge-icon">🛡️</span>
+                        <span>Staff Security: Current Password &amp; Telegram 2FA OTP Required</span>
+                    </div>
+
+                    <div class="password-change-form">
+                        <div class="password-change-field">
+                            <label class="password-change-label" for="current-password-input">
+                                Current Password <span style="color: #e74c3c;">*</span>
+                            </label>
+                            <div class="password-input-wrapper">
+                                <input type="password" id="current-password-input" class="password-change-input" placeholder="Enter your current password" autocomplete="current-password">
+                                <button type="button" class="password-toggle-btn" id="toggle-current-password">
+                                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="password-change-field">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                <label class="password-change-label" for="telegram-otp-input" style="margin-bottom: 0;">
+                                    Telegram OTP Code (6 Digits) <span style="color: #e74c3c;">*</span>
+                                </label>
+                                <button type="button" class="otp-send-action-btn" id="send-otp-btn">
+                                    📲 Send OTP via Telegram
+                                </button>
+                            </div>
+                            <input type="text" id="telegram-otp-input" class="password-change-input" placeholder="Enter 6-digit OTP" maxlength="6" autocomplete="one-time-code">
+                            <div class="telegram-bot-note">
+                                Sent via <strong>@RecapsOtpBot</strong> on Telegram.
+                                <a href="https://t.me/RecapsOtpBot" target="_blank" rel="noopener" style="color: #08D488; text-decoration: underline; margin-left: 4px;">Open Bot</a>
+                            </div>
+                        </div>
+
+                        ${!hasTelegram ? `
+                            <div class="telegram-link-helper-card">
+                                <div style="font-size: 0.8125rem; font-weight: 600; color: #f59e0b; margin-bottom: 0.25rem;">
+                                    ⚠️ Telegram Chat ID Not Linked
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary, #999); margin-bottom: 0.5rem;">
+                                    1. Open <a href="https://t.me/RecapsOtpBot" target="_blank" style="color: #08D488; font-weight: 600;">@RecapsOtpBot</a> and click <strong>Start</strong>.<br>
+                                    2. Paste the Chat ID it sends you below:
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <input type="text" id="link-chat-id-input" class="password-change-input" placeholder="Paste Telegram Chat ID (e.g. 123456789)" style="padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
+                                    <button type="button" id="save-chat-id-btn" class="password-change-btn secondary" style="min-height: 38px; padding: 0.5rem 1rem; font-size: 0.8125rem; white-space: nowrap;">
+                                        Link Chat ID
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div class="password-change-error" id="step1-error" style="display: none;"></div>
+
+                        <div class="password-change-actions">
+                            <button type="button" class="password-change-btn secondary cancel-password-modal">
+                                Cancel
+                            </button>
+                            <button type="button" class="password-change-btn primary" id="verify-step1-btn">
+                                Verify &amp; Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // STUDENT & TEACHER: Current Password OR Security Question
+            verificationStepHTML = `
+                <div class="password-change-step" id="verification-step">
+                    <div class="verification-tabs">
+                        <button type="button" class="verification-tab active" data-tab="security">
+                            ❓ Security Question
+                        </button>
+                        <button type="button" class="verification-tab" data-tab="password">
+                            🔑 Current Password
+                        </button>
+                    </div>
+
+                    <div class="password-change-form">
+                        <!-- Method 1: Security Question -->
+                        <div id="tab-security-content" class="tab-pane active">
+                            <div class="password-change-field">
+                                <label class="password-change-label">Your Security Question</label>
+                                <div class="password-change-question-display">
+                                    ${escapeHtml(questionText)}
+                                </div>
+                            </div>
+
+                            <div class="password-change-field">
+                                <label class="password-change-label" for="security-answer-input">
+                                    Your Answer <span style="color: #e74c3c;">*</span>
+                                </label>
+                                <input type="text" id="security-answer-input" class="password-change-input" placeholder="Enter your answer" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- Method 2: Current Password -->
+                        <div id="tab-password-content" class="tab-pane" style="display: none;">
+                            <div class="password-change-field">
+                                <label class="password-change-label" for="current-password-input">
+                                    Current Password <span style="color: #e74c3c;">*</span>
+                                </label>
+                                <div class="password-input-wrapper">
+                                    <input type="password" id="current-password-input" class="password-change-input" placeholder="Enter your current password" autocomplete="current-password">
+                                    <button type="button" class="password-toggle-btn" id="toggle-current-password">
+                                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="password-change-error" id="step1-error" style="display: none;"></div>
+
+                        <div class="password-change-actions">
+                            <button type="button" class="password-change-btn secondary cancel-password-modal">
+                                Cancel
+                            </button>
+                            <button type="button" class="password-change-btn primary" id="verify-step1-btn">
+                                Verify &amp; Continue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         const modalHTML = `
@@ -104,50 +230,18 @@
                         </div>
                         <h3 class="password-change-title">Change Password</h3>
                         <p class="password-change-description">
-                            For security, please answer your security question before changing your password.
+                            ${isStaff ? 'Staff accounts require 2-Factor authentication before updating credentials.' : 'Verify your identity before updating your account password.'}
                         </p>
                     </div>
 
-                    <!-- Security Question Verification -->
-                    <div class="password-change-step" id="security-step">
-                        <div class="password-change-form">
-                            <div class="password-change-field">
-                                <label class="password-change-label">Security Question</label>
-                                <div class="password-change-question-display">
-                                    ${escapeHtml(questionText)}
-                                </div>
-                            </div>
+                    <!-- Step 1: Verification -->
+                    ${verificationStepHTML}
 
-                            <div class="password-change-field">
-                                <label class="password-change-label" for="security-answer-input">
-                                    Your Answer <span style="color: #e74c3c;">*</span>
-                                </label>
-                                <input 
-                                    type="text" 
-                                    id="security-answer-input" 
-                                    class="password-change-input"
-                                    placeholder="Enter your answer"
-                                    autocomplete="off"
-                                >
-                                <div class="password-change-error" id="security-error" style="display: none;"></div>
-                            </div>
-
-                            <div class="password-change-actions">
-                                <button type="button" class="password-change-btn secondary cancel-password-modal">
-                                    Cancel
-                                </button>
-                                <button type="button" class="password-change-btn primary" id="verify-security-btn">
-                                    Verify & Continue
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- New Password Step (hidden initially) -->
+                    <!-- Step 2: New Password (initially hidden) -->
                     <div class="password-change-step" id="password-step" style="display: none;">
                         <div class="password-change-success-indicator">
                             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-success') : ''}
-                            <span style="color: #27ae60; font-weight: 600;">Security Question Verified</span>
+                            <span style="color: #27ae60; font-weight: 600;">Identity Verified</span>
                         </div>
 
                         <div class="password-change-form">
@@ -162,6 +256,7 @@
                                         class="password-change-input"
                                         placeholder="Enter new password (min. 8 characters)"
                                         autocomplete="new-password"
+                                        maxlength="128"
                                     >
                                     <button type="button" class="password-toggle-btn" id="toggle-new-password">
                                         ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
@@ -186,6 +281,7 @@
                                         class="password-change-input"
                                         placeholder="Re-enter new password"
                                         autocomplete="new-password"
+                                        maxlength="128"
                                     >
                                     <button type="button" class="password-toggle-btn" id="toggle-confirm-password">
                                         ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('eye-open') : ''}
@@ -197,7 +293,7 @@
                             <div class="password-requirements">
                                 <div class="password-requirement" id="req-length">
                                     <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
-                                    <span class="req-text">At least 8 characters</span>
+                                    <span class="req-text">At least 8 characters (max 128)</span>
                                 </div>
                                 <div class="password-requirement" id="req-number">
                                     <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
@@ -205,7 +301,7 @@
                                 </div>
                                 <div class="password-requirement" id="req-case">
                                     <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
-                                    <span class="req-text">Uppercase & lowercase letters (A-Z, a-z)</span>
+                                    <span class="req-text">Uppercase &amp; lowercase letters (A-Z, a-z)</span>
                                 </div>
                                 <div class="password-requirement" id="req-special">
                                     <span class="req-icon-wrapper">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG}</span>
@@ -233,51 +329,43 @@
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-
-        // Initialize event listeners
-        setupPasswordChangeEvents(correctAnswer, user);
-    }
-
-    /**
-     * Get backend base URL
-     */
-    function getBackendUrl() {
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            return 'http://localhost:3001';
-        }
-        return 'https://recap-backend-jy5b.onrender.com';
+        setupPasswordChangeEvents(userData, user);
     }
 
     /**
      * Setup event listeners for password change modal
      */
-    function setupPasswordChangeEvents(correctAnswer, user) {
+    function setupPasswordChangeEvents(userData, user) {
         const modal = document.getElementById('password-change-modal');
         if (!modal) return;
 
         const overlay = modal.querySelector('.password-change-overlay');
         const cancelButtons = modal.querySelectorAll('.cancel-password-modal');
-        const verifyBtn = document.getElementById('verify-security-btn');
+        const verifyStep1Btn = document.getElementById('verify-step1-btn');
         const updateBtn = document.getElementById('update-password-btn');
-        const securityInput = document.getElementById('security-answer-input');
+        const sendOtpBtn = document.getElementById('send-otp-btn');
+        const saveChatIdBtn = document.getElementById('save-chat-id-btn');
+
         const newPasswordInput = document.getElementById('new-password-input');
         const confirmPasswordInput = document.getElementById('confirm-password-input');
         const toggleNewPassword = document.getElementById('toggle-new-password');
         const toggleConfirmPassword = document.getElementById('toggle-confirm-password');
+        const toggleCurrentPassword = document.getElementById('toggle-current-password');
 
-        let verifiedSecurityAnswer = '';
+        const userRole = (userData.role || userData.userType || 'student').toLowerCase();
+        const isStaff = (userRole === 'admin' || userRole === 'librarian');
 
-        // Close modal function
+        let activeTab = 'security'; // for student/teacher
+        let verifiedCredentials = {};
+
         function closeModal() {
             modal.classList.remove('active');
             setTimeout(() => modal.remove(), 300);
         }
 
-        // Cancel and overlay click
         cancelButtons.forEach(btn => btn.addEventListener('click', closeModal));
         if (overlay) overlay.addEventListener('click', closeModal);
 
-        // Escape key to close
         document.addEventListener('keydown', function escapeHandler(e) {
             if (e.key === 'Escape') {
                 closeModal();
@@ -287,37 +375,187 @@
 
         // Toggle password visibility
         if (toggleNewPassword && newPasswordInput) {
-            toggleNewPassword.addEventListener('click', () => {
-                togglePasswordVisibility(newPasswordInput, toggleNewPassword);
-            });
+            toggleNewPassword.addEventListener('click', () => togglePasswordVisibility(newPasswordInput, toggleNewPassword));
         }
-
         if (toggleConfirmPassword && confirmPasswordInput) {
-            toggleConfirmPassword.addEventListener('click', () => {
-                togglePasswordVisibility(confirmPasswordInput, toggleConfirmPassword);
+            toggleConfirmPassword.addEventListener('click', () => togglePasswordVisibility(confirmPasswordInput, toggleConfirmPassword));
+        }
+        if (toggleCurrentPassword) {
+            toggleCurrentPassword.addEventListener('click', () => {
+                const currentPassInput = document.getElementById('current-password-input');
+                if (currentPassInput) togglePasswordVisibility(currentPassInput, toggleCurrentPassword);
             });
         }
 
-        // Verify security question
-        if (verifyBtn) {
-            verifyBtn.addEventListener('click', () => {
-                verifySecurityAnswer(correctAnswer);
-            });
-        }
+        // Student/Teacher Method Tabs
+        const tabButtons = modal.querySelectorAll('.verification-tab');
+        tabButtons.forEach(tabBtn => {
+            tabBtn.addEventListener('click', () => {
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabBtn.classList.add('active');
+                activeTab = tabBtn.getAttribute('data-tab');
 
-        // Enter key on security input
-        if (securityInput) {
-            securityInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    verifySecurityAnswer(correctAnswer);
+                const secContent = document.getElementById('tab-security-content');
+                const passContent = document.getElementById('tab-password-content');
+                if (activeTab === 'security') {
+                    if (secContent) secContent.style.display = 'block';
+                    if (passContent) passContent.style.display = 'none';
+                } else {
+                    if (secContent) secContent.style.display = 'none';
+                    if (passContent) passContent.style.display = 'block';
+                }
+            });
+        });
+
+        // Send OTP via Telegram button
+        if (sendOtpBtn) {
+            sendOtpBtn.addEventListener('click', async () => {
+                sendOtpBtn.disabled = true;
+                const origText = sendOtpBtn.innerHTML;
+                sendOtpBtn.innerHTML = '⏳ Sending OTP...';
+
+                try {
+                    const idToken = await user.getIdToken();
+                    const linkChatInput = document.getElementById('link-chat-id-input');
+                    const tempChatId = linkChatInput ? linkChatInput.value.trim() : '';
+
+                    const resp = await fetch(`${getBackendUrl()}/api/auth/telegram/send-otp`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}`
+                        },
+                        body: JSON.stringify({ telegramChatId: tempChatId })
+                    });
+
+                    const resData = await resp.json().catch(() => ({}));
+                    if (resp.ok && resData.success) {
+                        showToast('📲 OTP sent to your Telegram account!', 'success');
+                        sendOtpBtn.innerHTML = '✅ OTP Sent!';
+                        setTimeout(() => {
+                            sendOtpBtn.disabled = false;
+                            sendOtpBtn.innerHTML = '🔄 Resend OTP';
+                        }, 30000);
+                    } else {
+                        showToast(`❌ ${resData.error || 'Failed to dispatch OTP'}`, 'error');
+                        sendOtpBtn.disabled = false;
+                        sendOtpBtn.innerHTML = origText;
+                    }
+                } catch (err) {
+                    showToast('❌ Network error while sending OTP', 'error');
+                    sendOtpBtn.disabled = false;
+                    sendOtpBtn.innerHTML = origText;
                 }
             });
         }
 
-        // Update password
-        if (updateBtn) {
-            updateBtn.addEventListener('click', () => {
-                updatePassword(user, closeModal);
+        // Link Telegram Chat ID button
+        if (saveChatIdBtn) {
+            saveChatIdBtn.addEventListener('click', async () => {
+                const linkChatInput = document.getElementById('link-chat-id-input');
+                const chatIdVal = linkChatInput ? linkChatInput.value.trim() : '';
+                if (!chatIdVal) {
+                    showToast('Please enter your Telegram Chat ID', 'error');
+                    return;
+                }
+
+                saveChatIdBtn.disabled = true;
+                saveChatIdBtn.textContent = 'Linking...';
+
+                try {
+                    const idToken = await user.getIdToken();
+                    const resp = await fetch(`${getBackendUrl()}/api/auth/telegram/save-chat-id`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}`
+                        },
+                        body: JSON.stringify({ telegramChatId: chatIdVal })
+                    });
+                    const resData = await resp.json().catch(() => ({}));
+
+                    if (resp.ok && resData.success) {
+                        showToast('✅ Telegram account linked successfully!', 'success');
+                        const card = modal.querySelector('.telegram-link-helper-card');
+                        if (card) {
+                            card.innerHTML = `<div style="color: #27ae60; font-size: 0.8125rem; font-weight: 600;">✅ Telegram linked! You can now click "Send OTP via Telegram".</div>`;
+                        }
+                    } else {
+                        showToast(`❌ ${resData.error || 'Failed to link Telegram'}`, 'error');
+                        saveChatIdBtn.disabled = false;
+                        saveChatIdBtn.textContent = 'Link Chat ID';
+                    }
+                } catch (err) {
+                    showToast('❌ Network error linking Telegram', 'error');
+                    saveChatIdBtn.disabled = false;
+                    saveChatIdBtn.textContent = 'Link Chat ID';
+                }
+            });
+        }
+
+        // Step 1 Verification
+        if (verifyStep1Btn) {
+            verifyStep1Btn.addEventListener('click', () => {
+                const errorDiv = document.getElementById('step1-error');
+                if (errorDiv) errorDiv.style.display = 'none';
+
+                if (isStaff) {
+                    const currPassInput = document.getElementById('current-password-input');
+                    const otpInput = document.getElementById('telegram-otp-input');
+                    const currPass = currPassInput ? currPassInput.value : '';
+                    const otp = otpInput ? otpInput.value.trim() : '';
+
+                    if (!currPass) {
+                        showError(errorDiv, currPassInput, 'Please enter your current password');
+                        return;
+                    }
+                    if (!otp || otp.length !== 6) {
+                        showError(errorDiv, otpInput, 'Please enter the 6-digit OTP code from Telegram');
+                        return;
+                    }
+
+                    verifiedCredentials = {
+                        currentPassword: currPass,
+                        otp: otp
+                    };
+
+                    // Reveal Step 2
+                    document.getElementById('verification-step').style.display = 'none';
+                    document.getElementById('password-step').style.display = 'block';
+                    if (newPasswordInput) newPasswordInput.focus();
+
+                } else {
+                    if (activeTab === 'security') {
+                        const secAnswerInput = document.getElementById('security-answer-input');
+                        const ans = secAnswerInput ? secAnswerInput.value.trim() : '';
+                        if (!ans) {
+                            showError(errorDiv, secAnswerInput, 'Please enter your security question answer');
+                            return;
+                        }
+
+                        // Compare case-insensitively with stored answer
+                        const stored = (userData.securityAnswer || '').toString().trim().toLowerCase();
+                        if (ans.toLowerCase() !== stored) {
+                            showError(errorDiv, secAnswerInput, 'Incorrect security answer. Please try again.');
+                            return;
+                        }
+
+                        verifiedCredentials = { securityAnswer: ans };
+                    } else {
+                        const currPassInput = document.getElementById('current-password-input');
+                        const currPass = currPassInput ? currPassInput.value : '';
+                        if (!currPass) {
+                            showError(errorDiv, currPassInput, 'Please enter your current password');
+                            return;
+                        }
+                        verifiedCredentials = { currentPassword: currPass };
+                    }
+
+                    // Reveal Step 2
+                    document.getElementById('verification-step').style.display = 'none';
+                    document.getElementById('password-step').style.display = 'block';
+                    if (newPasswordInput) newPasswordInput.focus();
+                }
             });
         }
 
@@ -325,229 +563,89 @@
         if (newPasswordInput) newPasswordInput.addEventListener('input', validatePasswordRequirements);
         if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', validatePasswordRequirements);
 
-        /**
-         * Verify security answer
-         */
-        function verifySecurityAnswer(correct) {
-            const input = document.getElementById('security-answer-input');
-            const errorDiv = document.getElementById('security-error');
-            const userAnswer = input ? input.value.trim() : '';
+        // Step 2 Update Password
+        if (updateBtn) {
+            updateBtn.addEventListener('click', async () => {
+                const newPasswordVal = newPasswordInput ? newPasswordInput.value : '';
+                const confirmPasswordVal = confirmPasswordInput ? confirmPasswordInput.value : '';
+                const errorDiv = document.getElementById('password-error');
 
-            if (!userAnswer) {
-                showError(errorDiv, input, 'Please enter your answer');
-                return;
-            }
+                if (!newPasswordVal || !confirmPasswordVal) {
+                    showError(errorDiv, !newPasswordVal ? newPasswordInput : confirmPasswordInput, 'Please fill in both password fields');
+                    return;
+                }
 
-            // Case-insensitive comparison
-            if (userAnswer.toLowerCase() === (correct || '').toString().toLowerCase()) {
-                verifiedSecurityAnswer = userAnswer;
-                document.getElementById('security-step').style.display = 'none';
-                document.getElementById('password-step').style.display = 'block';
-                const passInput = document.getElementById('new-password-input');
-                if (passInput) passInput.focus();
-            } else {
-                showError(errorDiv, input, 'Incorrect answer. Please try again.');
-                input.value = '';
-            }
-        }
+                if (newPasswordVal.length < 8) {
+                    showError(errorDiv, newPasswordInput, 'Password must be at least 8 characters long');
+                    return;
+                }
 
-        /**
-         * Update password
-         */
-        async function updatePassword(currentUser, closeFn) {
-            const newPasswordVal = newPasswordInput ? newPasswordInput.value : '';
-            const confirmPasswordVal = confirmPasswordInput ? confirmPasswordInput.value : '';
-            const errorDiv = document.getElementById('password-error');
+                if (newPasswordVal.length > 128) {
+                    showError(errorDiv, newPasswordInput, 'Password cannot exceed 128 characters');
+                    return;
+                }
 
-            // Validation
-            if (!newPasswordVal || !confirmPasswordVal) {
-                showError(errorDiv, !newPasswordVal ? newPasswordInput : confirmPasswordInput, 'Please fill in both password fields');
-                return;
-            }
+                if (!/[0-9]/.test(newPasswordVal)) {
+                    showError(errorDiv, newPasswordInput, 'Password must contain at least 1 number (0-9)');
+                    return;
+                }
 
-            if (newPasswordVal.length < 8) {
-                showError(errorDiv, newPasswordInput, 'Password must be at least 8 characters long');
-                return;
-            }
+                if (!/[a-z]/.test(newPasswordVal) || !/[A-Z]/.test(newPasswordVal)) {
+                    showError(errorDiv, newPasswordInput, 'Password must contain uppercase and lowercase letters');
+                    return;
+                }
 
-            if (!/[0-9]/.test(newPasswordVal)) {
-                showError(errorDiv, newPasswordInput, 'Password must contain at least 1 number (0-9)');
-                return;
-            }
+                if (!/[^A-Za-z0-9]/.test(newPasswordVal)) {
+                    showError(errorDiv, newPasswordInput, 'Password must contain at least 1 special character');
+                    return;
+                }
 
-            if (!/[a-z]/.test(newPasswordVal) || !/[A-Z]/.test(newPasswordVal)) {
-                showError(errorDiv, newPasswordInput, 'Password must contain both uppercase and lowercase letters');
-                return;
-            }
+                if (newPasswordVal !== confirmPasswordVal) {
+                    showError(errorDiv, confirmPasswordInput, 'Passwords do not match');
+                    return;
+                }
 
-            if (!/[^A-Za-z0-9]/.test(newPasswordVal)) {
-                showError(errorDiv, newPasswordInput, 'Password must contain at least 1 special character (e.g. !@#$%^&*)');
-                return;
-            }
+                updateBtn.disabled = true;
+                updateBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''} Updating Securely...`;
 
-            if (newPasswordVal !== confirmPasswordVal) {
-                showError(errorDiv, confirmPasswordInput, 'Passwords do not match');
-                return;
-            }
-
-            // Disable button and show loading
-            updateBtn.disabled = true;
-            updateBtn.innerHTML = `
-                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''}
-                Updating...`;
-
-            let updateSuccess = false;
-
-            // 1. Primary path: Use backend endpoint with Admin SDK
-            // Bypasses auth/requires-recent-login securely since security answer is verified
-            try {
-                const idToken = await currentUser.getIdToken();
-                const backendUrl = getBackendUrl();
-                const resp = await fetch(`${backendUrl}/api/auth/change-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${idToken}`
-                    },
-                    body: JSON.stringify({
+                try {
+                    const idToken = await user.getIdToken();
+                    const payload = {
                         newPassword: newPasswordVal,
-                        securityAnswer: verifiedSecurityAnswer || correctAnswer
-                    })
-                });
+                        ...verifiedCredentials
+                    };
 
-                const data = await resp.json().catch(() => null);
+                    const resp = await fetch(`${getBackendUrl()}/api/auth/change-password`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
 
-                if (resp.ok && data && data.success) {
-                    updateSuccess = true;
-                } else if (data && data.error && resp.status < 500) {
-                    showError(errorDiv, newPasswordInput, data.error);
-                    updateBtn.disabled = false;
-                    updateBtn.innerHTML = `
-                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
-                        Update Password
-                    `;
-                    return;
-                } else {
-                    console.warn('[PasswordChange] Backend unavailable or failed, falling back to client SDK:', data);
-                }
-            } catch (apiErr) {
-                console.warn('[PasswordChange] Backend call error, falling back to client SDK:', apiErr);
-            }
+                    const resData = await resp.json().catch(() => ({}));
 
-            // 2. Fallback to client SDK if backend call was not successful
-            if (!updateSuccess) {
-                try {
-                    await currentUser.updatePassword(newPasswordVal);
-                    updateSuccess = true;
-                } catch (error) {
-                    console.error('[PasswordChange] Client SDK password update error:', error);
-
-                    if (error.code === 'auth/requires-recent-login') {
-                        promptInlineReauth(currentUser, newPasswordVal, errorDiv, updateBtn, closeFn);
-                        return;
-                    }
-
-                    let errorMessage = 'Failed to update password';
-                    if (error.code === 'auth/weak-password') {
-                        errorMessage = 'Password is too weak';
-                    } else if (error.message) {
-                        errorMessage = error.message;
-                    }
-
-                    showError(errorDiv, newPasswordInput, errorMessage);
-                    updateBtn.disabled = false;
-                    updateBtn.innerHTML = `
-                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
-                        Update Password
-                    `;
-                    return;
-                }
-            }
-
-            // 3. Complete successful update
-            if (updateSuccess) {
-                if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
-                    window.ActivityService.logAuth('password_change', 'Account password successfully updated');
-                }
-                showToast('✅ Password updated successfully!', 'success');
-                closeFn();
-            }
-        }
-
-        /**
-         * Inline current password prompt for re-authentication fallback
-         */
-        function promptInlineReauth(currentUser, newPasswordVal, errorDiv, actionBtn, closeFn) {
-            const form = document.querySelector('#password-step .password-change-form');
-            if (!form) return;
-
-            let reauthField = document.getElementById('reauth-password-wrapper');
-            if (!reauthField) {
-                reauthField = document.createElement('div');
-                reauthField.id = 'reauth-password-wrapper';
-                reauthField.className = 'password-change-field';
-                reauthField.style.marginTop = '1rem';
-                reauthField.innerHTML = `
-                    <div style="background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; color: #e74c3c;">
-                        Your session requires quick verification. Please enter your <strong>current password</strong> to confirm:
-                    </div>
-                    <label class="password-change-label" for="current-password-input">Current Password <span style="color: #e74c3c;">*</span></label>
-                    <div class="password-input-wrapper">
-                        <input type="password" id="current-password-input" class="password-change-input" placeholder="Enter current password" autocomplete="current-password">
-                    </div>
-                    <div class="password-change-error" id="reauth-error" style="display: none;"></div>
-                `;
-                const actions = form.querySelector('.password-change-actions');
-                form.insertBefore(reauthField, actions);
-            }
-
-            actionBtn.disabled = false;
-            actionBtn.innerHTML = `Confirm & Update Password`;
-
-            const currPassInput = document.getElementById('current-password-input');
-            const reauthErrDiv = document.getElementById('reauth-error');
-            if (currPassInput) currPassInput.focus();
-
-            actionBtn.onclick = async () => {
-                const currPass = currPassInput ? currPassInput.value : '';
-                if (!currPass) {
-                    showError(reauthErrDiv, currPassInput, 'Please enter your current password');
-                    return;
-                }
-
-                actionBtn.disabled = true;
-                actionBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''} Verifying...`;
-
-                try {
-                    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth.EmailAuthProvider) {
-                        const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, currPass);
-                        await currentUser.reauthenticateWithCredential(cred);
-                        await currentUser.updatePassword(newPasswordVal);
-
+                    if (resp.ok && resData.success) {
                         if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
-                            window.ActivityService.logAuth('password_change', 'Account password successfully updated');
+                            window.ActivityService.logAuth('password_change', 'Account password successfully updated with 6-layer defense');
                         }
-                        showToast('✅ Password updated successfully!', 'success');
-                        closeFn();
+                        showToast('✅ Password updated successfully! All other sessions revoked.', 'success');
+                        closeModal();
                     } else {
-                        throw new Error('Please log out and log back in, then try again');
+                        showError(errorDiv, newPasswordInput, resData.error || 'Failed to update password');
+                        updateBtn.disabled = false;
+                        updateBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''} Update Password`;
                     }
-                } catch (reauthErr) {
-                    console.error('[PasswordChange] Re-auth failed:', reauthErr);
-                    let msg = 'Incorrect current password';
-                    if (reauthErr.code === 'auth/wrong-password') {
-                        msg = 'Incorrect current password';
-                    } else if (reauthErr.message) {
-                        msg = reauthErr.message;
-                    }
-                    showError(reauthErrDiv, currPassInput, msg);
-                    actionBtn.disabled = false;
-                    actionBtn.innerHTML = `Confirm & Update Password`;
+                } catch (err) {
+                    console.error('[PasswordChange] Update error:', err);
+                    showError(errorDiv, newPasswordInput, 'Network or server error while updating password');
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''} Update Password`;
                 }
-            };
+            });
         }
     }
-
 
     /**
      * Toggle password visibility
@@ -570,14 +668,10 @@
         const iconWrapper = reqElement.querySelector('.req-icon-wrapper');
         if (isMet) {
             reqElement.classList.add('met');
-            if (iconWrapper) {
-                iconWrapper.innerHTML = CHECK_ICON_SVG;
-            }
+            if (iconWrapper) iconWrapper.innerHTML = CHECK_ICON_SVG;
         } else {
             reqElement.classList.remove('met');
-            if (iconWrapper) {
-                iconWrapper.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG;
-            }
+            if (iconWrapper) iconWrapper.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('req-circle') : CIRCLE_ICON_SVG;
         }
     }
 
@@ -639,7 +733,7 @@
         const reqSpecial = document.getElementById('req-special');
         const reqMatch = document.getElementById('req-match');
 
-        const hasLength = newPassword.length >= 8;
+        const hasLength = newPassword.length >= 8 && newPassword.length <= 128;
         const hasNumber = /[0-9]/.test(newPassword);
         const hasUpper = /[A-Z]/.test(newPassword);
         const hasLower = /[a-z]/.test(newPassword);
@@ -660,16 +754,17 @@
      * Show error message
      */
     function showError(errorDiv, input, message) {
+        if (!errorDiv) return;
         errorDiv.textContent = message;
         errorDiv.style.display = 'block';
-        input.classList.add('error');
-        
-        // Remove error on input
-        input.addEventListener('input', function clearError() {
-            errorDiv.style.display = 'none';
-            input.classList.remove('error');
-            input.removeEventListener('input', clearError);
-        });
+        if (input) {
+            input.classList.add('error');
+            input.addEventListener('input', function clearError() {
+                errorDiv.style.display = 'none';
+                input.classList.remove('error');
+                input.removeEventListener('input', clearError);
+            });
+        }
     }
 
     /**
@@ -680,7 +775,7 @@
             window.showToast(message, type);
         } else if (window.ModalDialog) {
             ModalDialog.alert({
-                title: type === 'success' ? 'Password Updated' : 'Password Error',
+                title: type === 'success' ? 'Password Updated' : 'Security Alert',
                 message: message,
                 type: type === 'success' ? 'success' : 'danger'
             });
@@ -703,22 +798,18 @@
         return String(text || '').replace(/[&<>"']/g, m => map[m]);
     }
 
-    // ========================================================================
-    // EXPORTS & INITIALIZATION
-    // ========================================================================
-
+    // Export module
     window.PasswordChange = {
         init: initPasswordChange,
         open: openPasswordChangeModal
     };
 
-    // Auto-initialize on DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initPasswordChange);
     } else {
         initPasswordChange();
     }
 
-    console.log('[PasswordChange] Module loaded');
+    console.log('[PasswordChange] 6-Layer Security Module loaded');
 
 })(window);
