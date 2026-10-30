@@ -7834,6 +7834,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Enhanced UI Elements
     const librarianNameInput = document.getElementById('librarian-name');
     const librarianEmailInput = document.getElementById('librarian-email');
+    const librarianPositionInput = document.getElementById('librarian-position');
+    const successLibrarianPosition = document.getElementById('success-librarian-position');
     const librarianPasswordInput = document.getElementById('librarian-password');
     const librarianConfirmPasswordInput = document.getElementById('librarian-confirm-password');
     const chipCtuDomain = document.getElementById('chip-ctu-domain');
@@ -7895,6 +7897,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             librarianSuccessView.classList.add('active');
             if (successLibrarianName) successLibrarianName.textContent = librarianData.fullName || '-';
             if (successLibrarianEmail) successLibrarianEmail.textContent = librarianData.email || '-';
+            if (successLibrarianPosition) successLibrarianPosition.textContent = librarianData.position || '-';
             if (successLibrarianPassword) {
                 isSuccessPwdVisible = false;
                 successLibrarianPassword.textContent = '••••••••••••';
@@ -7971,7 +7974,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (copyLibrarianCredsBtn) {
         copyLibrarianCredsBtn.addEventListener('click', async () => {
             if (!currentCreatedLibrarian) return;
-            const textToCopy = `RE-CAPS Librarian Credentials:\nName: ${currentCreatedLibrarian.fullName}\nEmail: ${currentCreatedLibrarian.email}\nPassword: ${currentCreatedLibrarian.password}\nRole: Librarian (Catalog Manager)\nPortal: ${window.location.origin}/pages/login.html`;
+            const textToCopy = `RE-CAPS Librarian Credentials:\nName: ${currentCreatedLibrarian.fullName}\nEmail: ${currentCreatedLibrarian.email}\nPosition: ${currentCreatedLibrarian.position || 'Librarian'}\nPassword: ${currentCreatedLibrarian.password}\nRole: Librarian (Catalog Manager)\nPortal: ${window.location.origin}/pages/login.html`;
             try {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(textToCopy);
@@ -8170,6 +8173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const name = (librarianNameInput?.value || '').trim();
             const email = (librarianEmailInput?.value || '').trim().toLowerCase();
+            const position = (librarianPositionInput?.value || '').trim() || 'Librarian';
             const password = librarianPasswordInput?.value || '';
             const confirmPassword = librarianConfirmPasswordInput?.value || '';
             const submitBtn = document.getElementById('submit-librarian-btn');
@@ -8232,6 +8236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         email: email,
                         password: password,
                         fullName: name,
+                        position: position,
                         adminUid: currentAdminUid
                     })
                 });
@@ -8240,7 +8245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (response.ok && result.success) {
                     console.log('Librarian created successfully via backend API');
                     creationSuccess = true;
-                    createdUserRecord = result.user || { uid: 'lib_' + Date.now(), email, fullName: name, userType: 'librarian' };
+                    createdUserRecord = result.user || { uid: 'lib_' + Date.now(), email, fullName: name, position: position, userType: 'librarian' };
                 } else {
                     console.warn('⚠️ Backend create-librarian responded with non-200:', result.message);
                     if (response.status === 409 || (result.code && result.code === 'auth/email-already-exists')) {
@@ -8280,6 +8285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await db.collection('users').doc(newUser.uid).set({
                             email: email,
                             fullName: name,
+                            position: position,
                             userType: 'librarian',
                             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                             createdBy: currentAdminUid,
@@ -8293,6 +8299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             uid: newUser.uid,
                             email: email,
                             fullName: name,
+                            position: position,
                             userType: 'librarian'
                         };
                         console.log('Librarian created successfully via secondary client instance');
@@ -8371,6 +8378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     fullName: name,
                     email: email,
                     password: password,
+                    position: position,
                     uid: createdUserRecord?.uid
                 });
             }

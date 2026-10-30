@@ -1428,6 +1428,26 @@
                                 <span class="pform-label-hint">Official campus email recommended for institutional
                                     verification</span>
                             </div>
+                            <div class="pform-field">
+                                <label class="pform-label" for="librarian-position">Position / Designation <span
+                                        class="pform-required">*</span></label>
+                                <div class="pform-input-wrapper">
+                                    <input type="text" id="librarian-position" class="pform-input"
+                                        placeholder="e.g., Head Librarian, Cataloging Librarian, Reference Specialist" required list="librarian-position-list">
+                                    <datalist id="librarian-position-list">
+                                        <option value="Head Librarian">
+                                        <option value="Assistant Campus Librarian">
+                                        <option value="Cataloging & Metadata Librarian">
+                                        <option value="Reference & Information Specialist">
+                                        <option value="Serials & Acquisitions In-Charge">
+                                        <option value="Circulation & Reserve In-Charge">
+                                        <option value="Systems & Digital Repository In-Charge">
+                                        <option value="College Library Staff">
+                                    </datalist>
+                                </div>
+                                <span class="pform-label-hint">Official staff designation or assigned library role</span>
+                            </div>
+
                         </div>
                     </div>
 
@@ -1551,91 +1571,6 @@
                         </div>
                     </div>
 
-                    <!-- Section 5: Physical Book Cataloging & Librarian Accountability -->
-                    <div class="pform-section" id="pform-section-cataloging">
-                        <div class="pform-section-header">
-                            <div class="pform-section-badge">05</div>
-                            <div>
-                                <div class="pform-section-title">Physical Catalog &amp; Librarian Accountability</div>
-                                <div class="pform-section-desc">Physical shelf location, call number, and librarian
-                                    modification history</div>
-                            </div>
-                        </div>
-                        <div class="pform-section-body">
-                            <!-- Accountability Stamp / Card -->
-                            <div class="admin-catalog-audit-box" id="admin-catalog-audit-box">
-                                <div class="admin-catalog-audit-header">
-                                    <div class="admin-audit-icon-wrap">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                            stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                        </svg>
-                                    </div>
-                                    <div class="admin-audit-header-text">
-                                        <div class="admin-audit-title" id="admin-audit-title">Catalog Accountability
-                                            Status</div>
-                                        <div class="admin-audit-sub" id="admin-audit-sub">Tracks which librarian created
-                                            or modified this catalog record.</div>
-                                    </div>
-                                    <span class="admin-audit-badge" id="admin-audit-badge">Not Cataloged</span>
-                                </div>
-                                <div class="admin-audit-details" id="admin-audit-details" style="display:none;">
-                                    <div class="admin-audit-meta-grid">
-                                        <div class="admin-audit-item">
-                                            <span class="admin-audit-lbl">First Cataloged By</span>
-                                            <strong id="admin-audit-created-by">—</strong>
-                                        </div>
-                                        <div class="admin-audit-item">
-                                            <span class="admin-audit-lbl">Last Modified By</span>
-                                            <strong id="admin-audit-updated-by">—</strong>
-                                        </div>
-                                        <div class="admin-audit-item">
-                                            <span class="admin-audit-lbl">Last Updated At</span>
-                                            <span id="admin-audit-updated-at">—</span>
-                                        </div>
-                                        <div class="admin-audit-item">
-                                            <span class="admin-audit-lbl">Total Revisions</span>
-                                            <span id="admin-audit-count">—</span>
-                                        </div>
-                                    </div>
-                                    <div class="admin-audit-history-wrap">
-                                        <button type="button" class="admin-audit-history-btn"
-                                            id="admin-audit-history-toggle">
-                                            <span>View Complete Librarian Audit Trail</span>
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                                stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="6 9 12 15 18 9" />
-                                            </svg>
-                                        </button>
-                                        <div class="admin-audit-history-list" id="admin-audit-history-list"
-                                            style="display:none;"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Physical location fields -->
-                            <div class="pform-field">
-                                <label class="pform-label" for="project-catalog-location">Physical Location Note</label>
-                                <input type="text" id="project-catalog-location" class="pform-input"
-                                    placeholder="e.g., Rack 1, Row 2, Book Ends Stand 3, Color Blue">
-                            </div>
-                            <div class="pform-grid-two">
-                                <div class="pform-field">
-                                    <label class="pform-label" for="project-call-number">Call Number</label>
-                                    <input type="text" id="project-call-number" class="pform-input"
-                                        placeholder="e.g., 025.5 / Dea / 2024">
-                                </div>
-                                <div class="pform-field">
-                                    <label class="pform-label" for="project-accession-number">Accession Number</label>
-                                    <input type="text" id="project-accession-number" class="pform-input"
-                                        placeholder="e.g., CTU-2024-001">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Footer Actions -->
                     <div class="pmodal-footer">
                         <button type="button" class="pmodal-btn-clear" id="clear-librarian-btn"
                             style="display: none;">Clear</button>
@@ -1675,6 +1610,10 @@
                         <div class="librarian-cred-row">
                             <span class="librarian-cred-label">Login Email</span>
                             <span class="librarian-cred-value" id="success-librarian-email">-</span>
+                        </div>
+                        <div class="librarian-cred-row">
+                            <span class="librarian-cred-label">Position</span>
+                            <span class="librarian-cred-value" id="success-librarian-position">-</span>
                         </div>
                         <div class="librarian-cred-row">
                             <span class="librarian-cred-label">Password</span>
@@ -2211,6 +2150,92 @@
                     </div>
 
                     <!-- Footer Actions -->
+                    <!-- Section 5: Physical Book Cataloging & Librarian Accountability -->
+                    <div class="pform-section" id="pform-section-cataloging">
+                        <div class="pform-section-header">
+                            <div class="pform-section-badge">05</div>
+                            <div>
+                                <div class="pform-section-title">Physical Catalog &amp; Librarian Accountability</div>
+                                <div class="pform-section-desc">Physical shelf location, call number, and librarian
+                                    modification history</div>
+                            </div>
+                        </div>
+                        <div class="pform-section-body">
+                            <!-- Accountability Stamp / Card -->
+                            <div class="admin-catalog-audit-box" id="admin-catalog-audit-box">
+                                <div class="admin-catalog-audit-header">
+                                    <div class="admin-audit-icon-wrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                        </svg>
+                                    </div>
+                                    <div class="admin-audit-header-text">
+                                        <div class="admin-audit-title" id="admin-audit-title">Catalog Accountability
+                                            Status</div>
+                                        <div class="admin-audit-sub" id="admin-audit-sub">Tracks which librarian created
+                                            or modified this catalog record.</div>
+                                    </div>
+                                    <span class="admin-audit-badge" id="admin-audit-badge">Not Cataloged</span>
+                                </div>
+                                <div class="admin-audit-details" id="admin-audit-details" style="display:none;">
+                                    <div class="admin-audit-meta-grid">
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">First Cataloged By</span>
+                                            <strong id="admin-audit-created-by">—</strong>
+                                        </div>
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">Last Modified By</span>
+                                            <strong id="admin-audit-updated-by">—</strong>
+                                        </div>
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">Last Updated At</span>
+                                            <span id="admin-audit-updated-at">—</span>
+                                        </div>
+                                        <div class="admin-audit-item">
+                                            <span class="admin-audit-lbl">Total Revisions</span>
+                                            <span id="admin-audit-count">—</span>
+                                        </div>
+                                    </div>
+                                    <div class="admin-audit-history-wrap">
+                                        <button type="button" class="admin-audit-history-btn"
+                                            id="admin-audit-history-toggle">
+                                            <span>View Complete Librarian Audit Trail</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="6 9 12 15 18 9" />
+                                            </svg>
+                                        </button>
+                                        <div class="admin-audit-history-list" id="admin-audit-history-list"
+                                            style="display:none;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Physical location fields -->
+                            <div class="pform-field">
+                                <label class="pform-label" for="project-catalog-location">Physical Location Note</label>
+                                <input type="text" id="project-catalog-location" class="pform-input"
+                                    placeholder="e.g., Rack 1, Row 2, Book Ends Stand 3, Color Blue">
+                            </div>
+                            <div class="pform-grid-two">
+                                <div class="pform-field">
+                                    <label class="pform-label" for="project-call-number">Call Number</label>
+                                    <input type="text" id="project-call-number" class="pform-input"
+                                        placeholder="e.g., 025.5 / Dea / 2024">
+                                </div>
+                                <div class="pform-field">
+                                    <label class="pform-label" for="project-accession-number">Accession Number</label>
+                                    <input type="text" id="project-accession-number" class="pform-input"
+                                        placeholder="e.g., CTU-2024-001">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Footer Actions -->
+
                     <div class="pmodal-footer">
                         <button type="button" class="pmodal-btn-clear" id="clear-project-btn">Clear</button>
                         <button type="button" class="pmodal-btn-cancel" id="cancel-project-btn">Cancel</button>
