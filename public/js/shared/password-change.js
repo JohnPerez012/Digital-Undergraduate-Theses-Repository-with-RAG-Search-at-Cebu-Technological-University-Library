@@ -132,9 +132,14 @@
                                 <div class="password-change-error" id="security-error" style="display: none;"></div>
                             </div>
 
-                            <button class="password-change-btn primary" id="verify-security-btn">
-                                Verify & Continue
-                            </button>
+                            <div class="password-change-actions">
+                                <button type="button" class="password-change-btn secondary cancel-password-modal">
+                                    Cancel
+                                </button>
+                                <button type="button" class="password-change-btn primary" id="verify-security-btn">
+                                    Verify & Continue
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -212,17 +217,17 @@
                                 </div>
                             </div>
 
-                            <button class="password-change-btn primary" id="update-password-btn">
-                                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
-                                Update Password
-                            </button>
+                            <div class="password-change-actions">
+                                <button type="button" class="password-change-btn secondary cancel-password-modal">
+                                    Cancel
+                                </button>
+                                <button type="button" class="password-change-btn primary" id="update-password-btn">
+                                    ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
+                                    Update Password
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Cancel Button -->
-                    <button class="password-change-btn secondary" id="cancel-password-change">
-                        Cancel
-                    </button>
                 </div>
             </div>
         `;
@@ -234,12 +239,24 @@
     }
 
     /**
+     * Get backend base URL
+     */
+    function getBackendUrl() {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3001';
+        }
+        return 'https://recap-backend-jy5b.onrender.com';
+    }
+
+    /**
      * Setup event listeners for password change modal
      */
     function setupPasswordChangeEvents(correctAnswer, user) {
         const modal = document.getElementById('password-change-modal');
+        if (!modal) return;
+
         const overlay = modal.querySelector('.password-change-overlay');
-        const cancelBtn = document.getElementById('cancel-password-change');
+        const cancelButtons = modal.querySelectorAll('.cancel-password-modal');
         const verifyBtn = document.getElementById('verify-security-btn');
         const updateBtn = document.getElementById('update-password-btn');
         const securityInput = document.getElementById('security-answer-input');
@@ -248,6 +265,8 @@
         const toggleNewPassword = document.getElementById('toggle-new-password');
         const toggleConfirmPassword = document.getElementById('toggle-confirm-password');
 
+        let verifiedSecurityAnswer = '';
+
         // Close modal function
         function closeModal() {
             modal.classList.remove('active');
@@ -255,8 +274,8 @@
         }
 
         // Cancel and overlay click
-        cancelBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', closeModal);
+        cancelButtons.forEach(btn => btn.addEventListener('click', closeModal));
+        if (overlay) overlay.addEventListener('click', closeModal);
 
         // Escape key to close
         document.addEventListener('keydown', function escapeHandler(e) {
@@ -267,145 +286,268 @@
         });
 
         // Toggle password visibility
-        toggleNewPassword.addEventListener('click', () => {
-            togglePasswordVisibility(newPasswordInput, toggleNewPassword);
-        });
+        if (toggleNewPassword && newPasswordInput) {
+            toggleNewPassword.addEventListener('click', () => {
+                togglePasswordVisibility(newPasswordInput, toggleNewPassword);
+            });
+        }
 
-        toggleConfirmPassword.addEventListener('click', () => {
-            togglePasswordVisibility(confirmPasswordInput, toggleConfirmPassword);
-        });
+        if (toggleConfirmPassword && confirmPasswordInput) {
+            toggleConfirmPassword.addEventListener('click', () => {
+                togglePasswordVisibility(confirmPasswordInput, toggleConfirmPassword);
+            });
+        }
 
         // Verify security question
-        verifyBtn.addEventListener('click', () => {
-            verifySecurityAnswer(correctAnswer);
-        });
+        if (verifyBtn) {
+            verifyBtn.addEventListener('click', () => {
+                verifySecurityAnswer(correctAnswer);
+            });
+        }
 
         // Enter key on security input
-        securityInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                verifySecurityAnswer(correctAnswer);
-            }
-        });
+        if (securityInput) {
+            securityInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    verifySecurityAnswer(correctAnswer);
+                }
+            });
+        }
 
         // Update password
-        updateBtn.addEventListener('click', () => {
-            updatePassword(user, closeModal);
-        });
+        if (updateBtn) {
+            updateBtn.addEventListener('click', () => {
+                updatePassword(user, closeModal);
+            });
+        }
 
         // Real-time password validation
-        newPasswordInput.addEventListener('input', validatePasswordRequirements);
-        confirmPasswordInput.addEventListener('input', validatePasswordRequirements);
-    }
+        if (newPasswordInput) newPasswordInput.addEventListener('input', validatePasswordRequirements);
+        if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', validatePasswordRequirements);
 
-    /**
-     * Verify security answer
-     */
-    function verifySecurityAnswer(correctAnswer) {
-        const input = document.getElementById('security-answer-input');
-        const errorDiv = document.getElementById('security-error');
-        const userAnswer = input.value.trim();
+        /**
+         * Verify security answer
+         */
+        function verifySecurityAnswer(correct) {
+            const input = document.getElementById('security-answer-input');
+            const errorDiv = document.getElementById('security-error');
+            const userAnswer = input ? input.value.trim() : '';
 
-        if (!userAnswer) {
-            showError(errorDiv, input, 'Please enter your answer');
-            return;
-        }
-
-        // Case-insensitive comparison
-        if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-            // Correct answer - show password step
-            document.getElementById('security-step').style.display = 'none';
-            document.getElementById('password-step').style.display = 'block';
-            document.getElementById('new-password-input').focus();
-        } else {
-            // Incorrect answer
-            showError(errorDiv, input, 'Incorrect answer. Please try again.');
-            input.value = '';
-        }
-    }
-
-    /**
-     * Update password
-     */
-    async function updatePassword(user, closeModal) {
-        const newPasswordInput = document.getElementById('new-password-input');
-        const confirmPasswordInput = document.getElementById('confirm-password-input');
-        const errorDiv = document.getElementById('password-error');
-        const updateBtn = document.getElementById('update-password-btn');
-
-        const newPassword = newPasswordInput.value;
-        const confirmPassword = confirmPasswordInput.value;
-
-        // Validation
-        if (!newPassword || !confirmPassword) {
-            showError(errorDiv, !newPassword ? newPasswordInput : confirmPasswordInput, 'Please fill in both password fields');
-            return;
-        }
-
-        if (newPassword.length < 8) {
-            showError(errorDiv, newPasswordInput, 'Password must be at least 8 characters long');
-            return;
-        }
-
-        if (!/[0-9]/.test(newPassword)) {
-            showError(errorDiv, newPasswordInput, 'Password must contain at least 1 number (0-9)');
-            return;
-        }
-
-        if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword)) {
-            showError(errorDiv, newPasswordInput, 'Password must contain both uppercase and lowercase letters');
-            return;
-        }
-
-        if (!/[^A-Za-z0-9]/.test(newPassword)) {
-            showError(errorDiv, newPasswordInput, 'Password must contain at least 1 special character (e.g. !@#$%^&*)');
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            showError(errorDiv, confirmPasswordInput, 'Passwords do not match');
-            return;
-        }
-
-        // Disable button and show loading
-        updateBtn.disabled = true;
-        updateBtn.innerHTML = `
-            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''}
-            Updating...`;
-
-        try {
-            // Update password in Firebase Auth
-            await user.updatePassword(newPassword);
-
-            // Log activity
-            if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
-                window.ActivityService.logAuth('password_change', 'Account password successfully updated');
+            if (!userAnswer) {
+                showError(errorDiv, input, 'Please enter your answer');
+                return;
             }
 
-            // Success
-            showToast('✅ Password updated successfully!', 'success');
-            closeModal();
+            // Case-insensitive comparison
+            if (userAnswer.toLowerCase() === (correct || '').toString().toLowerCase()) {
+                verifiedSecurityAnswer = userAnswer;
+                document.getElementById('security-step').style.display = 'none';
+                document.getElementById('password-step').style.display = 'block';
+                const passInput = document.getElementById('new-password-input');
+                if (passInput) passInput.focus();
+            } else {
+                showError(errorDiv, input, 'Incorrect answer. Please try again.');
+                input.value = '';
+            }
+        }
 
-        } catch (error) {
-            console.error('[PasswordChange] Error updating password:', error);
-            
-            let errorMessage = 'Failed to update password';
-            
-            if (error.code === 'auth/requires-recent-login') {
-                errorMessage = 'Please log out and log back in, then try again';
-            } else if (error.code === 'auth/weak-password') {
-                errorMessage = 'Password is too weak';
+        /**
+         * Update password
+         */
+        async function updatePassword(currentUser, closeFn) {
+            const newPasswordVal = newPasswordInput ? newPasswordInput.value : '';
+            const confirmPasswordVal = confirmPasswordInput ? confirmPasswordInput.value : '';
+            const errorDiv = document.getElementById('password-error');
+
+            // Validation
+            if (!newPasswordVal || !confirmPasswordVal) {
+                showError(errorDiv, !newPasswordVal ? newPasswordInput : confirmPasswordInput, 'Please fill in both password fields');
+                return;
             }
 
-            showError(errorDiv, newPasswordInput, errorMessage);
-            
-            // Re-enable button
-            updateBtn.disabled = false;
+            if (newPasswordVal.length < 8) {
+                showError(errorDiv, newPasswordInput, 'Password must be at least 8 characters long');
+                return;
+            }
+
+            if (!/[0-9]/.test(newPasswordVal)) {
+                showError(errorDiv, newPasswordInput, 'Password must contain at least 1 number (0-9)');
+                return;
+            }
+
+            if (!/[a-z]/.test(newPasswordVal) || !/[A-Z]/.test(newPasswordVal)) {
+                showError(errorDiv, newPasswordInput, 'Password must contain both uppercase and lowercase letters');
+                return;
+            }
+
+            if (!/[^A-Za-z0-9]/.test(newPasswordVal)) {
+                showError(errorDiv, newPasswordInput, 'Password must contain at least 1 special character (e.g. !@#$%^&*)');
+                return;
+            }
+
+            if (newPasswordVal !== confirmPasswordVal) {
+                showError(errorDiv, confirmPasswordInput, 'Passwords do not match');
+                return;
+            }
+
+            // Disable button and show loading
+            updateBtn.disabled = true;
             updateBtn.innerHTML = `
-                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
-                Update Password
-            `;
+                ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''}
+                Updating...`;
+
+            let updateSuccess = false;
+
+            // 1. Primary path: Use backend endpoint with Admin SDK
+            // Bypasses auth/requires-recent-login securely since security answer is verified
+            try {
+                const idToken = await currentUser.getIdToken();
+                const backendUrl = getBackendUrl();
+                const resp = await fetch(`${backendUrl}/api/auth/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({
+                        newPassword: newPasswordVal,
+                        securityAnswer: verifiedSecurityAnswer || correctAnswer
+                    })
+                });
+
+                const data = await resp.json().catch(() => null);
+
+                if (resp.ok && data && data.success) {
+                    updateSuccess = true;
+                } else if (data && data.error && resp.status < 500) {
+                    showError(errorDiv, newPasswordInput, data.error);
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = `
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
+                        Update Password
+                    `;
+                    return;
+                } else {
+                    console.warn('[PasswordChange] Backend unavailable or failed, falling back to client SDK:', data);
+                }
+            } catch (apiErr) {
+                console.warn('[PasswordChange] Backend call error, falling back to client SDK:', apiErr);
+            }
+
+            // 2. Fallback to client SDK if backend call was not successful
+            if (!updateSuccess) {
+                try {
+                    await currentUser.updatePassword(newPasswordVal);
+                    updateSuccess = true;
+                } catch (error) {
+                    console.error('[PasswordChange] Client SDK password update error:', error);
+
+                    if (error.code === 'auth/requires-recent-login') {
+                        promptInlineReauth(currentUser, newPasswordVal, errorDiv, updateBtn, closeFn);
+                        return;
+                    }
+
+                    let errorMessage = 'Failed to update password';
+                    if (error.code === 'auth/weak-password') {
+                        errorMessage = 'Password is too weak';
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+
+                    showError(errorDiv, newPasswordInput, errorMessage);
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = `
+                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('lock-sm') : ''}
+                        Update Password
+                    `;
+                    return;
+                }
+            }
+
+            // 3. Complete successful update
+            if (updateSuccess) {
+                if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
+                    window.ActivityService.logAuth('password_change', 'Account password successfully updated');
+                }
+                showToast('✅ Password updated successfully!', 'success');
+                closeFn();
+            }
+        }
+
+        /**
+         * Inline current password prompt for re-authentication fallback
+         */
+        function promptInlineReauth(currentUser, newPasswordVal, errorDiv, actionBtn, closeFn) {
+            const form = document.querySelector('#password-step .password-change-form');
+            if (!form) return;
+
+            let reauthField = document.getElementById('reauth-password-wrapper');
+            if (!reauthField) {
+                reauthField = document.createElement('div');
+                reauthField.id = 'reauth-password-wrapper';
+                reauthField.className = 'password-change-field';
+                reauthField.style.marginTop = '1rem';
+                reauthField.innerHTML = `
+                    <div style="background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; color: #e74c3c;">
+                        Your session requires quick verification. Please enter your <strong>current password</strong> to confirm:
+                    </div>
+                    <label class="password-change-label" for="current-password-input">Current Password <span style="color: #e74c3c;">*</span></label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="current-password-input" class="password-change-input" placeholder="Enter current password" autocomplete="current-password">
+                    </div>
+                    <div class="password-change-error" id="reauth-error" style="display: none;"></div>
+                `;
+                const actions = form.querySelector('.password-change-actions');
+                form.insertBefore(reauthField, actions);
+            }
+
+            actionBtn.disabled = false;
+            actionBtn.innerHTML = `Confirm & Update Password`;
+
+            const currPassInput = document.getElementById('current-password-input');
+            const reauthErrDiv = document.getElementById('reauth-error');
+            if (currPassInput) currPassInput.focus();
+
+            actionBtn.onclick = async () => {
+                const currPass = currPassInput ? currPassInput.value : '';
+                if (!currPass) {
+                    showError(reauthErrDiv, currPassInput, 'Please enter your current password');
+                    return;
+                }
+
+                actionBtn.disabled = true;
+                actionBtn.innerHTML = `${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('spinner') : ''} Verifying...`;
+
+                try {
+                    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth.EmailAuthProvider) {
+                        const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, currPass);
+                        await currentUser.reauthenticateWithCredential(cred);
+                        await currentUser.updatePassword(newPasswordVal);
+
+                        if (window.ActivityService && typeof window.ActivityService.logAuth === 'function') {
+                            window.ActivityService.logAuth('password_change', 'Account password successfully updated');
+                        }
+                        showToast('✅ Password updated successfully!', 'success');
+                        closeFn();
+                    } else {
+                        throw new Error('Please log out and log back in, then try again');
+                    }
+                } catch (reauthErr) {
+                    console.error('[PasswordChange] Re-auth failed:', reauthErr);
+                    let msg = 'Incorrect current password';
+                    if (reauthErr.code === 'auth/wrong-password') {
+                        msg = 'Incorrect current password';
+                    } else if (reauthErr.message) {
+                        msg = reauthErr.message;
+                    }
+                    showError(reauthErrDiv, currPassInput, msg);
+                    actionBtn.disabled = false;
+                    actionBtn.innerHTML = `Confirm & Update Password`;
+                }
+            };
         }
     }
+
 
     /**
      * Toggle password visibility
