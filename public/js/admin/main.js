@@ -349,10 +349,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const displayName = escapeHtml(data.fullName || data.email || 'Unknown User');
                         const displayEmail = (data.fullName && data.email && data.fullName !== data.email) ? escapeHtml(data.email) : '';
                         const initial = (data.fullName || data.email || 'U').charAt(0).toUpperCase();
+                        const photoUrl = data.photoURL || data.avatar || data.profileImage || '';
+                        const avatarContent = photoUrl
+                            ? `<img src="${escapeHtml(photoUrl)}" alt="${displayName}" class="dash-user-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><span style="display:none;">${initial}</span>`
+                            : `<span>${initial}</span>`;
 
                         item.innerHTML = `
                             <div class="dash-user-avatar role-avatar-${userType}">
-                                <span>${initial}</span>
+                                ${avatarContent}
                             </div>
                             <div class="recent-item-main">
                                 <div class="recent-item-title">${displayName}</div>

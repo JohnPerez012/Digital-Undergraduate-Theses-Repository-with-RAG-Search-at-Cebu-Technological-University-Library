@@ -696,6 +696,16 @@ body {
     font-weight: 700;
     font-size: 0.85rem;
     flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.dash-user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
 }
 
 .role-avatar-librarian {
