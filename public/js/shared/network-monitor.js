@@ -343,3 +343,40 @@ if (document.readyState === 'loading') {
 
 // Export for use in other modules
 window.NetworkMonitor = networkMonitor;
+
+
+// ==========================================
+// Global Unhandled Error & Promise Rejection Guard
+// Surfaces silent frontend failures as non-intrusive UI toasts
+// ==========================================
+(function() {
+    let lastToastTime = 0;
+    const TOAST_COOLDOWN = 5000;
+
+    function safeNotify(message, type = 'warning') {
+        const now = Date.now();
+        if (now - lastToastTime < TOAST_COOLDOWN) return;
+        lastToastTime = now;
+
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type, { duration: 5000 });
+        }
+    }
+
+    window.addEventListener('unhandledrejection', function(event) {
+        const reason = event.reason;
+        const msg = reason ? (reason.message || String(reason)) : '';
+        if (!msg || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
+
+        console.error('[RE-CAPS Unhandled Rejection]', reason);
+        safeNotify('⚠️ Notice: An operation did not complete. Please retry.', 'warning');
+    });
+
+    window.addEventListener('error', function(event) {
+        if (!event.error && !event.message) return;
+        const msg = event.message || '';
+        if (msg.includes('Script error') || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
+
+        console.error('[RE-CAPS Runtime Error]', event.error || msg);
+    });
+})();
