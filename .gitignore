@@ -1,26 +1,51 @@
-# folder
+# =========================================================================
+# LOCAL & PRIVATE DIRECTORIES (Never commit to public repository)
+# =========================================================================
 recap-backend/
 .firebase/
+.agents/
+.kiro/
 addons/
-editable_logo/logo.psb
+editable_logo/
+graphify-out/
+scratch/
+node_modules/
+public/assets/sample-ids/
 
-
-# file
-firestore.indexes.json
+# =========================================================================
+# CREDENTIALS, CONFIGS & LOCAL RUNNERS
+# =========================================================================
+.env
+.env.*
+*.env
 serviceAccountKey.json
+serviceAccount*.json
+firestore.indexes.json
 .firebaserc
 firebase.json
+firebase
 localRunner.bat
+*.bat
+*.code-workspace
+package.json
+package-lock.json
+server.js
 
-# git rm -r --cached folder
-# git rm --cached file
-# git reset
-# git rm -r --cached .
-
+# =========================================================================
+# ACADEMIC MANUSCRIPTS, SURVEY DATA & DIAGRAMS (Keep strictly local)
+# =========================================================================
 *.md
 !README.md
-
 *.txt
 *.docx
+*.doc
 *.pdf
+*.pptx
+*.ppt
+*.xlsx
+*.xls
+*.csv
 *.py
+Figure*.png
+figure*.png
+BitAut2026.json

@@ -39,7 +39,7 @@ const RAGService = {
       const data = await response.json();
       const matches = data.matches || [];
       
-      console.log(`✓ Found ${matches.length} relevant projects from Pinecone`);
+      console.log(`Found ${matches.length} relevant projects from Pinecone`);
       
       // Log all scores for debugging (show full picture)
       if (matches.length > 0) {
@@ -138,7 +138,7 @@ const RAGService = {
     // Step 3: Transform to project format
     const projects = this.transformToProjects(relevantMatches);
     
-    console.log('✓ RAG: Search complete');
+    console.log('RAG: Search complete');
     
     return {
       projects: projects,
@@ -157,7 +157,7 @@ const RAGService = {
       const response = await fetch(`${this.backendUrl}/api/health`);
       const isHealthy = response.ok;
       if (isHealthy) {
-        console.log('✓ RAG backend is healthy');
+        console.log('RAG backend is healthy');
       } else {
         console.warn('⚠️ RAG backend health check failed');
       }
@@ -174,7 +174,7 @@ const RAGService = {
   setMinRelevanceScore(score) {
     if (score >= 0 && score <= 1) {
       this.MIN_RELEVANCE_SCORE = score;
-      console.log(`✓ Min relevance score updated to ${(score * 100).toFixed(0)}%`);
+      console.log(`Min relevance score updated to ${(score * 100).toFixed(0)}%`);
     } else {
       console.warn('Invalid relevance score. Must be between 0 and 1.');
     }

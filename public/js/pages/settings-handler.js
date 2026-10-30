@@ -60,17 +60,168 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Display user email
-    const userEmailDisplay = document.getElementById('settings-user-email');
-    if (userEmailDisplay && typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user && user.email) {
-                userEmailDisplay.textContent = user.email;
-            } else {
-                userEmailDisplay.textContent = 'Not logged in';
+    // Hydrate Student Profile Card & Academic Telemetry
+    function updateStudentProfileCard() {
+        const studentNameEl = document.getElementById('settings-student-name');
+        const userEmailDisplay = document.getElementById('settings-user-email');
+        const cardEmailDisplay = document.getElementById('settings-user-email-card');
+        const studentAvatar = document.getElementById('settings-student-avatar');
+        const avatarInitials = document.getElementById('sset-avatar-initials');
+
+        const savedStatsEl = document.getElementById('sset-stat-saved');
+        const citationStatsEl = document.getElementById('sset-stat-citations');
+        const searchStatsEl = document.getElementById('sset-stat-searches');
+
+        const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+        const displayName = (user && user.displayName) || sessionStorage.getItem('userName') || document.getElementById('student-name')?.textContent || 'Student Researcher';
+        const email = (user && user.email) || sessionStorage.getItem('userEmail') || 'student@ctu.edu.ph';
+
+        if (studentNameEl) studentNameEl.textContent = displayName;
+        if (userEmailDisplay) userEmailDisplay.textContent = email;
+        if (cardEmailDisplay) cardEmailDisplay.textContent = email;
+
+        if (user && user.photoURL && studentAvatar) {
+            studentAvatar.src = user.photoURL;
+            studentAvatar.style.display = 'block';
+            if (avatarInitials) avatarInitials.style.display = 'none';
+        } else if (avatarInitials) {
+            const initial = (displayName.trim().charAt(0) || 'S').toUpperCase();
+            avatarInitials.textContent = initial;
+        }
+
+        // Stats
+        if (savedStatsEl) {
+            try {
+                const saved = JSON.parse(localStorage.getItem('savedProjects') || '[]');
+                savedStatsEl.textContent = saved.length;
+            } catch (e) {
+                const railCount = document.getElementById('saved-count')?.textContent || '0';
+                savedStatsEl.textContent = railCount;
             }
-        });
+        }
+
+        if (searchStatsEl) {
+            try {
+                const searches = JSON.parse(localStorage.getItem('recap_search_history') || '[]');
+                searchStatsEl.textContent = searches.length;
+            } catch (e) {
+                searchStatsEl.textContent = '0';
+            }
+        }
+
+        if (citationStatsEl) {
+            try {
+                const saved = JSON.parse(localStorage.getItem('savedProjects') || '[]');
+                citationStatsEl.textContent = saved.length; // saved references eligible for citation
+            } catch (e) {
+                citationStatsEl.textContent = '0';
+            }
+        }
     }
+
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged((user) => {
+            updateStudentProfileCard();
+        });
+    } else {
+        updateStudentProfileCard();
+    }
+
+    // In-Page Jump Navigation
+    function initStudentJumpNav() {
+        const jumpLinks = document.querySelectorAll('.sset-jump-link[data-sset-target]');
+        if (!jumpLinks.length) return;
+
+        jumpLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('data-sset-target');
+                const targetEl = document.getElementById(targetId);
+                if (!targetEl) return;
+
+                jumpLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                targetEl.classList.remove('sset-flash');
+                void targetEl.offsetWidth;
+                targetEl.classList.add('sset-flash');
+            });
+        });
+
+        // IntersectionObserver for auto-active link highlight
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        jumpLinks.forEach(link => {
+                            if (link.getAttribute('data-sset-target') === id) {
+                                link.classList.add('active');
+                            } else {
+                                link.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+            }, {
+                root: null,
+                rootMargin: '-15% 0px -65% 0px',
+                threshold: 0
+            });
+
+            const blocks = document.querySelectorAll('.sset-block[id], #danger-zone-container');
+            blocks.forEach(b => observer.observe(b));
+        }
+    }
+
+    initStudentJumpNav();
+
+    // Student Email Copy Button
+    document.getElementById('sset-card-copy-email-btn')?.addEventListener('click', () => {
+        const emailEl = document.getElementById('settings-user-email-card') || document.getElementById('settings-user-email');
+        const email = emailEl?.textContent?.trim() || '';
+        if (email && email !== 'Loading...') {
+            navigator.clipboard.writeText(email).then(() => {
+                if (typeof showToast === 'function') {
+                    showToast('Email address copied to clipboard', 'success');
+                }
+            }).catch(err => {
+                console.warn('Copy failed:', err);
+            });
+        }
+    });
+
+    // Student Contributions Action Buttons
+    document.getElementById('sset-btn-saved')?.addEventListener('click', () => {
+        const navItem = document.querySelector('.rail-nav-item[data-section="saved"]');
+        if (navItem) navItem.click();
+        else window.location.hash = 'saved';
+    });
+
+    document.getElementById('sset-btn-citations')?.addEventListener('click', () => {
+        const navItem = document.querySelector('.rail-nav-item[data-section="citations"]');
+        if (navItem) navItem.click();
+        else window.location.hash = 'citations';
+    });
+
+    document.getElementById('sset-btn-searches')?.addEventListener('click', () => {
+        const navItem = document.querySelector('.rail-nav-item[data-section="activity"]');
+        if (navItem) navItem.click();
+        else window.location.hash = 'activity';
+    });
+
+    // Listen for hashchange to update stats on #settings
+    window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#settings') {
+            updateStudentProfileCard();
+        }
+    });
+
+    window.addEventListener('accountDataCleared', () => {
+        updateStudentProfileCard();
+    });
 
     // Clear Search History Button
     const clearHistoryBtn = document.getElementById('clear-search-history-btn');
@@ -231,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             imageItem.className = 'bg-image-item' + (isSelected ? ' selected' : '');
             imageItem.innerHTML = `
                 <img src="../${imagePath}" alt="Library Image ${index + 1}" loading="lazy">
-                <div class="selected-badge">✓</div>
+                <div class="selected-badge"></div>
             `;
             
             imageItem.addEventListener('click', () => {
@@ -332,16 +483,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.warn('[Settings] Failed to delete conversations:', e);
                     }
 
-                    // Delete user activities
+                    // Clear local user activities (activities stored on local device only to protect Firebase free-tier quota)
                     try {
-                        const actSnap = await db.collection('userActivities').where('userId', '==', uid).get();
-                        if (!actSnap.empty) {
-                            const batch = db.batch();
-                            actSnap.forEach(doc => batch.delete(doc.ref));
-                            await batch.commit();
+                        if (window.ActivityService && typeof window.ActivityService.clearUserActivities === 'function') {
+                            await window.ActivityService.clearUserActivities(uid);
+                        } else {
+                            localStorage.removeItem('recaps_activities_' + uid);
                         }
                     } catch (e) {
-                        console.warn('[Settings] Failed to delete userActivities:', e);
+                        console.warn('[Settings] Failed to clear local activities:', e);
                     }
                 }
 
@@ -424,14 +574,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 console.warn('[Settings] Failed to delete conversations:', e);
                             }
                             try {
-                                const actSnap = await db.collection('userActivities').where('userId', '==', uid).get();
-                                if (!actSnap.empty) {
-                                    const batch = db.batch();
-                                    actSnap.forEach(doc => batch.delete(doc.ref));
-                                    await batch.commit();
+                                if (window.ActivityService && typeof window.ActivityService.clearUserActivities === 'function') {
+                                    await window.ActivityService.clearUserActivities(uid);
+                                } else {
+                                    localStorage.removeItem('recaps_activities_' + uid);
                                 }
                             } catch (e) {
-                                console.warn('[Settings] Failed to delete userActivities:', e);
+                                console.warn('[Settings] Failed to clear local activities:', e);
                             }
                             try {
                                 await db.collection('users').doc(uid).delete();

@@ -1056,7 +1056,6 @@
 
     <!-- Toast Notification Banner -->
     <div class="toast-banner" id="toastBanner" role="status">
-        <span id="toastIcon">✓</span>
         <span id="toastMsg">System status checked</span>
     </div>
 
@@ -1472,11 +1471,9 @@
         function showToast(msg, type = 'info') {
             const banner = document.getElementById('toastBanner');
             const msgEl = document.getElementById('toastMsg');
-            const iconEl = document.getElementById('toastIcon');
 
             clearTimeout(toastTimeout);
             msgEl.textContent = msg;
-            iconEl.textContent = type === 'success' ? '✓' : (type === 'warn' ? '⚠️' : 'ℹ️');
             banner.classList.add('show');
 
             toastTimeout = setTimeout(() => {

@@ -199,8 +199,12 @@
                             savedList.push({
                                 id: projectId,
                                 title: project.title,
+                                authors: project.authors || project.author || (project.rawData && (project.rawData.authors || project.rawData.author)) || [],
                                 year: project.year,
                                 program: project.program,
+                                adviser: project.adviser || project.advisor || (project.rawData && (project.rawData.adviser || project.rawData.advisor)) || '',
+                                abstract: project.abstract || (project.rawData && project.rawData.abstract) || '',
+                                department: project.department || (project.rawData && project.rawData.department) || '',
                                 rawData: project
                             });
                             localStorage.setItem('savedProjects', JSON.stringify(savedList));

@@ -14,7 +14,7 @@ const AIService = {
    * Initialize the service
    */
   async initialize() {
-    console.log('✓ AI Service initialized with 4-tier fallback');
+    console.log('AI Service initialized with 4-tier fallback');
     console.log('  Priority: Mistral → Groq → Gemini → OpenRouter');
   },
    
@@ -55,7 +55,7 @@ const AIService = {
         });
         
         if (filteredMatches.length > 0) {
-          console.log(`✓ Found ${filteredMatches.length} relevant projects for context (score >= ${minScore})`);
+          console.log(`Found ${filteredMatches.length} relevant projects for context (score >= ${minScore})`);
           
           // Format for AI context with full abstract extraction
           return filteredMatches.map(match => {
@@ -257,7 +257,7 @@ const AIService = {
                 this.conversationHistory = this.conversationHistory.slice(-20);
               }
 
-              console.log(`✓ AI response streaming finished via ${finalResult.provider}`);
+              console.log(`AI response streaming finished via ${finalResult.provider}`);
 
               if (typeof onDone === 'function') {
                 onDone(finalResult);
@@ -324,7 +324,7 @@ const AIService = {
    */
   clearHistory() {
     this.conversationHistory = [];
-    console.log('✓ Conversation history cleared');
+    console.log('Conversation history cleared');
   },
   
   /**

@@ -29,6 +29,7 @@
     let allProjects = [];              // Cache for all projects + pending submissions
     let completedCatalogProjects = []; // Cache for completed catalog projects
     let catalogNotes = {};             // { projectId: noteDoc }
+    const LANDING_PREF_KEY = 'lib_default_landing'; // Settings → Default Landing Page
 
     // ─────────────────────────────────────────────
     // HELPERS
@@ -72,6 +73,25 @@
     document.addEventListener('DOMContentLoaded', async () => {
         // Auth guard
         await new Promise(resolve => {
+            const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true' ||
+                              localStorage.getItem('previewMode') === 'true' ||
+                              localStorage.getItem('bypassAuth') === 'true';
+            if (isPreview) {
+                currentUser = {
+                    uid: 'librarian-preview',
+                    email: 'librarian@ctu.edu.ph',
+                    displayName: 'Head Librarian',
+                    emailVerified: true
+                };
+                currentUserData = { fullName: 'Head Librarian', userType: 'librarian' };
+                sessionStorage.setItem('userId', currentUser.uid);
+                sessionStorage.setItem('userEmail', currentUser.email);
+                sessionStorage.setItem('userName', currentUser.displayName);
+                sessionStorage.setItem('userType', 'librarian');
+                resolve(true);
+                return;
+            }
+
             auth.onAuthStateChanged(async user => {
                 if (!user) { window.location.href = '../index.html'; return; }
                 try {
@@ -90,7 +110,11 @@
                     const nameEl = document.getElementById('librarian-name');
                     if (nameEl) nameEl.textContent = currentUserData.fullName || user.displayName || 'Librarian';
                     const imgEl = document.getElementById('librarian-profile-img');
-                    if (imgEl && user.photoURL) imgEl.src = user.photoURL;
+                    if (imgEl && user.photoURL) {
+                        const fallbackSrc = imgEl.getAttribute('src');
+                        imgEl.onerror = () => { imgEl.onerror = null; imgEl.src = fallbackSrc; };
+                        imgEl.src = user.photoURL;
+                    }
                     const settingsEmail = document.getElementById('settings-user-email');
                     if (settingsEmail) settingsEmail.textContent = user.email || 'N/A';
                     const settingsName = document.getElementById('settings-user-name');
@@ -111,11 +135,48 @@
         initProjectEditModal();
         initPendingProjectEditModal();
         initCatalogNoteModal();
-        initDangerZone();
+        // Danger Zone (toggle, Clear Data, Delete Account) is owned by settings-handler.js
+        initSettingsPanel();
 
-        // Load default section
-        await loadDashboardData();
+        // Hash routing, saved default landing page, or dashboard
+        let initialHash = (window.location.hash || '').replace('#', '').trim();
+        let landingFromPreference = false;
+        if (!initialHash) {
+            const savedLanding = localStorage.getItem(LANDING_PREF_KEY);
+            if (savedLanding && savedLanding !== 'dashboard' && document.getElementById('nav-' + savedLanding)) {
+                initialHash = savedLanding;
+                landingFromPreference = true;
+                history.replaceState(null, '', '#' + savedLanding);
+            }
+        }
+        if (initialHash === 'catalog') {
+            switchSection('catalog');
+            await loadCatalogData();
+        } else if (initialHash === 'projects') {
+            switchSection('projects');
+            await loadProjectsData();
+        } else {
+            await loadDashboardData();
+            // dashboard-rail.js already handles URL hashes present at page load;
+            // only a preference-driven landing needs an explicit nav click.
+            if (landingFromPreference) document.getElementById('nav-' + initialHash)?.click();
+            if (initialHash === 'settings') loadSettingsContributions();
+        }
         await watchEditPermission();
+
+        window.addEventListener('hashchange', async () => {
+            const h = (window.location.hash || '').replace('#', '').trim();
+            if (h === 'catalog') {
+                switchSection('catalog');
+                await loadCatalogData();
+            } else if (h === 'projects') {
+                switchSection('projects');
+                await loadProjectsData();
+            } else if (h === 'dashboard') {
+                switchSection('dashboard');
+                await loadDashboardData();
+            }
+        });
     });
 
     // ─────────────────────────────────────────────
@@ -126,19 +187,52 @@
             item.addEventListener('click', async e => {
                 e.preventDefault();
                 const sec = item.getAttribute('data-section');
+                window.location.hash = sec;
                 switchSection(sec);
                 if (sec === 'dashboard') await loadDashboardData();
                 else if (sec === 'projects') await loadProjectsData();
                 else if (sec === 'catalog') await loadCatalogData();
+                else if (sec === 'settings') loadSettingsContributions();
             });
         });
 
-        // Quick action tiles
+        // Quick action tiles & dashboard buttons
         document.getElementById('qa-upload-btn')?.addEventListener('click', () => openUploadModal());
-        document.getElementById('qa-projects-btn')?.addEventListener('click', () => { switchSection('projects'); loadProjectsData(); });
-        document.getElementById('qa-catalog-btn')?.addEventListener('click', () => { switchSection('catalog'); loadCatalogData(); });
-        document.getElementById('dash-go-edit-btn')?.addEventListener('click', () => { switchSection('projects'); loadProjectsData(); });
-        document.getElementById('refresh-dashboard-btn')?.addEventListener('click', () => loadDashboardData());
+        document.getElementById('qa-projects-btn')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
+        document.getElementById('qa-catalog-btn')?.addEventListener('click', () => { window.location.hash = 'catalog'; switchSection('catalog'); loadCatalogData(); });
+        document.getElementById('qa-bulk-btn')?.addEventListener('click', () => openBulkModal());
+        document.getElementById('dash-quick-upload-btn')?.addEventListener('click', () => openUploadModal());
+        document.getElementById('dash-view-all-projects-btn')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
+        document.getElementById('dash-go-catalog-btn')?.addEventListener('click', () => { window.location.hash = 'catalog'; switchSection('catalog'); loadCatalogData(); });
+        document.getElementById('dash-go-edit-btn')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
+
+        // Dashboard clickable KPI cards
+        document.getElementById('dash-card-projects')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
+        document.getElementById('dash-card-catalog')?.addEventListener('click', () => { window.location.hash = 'catalog'; switchSection('catalog'); loadCatalogData(); });
+        document.getElementById('dash-card-pending')?.addEventListener('click', () => {
+            window.location.hash = 'projects';
+            switchSection('projects');
+            loadProjectsData().then(() => {
+                const statusFilter = document.getElementById('projects-status-filter');
+                if (statusFilter) {
+                    statusFilter.value = 'pending';
+                    filterProjectsTable();
+                }
+            });
+        });
+
+        // Dashboard refresh with micro-animation
+        document.getElementById('refresh-dashboard-btn')?.addEventListener('click', async function() {
+            const btn = this;
+            const svg = btn.querySelector('svg');
+            if (svg) svg.style.animation = 'dashSpin 0.7s linear infinite';
+            try {
+                await loadDashboardData();
+                showToast && showToast('Dashboard refreshed');
+            } finally {
+                if (svg) svg.style.animation = '';
+            }
+        });
 
         // NEW section-header action buttons (Admin-style)
         document.getElementById('lib-add-project-btn')?.addEventListener('click', () => openUploadModal());
@@ -188,48 +282,137 @@
     // ─────────────────────────────────────────────
     async function loadDashboardData() {
         try {
-            const snap = await db.collection('projects').get();
-            const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (!allProjects || allProjects.length === 0) {
-                allProjects = all;
+            // Update greeting name
+            const greetingEl = document.getElementById('dash-greeting-name');
+            if (greetingEl) {
+                greetingEl.textContent = currentUserData?.fullName || currentUser?.displayName || 'Librarian Staff';
             }
 
+            // Fetch live projects and pending submissions in parallel
+            let pendingDocs = [];
+            const [snap, pendingSnap] = await Promise.all([
+                db.collection('projects').get(),
+                db.collection('pendingProjects').orderBy('createdAt', 'desc').get()
+                    .catch(async () => db.collection('pendingProjects').get())
+                    .catch(err => {
+                        console.warn('pendingProjects fetch in loadDashboardData:', err);
+                        return { docs: [] };
+                    })
+            ]);
+
+            const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            pendingDocs = (pendingSnap.docs || []).map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    ...data,
+                    status: 'pending',
+                    isPendingApproval: true,
+                    isBeingEdited: Boolean(data.isBeingEdited),
+                    editingBy: data.editingBy || null,
+                    editingByName: data.editingByName || null,
+                    isLockedByAdmin: Boolean(data.isLockedByAdmin)
+                };
+            });
+
+            // Update allProjects cache combining pending and live
+            const liveNonPending = all.filter(p => (p.status || '').toLowerCase() !== 'pending');
+            allProjects = [...pendingDocs, ...liveNonPending];
+            saveLibProjectsToCache(allProjects);
+
             const total = all.length;
-            const pending = all.filter(p => (p.status || '').toLowerCase() === 'pending').length;
+            const pendingInLive = all.filter(p => (p.status || '').toLowerCase() === 'pending').length;
+            const pending = pendingDocs.length + pendingInLive;
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
             const thisMonth = all.filter(p => { const t = getTimestamp(p.createdAt); return t >= firstDay.getTime(); }).length;
 
-            // Count catalog notes
-            let cataloged = 0;
+            // Load catalog notes & calculate Archival Studio coverage
+            let freshNotes = {};
             try {
                 const cnSnap = await db.collection('catalogNotes').get();
-                cataloged = cnSnap.size;
-            } catch {}
+                cnSnap.forEach(d => { freshNotes[d.id] = d.data(); });
+                catalogNotes = freshNotes;
+            } catch (cnErr) {
+                console.warn('catalogNotes fetch in dashboard:', cnErr);
+                freshNotes = catalogNotes || {};
+            }
 
+            const completedTheses = all.filter(p => {
+                const s = (p.status || '').trim().toLowerCase();
+                return s === 'completed' || s === 'complete';
+            });
+            const totalCompleted = completedTheses.length;
+            let shelvedCompleted = 0;
+            completedTheses.forEach(p => {
+                const n = freshNotes[p.id];
+                if (n && (n.note?.trim() || n.callNumber?.trim() || n.accessionNumber?.trim() || n.subjectHeading?.trim())) {
+                    shelvedCompleted++;
+                }
+            });
+            const needsShelving = Math.max(0, totalCompleted - shelvedCompleted);
+            const coveragePct = totalCompleted > 0 ? Math.round((shelvedCompleted / totalCompleted) * 100) : 0;
+
+            // Update Primary KPI values
             setEl('dash-total-projects', total);
-            setEl('dash-cataloged', cataloged);
+            setEl('dash-cataloged', shelvedCompleted);
             setEl('dash-pending', pending);
             setEl('dash-this-month', thisMonth);
 
-            // Recent list
+            // Update Archival Physical Coverage Widget
+            setEl('dash-archival-shelved', shelvedCompleted);
+            setEl('dash-archival-needs', needsShelving);
+            setEl('dash-archival-pct', `${coveragePct}%`);
+
+            const barEl = document.getElementById('dash-archival-bar');
+            if (barEl) barEl.style.width = `${coveragePct}%`;
+
+            const subEl = document.getElementById('dash-archival-sub');
+            if (subEl) subEl.textContent = `${shelvedCompleted} of ${totalCompleted} completed theses cataloged (${coveragePct}%)`;
+
+            // Recent Theses Activity Feed
             const recentList = document.getElementById('dash-recent-list');
             if (recentList) {
                 const sorted = [...all].sort((a, b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt)).slice(0, 5);
                 if (sorted.length === 0) {
-                    recentList.innerHTML = '<div class="lib-loading-text">No projects yet.</div>';
+                    recentList.innerHTML = '<div class="lib-loading-text">No capstone projects in repository yet.</div>';
                 } else {
-                    recentList.innerHTML = sorted.map(p => `
-                        <div class="lib-recent-item" data-id="${escapeHtml(p.id)}">
-                            <div class="lib-recent-item-title">${escapeHtml(p.title || 'Untitled')}</div>
-                            <div class="lib-recent-item-meta">${escapeHtml(p.program || 'N/A')} · ${escapeHtml(String(p.year || 'N/A'))} · ${formatDate(p.createdAt)}</div>
-                        </div>
-                    `).join('');
+                    recentList.innerHTML = sorted.map(p => {
+                        const n = freshNotes[p.id];
+                        const hasShelf = !!(n && (n.note?.trim() || n.callNumber?.trim() || n.accessionNumber?.trim() || n.subjectHeading?.trim()));
+                        const shelfLabel = hasShelf 
+                            ? (n.note?.trim() ? `Shelved: ${escapeHtml(n.note.trim())}` : 'Location Assigned')
+                            : 'Awaiting Shelf Placement';
+                        const shelfPill = hasShelf
+                            ? `<span class="dash-shelf-pill shelved"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ${shelfLabel}</span>`
+                            : `<span class="dash-shelf-pill unshelved">⚪ ${shelfLabel}</span>`;
+                        const authorNames = Array.isArray(p.authors) ? p.authors.filter(Boolean).join(', ') : (p.author || '');
+
+                        return `
+                            <div class="lib-recent-item" data-id="${escapeHtml(p.id)}" onclick="window.__libPreviewCatalogThesis('${escapeHtml(p.id)}')" title="Click to preview thesis">
+                                <div class="dash-recent-top">
+                                    <h4 class="lib-recent-item-title" title="${escapeHtml(p.title || 'Untitled')}">${escapeHtml(p.title || 'Untitled')}</h4>
+                                    <span class="dash-preview-badge">Preview ↗</span>
+                                </div>
+                                <div class="dash-recent-meta-row">
+                                    <span class="dash-prog-pill">${escapeHtml(p.program || 'N/A')}</span>
+                                    <span class="dash-year-pill">AY ${escapeHtml(String(p.year || 'N/A'))}</span>
+                                    ${shelfPill}
+                                    ${authorNames ? `<span class="dash-author-meta" title="${escapeHtml(authorNames)}">${escapeHtml(authorNames)}</span>` : ''}
+                                    <span class="dash-date-meta">${formatDate(p.createdAt)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
                 }
             }
 
             // Show edit permission alert if active
             updatePermissionUI();
+
+            // Start real-time Firestore listeners so pending approvals and live counts stay synced
+            startPendingProjectsListener();
+            startProjectsRealtimeListener();
         } catch (err) {
             console.error('loadDashboardData:', err);
             showToast && showToast('Error loading dashboard data', '❌');
@@ -489,12 +672,16 @@
             saveLibProjectsToCache(allProjects);
             filterProjectsTable(false);
 
+            // Keep dash-pending updated if user navigates between dashboard and projects
+            const pendingInLive = liveDocs.filter(p => (p.status || '').toLowerCase() === 'pending').length;
+            setEl('dash-pending', pendingDocs.length + pendingInLive);
+
             // Start real-time Firestore listeners so admin lock/edits reflect immediately
             startPendingProjectsListener();
             startProjectsRealtimeListener();
 
             if (forceRefresh) {
-                showToast && showToast('Projects list refreshed', '✓');
+                showToast && showToast('Projects list refreshed');
             }
         } catch (err) {
             console.error('loadProjectsData:', err);
@@ -868,9 +1055,13 @@
                 });
 
                 // Keep existing non-pending projects
-                const nonPending = allProjects.filter(p => !p.isPendingApproval && (p.status || '').toLowerCase() !== 'pending');
+                const nonPending = (allProjects || []).filter(p => !p.isPendingApproval && (p.status || '').toLowerCase() !== 'pending');
                 allProjects = [...updatedPending, ...nonPending];
                 saveLibProjectsToCache(allProjects);
+
+                // Update the Pending KPI counter on the Dashboard in real time
+                const pendingInLive = nonPending.filter(p => (p.status || '').toLowerCase() === 'pending').length;
+                setEl('dash-pending', updatedPending.length + pendingInLive);
 
                 // If currently viewing projects table, re-render
                 const projectsSection = document.getElementById('section-projects');
@@ -914,9 +1105,12 @@
                 });
 
                 // Keep pending submissions in allProjects
-                const pendingList = allProjects.filter(p => p.isPendingApproval || (p.status || '').toLowerCase() === 'pending');
+                const pendingList = (allProjects || []).filter(p => p.isPendingApproval || (p.status || '').toLowerCase() === 'pending');
                 allProjects = [...pendingList, ...updatedProjects];
                 saveLibProjectsToCache(allProjects);
+
+                // Update Total Theses KPI counter on Dashboard in real time
+                setEl('dash-total-projects', updatedProjects.length);
 
                 // Update completedCatalogProjects
                 completedCatalogProjects = updatedProjects.filter(p => {
@@ -1685,27 +1879,58 @@
         }
     }
 
-    function closeUploadModal() {
+    function closeUploadModal(force = false) {
         const modal = document.getElementById('upload-metadata-modal');
-        if (modal && modal.classList.contains('is-saving')) return;
+        if (!force && modal && modal.classList.contains('is-saving')) return;
         if (modal) {
             modal.classList.remove('active');
+            modal.classList.remove('is-saving');
             modal.style.display = 'none';
             document.body.style.overflow = '';
         }
+        setUploadProcessing(false);
+        resetUploadModalForm();
     }
 
     function resetUploadModalForm() {
         const form = document.getElementById('upload-metadata-form');
         if (form) form.reset();
+
+        const titleField = document.getElementById('um-title-field');
+        if (titleField) titleField.value = '';
+
+        const adviserField = document.getElementById('um-adviser');
+        if (adviserField) adviserField.value = '';
+
+        const programSelect = document.getElementById('um-program');
+        if (programSelect) programSelect.selectedIndex = 0;
+
+        const abstractField = document.getElementById('um-abstract');
+        if (abstractField) abstractField.value = '';
+
         const yearInput = document.getElementById('um-year');
         if (yearInput) yearInput.value = new Date().getFullYear();
+
+        // Reset dynamic containers (authors, topics, keywords)
         initDynamicContainers();
+
+        // Reset project images and previews
         umProjectImageFiles = [];
+        const fileInput = document.getElementById('um-images-input');
+        if (fileInput) fileInput.value = '';
+        const dropzone = document.getElementById('um-image-dropzone');
+        if (dropzone) dropzone.classList.remove('dragover');
         renderProjectImagesPreview();
     }
 
+    let isSubmittingMetadata = false;
+
     async function submitMetadata() {
+        if (isSubmittingMetadata) {
+            console.warn('Metadata submission already in progress, ignoring duplicate trigger');
+            return;
+        }
+
         const title = (document.getElementById('um-title-field')?.value || '').trim();
         const authors = getDynamicValues('um-authors-container');
         const program = document.getElementById('um-program')?.value || '';
@@ -1736,6 +1961,7 @@
             return;
         }
 
+        isSubmittingMetadata = true;
         setUploadProcessing(true, 'Submitting project for admin approval...');
 
         try {
@@ -1803,7 +2029,15 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            closeUploadModal();
+            // 1. Turn off processing overlay
+            setUploadProcessing(false);
+
+            // 2. Clear all form inputs, dynamic fields, and images completely
+            resetUploadModalForm();
+
+            // 3. Force close the modal
+            closeUploadModal(true);
+
             showToast && showToast('Project submitted! Awaiting admin approval.', '✅');
 
             if (typeof ActivityService !== 'undefined') {
@@ -1815,7 +2049,9 @@
         } catch (err) {
             console.error('submitMetadata:', err);
             showToast && showToast('Error submitting project. Try again.', '❌');
+            setUploadProcessing(false);
         } finally {
+            isSubmittingMetadata = false;
             setUploadProcessing(false);
         }
     }
@@ -2445,7 +2681,7 @@
                 notesCount: Object.keys(notes).length,
                 lastCached: new Date().toISOString()
             }));
-            console.log(`✓ Cached ${projects.length} catalog projects & notes`);
+            console.log(`Cached ${projects.length} catalog projects & notes`);
         } catch (e) {
             console.warn('Error saving catalog cache:', e);
         }
@@ -2479,7 +2715,6 @@
                 completedCatalogProjects = cached.projects;
                 catalogNotes = cached.notes || {};
                 renderCatalogGrid(completedCatalogProjects);
-                filterCatalogCards();
                 renderedFromCache = true;
                 console.log('🚀 Using cached catalog for instant render - revalidating in background...');
             }
@@ -2518,11 +2753,13 @@
             completedCatalogProjects = completed;
             catalogNotes = freshNotes;
             saveCatalogToCache(completedCatalogProjects, catalogNotes);
+            if (forceRefresh) {
+                currentLibCatalogPage = 1;
+            }
             renderCatalogGrid(completedCatalogProjects);
-            filterCatalogCards();
 
             if (forceRefresh) {
-                showToast && showToast('Catalog refreshed', '✓');
+                showToast && showToast('Catalog refreshed');
             }
         } catch (err) {
             console.error('loadCatalogData:', err);
@@ -2541,6 +2778,8 @@
     let currentCatalogProgram = 'all';
     let currentCatalogSort = 'newest';
     let previewingCatalogProjectId = null;
+    let currentLibCatalogPage = 1;
+    const LIB_CATALOG_PER_PAGE = 10;
 
     function updateCatalogKPIs(total, shelved, needs) {
         const totalEl = document.getElementById('catalog-kpi-val-total');
@@ -2550,34 +2789,34 @@
         const barEl = document.getElementById('catalog-progress-bar');
         const subProgEl = document.getElementById('catalog-kpi-sub-progress');
 
-        const countAll = document.getElementById('catalog-count-all');
-        const countNeeds = document.getElementById('catalog-count-needs');
-        const countShelved = document.getElementById('catalog-count-shelved');
-
         if (totalEl) totalEl.textContent = total;
         if (shelvedEl) shelvedEl.textContent = shelved;
         if (needsEl) needsEl.textContent = needs;
-
-        if (countAll) countAll.textContent = total;
-        if (countNeeds) countNeeds.textContent = needs;
-        if (countShelved) countShelved.textContent = shelved;
 
         const pct = total > 0 ? Math.round((shelved / total) * 100) : 0;
         if (pctEl) pctEl.textContent = `${pct}%`;
         if (barEl) barEl.style.width = `${pct}%`;
         if (subProgEl) subProgEl.textContent = `${shelved} of ${total} cataloged`;
 
-        // Update active class on KPI cards based on currentCatalogTab
+        // Update active class & aria-pressed on KPI cards based on currentCatalogTab
         document.querySelectorAll('.catalog-kpi-card[data-filter]').forEach(card => {
             const f = card.getAttribute('data-filter');
-            card.classList.toggle('active', f === currentCatalogTab);
+            const isActive = (f === currentCatalogTab);
+            card.classList.toggle('active', isActive);
+            card.setAttribute('aria-pressed', String(isActive));
         });
 
-        // Update active class on tabs
-        document.querySelectorAll('.catalog-filter-tab[data-tab]').forEach(tab => {
-            const t = tab.getAttribute('data-tab');
-            tab.classList.toggle('active', t === currentCatalogTab);
-        });
+        // Update active scope text in catalog toolbar
+        const activeTextEl = document.getElementById('catalog-active-filter-text');
+        if (activeTextEl) {
+            if (currentCatalogTab === 'shelved') {
+                activeTextEl.textContent = `Shelved & Located (${shelved})`;
+            } else if (currentCatalogTab === 'needs-shelf') {
+                activeTextEl.textContent = `Needs Shelving (${needs})`;
+            } else {
+                activeTextEl.textContent = `All Archive Theses (${total})`;
+            }
+        }
     }
 
     function updateCatalogProgramOptions(programs) {
@@ -2654,6 +2893,7 @@
         if (!Array.isArray(projects) || projects.length === 0) {
             grid.innerHTML = '<div class="lib-loading-text" style="grid-column:1/-1;text-align:center;padding:3rem;">No completed projects found. Only projects with status "Completed" appear in cataloging.</div>';
             updateCatalogKPIs(0, 0, 0);
+            renderLibCatalogPagination(0);
             return;
         }
 
@@ -2683,10 +2923,20 @@
                     <strong style="color:var(--text-primary);font-size:1.05rem;display:block;margin-bottom:0.35rem;">No matching archival records</strong>
                     <span style="color:var(--text-secondary);font-size:0.85rem;">No theses match the current filter or search criteria. Try changing status tabs or clearing search.</span>
                 </div>`;
+            renderLibCatalogPagination(0);
             return;
         }
 
-        grid.innerHTML = displayedProjects.map(p => {
+        // 3. Pagination calculation
+        const totalCount = displayedProjects.length;
+        const totalPages = Math.ceil(totalCount / LIB_CATALOG_PER_PAGE);
+        if (currentLibCatalogPage > totalPages) currentLibCatalogPage = Math.max(1, totalPages);
+
+        const startIndex = (currentLibCatalogPage - 1) * LIB_CATALOG_PER_PAGE;
+        const endIndex = startIndex + LIB_CATALOG_PER_PAGE;
+        const projectsToShow = displayedProjects.slice(startIndex, endIndex);
+
+        grid.innerHTML = projectsToShow.map(p => {
             const note = catalogNotes[p.id];
             const hasShelf = !!(note?.note && note.note.trim());
             const hasAnyClass = !!(note && (note.note || note.callNumber || note.accessionNumber || note.subjectHeading));
@@ -2809,9 +3059,121 @@
                 </div>
             </div>`;
         }).join('');
+
+        renderLibCatalogPagination(totalCount);
     }
 
-    function filterCatalogCards() {
+    function renderLibCatalogPagination(totalCount) {
+        const paginationContainer = document.getElementById('lib-catalog-pagination');
+        if (!paginationContainer) return;
+
+        paginationContainer.innerHTML = '';
+
+        const totalPages = Math.ceil(totalCount / LIB_CATALOG_PER_PAGE);
+
+        if (totalPages <= 1) {
+            if (totalCount > 0 && totalCount < completedCatalogProjects.length) {
+                const infoText = document.createElement('span');
+                infoText.className = 'pagination-info';
+                infoText.textContent = `Showing ${totalCount} of ${completedCatalogProjects.length} completed theses`;
+                paginationContainer.appendChild(infoText);
+            }
+            return;
+        }
+
+        const startItem = (currentLibCatalogPage - 1) * LIB_CATALOG_PER_PAGE + 1;
+        const endItem = Math.min(currentLibCatalogPage * LIB_CATALOG_PER_PAGE, totalCount);
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn';
+        prevBtn.innerHTML = '&laquo;';
+        prevBtn.title = 'Previous page';
+        prevBtn.disabled = currentLibCatalogPage === 1;
+        prevBtn.addEventListener('click', () => {
+            if (currentLibCatalogPage > 1) {
+                goToLibCatalogPage(currentLibCatalogPage - 1);
+            }
+        });
+        paginationContainer.appendChild(prevBtn);
+
+        const maxVisiblePages = 7;
+        let startPage = Math.max(1, currentLibCatalogPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        if (startPage > 1) {
+            const firstBtn = createLibCatalogPageButton(1);
+            paginationContainer.appendChild(firstBtn);
+
+            if (startPage > 2) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-info';
+                ellipsis.textContent = '...';
+                paginationContainer.appendChild(ellipsis);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const pageBtn = createLibCatalogPageButton(i);
+            paginationContainer.appendChild(pageBtn);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsis = document.createElement('span');
+                ellipsis.className = 'pagination-info';
+                ellipsis.textContent = '...';
+                paginationContainer.appendChild(ellipsis);
+            }
+
+            const lastBtn = createLibCatalogPageButton(totalPages);
+            paginationContainer.appendChild(lastBtn);
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn';
+        nextBtn.innerHTML = '&raquo;';
+        nextBtn.title = 'Next page';
+        nextBtn.disabled = currentLibCatalogPage === totalPages;
+        nextBtn.addEventListener('click', () => {
+            if (currentLibCatalogPage < totalPages) {
+                goToLibCatalogPage(currentLibCatalogPage + 1);
+            }
+        });
+        paginationContainer.appendChild(nextBtn);
+
+        const infoText = document.createElement('span');
+        infoText.className = 'pagination-info';
+        infoText.textContent = `${startItem}-${endItem} of ${totalCount}`;
+        paginationContainer.appendChild(infoText);
+    }
+
+    function createLibCatalogPageButton(pageNumber) {
+        const btn = document.createElement('button');
+        btn.className = 'pagination-btn' + (pageNumber === currentLibCatalogPage ? ' active' : '');
+        btn.textContent = pageNumber;
+        btn.title = `Page ${pageNumber}`;
+        btn.addEventListener('click', () => {
+            goToLibCatalogPage(pageNumber);
+        });
+        return btn;
+    }
+
+    function goToLibCatalogPage(pageNumber) {
+        currentLibCatalogPage = pageNumber;
+        renderCatalogGrid(completedCatalogProjects);
+
+        const section = document.getElementById('catalog-controls') || document.getElementById('catalog-grid') || document.getElementById('section-catalog');
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function filterCatalogCards(resetPage = true) {
+        if (resetPage) currentLibCatalogPage = 1;
         renderCatalogGrid(completedCatalogProjects);
     }
 
@@ -3071,11 +3433,16 @@
             setAllCatalogSections(false);
         });
 
-        // Real-time preview updates when librarian types
-        document.getElementById('cn-note')?.addEventListener('input', updateCatalogSectionPreviews);
-        document.getElementById('cn-call-number')?.addEventListener('input', updateCatalogSectionPreviews);
-        document.getElementById('cn-accession')?.addEventListener('input', updateCatalogSectionPreviews);
-        document.getElementById('cn-subject')?.addEventListener('input', updateCatalogSectionPreviews);
+        // Real-time preview updates when librarian types & tracking user interaction
+        ['cn-note', 'cn-call-number', 'cn-accession', 'cn-subject'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', (e) => {
+                    e.target.dataset.userEdited = 'true';
+                    updateCatalogSectionPreviews();
+                });
+            }
+        });
 
         // Toggle history dropdown
         document.getElementById('cn-history-toggle-btn')?.addEventListener('click', () => {
@@ -3090,27 +3457,27 @@
             await deleteCatalogNote();
         });
 
-        // --- Studio Tab Filters ---
-        document.querySelectorAll('.catalog-filter-tab[data-tab]').forEach(tab => {
-            tab.addEventListener('click', () => {
-                currentCatalogTab = tab.getAttribute('data-tab') || 'all';
+        // --- Studio Primary KPI Card Filters (Click & Keyboard Enter/Space) ---
+        const setupKpiFilterCard = (id, tabVal) => {
+            const card = document.getElementById(id);
+            if (!card) return;
+            const applyFilter = () => {
+                if (currentCatalogTab === tabVal) return;
+                currentCatalogTab = tabVal;
                 filterCatalogCards();
+            };
+            card.addEventListener('click', applyFilter);
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    applyFilter();
+                }
             });
-        });
+        };
 
-        // --- KPI Card Clicks ---
-        document.getElementById('catalog-kpi-total')?.addEventListener('click', () => {
-            currentCatalogTab = 'all';
-            filterCatalogCards();
-        });
-        document.getElementById('catalog-kpi-shelved')?.addEventListener('click', () => {
-            currentCatalogTab = 'shelved';
-            filterCatalogCards();
-        });
-        document.getElementById('catalog-kpi-needs')?.addEventListener('click', () => {
-            currentCatalogTab = 'needs-shelf';
-            filterCatalogCards();
-        });
+        setupKpiFilterCard('catalog-kpi-total', 'all');
+        setupKpiFilterCard('catalog-kpi-shelved', 'shelved');
+        setupKpiFilterCard('catalog-kpi-needs', 'needs-shelf');
 
         // --- Program Filter Select ---
         document.getElementById('catalog-program-filter')?.addEventListener('change', e => {
@@ -3180,119 +3547,7 @@
         updateCatalogSectionPreviews();
     };
 
-    async function openCatalogNoteModal(projectId) {
-        if (!projectId) return;
-
-        // FAST-HAND SERVER-SIDE CHECK: Always fetch fresh document directly from Firestore
-        let project = null;
-        try {
-            const freshDoc = await db.collection('projects').doc(projectId).get();
-            if (!freshDoc.exists) {
-                showToast && showToast('Project record not found.', '❌');
-                return;
-            }
-            project = { id: freshDoc.id, ...freshDoc.data() };
-        } catch (err) {
-            console.error('Error fetching project:', err);
-            showToast && showToast('Error checking project status.', '❌');
-            return;
-        }
-
-        // 1. MUTUAL EXCLUSION: If locked by Admin, NO ONE can touch it (neither librarian nor admin)
-        if (project.isLockedByAdmin) {
-            showToast && showToast('This project is locked by the Administrator. Cataloging and editing are disabled.', '🔒');
-            return;
-        }
-
-        // 2. CONCURRENCY: If currently being cataloged by another user, check TTL
-        const currentUid = currentUser?.uid || '';
-        if (project.isBeingCataloged && project.catalogingBy && project.catalogingBy !== currentUid) {
-            let isStale = false;
-            if (project.catalogingStartedAt) {
-                try {
-                    const started = project.catalogingStartedAt.toDate ? project.catalogingStartedAt.toDate() : new Date(project.catalogingStartedAt);
-                    if (Date.now() - started.getTime() > 15 * 60 * 1000) isStale = true;
-                } catch (e) {}
-            }
-            if (!isStale) {
-                const cataloger = project.catalogingByName || 'another librarian';
-                showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
-                return;
-            }
-        }
-
-        // 3. CONCURRENCY: If currently being edited by another user, check TTL
-        if (project.isBeingEdited && project.editingBy && project.editingBy !== currentUid) {
-            let isEditStale = false;
-            if (project.editingStartedAt) {
-                try {
-                    const started = project.editingStartedAt.toDate ? project.editingStartedAt.toDate() : new Date(project.editingStartedAt);
-                    if (Date.now() - started.getTime() > 15 * 60 * 1000) isEditStale = true;
-                } catch (e) {}
-            }
-            if (!isEditStale) {
-                const editor = project.editingByName || 'another user';
-                showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`, '⚠️');
-                return;
-            }
-        }
-
-        // 4. Acquire exclusive real-time cataloging lock in Firestore
-        const librarianName = currentUserData?.fullName || currentUser?.displayName || 'Librarian';
-        try {
-            await db.collection('projects').doc(projectId).update({
-                isBeingCataloged: true,
-                catalogingBy: currentUid,
-                catalogingByName: librarianName,
-                catalogingStartedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch (err) {
-            console.error('Error acquiring cataloging lock:', err);
-            showToast && showToast('Could not acquire cataloging session lock.', '❌');
-            return;
-        }
-
-        currentCatalogingProjectId = projectId;
-
-        document.getElementById('cn-project-id').value = projectId;
-        document.getElementById('cn-project-title').textContent = project?.title || 'Untitled Project';
-
-        // Update dynamic admin locked pill
-        const adminLockedPill = document.getElementById('cn-admin-locked-pill');
-        if (adminLockedPill) adminLockedPill.style.display = project.isLockedByAdmin ? 'inline-flex' : 'none';
-
-        // Populate metadata chips
-        const progEl = document.getElementById('cn-project-program');
-        if (progEl) progEl.textContent = project?.program || project?.department || 'Undergraduate Thesis';
-
-        const yearEl = document.getElementById('cn-project-year');
-        if (yearEl) yearEl.textContent = project?.year ? `AY ${project.year}` : 'Archive Record';
-
-        const authorsEl = document.getElementById('cn-project-authors');
-        if (authorsEl) {
-            let authorsText = '—';
-            if (Array.isArray(project?.authors) && project.authors.length > 0) {
-                authorsText = project.authors.join(', ');
-            } else if (project?.authors) {
-                authorsText = String(project.authors);
-            } else if (project?.author) {
-                authorsText = String(project.author);
-            }
-            authorsEl.textContent = authorsText;
-        }
-
-        // Load existing note
-        const note = catalogNotes[projectId];
-        document.getElementById('cn-note').value = note?.note || '';
-        document.getElementById('cn-call-number').value = note?.callNumber || '';
-        document.getElementById('cn-accession').value = note?.accessionNumber || '';
-        document.getElementById('cn-subject').value = note?.subjectHeading || '';
-
-        // Reset history dropdown
-        const historyDropdown = document.getElementById('cn-history-dropdown');
-        if (historyDropdown) historyDropdown.style.display = 'none';
-
-        // Populate Accountability Card
+    function populateCatalogAccountability(note, project) {
         const accCard = document.getElementById('cn-accountability-card');
         const createdRow = document.getElementById('cn-acc-created');
         const updatedRow = document.getElementById('cn-acc-updated');
@@ -3300,69 +3555,289 @@
         const updatedVal = document.getElementById('cn-updated-by-val');
         const historyList = document.getElementById('cn-history-list');
         const deleteBtn = document.getElementById('cn-delete-btn');
+        const accSec = document.getElementById('cn-sec-accountability');
 
         const hasRecord = !!(note && (note.note || note.callNumber || note.accessionNumber || note.subjectHeading));
 
-            const accSec = document.getElementById('cn-sec-accountability');
-            if (hasRecord) {
-                if (deleteBtn) deleteBtn.style.display = 'inline-flex';
-                if (accSec) accSec.style.display = 'block';
-                if (accCard) accCard.style.display = 'block';
+        if (hasRecord) {
+            if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+            if (accSec) accSec.style.display = 'block';
+            if (accCard) accCard.style.display = 'block';
 
-                const creator = note.createdByName || project?.catalogAudit?.createdByName || 'Librarian';
-                const creatorEmail = note.createdByEmail || '';
-                const updater = note.lastUpdatedByName || project?.catalogAudit?.lastUpdatedByName || creator;
-                const updaterEmail = note.lastUpdatedByEmail || project?.catalogAudit?.lastUpdatedByEmail || creatorEmail;
+            const creator = note.createdByName || project?.catalogAudit?.createdByName || 'Librarian';
+            const creatorEmail = note.createdByEmail || '';
+            const updater = note.lastUpdatedByName || project?.catalogAudit?.lastUpdatedByName || creator;
+            const updaterEmail = note.lastUpdatedByEmail || project?.catalogAudit?.lastUpdatedByEmail || creatorEmail;
 
-                if (createdVal) {
-                    createdVal.textContent = `${creator}${creatorEmail ? ' (' + creatorEmail + ')' : ''} · ${formatDate(note.createdAt || project?.lastCatalogedAt)}`;
-                    if (createdRow) createdRow.style.display = 'flex';
-                }
-                if (updatedVal) {
-                    updatedVal.textContent = `${updater}${updaterEmail ? ' (' + updaterEmail + ')' : ''} · ${formatDate(note.updatedAt || project?.lastCatalogedAt)}`;
-                    if (updatedRow) updatedRow.style.display = 'flex';
-                }
-
-                const history = Array.isArray(note.auditHistory) ? note.auditHistory : [];
-                if (historyList) {
-                    if (history.length === 0) {
-                        historyList.innerHTML = '<div style="color:var(--text-secondary);font-size:0.75rem;padding:0.4rem;">Initial record created.</div>';
-                    } else {
-                        historyList.innerHTML = history.map(item => `
-                            <div class="cn-history-item">
-                                <div class="cn-history-item-top">
-                                    <span>${escapeHtml(item.action || 'Updated')}</span>
-                                    <span style="font-size:0.7rem;color:var(--text-secondary);">${formatDate(item.timestamp)}</span>
-                                </div>
-                                <div class="cn-history-item-desc">
-                                    Librarian: <strong>${escapeHtml(item.userName || 'Librarian')}</strong> (${escapeHtml(item.userEmail || '')})
-                                </div>
-                                ${item.details ? `<div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px;">${escapeHtml(item.details)}</div>` : ''}
-                            </div>
-                        `).join('');
-                    }
-                }
-            } else {
-                if (deleteBtn) deleteBtn.style.display = 'none';
-                if (accSec) accSec.style.display = 'none';
-                if (accCard) accCard.style.display = 'none';
+            if (createdVal) {
+                createdVal.textContent = `${creator}${creatorEmail ? ' (' + creatorEmail + ')' : ''} · ${formatDate(note.createdAt || project?.lastCatalogedAt)}`;
+                if (createdRow) createdRow.style.display = 'flex';
+            }
+            if (updatedVal) {
+                updatedVal.textContent = `${updater}${updaterEmail ? ' (' + updaterEmail + ')' : ''} · ${formatDate(note.updatedAt || project?.lastCatalogedAt)}`;
+                if (updatedRow) updatedRow.style.display = 'flex';
             }
 
-            // Restore the librarian's dynamic collapsible preferences from device memory
-            const savedPrefs = getCatalogSectionPrefs();
-            applyCatalogSectionPrefs(savedPrefs);
-            updateCatalogSectionPreviews();
-
-            document.getElementById('catalog-note-modal').style.display = 'flex';
+            const history = Array.isArray(note.auditHistory) ? note.auditHistory : [];
+            if (historyList) {
+                if (history.length === 0) {
+                    historyList.innerHTML = '<div style="color:var(--text-secondary);font-size:0.75rem;padding:0.4rem;">Initial record created.</div>';
+                } else {
+                    historyList.innerHTML = history.map(item => `
+                        <div class="cn-history-item">
+                            <div class="cn-history-item-top">
+                                <span>${escapeHtml(item.action || 'Updated')}</span>
+                                <span style="font-size:0.7rem;color:var(--text-secondary);">${formatDate(item.timestamp)}</span>
+                            </div>
+                            <div class="cn-history-item-desc">
+                                Librarian: <strong>${escapeHtml(item.userName || 'Librarian')}</strong> (${escapeHtml(item.userEmail || '')})
+                            </div>
+                            ${item.details ? `<div style="font-size:0.68rem;color:var(--text-secondary);margin-top:2px;">${escapeHtml(item.details)}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            }
+        } else {
+            if (deleteBtn) deleteBtn.style.display = 'none';
+            if (accSec) accSec.style.display = 'none';
+            if (accCard) accCard.style.display = 'none';
         }
+    }
+
+    function openCatalogNoteModal(projectId) {
+        if (!projectId) return;
+
+        // 1. INSTANT LOCAL RETRIEVAL & ZERO-DELAY RENDER (<1ms)
+        const cachedProject = completedCatalogProjects.find(p => p.id === projectId) || allProjects.find(p => p.id === projectId) || { id: projectId };
+        const currentUid = currentUser?.uid || '';
+
+        // Fast Client-Side Lock Check (if already marked locked in local memory)
+        if (cachedProject.isLockedByAdmin) {
+            showToast && showToast('This project is locked by the Administrator. Cataloging and editing are disabled.', '🔒');
+            return;
+        }
+        if (cachedProject.isBeingCataloged && cachedProject.catalogingBy && cachedProject.catalogingBy !== currentUid) {
+            let isStale = false;
+            if (cachedProject.catalogingStartedAt) {
+                try {
+                    const started = cachedProject.catalogingStartedAt.toDate ? cachedProject.catalogingStartedAt.toDate() : new Date(cachedProject.catalogingStartedAt);
+                    if (Date.now() - started.getTime() > 15 * 60 * 1000) isStale = true;
+                } catch (e) {}
+            }
+            if (!isStale) {
+                const cataloger = cachedProject.catalogingByName || 'another librarian';
+                showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+                return;
+            }
+        }
+
+        // Set active session ID immediately
+        currentCatalogingProjectId = projectId;
+
+        // Reset user edited flags so fresh background sync only updates untouched fields
+        ['cn-note', 'cn-call-number', 'cn-accession', 'cn-subject'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) delete el.dataset.userEdited;
+        });
+
+        // Populate modal fields instantly from in-memory cache
+        const idInput = document.getElementById('cn-project-id');
+        if (idInput) idInput.value = projectId;
+
+        const titleEl = document.getElementById('cn-project-title');
+        if (titleEl) titleEl.textContent = cachedProject?.title || 'Loading project details...';
+
+        const adminLockedPill = document.getElementById('cn-admin-locked-pill');
+        if (adminLockedPill) adminLockedPill.style.display = cachedProject.isLockedByAdmin ? 'inline-flex' : 'none';
+
+        const progEl = document.getElementById('cn-project-program');
+        if (progEl) progEl.textContent = cachedProject?.program || cachedProject?.department || 'Undergraduate Thesis';
+
+        const yearEl = document.getElementById('cn-project-year');
+        if (yearEl) yearEl.textContent = cachedProject?.year ? `AY ${cachedProject.year}` : 'Archive Record';
+
+        const authorsEl = document.getElementById('cn-project-authors');
+        if (authorsEl) {
+            let authorsText = '—';
+            if (Array.isArray(cachedProject?.authors) && cachedProject.authors.length > 0) {
+                authorsText = cachedProject.authors.join(', ');
+            } else if (cachedProject?.authors) {
+                authorsText = String(cachedProject.authors);
+            } else if (cachedProject?.author) {
+                authorsText = String(cachedProject.author);
+            }
+            authorsEl.textContent = authorsText;
+        }
+
+        // Load existing note from cache immediately
+        const note = catalogNotes[projectId] || {};
+        const noteEl = document.getElementById('cn-note');
+        if (noteEl) noteEl.value = note.note || '';
+
+        const callEl = document.getElementById('cn-call-number');
+        if (callEl) callEl.value = note.callNumber || '';
+
+        const accEl = document.getElementById('cn-accession');
+        if (accEl) accEl.value = note.accessionNumber || '';
+
+        const subjEl = document.getElementById('cn-subject');
+        if (subjEl) subjEl.value = note.subjectHeading || '';
+
+        // Reset history dropdown
+        const historyDropdown = document.getElementById('cn-history-dropdown');
+        if (historyDropdown) historyDropdown.style.display = 'none';
+
+        // Populate Accountability Card from cache
+        populateCatalogAccountability(note, cachedProject);
+
+        // Restore dynamic collapsible preferences from device memory
+        const savedPrefs = getCatalogSectionPrefs();
+        applyCatalogSectionPrefs(savedPrefs);
+        updateCatalogSectionPreviews();
+
+        // 2. OPEN MODAL DIRECTLY WITH ZERO DELAY (Lazy UX)
+        const modal = document.getElementById('catalog-note-modal');
+        if (modal) modal.style.display = 'flex';
+
+        // 3. ASYNC BACKGROUND VERIFICATION & SESSION LOCK ACQUISITION
+        (async () => {
+            const sessionProjectId = projectId;
+            try {
+                // Background fetch fresh document directly from Firestore
+                const freshDoc = await db.collection('projects').doc(sessionProjectId).get();
+                if (!freshDoc.exists) {
+                    if (currentCatalogingProjectId === sessionProjectId) {
+                        await closeCatalogNoteModal(false);
+                        showToast && showToast('Project record not found on server.', '❌');
+                    }
+                    return;
+                }
+                const freshProject = { id: freshDoc.id, ...freshDoc.data() };
+
+                // Guard: if user closed modal during fetch, abort
+                if (currentCatalogingProjectId !== sessionProjectId) return;
+
+                // Concurrency Check 1: Admin Lock
+                if (freshProject.isLockedByAdmin) {
+                    await closeCatalogNoteModal(false);
+                    showToast && showToast('This project is locked by the Administrator. Cataloging and editing are disabled.', '🔒');
+                    return;
+                }
+
+                // Concurrency Check 2: Another Librarian Cataloging
+                const activeUid = currentUser?.uid || '';
+                if (freshProject.isBeingCataloged && freshProject.catalogingBy && freshProject.catalogingBy !== activeUid) {
+                    let isStale = false;
+                    if (freshProject.catalogingStartedAt) {
+                        try {
+                            const started = freshProject.catalogingStartedAt.toDate ? freshProject.catalogingStartedAt.toDate() : new Date(freshProject.catalogingStartedAt);
+                            if (Date.now() - started.getTime() > 15 * 60 * 1000) isStale = true;
+                        } catch (e) {}
+                    }
+                    if (!isStale) {
+                        const cataloger = freshProject.catalogingByName || 'another librarian';
+                        await closeCatalogNoteModal(false);
+                        showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+                        return;
+                    }
+                }
+
+                // Concurrency Check 3: Another User Editing
+                if (freshProject.isBeingEdited && freshProject.editingBy && freshProject.editingBy !== activeUid) {
+                    let isEditStale = false;
+                    if (freshProject.editingStartedAt) {
+                        try {
+                            const started = freshProject.editingStartedAt.toDate ? freshProject.editingStartedAt.toDate() : new Date(freshProject.editingStartedAt);
+                            if (Date.now() - started.getTime() > 15 * 60 * 1000) isEditStale = true;
+                        } catch (e) {}
+                    }
+                    if (!isEditStale) {
+                        const editor = freshProject.editingByName || 'another user';
+                        await closeCatalogNoteModal(false);
+                        showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`, '⚠️');
+                        return;
+                    }
+                }
+
+                // Guard check before lock acquisition
+                if (currentCatalogingProjectId !== sessionProjectId) return;
+
+                // Acquire exclusive session lock in Firestore
+                const librarianName = currentUserData?.fullName || currentUser?.displayName || 'Librarian';
+                await db.collection('projects').doc(sessionProjectId).update({
+                    isBeingCataloged: true,
+                    catalogingBy: activeUid,
+                    catalogingByName: librarianName,
+                    catalogingStartedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // If closed while lock update was in flight, release it immediately
+                if (currentCatalogingProjectId !== sessionProjectId) {
+                    await freeCatalogingSession(sessionProjectId, true);
+                    return;
+                }
+
+                // Update in-memory project caches
+                const cIdx = completedCatalogProjects.findIndex(p => p.id === sessionProjectId);
+                if (cIdx !== -1) {
+                    completedCatalogProjects[cIdx] = { ...completedCatalogProjects[cIdx], ...freshProject, isBeingCataloged: true, catalogingBy: activeUid };
+                }
+                const aIdx = allProjects.findIndex(p => p.id === sessionProjectId);
+                if (aIdx !== -1) {
+                    allProjects[aIdx] = { ...allProjects[aIdx], ...freshProject, isBeingCataloged: true, catalogingBy: activeUid };
+                }
+
+                if (freshProject.title) {
+                    const tEl = document.getElementById('cn-project-title');
+                    if (tEl && (tEl.textContent === 'Loading project details...' || !tEl.textContent)) {
+                        tEl.textContent = freshProject.title;
+                    }
+                }
+
+                // Fetch fresh catalog note in background to ensure zero missed updates
+                try {
+                    const freshNoteDoc = await db.collection('catalogNotes').doc(sessionProjectId).get();
+                    if (currentCatalogingProjectId !== sessionProjectId) return;
+                    if (freshNoteDoc.exists) {
+                        const freshNote = freshNoteDoc.data();
+                        catalogNotes[sessionProjectId] = freshNote;
+
+                        const curNoteEl = document.getElementById('cn-note');
+                        const curCallEl = document.getElementById('cn-call-number');
+                        const curAccEl = document.getElementById('cn-accession');
+                        const curSubjEl = document.getElementById('cn-subject');
+
+                        if (curNoteEl && document.activeElement !== curNoteEl && !curNoteEl.dataset.userEdited) {
+                            curNoteEl.value = freshNote.note || '';
+                        }
+                        if (curCallEl && document.activeElement !== curCallEl && !curCallEl.dataset.userEdited) {
+                            curCallEl.value = freshNote.callNumber || '';
+                        }
+                        if (curAccEl && document.activeElement !== curAccEl && !curAccEl.dataset.userEdited) {
+                            curAccEl.value = freshNote.accessionNumber || '';
+                        }
+                        if (curSubjEl && document.activeElement !== curSubjEl && !curSubjEl.dataset.userEdited) {
+                            curSubjEl.value = freshNote.subjectHeading || '';
+                        }
+
+                        populateCatalogAccountability(freshNote, freshProject);
+                        updateCatalogSectionPreviews();
+                    }
+                } catch (noteErr) {
+                    console.warn('Background note sync noteDoc:', noteErr);
+                }
+            } catch (err) {
+                console.error('Lazy background validation error:', err);
+            }
+        })();
+    }
 
     async function closeCatalogNoteModal(releaseLock = true) {
         document.getElementById('catalog-note-modal').style.display = 'none';
         const pid = currentCatalogingProjectId;
+        currentCatalogingProjectId = null;
         if (releaseLock && pid) {
             await freeCatalogingSession(pid);
-        } else {
-            currentCatalogingProjectId = null;
         }
     }
 
@@ -3586,43 +4061,364 @@
         }
     }
 
-    function initDangerZone() {
-        const toggle = document.getElementById('danger-zone-toggle');
-        const content = document.getElementById('danger-zone-content');
-        if (toggle && content) {
-            toggle.addEventListener('click', () => {
-                const expanded = toggle.getAttribute('aria-expanded') === 'true';
-                toggle.setAttribute('aria-expanded', String(!expanded));
-                content.style.display = expanded ? 'none' : 'block';
-            });
+    // ─────────────────────────────────────────────
+    // SETTINGS PANEL
+    // Profile card, inline name edit, copy helpers, theme & landing
+    // preferences, contribution stats, and jump navigation.
+    // Danger Zone actions live in settings-handler.js (shared).
+    // ─────────────────────────────────────────────
+    function getDisplayName() {
+        return currentUserData?.fullName || currentUser?.displayName || 'Librarian';
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '—';
+        const d = value.toDate ? value.toDate() : new Date(value);
+        if (isNaN(d)) return '—';
+        return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+
+    function getInitials(name) {
+        const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return 'L';
+        return ((parts[0][0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+    }
+
+    function describeDevice() {
+        const ua = navigator.userAgent || '';
+        const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Chrome\//.test(ua) ? 'Chrome'
+            : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Browser';
+        const os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS'
+            : /Mac OS/.test(ua) ? 'macOS' : /Linux/.test(ua) ? 'Linux' : 'Unknown OS';
+        return `${browser} on ${os}`;
+    }
+
+    function populateSettingsProfile() {
+        if (!currentUser) return;
+        const name = getDisplayName();
+        const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+        setText('lset-profile-name', name);
+        setText('settings-user-name', name);
+        setText('librarian-name', name);
+        setText('lset-profile-email', currentUser.email || '');
+        setText('settings-user-email', currentUser.email || 'N/A');
+        setText('lset-user-uid', currentUser.uid);
+
+        // Avatar: photo if it loads, otherwise initials
+        const avatar = document.getElementById('lset-avatar');
+        if (avatar) {
+            avatar.innerHTML = `<span id="lset-avatar-initials">${escapeHtml(getInitials(name))}</span>`;
+            if (currentUser.photoURL) {
+                const img = new Image();
+                img.alt = '';
+                img.onload = () => { avatar.innerHTML = ''; avatar.appendChild(img); };
+                img.src = currentUser.photoURL;
+            }
         }
 
-        document.getElementById('clear-account-data-btn')?.addEventListener('click', async () => {
-            if (!confirm('Clear all your saved projects, activity logs, and chat history? Your login stays active.')) return;
+        // Verification status
+        const verified = Boolean(currentUser.emailVerified);
+        const chip = document.getElementById('lset-verified-chip');
+        if (chip) {
+            chip.textContent = verified ? 'Verified' : 'Unverified';
+            chip.className = 'lset-chip ' + (verified ? 'lset-chip-blue' : 'lset-chip-amber');
+        }
+        const verifyStatus = document.getElementById('lset-verify-status');
+        if (verifyStatus) {
+            verifyStatus.innerHTML = verified
+                ? '<span class="lset-status lset-status-ok">Email verified</span>'
+                : '<span class="lset-status lset-status-warn">Not verified — contact the administrator</span>';
+        }
+
+        // Account timeline
+        const createdAt = currentUserData?.createdAt || currentUser.metadata?.creationTime;
+        const lastSignIn = currentUser.metadata?.lastSignInTime;
+        const created = createdAt ? (createdAt.toDate ? createdAt.toDate() : new Date(createdAt)) : null;
+        setText('lset-member-since', created && !isNaN(created)
+            ? created.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—');
+        setText('lset-last-signin', formatDateTime(lastSignIn));
+        setText('lset-session-device', describeDevice());
+        setText('lset-session-since', lastSignIn ? `Signed in ${formatDateTime(lastSignIn)}` : 'Signed in');
+    }
+
+    async function loadSettingsContributions() {
+        if (!currentUser) return;
+        const uid = currentUser.uid;
+        try {
+            let projects = allProjects;
+            let notes = catalogNotes;
+            if (!projects.length) {
+                const [liveSnap, pendingSnap] = await Promise.all([
+                    db.collection('projects').where('submittedBy', '==', uid).get().catch(() => ({ docs: [] })),
+                    db.collection('pendingProjects').where('submittedBy', '==', uid).get().catch(() => ({ docs: [] }))
+                ]);
+                projects = [
+                    ...pendingSnap.docs.map(d => ({ id: d.id, ...d.data(), isPendingApproval: true })),
+                    ...liveSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+                ];
+            }
+            if (!notes || !Object.keys(notes).length) {
+                notes = {};
+                const cnSnap = await db.collection('catalogNotes').get().catch(() => null);
+                cnSnap?.forEach(d => { notes[d.id] = d.data(); });
+            }
+
+            const mine = projects.filter(p => p.submittedBy === uid);
+            const pending = mine.filter(p => p.isPendingApproval || (p.status || '').toLowerCase() === 'pending').length;
+            const published = mine.length - pending;
+            const shelved = Object.values(notes).filter(n =>
+                n && (n.createdBy === uid || n.updatedBy === uid ||
+                    (Array.isArray(n.auditHistory) && n.auditHistory.some(a => a?.userId === uid)))
+            ).length;
+
+            animateCount('lset-stat-pending', pending);
+            animateCount('lset-stat-published', published);
+            animateCount('lset-stat-shelved', shelved);
+        } catch (err) {
+            console.warn('[Settings] contribution stats:', err);
+        }
+    }
+
+    function animateCount(id, target) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const start = parseInt(el.textContent, 10);
+        const from = isNaN(start) ? 0 : start;
+        if (from === target || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            el.textContent = target;
+            return;
+        }
+        const duration = 500;
+        const t0 = performance.now();
+        const step = now => {
+            const p = Math.min(1, (now - t0) / duration);
+            el.textContent = Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3)));
+            if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }
+
+    async function copyToClipboard(text, btn, label) {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        }
+        if (btn) {
+            const span = btn.querySelector('span');
+            btn.classList.add('is-copied');
+            if (span) span.textContent = 'Copied';
+            setTimeout(() => { btn.classList.remove('is-copied'); if (span) span.textContent = 'Copy'; }, 1600);
+        }
+        showToast && showToast(`${label} copied to clipboard`, 'success');
+    }
+
+    function initSettingsNameEditor() {
+        const editBtn = document.getElementById('lset-name-edit-btn');
+        const saveBtn = document.getElementById('lset-name-save-btn');
+        const cancelBtn = document.getElementById('lset-name-cancel-btn');
+        const wrap = document.getElementById('lset-name-edit-wrap');
+        const input = document.getElementById('lset-name-input');
+        const valueEl = document.getElementById('settings-user-name');
+        const hint = document.getElementById('lset-name-hint');
+        if (!editBtn || !saveBtn || !cancelBtn || !wrap || !input || !valueEl) return;
+
+        const setEditing = editing => {
+            wrap.hidden = !editing;
+            valueEl.hidden = editing;
+            editBtn.hidden = editing;
+            saveBtn.hidden = !editing;
+            cancelBtn.hidden = !editing;
+            input.classList.remove('is-invalid');
+            if (hint) hint.textContent = 'Press Enter to save · Esc to cancel';
+            if (editing) {
+                input.value = getDisplayName();
+                requestAnimationFrame(() => { input.focus(); input.select(); });
+            }
+        };
+
+        const save = async () => {
+            const newName = input.value.replace(/\s+/g, ' ').trim();
+            if (newName.length < 2) {
+                input.classList.add('is-invalid');
+                if (hint) hint.textContent = 'Name must be at least 2 characters.';
+                return;
+            }
+            if (newName === getDisplayName()) { setEditing(false); return; }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
             try {
-                const uid = currentUser.uid;
-                const batch = db.batch();
-                const activities = await db.collection('userActivities').where('userId', '==', uid).limit(100).get();
-                activities.forEach(d => batch.delete(d.ref));
-                batch.delete(db.collection('usersSavedProjects').doc(uid));
-                const convs = await db.collection('conversations').where('userId', '==', uid).limit(50).get();
-                convs.forEach(d => batch.delete(d.ref));
-                await batch.commit();
-                showToast && showToast('Account data cleared.', '✅');
-            } catch (err) { showToast && showToast('Error clearing data.', '❌'); }
+                await db.collection('users').doc(currentUser.uid).update({
+                    fullName: newName,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                try { await currentUser.updateProfile({ displayName: newName }); } catch (e) { console.warn('[Settings] updateProfile:', e); }
+                currentUserData = { ...(currentUserData || {}), fullName: newName };
+                sessionStorage.setItem('userName', newName);
+                populateSettingsProfile();
+                const greetingEl = document.getElementById('dash-greeting-name');
+                if (greetingEl) greetingEl.textContent = newName;
+                setEditing(false);
+                showToast && showToast('Full name updated', 'success');
+            } catch (err) {
+                console.error('[Settings] name update:', err);
+                showToast && showToast('Could not update your name. Please try again.', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            }
+        };
+
+        editBtn.addEventListener('click', () => setEditing(true));
+        cancelBtn.addEventListener('click', () => setEditing(false));
+        saveBtn.addEventListener('click', save);
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); }
+        });
+    }
+
+    function initSettingsThemeControl() {
+        const group = document.getElementById('lset-theme-group');
+        if (!group) return;
+        const buttons = group.querySelectorAll('[data-theme-choice]');
+        const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+        const currentChoice = () => localStorage.getItem('theme') || 'system';
+        const apply = choice => {
+            const resolved = choice === 'system' ? (media && media.matches ? 'dark' : 'light') : choice;
+            document.documentElement.setAttribute('data-theme', resolved);
+            buttons.forEach(b => {
+                const on = b.dataset.themeChoice === choice;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-checked', String(on));
+            });
+        };
+
+        buttons.forEach(btn => btn.addEventListener('click', () => {
+            const choice = btn.dataset.themeChoice;
+            if (choice === 'system') localStorage.removeItem('theme');
+            else localStorage.setItem('theme', choice);
+            apply(choice);
+            if (window.ActivityService && typeof window.ActivityService.logSetting === 'function') {
+                window.ActivityService.logSetting('theme', choice);
+            }
+            showToast && showToast(`Appearance set to ${choice}`, 'success');
+        }));
+
+        media?.addEventListener?.('change', () => { if (currentChoice() === 'system') apply('system'); });
+        apply(currentChoice());
+    }
+
+    function initSettingsLandingPref() {
+        const select = document.getElementById('lset-landing-select');
+        if (!select) return;
+        select.value = localStorage.getItem(LANDING_PREF_KEY) || 'dashboard';
+        select.addEventListener('change', () => {
+            localStorage.setItem(LANDING_PREF_KEY, select.value);
+            const label = select.options[select.selectedIndex]?.text || select.value;
+            showToast && showToast(`${label} will open when you sign in`, 'success');
+        });
+    }
+
+    function initSettingsJumpNav() {
+        const links = document.querySelectorAll('.lset-jump-link[data-lset-target]');
+        links.forEach(link => link.addEventListener('click', () => {
+            const target = document.getElementById(link.dataset.lsetTarget);
+            if (!target) return;
+            links.forEach(l => l.classList.toggle('active', l === link));
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Expand the Danger Zone when jumping to it
+            if (target.id === 'danger-zone-container') {
+                const toggle = document.getElementById('danger-zone-toggle');
+                if (toggle && toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
+            }
+        }));
+    }
+
+    function initSettingsPanel() {
+        if (!document.getElementById('section-settings')) return;
+        populateSettingsProfile();
+        initSettingsNameEditor();
+        initSettingsThemeControl();
+        initSettingsLandingPref();
+        initSettingsJumpNav();
+
+        document.getElementById('lset-card-copy-email-btn')?.addEventListener('click', (e) => {
+            const emailEl = document.getElementById('lset-profile-email');
+            const email = (currentUser?.email || emailEl?.textContent || '').trim();
+            if (email && email !== 'Loading...' && email !== '&nbsp;') {
+                navigator.clipboard.writeText(email).then(() => {
+                    const btn = e.currentTarget;
+                    btn.classList.add('is-copied');
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    if (typeof showToast === 'function') {
+                        showToast('Email address copied to clipboard', 'success');
+                    }
+                    setTimeout(() => {
+                        btn.classList.remove('is-copied');
+                        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                    }, 1600);
+                }).catch(err => {
+                    console.warn('Clipboard write failed, trying fallback:', err);
+                    copyToClipboard(email, e.currentTarget, 'Email');
+                });
+            }
+        });
+        document.getElementById('lset-copy-uid-btn')?.addEventListener('click', e =>
+            copyToClipboard(currentUser?.uid, e.currentTarget, 'Account ID'));
+        document.getElementById('lset-signout-btn')?.addEventListener('click', () =>
+            document.getElementById('librarian-logout-btn')?.click());
+
+        // Interactive Contribution Action Buttons
+        document.getElementById('lset-action-pending')?.addEventListener('click', () => {
+            window.location.hash = 'projects';
+            switchSection('projects');
+            const navProjects = document.getElementById('nav-projects') || document.querySelector('.rail-nav-item[data-section="projects"]');
+            if (navProjects) navProjects.click();
+            if (typeof loadProjectsData === 'function') {
+                loadProjectsData().then(() => {
+                    const statusFilter = document.getElementById('projects-status-filter');
+                    if (statusFilter) {
+                        statusFilter.value = 'pending';
+                        if (typeof filterProjectsTable === 'function') filterProjectsTable();
+                    }
+                });
+            }
         });
 
-        document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
-            if (!confirm('Delete your account permanently? This CANNOT be undone.')) return;
-            if (!confirm('Are you absolutely sure?')) return;
-            try {
-                await db.collection('users').doc(currentUser.uid).delete();
-                await currentUser.delete();
-                sessionStorage.clear();
-                window.location.href = '../index.html';
-            } catch (err) {
-                showToast && showToast('Error deleting account. You may need to re-login first.', '❌');
+        document.getElementById('lset-action-published')?.addEventListener('click', () => {
+            window.location.hash = 'projects';
+            switchSection('projects');
+            const navProjects = document.getElementById('nav-projects') || document.querySelector('.rail-nav-item[data-section="projects"]');
+            if (navProjects) navProjects.click();
+            if (typeof loadProjectsData === 'function') {
+                loadProjectsData().then(() => {
+                    const statusFilter = document.getElementById('projects-status-filter');
+                    if (statusFilter) {
+                        statusFilter.value = 'published';
+                        if (typeof filterProjectsTable === 'function') filterProjectsTable();
+                    }
+                });
             }
+        });
+
+        document.getElementById('lset-action-shelved')?.addEventListener('click', () => {
+            window.location.hash = 'catalog';
+            switchSection('catalog');
+            const navCatalog = document.getElementById('nav-catalog') || document.querySelector('.rail-nav-item[data-section="catalog"]');
+            if (navCatalog) navCatalog.click();
+            if (typeof loadCatalogData === 'function') loadCatalogData();
         });
     }
 

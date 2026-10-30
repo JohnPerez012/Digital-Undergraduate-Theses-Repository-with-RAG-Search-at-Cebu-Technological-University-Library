@@ -86,7 +86,7 @@ const FeedbackModule = (() => {
             }
         }
 
-        console.log('✓ Feedback module initialized');
+        console.log('Feedback module initialized');
     }
 
     /**

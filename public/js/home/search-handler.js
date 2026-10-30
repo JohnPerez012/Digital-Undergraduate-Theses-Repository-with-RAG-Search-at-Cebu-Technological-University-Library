@@ -252,7 +252,7 @@ const SearchHandler = {
       searchInput.placeholder = 'Search by title, author, or keyword...';
     }
     
-    console.log('✓ Search handler initialized with AI semantic search support');
+    console.log('Search handler initialized with AI semantic search support');
   },
   
   /**
@@ -430,7 +430,7 @@ const SearchHandler = {
       location.reload();
     }
     
-    console.log('✓ Search cleared');
+    console.log('Search cleared');
   },
   
   /**
@@ -458,7 +458,7 @@ const SearchHandler = {
         history = history.slice(0, 20); // Keep only last 20
         localStorage.setItem('recap_search_history', JSON.stringify(history));
         
-        console.log('✓ Search history saved:', query);
+        console.log('Search history saved:', query);
       }
     } catch (error) {
       console.error('Error saving search history:', error);
@@ -484,7 +484,7 @@ const SearchHandler = {
   clearSearchHistory() {
     try {
       localStorage.removeItem('recap_search_history');
-      console.log('✓ Search history cleared');
+      console.log('Search history cleared');
     } catch (error) {
       console.error('Error clearing search history:', error);
     }
@@ -553,7 +553,7 @@ const SearchHandler = {
           return;
         }
         
-        console.log(`✓ Found ${fallbackResult.filteredCount} relevant projects with relaxed threshold (from ${fallbackResult.totalMatches} matches)`);
+        console.log(`Found ${fallbackResult.filteredCount} relevant projects with relaxed threshold (from ${fallbackResult.totalMatches} matches)`);
         
         // Display fallback results with notice
         if (typeof window.ProjectList !== 'undefined') {
@@ -565,7 +565,7 @@ const SearchHandler = {
         return;
       }
       
-      console.log(`✓ Found ${result.filteredCount} relevant projects (from ${result.totalMatches} matches)`);
+      console.log(`Found ${result.filteredCount} relevant projects (from ${result.totalMatches} matches)`);
       
       // Log activity
       if (window.ActivityService && typeof window.ActivityService.logSearch === 'function') {
@@ -664,7 +664,7 @@ const SearchHandler = {
         return rawTokens.every(token => fullSearchPool.includes(token));
       });
       
-      console.log(`✓ Found ${filteredProjects.length} matching projects`);
+      console.log(`Found ${filteredProjects.length} matching projects`);
       
       // Log activity
       if (window.ActivityService && typeof window.ActivityService.logSearch === 'function') {

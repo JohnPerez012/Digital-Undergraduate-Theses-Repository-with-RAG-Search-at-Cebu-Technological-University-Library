@@ -57,13 +57,13 @@ const ChatService = {
         await db.collection('conversations')
           .doc(this.currentConversationId)
           .update(conversationData);
-        console.log('✓ Conversation updated:', this.currentConversationId);
+        console.log('Conversation updated:', this.currentConversationId);
       } else {
         // Create new conversation
         conversationData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         const docRef = await db.collection('conversations').add(conversationData);
         this.currentConversationId = docRef.id;
-        console.log('✓ Conversation created:', this.currentConversationId);
+        console.log('Conversation created:', this.currentConversationId);
       }
     } catch (error) {
       console.error('ChatService save error:', error);
@@ -115,7 +115,7 @@ const ChatService = {
     const db = firebase.firestore();
     try {
       await db.collection('conversations').doc(conversationId).delete();
-      console.log('✓ Conversation deleted:', conversationId);
+      console.log('Conversation deleted:', conversationId);
       // If we just deleted the current session, reset it
       if (this.currentConversationId === conversationId) {
         this.currentConversationId = null;

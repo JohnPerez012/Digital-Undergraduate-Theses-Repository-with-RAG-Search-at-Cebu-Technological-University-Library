@@ -97,6 +97,10 @@
             const input = row.querySelector('.citation-author-item-input');
             const removeBtn = row.querySelector('.btn-remove-citation-author');
 
+            if (input && value) {
+                input.value = value;
+            }
+
             // Live updates on keystroke
             input.addEventListener('input', () => {
                 this.syncAuthorsToHidden();
@@ -114,9 +118,9 @@
             // Smart paste handler: automatically splits if multiple authors are pasted
             input.addEventListener('paste', (e) => {
                 const text = (e.clipboardData || window.clipboardData)?.getData('text');
-                if (text && (text.includes(';') || text.includes('\n') || (text.match(/,/g) || []).length > 1 || text.includes(' and '))) {
+                if (text && (/[·•▪;\n\r|]/.test(text) || (text.match(/,/g) || []).length > 1 || /\s+(?:and|&)\s+/i.test(text))) {
                     e.preventDefault();
-                    const splitNames = this.splitPastedNames(text);
+                    const splitNames = this.extractAuthorList(text);
                     if (splitNames.length > 0) {
                         input.value = splitNames[0];
                         for (let i = 1; i < splitNames.length; i++) {
@@ -164,33 +168,73 @@
             });
         },
 
-        splitPastedNames(raw) {
-            if (!raw) return [];
-            let list = [];
-            if (raw.includes(';')) {
-                list = raw.split(';');
-            } else if (raw.includes('\n')) {
-                list = raw.split('\n');
-            } else if (raw.includes(' and ')) {
-                list = raw.split(' and ');
-            } else if ((raw.match(/,/g) || []).length > 1) {
-                list = raw.split(',');
-            } else {
-                list = [raw];
+        extractAuthorList(input) {
+            if (!input) return [];
+
+            // 1. If Array, recursively unpack and split each item
+            if (Array.isArray(input)) {
+                const result = [];
+                input.forEach(item => {
+                    if (!item) return;
+                    if (typeof item === 'object') {
+                        const nameStr = item.name || item.fullName || item.author || item.displayName || '';
+                        if (nameStr) result.push(...this.extractAuthorList(nameStr));
+                    } else if (typeof item === 'string') {
+                        result.push(...this.extractAuthorList(item));
+                    }
+                });
+                return result.map(s => s.trim()).filter(Boolean);
             }
-            return list.map(s => s.trim()).filter(Boolean);
+
+            if (typeof input !== 'string') {
+                return [];
+            }
+
+            let text = input.trim();
+            if (!text) return [];
+
+            // Strip out adviser/advisor notes: e.g. " — Adviser: Engr. Rubio", " - Advisor: ...", "Adviser: ..."
+            text = text.replace(/\s*([—–-]|\|)\s*Advis[eo]r:.*$/i, '');
+            text = text.replace(/\s*\((?:Advis[eo]r|Adviser\/s):.*?\)/gi, '');
+            text = text.trim();
+
+            if (!text) return [];
+
+            // Check for high-confidence multi-author delimiters:
+            // Middle dot (·), bullet (•), bullet point (▪), semicolon (;), newline (\n), pipe (|)
+            if (/[·•▪;\n\r|]/.test(text)) {
+                return text.split(/[·•▪;\n\r|]+/)
+                    .map(s => s.replace(/\s*([—–-]|\|)\s*Advis[eo]r:.*$/i, '').trim())
+                    .filter(Boolean);
+            }
+
+            // Check for " and " or " & " (e.g., "John Cadaro and Allan De Jesus")
+            if (/\s+(?:and|&)\s+/i.test(text)) {
+                return text.split(/\s+(?:and|&)\s+/i)
+                    .map(s => s.trim())
+                    .filter(Boolean);
+            }
+
+            // Check for comma-separated list of multiple names:
+            // e.g., "Carlo M. Cañete, Shiela Mae I. Dabucol, Clymarth P. Delima"
+            const commaCount = (text.match(/,/g) || []).length;
+            if (commaCount > 1) {
+                const parts = text.split(',').map(s => s.trim()).filter(Boolean);
+                return parts;
+            }
+
+            return [text];
+        },
+
+        splitPastedNames(raw) {
+            return this.extractAuthorList(raw);
         },
 
         setAuthors(authors) {
             if (!this.authorsContainer) return;
             this.authorsContainer.innerHTML = '';
 
-            let list = [];
-            if (Array.isArray(authors)) {
-                list = authors;
-            } else if (typeof authors === 'string') {
-                list = this.splitPastedNames(authors);
-            }
+            let list = this.extractAuthorList(authors);
 
             if (list.length === 0) {
                 list = [''];
@@ -301,6 +345,9 @@
                 this.importToggleBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const isOpen = this.importMenu.style.display === 'block';
+                    if (!isOpen) {
+                        this.populateSavedProjectsMenu();
+                    }
                     this.importMenu.style.display = isOpen ? 'none' : 'block';
                 });
 
@@ -310,6 +357,14 @@
                     }
                 });
             }
+
+            // Real-time catalog & bookmark synchronization
+            window.addEventListener('projectSavedStateChanged', () => {
+                this.populateSavedProjectsMenu();
+            });
+            window.addEventListener('allProjectsLoaded', () => {
+                this.populateSavedProjectsMenu();
+            });
 
             // Clear Form Button
             if (this.clearFormBtn) {
@@ -798,6 +853,50 @@
             }
         },
 
+        getProjectAuthors(proj) {
+            if (!proj) return [];
+
+            // 1. Direct authors or author property
+            let rawAuthors = proj.authors || proj.author || proj.authorList || proj.authorsList;
+
+            // 2. Look in rawData, raw, or metadata if top-level missing
+            if ((!rawAuthors || (Array.isArray(rawAuthors) && rawAuthors.length === 0)) && proj.rawData) {
+                rawAuthors = proj.rawData.authors || proj.rawData.author || proj.rawData.authorList;
+            }
+            if ((!rawAuthors || (Array.isArray(rawAuthors) && rawAuthors.length === 0)) && proj.raw) {
+                rawAuthors = proj.raw.authors || proj.raw.author;
+            }
+            if ((!rawAuthors || (Array.isArray(rawAuthors) && rawAuthors.length === 0)) && proj.metadata) {
+                rawAuthors = proj.metadata.authors || proj.metadata.author;
+            }
+
+            // 3. Fallback: Search in global / local project caches by ID or Title
+            if (!rawAuthors || (Array.isArray(rawAuthors) && rawAuthors.length === 0)) {
+                let pool = [];
+                if (Array.isArray(window.__allProjectsData) && window.__allProjectsData.length > 0) {
+                    pool = window.__allProjectsData;
+                } else if (Array.isArray(window.allProjects) && window.allProjects.length > 0) {
+                    pool = window.allProjects;
+                } else {
+                    try {
+                        pool = JSON.parse(localStorage.getItem('projectsData')) || [];
+                    } catch (e) {}
+                }
+
+                if (Array.isArray(pool) && pool.length > 0) {
+                    const match = pool.find(p => 
+                        (proj.id && p.id === proj.id) || 
+                        (proj.title && p.title && p.title.toLowerCase().trim() === proj.title.toLowerCase().trim())
+                    );
+                    if (match) {
+                        rawAuthors = match.authors || match.author;
+                    }
+                }
+            }
+
+            return this.extractAuthorList(rawAuthors);
+        },
+
         populateSavedProjectsMenu() {
             if (!this.savedProjectsList) return;
 
@@ -806,6 +905,13 @@
                 savedProjects = JSON.parse(localStorage.getItem('savedProjects')) || [];
             } catch (e) {
                 console.error('Error parsing savedProjects:', e);
+            }
+
+            // Fallback for guest saved projects if authenticated list empty
+            if (savedProjects.length === 0 && window.GuestSavedProjects && typeof window.GuestSavedProjects.getAll === 'function') {
+                try {
+                    savedProjects = window.GuestSavedProjects.getAll() || [];
+                } catch (e) {}
             }
 
             this.savedProjectsList.innerHTML = '';
@@ -824,25 +930,21 @@
                 item.type = 'button';
                 item.className = 'citation-import-item';
 
-                let authorText = '';
-                if (Array.isArray(proj.authors)) {
-                    authorText = proj.authors.join('; ');
-                } else if (typeof proj.authors === 'string') {
-                    authorText = proj.authors;
-                } else if (proj.author) {
-                    authorText = proj.author;
-                }
+                const authorList = this.getProjectAuthors(proj);
+                const authorDisplay = authorList.length > 0 ? authorList.join(' · ') : 'Authors unknown';
+                const yearDisplay = proj.year || (proj.rawData && proj.rawData.year) || '2024';
+                const titleDisplay = proj.title || (proj.rawData && proj.rawData.title) || 'Untitled Project';
 
                 item.innerHTML = `
-                    <div class="citation-import-item-title">${this.escapeHtml(proj.title || 'Untitled Project')}</div>
-                    <div class="citation-import-item-meta">${this.escapeHtml(authorText || 'Authors unknown')} · ${proj.year || '2024'}</div>
+                    <div class="citation-import-item-title">${this.escapeHtml(titleDisplay)}</div>
+                    <div class="citation-import-item-meta">${this.escapeHtml(authorDisplay)} · ${this.escapeHtml(yearDisplay)}</div>
                 `;
 
                 item.addEventListener('click', () => {
                     this.applyProjectData(proj);
                     if (this.importMenu) this.importMenu.style.display = 'none';
                     if (typeof showToast === 'function') {
-                        showToast(`Imported: "${proj.title || 'Project'}"`, 'info');
+                        showToast(`Imported: "${titleDisplay}"`, 'info');
                     }
                 });
 
@@ -851,14 +953,25 @@
         },
 
         applyProjectData(proj) {
-            if (this.titleInput && proj.title) this.titleInput.value = proj.title;
+            if (!proj) return;
 
-            const projAuthors = proj.authors || proj.author || [];
-            this.setAuthors(projAuthors);
+            const title = proj.title || (proj.rawData && proj.rawData.title) || '';
+            if (this.titleInput && title) {
+                this.titleInput.value = title;
+            }
 
-            if (this.yearInput && proj.year) this.yearInput.value = proj.year;
-            if (this.programInput && (proj.program || proj.department)) {
-                this.programInput.value = proj.program || proj.department;
+            const authorList = this.getProjectAuthors(proj);
+            this.setAuthors(authorList);
+
+            const year = proj.year || (proj.rawData && proj.rawData.year) || '';
+            if (this.yearInput && year) {
+                this.yearInput.value = year;
+            }
+
+            const program = proj.program || proj.department || 
+                (proj.rawData && (proj.rawData.program || proj.rawData.department)) || '';
+            if (this.programInput && program) {
+                this.programInput.value = program;
             }
 
             this.generate(false);

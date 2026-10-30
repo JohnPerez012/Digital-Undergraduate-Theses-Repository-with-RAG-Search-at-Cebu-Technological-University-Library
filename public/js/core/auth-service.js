@@ -464,7 +464,7 @@
                 
                 if (userRole === requiredRole) {
                     // Correct role - reveal page
-                    console.log('[AuthService] ✓ Role match! Revealing page');
+                    console.log('[AuthService] Role match! Revealing page');
                     revealPage();
                 } else {
                     // Wrong role - redirect

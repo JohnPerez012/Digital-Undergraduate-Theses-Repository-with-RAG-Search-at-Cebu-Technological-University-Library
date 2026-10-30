@@ -94,7 +94,7 @@ class NetworkMonitor {
         if (window.firestoreConnectionTrouble) {
             this.retryFirestore().then(success => {
                 if (success) {
-                    this.showToast('✓ Cloud Firestore reconnected successfully.', 'success', 4000);
+                    this.showToast('Cloud Firestore reconnected successfully.', 'success', 4000);
                 }
             });
         }

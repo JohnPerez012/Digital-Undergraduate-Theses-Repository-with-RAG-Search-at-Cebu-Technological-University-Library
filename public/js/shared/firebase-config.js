@@ -32,7 +32,7 @@ if (typeof firebase !== 'undefined') {
         if (typeof firebase.database === 'function') {
             rtdb = firebase.database();
         }
-        console.log('✓ Firebase initialized successfully');
+        console.log('Firebase initialized successfully');
     } catch (initErr) {
         console.warn('⚠️ Firebase initialization error:', initErr.message);
     }

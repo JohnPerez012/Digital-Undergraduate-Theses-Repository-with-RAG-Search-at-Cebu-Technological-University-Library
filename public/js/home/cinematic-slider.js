@@ -65,7 +65,7 @@
             slideTrack.appendChild(img);
             slideTrack.style.transform = 'translateX(0)'; // No animation needed
             
-            console.log('✓ Static background loaded');
+            console.log('Static background loaded');
             return; // Exit - no animation needed
         }
         
@@ -111,7 +111,7 @@
             // Position track instantly to the random start index without animation
             slideTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
             
-            console.log('✓ Cinematic slider initialized at index:', currentIndex);
+            console.log('Cinematic slider initialized at index:', currentIndex);
             console.log('📊 SlideTrack element:', slideTrack);
             console.log('📊 Total slides created:', slideElements.length);
         }

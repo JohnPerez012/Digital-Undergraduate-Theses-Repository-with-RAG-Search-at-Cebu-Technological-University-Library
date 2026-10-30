@@ -1,11 +1,12 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
         else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { document.documentElement.setAttribute('data-theme', 'dark'); }
-        
+
         if (localStorage.getItem('cachedAuthState') === 'true') {
             document.documentElement.classList.add('auth-cached-logged-in');
         }
@@ -14,24 +15,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Your Account - RE-CAPS</title>
     <link rel="stylesheet" href="../css/shared/style.css">
-    <link rel="stylesheet" href="../css/registration/registration.css">
+    <link rel="stylesheet" href="../css/registration/registration.css?v=terms_table_scroll_1">
     <!-- <link rel="stylesheet" href="css/secondary-header.css"> -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Cedarville+Cursive&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="../css/shared/toast.css">
     <link rel="stylesheet" href="../css/shared/modal-dialog.css">
     <link rel="stylesheet" href="../css/shared/text-protection.css">
-    
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+
     <!-- Advanced Slider Captcha -->
     <script src="../js/registration/slider-captcha.js"></script>
 
+    <!-- Tesseract.js OCR Engine -->
+    <script src="../js/registration/tesseract.min.js"></script>
+    <script>
+        if (typeof Tesseract === 'undefined') {
+            const cdnScript = document.createElement('script');
+            cdnScript.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+            document.head.appendChild(cdnScript);
+        }
+    </script>
 </head>
+
 <body>
     <!-- Insecure Context Warning Banner -->
     <!-- <div id="insecure-warning" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #f59e0b; color: #000; padding: 0.75rem; text-align: center; z-index: 10000; font-size: 0.875rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -44,7 +57,7 @@
             document.body.style.paddingTop = '3rem'; // Offset for banner
         }
     </script>
-  
+
 
     <!-- <a href="../index.html" class="back-button" id="main-back-button">← Back</a> -->
     <div class="registration-container">
@@ -53,13 +66,15 @@
             <div class="gatekeeper-view" id="gatekeeper-view">
                 <h1 class="step-title">WAIT! are you Hoooman?</h1>
                 <p class="step-subtitle">Verify to proceed.</p>
-                
+
                 <div class="slider-verify-container" id="slider-verify-container">
                     <div class="slider-verify-track" id="slider-verify-track">
                         <div class="slider-verify-bg-text">Slide to verify you are human</div>
                         <div class="slider-verify-fill" id="slider-verify-fill"></div>
                         <div class="slider-verify-handle" id="slider-verify-handle">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                width="20" height="20">
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                                 <polyline points="12 5 19 12 12 19"></polyline>
                             </svg>
@@ -71,7 +86,7 @@
             <!-- Isolated Registration Form Wrapper -->
             <div class="registration-form-wrap" id="registration-form-wrap" style="display: none;">
                 <!-- Shared Step Indicator -->
-                <div class="step-indicator">
+                <div class="step-indicator" id="registration-step-indicator">
                     <span class="step-number" data-step="1">1</span>
                     <div class="step-divider" data-divider="1"></div>
                     <span class="step-number" data-step="2">2</span>
@@ -89,125 +104,285 @@
                     <span class="step-number" data-step="8">8</span>
                 </div>
 
-                <!-- Step 1: User Type Selection -->
+                <!-- Step 1: Personal Information (Full Name) -->
                 <div id="step-1" class="registration-step active">
-                    <h1 class="step-title">Who are you?</h1>
-                    <p class="step-subtitle">Select your role to continue</p>
-                    
-                    <div class="role-selection-container">
-                        <div class="role-card" data-role="teacher">
-                            <div class="role-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                                    <line x1="12" y1="21" x2="12" y2="7"></line>
-                                    <circle cx="12" cy="3" r="1"></circle>
-                                </svg>
-                            </div>
-                            <h3 class="role-title">Teacher</h3>
+                    <h1 class="step-title">What's your name?</h1>
+                    <p class="step-subtitle">Please enter your legal full name as shown on your CTU credentials</p>
+
+                    <div class="name-entry-card">
+                        <div class="form-group">
+                            <label class="form-label" for="first-name">First Name <span class="required-star" style="color: #ef4444;">*</span></label>
+                            <input type="text" id="first-name" class="form-input" placeholder="e.g. Juan" autocomplete="given-name" maxlength="60" required>
                         </div>
-                        
-                <div class="divider">
-                    <span>or</span>
-                </div>
-                        
-                        <div class="role-card" data-role="student">
-                            <div class="role-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-                                </svg>
-                            </div>
-                            <h3 class="role-title">Student</h3>
+
+                        <div class="form-group">
+                            <label class="form-label" for="middle-name">Middle Name <span class="form-label-hint" style="color: var(--text-secondary); font-weight: 400; font-size: 0.85em;">(Optional)</span></label>
+                            <input type="text" id="middle-name" class="form-input" placeholder="e.g. Dela" autocomplete="additional-name" maxlength="40">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="last-name">Last Name <span class="required-star" style="color: #ef4444;">*</span></label>
+                            <input type="text" id="last-name" class="form-input" placeholder="e.g. Cruz" autocomplete="family-name" maxlength="60" required>
                         </div>
                     </div>
-                    
-                    <input type="hidden" id="user-type" value="">
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-index" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-index" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
-                        <button id="next-to-step-2" class="btn btn-primary btn-large" disabled>Next</button>
+                        <button type="button" id="next-to-step-2" class="btn btn-primary btn-large" disabled>Next</button>
                     </div>
                 </div>
 
-                <!-- Step 2: Name -->
+                <!-- Step 2: CTU Identity & Role Verification -->
                 <div id="step-2" class="registration-step">
-                    <h1 class="step-title">What's your name?</h1>
-                    <p class="step-subtitle">Let's start by getting to know you</p>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="first-name">First Name</label>
-                        <input type="text" id="first-name" class="form-input" placeholder="Juan">
+                    <h1 class="step-title">Verify Your CTU Identity</h1>
+                    <p class="step-subtitle">Capture or upload your official CTU Identification Card to authenticate your credentials</p>
+
+
+                    <!-- ID Capture & OCR Scanning Component -->
+                    <div class="id-capture-component" id="id-capture-component">
+                        <!-- Mode Tabs -->
+                        <div class="id-capture-tabs" id="id-capture-tabs">
+                            <button type="button" class="id-capture-tab active" id="tab-camera-capture">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                                <span>Real-Time Camera</span>
+                            </button>
+                            <button type="button" class="id-capture-tab" id="tab-upload-capture">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <span>Upload ID Photo</span>
+                            </button>
+                        </div>
+
+                        <!-- 1. Real-Time Camera Panel -->
+                        <div class="id-capture-panel" id="camera-capture-panel">
+                            <div class="camera-viewport-wrapper" id="camera-viewport-wrapper">
+                                <video id="id-camera-video" autoplay playsinline muted></video>
+                                <div class="id-viewfinder-overlay" id="id-camera-zone">
+                                    <div class="viewfinder-corner tl"></div>
+                                    <div class="viewfinder-corner tr"></div>
+                                    <div class="viewfinder-corner bl"></div>
+                                    <div class="viewfinder-corner br"></div>
+                                    <div class="viewfinder-card-badge">CTU ID CARD ZONE</div>
+                                </div>
+                            </div>
+                            <div class="camera-controls">
+                                <button type="button" class="btn-camera-capture" id="btn-capture-photo">
+                                    <span class="btn-shutter-circle"></span>
+                                    <span>Capture ID Card</span>
+                                </button>
+                            </div>
+                            <div class="camera-hint-text">💡 Tip: Place your ID on a well-lit flat surface. Outside the framed zone will be cropped out.</div>
+                        </div>
+
+                        <!-- 2. Upload ID Photo Panel -->
+                        <div class="id-capture-panel" id="upload-capture-panel" style="display: none;">
+                            <div class="id-dropzone" id="id-dropzone">
+                                <input type="file" id="id-file-input" accept="image/*" style="display: none;">
+                                <div class="dropzone-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                    </svg>
+                                </div>
+                                <h3 class="dropzone-title">Upload CTU ID Photo</h3>
+                                <p class="dropzone-desc">Drag & drop your official CTU ID picture here, or click browse</p>
+                                <button type="button" class="btn btn-secondary btn-small" id="btn-browse-id">Browse Files</button>
+                                <div class="dropzone-formats">Supports JPG, PNG, WEBP</div>
+                            </div>
+
+
+                            <!-- 2.5 ID Card Framing & Crop Zone Canvas Workstation -->
+                            <div class="id-zone-framing-panel" id="upload-zone-framing-panel" style="display: none;">
+                                <div class="zone-framing-header">
+                                    <div class="zone-framing-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                            <path d="M6 2v14a2 2 0 0 0 2 2h14"></path>
+                                            <path d="M18 22V8a2 2 0 0 0-2-2H2"></path>
+                                        </svg>
+                                        <span>Target ID Scanning Zone</span>
+                                    </div>
+                                    <span class="zone-framing-subtitle">Adjust the zone box so it matches your ID card. The scanner will strictly focus inside this zone and cut outside noise.</span>
+                                </div>
+
+                                <div class="zone-viewport-container" id="zone-viewport-container">
+                                    <div class="zone-stage" id="zone-stage">
+                                        <img id="zone-source-image" src="" alt="Source ID for Framing">
+                                        <div class="id-card-crop-box" id="id-card-crop-box">
+                                            <div class="crop-corner tl" data-handle="tl"></div>
+                                            <div class="crop-corner tr" data-handle="tr"></div>
+                                            <div class="crop-corner bl" data-handle="bl"></div>
+                                            <div class="crop-corner br" data-handle="br"></div>
+                                            <div class="crop-box-crosshair"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="zone-controls-toolbar">
+                                    <button type="button" class="btn btn-secondary btn-small" id="btn-cancel-zone">
+                                        Choose Another
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-small" id="btn-reset-zone" title="Re-center card zone">
+                                        ⛶ Fit Center
+                                    </button>
+                                    <button type="button" class="btn btn-primary btn-confirm-scan" id="btn-confirm-zone-scan">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>Scan ID</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. OCR Active Processing & Image Preview View -->
+                        <div class="id-ocr-processing-view" id="id-ocr-processing-view" style="display: none;">
+                            <div class="ocr-preview-card">
+                                <div class="ocr-image-wrapper">
+                                    <img id="id-captured-preview" src="" alt="Captured ID Preview">
+                                    <!-- Modern AI Neural Vision & Feature Anchor Canvas -->
+                                    <canvas id="ocr-vision-canvas"></canvas>
+                                    <div class="ocr-vision-badge" id="ocr-vision-badge">
+                                        <span class="vision-pulse-dot"></span>
+                                        <span id="vision-badge-text">AI VISION • LOCKING ANCHORS</span>
+                                    </div>
+                                </div>
+                                <div class="ocr-status-box">
+                                    <div class="ocr-status-header">
+                                        <div class="ocr-spinner" id="ocr-spinner"></div>
+                                        <span class="ocr-status-text" id="ocr-status-text">Scanning CTU ID with Tesseract OCR...</span>
+                                    </div>
+                                    <div class="ocr-progress-track">
+                                        <div class="ocr-progress-fill" id="ocr-progress-bar-fill"></div>
+                                    </div>
+                                    <div class="ocr-retake-action" id="ocr-retake-action" style="display: none;">
+                                        <button type="button" class="btn btn-secondary btn-small" id="btn-retake-id">
+                                            Retake / Choose Another Photo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Extracted Credentials Verification Summary -->
+                        <div class="id-verification-summary" id="id-verification-summary" style="display: none;">
+                            <div class="summary-header">
+                                <div class="summary-badge-verified">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                    <span>CTU ID Authenticated</span>
+                                </div>
+                                <button type="button" class="btn-rescan-link" id="btn-rescan-link">Rescan ID</button>
+                            </div>
+                            <div class="summary-details-grid">
+                                <div class="summary-detail-item">
+                                    <span class="summary-label">Role</span>
+                                    <span class="summary-value" id="summary-role-val">—</span>
+                                </div>
+                                <div class="summary-detail-item">
+                                    <span class="summary-label">Full Name</span>
+                                    <span class="summary-value" id="summary-name-val">—</span>
+                                </div>
+                                <div class="summary-detail-item">
+                                    <span class="summary-label">ID Number</span>
+                                    <span class="summary-value" id="summary-id-val">—</span>
+                                </div>
+                                <div class="summary-detail-item">
+                                    <span class="summary-label">Program / Department</span>
+                                    <span class="summary-value" id="summary-program-val">—</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="middle-name">Middle Name (Optional)</label>
-                        <input type="text" id="middle-name" class="form-input" placeholder="Dela">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="last-name">Last Name</label>
-                        <input type="text" id="last-name" class="form-input" placeholder="Cruz">
-                    </div>
-                    
+
+                    <input type="hidden" id="user-type" value="">
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-1" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-1" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
-                        <button id="next-to-step-3" class="btn btn-primary btn-large">Next</button>
+                        <button type="button" id="next-to-step-3" class="btn btn-primary btn-large" disabled>Next</button>
                     </div>
                 </div>
-                
+
                 <!-- Step 3: Google Authentication -->
                 <div id="step-3" class="registration-step">
                     <h1 class="step-title">Link Your Google Account</h1>
                     <p class="step-subtitle">Sign in with Google to verify your identity</p>
-                    
+
                     <div class="google-auth-container">
                         <div class="google-auth-status" id="googleAuthStatus">
-                            <svg class="auth-icon auth-icon-pending" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="48" height="48">
+                            <svg class="auth-icon auth-icon-pending" xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" width="48" height="48">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="16" x2="12" y2="12"></line>
                                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
                             </svg>
                             <p class="auth-status-text">Please sign in with your Google account</p>
                         </div>
-                        
+
                         <!-- Account Already Exists Error -->
                         <div class="account-exists-error" id="accountExistsError" style="display: none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                width="24" height="24">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="8" x2="12" y2="12"></line>
                                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
                             </svg>
                             <div class="error-content">
                                 <h3 class="error-title">Account Already Registered</h3>
-                                <p class="error-message" id="errorMessage">This Google account is already linked to an existing RE-CAPS account. Please login instead.</p>
+                                <p class="error-message" id="errorMessage">This Google account is already linked to an
+                                    existing RE-CAPS account. Please login instead.</p>
                                 <div class="error-actions">
                                     <a href="../index.html" class="btn btn-primary btn-small">Go to Login</a>
-                                    <button type="button" id="tryDifferentAccountBtn" class="btn btn-secondary btn-small">Try Different Account</button>
+                                    <button type="button" id="tryDifferentAccountBtn"
+                                        class="btn btn-secondary btn-small">Try Different Account</button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <button type="button" id="googleSignInBtn" class="btn-google">
-                            <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24">
-                                <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                                <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                                <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                                <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                            <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24"
+                                height="24">
+                                <path fill="#FFC107"
+                                    d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z">
+                                </path>
+                                <path fill="#FF3D00"
+                                    d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z">
+                                </path>
+                                <path fill="#4CAF50"
+                                    d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z">
+                                </path>
+                                <path fill="#1976D2"
+                                    d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z">
+                                </path>
                             </svg>
                             <span>Sign in with Google</span>
                         </button>
-                        
+
                         <div class="google-auth-info" id="googleAuthInfo" style="display: none;">
                             <div class="auth-user-card">
                                 <img id="googleUserAvatar" class="auth-user-avatar" src="" alt="User">
@@ -215,13 +390,17 @@
                                     <p class="auth-user-name" id="googleUserName"></p>
                                     <p class="auth-user-email" id="googleUserEmail"></p>
                                 </div>
-                                <svg class="auth-icon-verified" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                                <svg class="auth-icon-verified" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="24" height="24">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                 </svg>
                             </div>
                             <button type="button" id="changeGoogleAccountBtn" class="btn btn-text">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="16" height="16">
                                     <polyline points="1 4 1 10 7 10"></polyline>
                                     <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                                 </svg>
@@ -229,11 +408,14 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-2" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-2" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
@@ -241,118 +423,49 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Academic Profile -->
+                <!-- Step 4: Faculty Affiliation (Teachers Only - Students Skip Directly to Password) -->
                 <div id="step-4" class="registration-step">
-                    <h1 class="step-title">Academic Profile</h1>
-                    <p class="step-subtitle">Tell us about your academic details</p>
-                    
-                    <!-- Student ID (only for students) -->
-                    <div class="form-group" id="student-id-group">
-                        <label class="form-label" for="student-id">Student ID</label>
-                        <!-- <input type="number" id="student-id" class="form-input" placeholder="e.g. 8230612"> -->
-                        <input type="number" id="student-id" class="form-input" placeholder="e.g. 8230612">
+                    <h1 class="step-title">Faculty Affiliation</h1>
+                    <p class="step-subtitle">Select your college and department assignment</p>
 
+                    <div class="auth-credibility-banner auth-credibility-subtle">
+                        <div class="auth-credibility-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                        <div class="auth-credibility-text">
+                            <strong>Faculty Institutional Assignment:</strong> Official faculty CTU ID cards authenticate employee credentials. Please select your assigned college (COTE or COED) and department below.
+                        </div>
                     </div>
-                    
+
+                    <!-- Hidden Student Profile Storage (Auto-verified from ID, no manual step needed) -->
+                    <div id="student-id-group" style="display: none;"><input type="hidden" id="student-id" value=""></div>
+                    <div id="student-college-group" style="display: none;"><input type="hidden" id="student-college" value=""></div>
+                    <div id="program-group" style="display: none;"><input type="hidden" id="program" value=""></div>
+
                     <!-- Teacher ID (only for teachers) -->
-                    <div class="form-group" id="teacher-id-group" style="display: none;">
-                        <label class="form-label" for="teacher-id">Teacher ID</label>
-                        <input type="number" id="teacher-id" class="form-input" placeholder="e.g. 123123">
-                    </div>
-                    
-                    <!-- College (for students - to filter programs) -->
-                    <div id="student-college-group">
-                        <label class="form-label" style="text-align: center; display: block; margin-bottom: 1rem;">Select Your College</label>
-                        
-                        <!-- College Card Selection -->
-                        <div class="college-selection-container" id="student-college-cards">
-                            <div class="college-card" data-college="COTE">
-                                <div class="college-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                        <circle cx="9" cy="12" r="1"></circle>
-                                        <circle cx="15" cy="12" r="1"></circle>
-                                    </svg>
-                                </div>
-                                <h3 class="college-title">COTE</h3>
-                                <p class="college-description">Technology and Engineering</p>
-                            </div>
-                            
-                            <div class="college-divider">
-                                <span>or</span>
-                            </div>
-                            
-                            <div class="college-card" data-college="COED">
-                                <div class="college-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                                        <circle cx="10" cy="8" r="2"></circle>
-                                        <path d="M15 13l-3-3 3-3"></path>
-                                    </svg>
-                                </div>
-                                <h3 class="college-title">COED</h3>
-                                <p class="college-description">College of Education</p>
-                            </div>
+                    <div class="form-group" id="teacher-id-group">
+                        <label class="form-label" for="teacher-id">
+                            Employee ID <span class="badge-locked-field" style="background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.3); color: #81c784;">✏️ Verified from ID (Editable)</span>
+                        </label>
+                        <div class="locked-input-wrapper">
+                            <input type="text" id="teacher-id" class="form-input" placeholder="e.g. Employee ID Number">
+                            <span class="locked-field-icon" title="Verified from ID">🪪</span>
                         </div>
-                        
-                        <!-- Compact Selected College Display (hidden initially) -->
-                        <div class="college-selected-display" id="student-college-selected" style="display: none;">
-                            <div class="selected-college-badge">
-                                <div class="selected-college-info">
-                                    <span class="selected-college-label">College:</span>
-                                    <span class="selected-college-name" id="selected-college-name">COTE</span>
-                                </div>
-                                <button type="button" class="change-college-btn" id="change-college-btn">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                                        <polyline points="1 4 1 10 7 10"></polyline>
-                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                                    </svg>
-                                    Change
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <input type="hidden" id="student-college" value="">
                     </div>
-                    
-                    <!-- Program (for students) -->
-                    <div class="form-group" id="program-group" style="display: none;">
-                        <label class="form-label" style="text-align: center; display: block; margin-bottom: 1rem;">Select Your Program</label>
-                        
-                        <!-- Program Carousel -->
-                        <div class="program-carousel-viewport" id="programCarouselViewport">
-                            <div class="program-carousel-track" id="programCarouselTrack">
-                                <!-- Programs will be injected by JavaScript -->
-                            </div>
-                            
-                            <!-- Arrow buttons -->
-                            <button type="button" class="carousel-arrow carousel-arrow-left" id="programPrevArrow" aria-label="Previous">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                            </button>
-                            <button type="button" class="carousel-arrow carousel-arrow-right" id="programNextArrow" aria-label="Next">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </button>
-                        </div>
-                        
-                        <!-- Indicator dots -->
-                        <div class="program-carousel-indicators" id="programIndicators"></div>
-                        
-                        <input type="hidden" id="program" value="">
-                    </div>
-                    
-                    <!-- College (for teachers only) -->
-                    <div id="teacher-college-group" style="display: none;">
-                        <label class="form-label" style="text-align: center; display: block; margin-bottom: 1rem;">Select Your College</label>
+
+                    <!-- College (for teachers: COTE or COED) -->
+                    <div id="teacher-college-group">
+                        <label class="form-label"
+                            style="text-align: center; display: block; margin-bottom: 1rem;">Select Your College</label>
                         <div class="college-selection-container">
                             <div class="college-card" data-college="COTE">
                                 <div class="college-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
                                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
                                         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
                                         <circle cx="9" cy="12" r="1"></circle>
@@ -362,14 +475,16 @@
                                 <h3 class="college-title">COTE</h3>
                                 <p class="college-description">Technology and Engineering</p>
                             </div>
-                            
-                            <div class="divider">
+
+                            <div class="college-divider">
                                 <span>or</span>
                             </div>
-                            
+
                             <div class="college-card" data-college="COED">
                                 <div class="college-icon">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
                                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                                         <circle cx="10" cy="8" r="2"></circle>
@@ -381,12 +496,23 @@
                             </div>
                         </div>
                         <input type="hidden" id="teacher-college" value="">
+
+                        <!-- Department / Specialization (for teachers only - MANUAL INPUT) -->
+                        <div class="form-group" id="teacher-department-group" style="margin-top: 1.25rem;">
+                            <label class="form-label" for="teacher-department">
+                                Department / Specialization <span class="badge-locked-field" style="background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.3); color: #81c784;">✏️ Manual Entry</span>
+                            </label>
+                            <input type="text" id="teacher-department" class="form-input" placeholder="e.g. Information Technology / Part-Time Instructor">
+                        </div>
                     </div>
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-3" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-3" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
@@ -398,23 +524,30 @@
                 <div id="step-5" class="registration-step">
                     <h1 class="step-title">Create Password</h1>
                     <p class="step-subtitle">Create a secure password for your account</p>
-                    
+
                     <div class="form-group">
                         <label class="form-label" for="password">Password</label>
                         <div class="password-input-wrapper">
                             <input type="password" id="password" class="form-input" placeholder="••••••••">
-                            <button type="button" class="toggle-password-btn" data-target="password" aria-label="Toggle password visibility">
-                                <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                            <button type="button" class="toggle-password-btn" data-target="password"
+                                aria-label="Toggle password visibility">
+                                <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="20" height="20">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
-                                <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="display: none;">
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="20" height="20" style="display: none;">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                                    </path>
                                     <line x1="1" y1="1" x2="23" y2="23"></line>
                                 </svg>
                             </button>
                         </div>
-                        
+
                         <!-- Password strength indicator -->
                         <div class="password-strength-container">
                             <div class="password-strength-bar">
@@ -423,28 +556,38 @@
                             <p class="password-suggestion" id="password-suggestion"></p>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label" for="confirm-password">Verify Password</label>
                         <div class="password-input-wrapper">
                             <input type="password" id="confirm-password" class="form-input" placeholder="••••••••">
-                            <button type="button" class="toggle-password-btn" data-target="confirm-password" aria-label="Toggle password visibility">
-                                <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                            <button type="button" class="toggle-password-btn" data-target="confirm-password"
+                                aria-label="Toggle password visibility">
+                                <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="20" height="20">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                     <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
-                                <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="display: none;">
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="20" height="20" style="display: none;">
+                                    <path
+                                        d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                                    </path>
                                     <line x1="1" y1="1" x2="23" y2="23"></line>
                                 </svg>
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-4" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-4" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
@@ -456,35 +599,34 @@
                 <div id="step-6" class="registration-step">
                     <h1 class="step-title">Test Your Password</h1>
                     <p class="step-subtitle">Optional: Verify you remember your password</p>
-                    
+
                     <div class="password-test-container">
                         <div class="password-test-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="48" height="48">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                width="48" height="48">
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
                         </div>
-                        
+
                         <p class="password-test-instructions">Type your password to confirm you remember it</p>
-                        
+
                         <div class="form-group">
-                            <input 
-                                type="password" 
-                                id="password-test" 
-                                class="form-input password-test-input" 
-                                placeholder="Enter your password"
-                                autocomplete="off"
-                                spellcheck="false"
-                            >
+                            <input type="password" id="password-test" class="form-input password-test-input"
+                                placeholder="Verify Here" autocomplete="off" spellcheck="false">
                         </div>
-                        
+
                         <div class="password-test-feedback" id="password-test-feedback"></div>
                     </div>
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-5" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-5" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
@@ -497,9 +639,10 @@
                 <div id="step-7" class="registration-step">
                     <h1 class="step-title">Recovery Details</h1>
                     <p class="step-subtitle">Security question for account recovery</p>
-                    
+
                     <div class="form-group">
-                        <label class="form-label" for="security-question">Security Question <span style="color: #e53e3e;">*</span></label>
+                        <label class="form-label" for="security-question">Security Question <span
+                                style="color: #e53e3e;">*</span></label>
                         <select id="security-question" class="form-input form-select" required>
                             <option value="" disabled selected>Select a question</option>
                             <option value="pet">What was the name of your first pet?</option>
@@ -507,18 +650,30 @@
                             <option value="city">What city were you born in?</option>
                             <option value="maiden">What is your mother's maiden name?</option>
                             <option value="book">What is your favorite book?</option>
+                            <option value="custom">Write my own question</option>
                         </select>
                     </div>
-                    
+
+                    <div class="form-group" id="custom-question-group" style="display: none;">
+                        <label class="form-label" for="custom-security-question">Your Custom Question <span
+                                style="color: #e53e3e;">*</span></label>
+                        <input type="text" id="custom-security-question" class="form-input"
+                            placeholder="e.g. What is my secret childhood nickname?" maxlength="120">
+                    </div>
+
                     <div class="form-group">
-                        <label class="form-label" for="security-answer">Answer <span style="color: #e53e3e;">*</span></label>
+                        <label class="form-label" for="security-answer">Answer <span
+                                style="color: #e53e3e;">*</span></label>
                         <input type="text" id="security-answer" class="form-input" placeholder="Your answer" required>
                     </div>
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-6" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-6" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
@@ -530,294 +685,288 @@
                 <div id="step-8" class="registration-step">
                     <h1 class="step-title">Terms and Conditions</h1>
                     <p class="step-subtitle">Please read our terms carefully before proceeding</p>
-                    
+
                     <div class="terms-container">
                         <div class="terms-scroll-wrapper" id="terms-scroll-wrapper">
-                            <div class="terms-content" id="terms-content">
-                                <h2>RE-CAPS Platform Terms and Conditions</h2>
-                                <p class="terms-effective-date"><strong>Effective Date:</strong> July 28, 2026</p>
-                                <p class="terms-effective-date"><strong>Last Updated:</strong> July 28, 2026</p>
-                                
-                                <p class="terms-intro">
-                                    Welcome to the <strong>RE-CAPS (Research & Capstone Archive and Publication System)</strong> platform operated by <strong>Cebu Technological University - Daanbantayan Campus</strong>. By creating an account and using this platform, you agree to comply with and be bound by the following terms and conditions. Please read these terms carefully.
-                                </p>
-                                
-                                <h3>1. Acceptance of Terms</h3>
-                                <p>
-                                    By registering for an account on the RE-CAPS platform, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions, as well as our Privacy Policy. If you do not agree to these terms, you must not use this platform.
-                                </p>
-                                
-                                <h3>2. Eligibility and Account Registration</h3>
-                                <p><strong>2.1 Authorized Users:</strong> This platform is exclusively available to:</p>
-                                <ul>
-                                    <li>Current students enrolled at Cebu Technological University - Daanbantayan Campus</li>
-                                    <li>Faculty members and teachers employed by the institution</li>
-                                    <li>Authorized librarians and administrative staff</li>
-                                    <li>Designated system administrators</li>
-                                </ul>
-                                
-                                <p><strong>2.2 Account Accuracy:</strong> You agree to provide accurate, current, and complete information during registration. You must update your information promptly if any changes occur. Providing false or misleading information may result in immediate account suspension or termination.</p>
-                                
-                                <p><strong>2.3 Account Security:</strong> You are responsible for maintaining the confidentiality of your account credentials. You agree to:</p>
-                                <ul>
-                                    <li>Create a strong, unique password</li>
-                                    <li>Not share your account credentials with others</li>
-                                    <li>Immediately notify system administrators if you suspect unauthorized access</li>
-                                    <li>Accept full responsibility for all activities conducted under your account</li>
-                                </ul>
-                                
-                                <h3>3. Intellectual Property Rights</h3>
-                                <p><strong>3.1 Ownership of Submitted Content:</strong> When you upload research papers, capstone projects, or other academic materials to the platform:</p>
-                                <ul>
-                                    <li>You retain ownership of your intellectual property rights</li>
-                                    <li>You grant RE-CAPS a non-exclusive, worldwide, royalty-free license to store, display, reproduce, and distribute your work within the platform for educational and research purposes</li>
-                                    <li>You affirm that you have the right to submit the content and that it does not violate any third-party rights</li>
-                                </ul>
-                                
-                                <p><strong>3.2 Plagiarism and Academic Integrity:</strong> You agree to uphold the highest standards of academic integrity. Specifically:</p>
-                                <ul>
-                                    <li>All submitted work must be original or properly cited</li>
-                                    <li>Plagiarism, as defined by Republic Act No. 8293 (Intellectual Property Code of the Philippines), is strictly prohibited</li>
-                                    <li>Violations will be reported to university authorities and may result in disciplinary action</li>
-                                    <li>You acknowledge that submitted works may be checked using plagiarism detection tools</li>
-                                </ul>
-                                
-                                <p><strong>3.3 Citation and Attribution:</strong> When accessing research materials from other users, you agree to:</p>
-                                <ul>
-                                    <li>Properly cite and attribute all sources in accordance with academic standards</li>
-                                    <li>Not reproduce, distribute, or publish others' work without proper authorization</li>
-                                    <li>Use materials solely for educational, research, or reference purposes</li>
-                                </ul>
-                                
-                                <h3>4. Acceptable Use Policy</h3>
-                                <p><strong>4.1 Permitted Uses:</strong> You may use the RE-CAPS platform to:</p>
-                                <ul>
-                                    <li>Search and access archived research and capstone projects</li>
-                                    <li>Upload and manage your own academic work (for authorized roles)</li>
-                                    <li>Collaborate with other users through the platform's communication features</li>
-                                    <li>Utilize the AI chatbot assistant for research guidance</li>
-                                    <li>Generate citations and references for academic work</li>
-                                </ul>
-                                
-                                <p><strong>4.2 Prohibited Activities:</strong> You agree NOT to:</p>
-                                <ul>
-                                    <li>Upload content that is defamatory, obscene, offensive, or illegal</li>
-                                    <li>Infringe upon the intellectual property rights of others</li>
-                                    <li>Attempt to gain unauthorized access to system resources or other users' accounts</li>
-                                    <li>Distribute malware, viruses, or harmful code</li>
-                                    <li>Use automated systems (bots, scrapers) to extract data without permission</li>
-                                    <li>Manipulate, delete, or modify content you are not authorized to change</li>
-                                    <li>Engage in any activity that disrupts platform functionality or interferes with other users</li>
-                                    <li>Use the platform for commercial purposes without authorization</li>
-                                    <li>Harass, threaten, or abuse other users</li>
-                                </ul>
-                                
-                                <h3>5. Data Privacy and Protection</h3>
-                                <p><strong>5.1 Compliance with Republic Act No. 10173 (Data Privacy Act of 2012):</strong> We are committed to protecting your personal information in accordance with Philippine data privacy laws.</p>
-                                
-                                <p><strong>5.2 Information Collection:</strong> We collect the following information:</p>
-                                <ul>
-                                    <li>Personal identifiers (name, student/employee ID, email address)</li>
-                                    <li>Academic information (program, college affiliation, year)</li>
-                                    <li>Authentication data (Google account information, encrypted passwords)</li>
-                                    <li>Usage data (search history, accessed projects, chat conversations)</li>
-                                    <li>Technical data (IP address, device information, browser type)</li>
-                                </ul>
-                                
-                                <p><strong>5.3 Use of Information:</strong> Your information is used to:</p>
-                                <ul>
-                                    <li>Provide and maintain platform services</li>
-                                    <li>Authenticate users and prevent unauthorized access</li>
-                                    <li>Improve platform functionality and user experience</li>
-                                    <li>Generate analytics and usage reports (anonymized)</li>
-                                    <li>Communicate important updates and notifications</li>
-                                    <li>Comply with legal obligations and institutional requirements</li>
-                                </ul>
-                                
-                                <p><strong>5.4 Data Security:</strong> We implement industry-standard security measures including:</p>
-                                <ul>
-                                    <li>Encrypted data transmission (HTTPS/SSL)</li>
-                                    <li>Secure password hashing (bcrypt/scrypt)</li>
-                                    <li>Firebase Authentication security protocols</li>
-                                    <li>Regular security audits and monitoring</li>
-                                    <li>Access controls and role-based permissions</li>
-                                </ul>
-                                
-                                <p><strong>5.5 Your Rights:</strong> Under RA 10173, you have the right to:</p>
-                                <ul>
-                                    <li>Access your personal data stored in the system</li>
-                                    <li>Request correction of inaccurate information</li>
-                                    <li>Object to processing in certain circumstances</li>
-                                    <li>Request deletion of your data (subject to retention requirements)</li>
-                                    <li>Lodge complaints with the National Privacy Commission</li>
-                                </ul>
-                                
-                                <h3>6. AI Chatbot Services</h3>
-                                <p><strong>6.1 Service Description:</strong> The RE-CAPS AI chatbot provides research assistance using artificial intelligence technology powered by multiple providers (Mistral AI, Groq, Google Gemini, OpenRouter).</p>
-                                
-                                <p><strong>6.2 Limitations and Disclaimers:</strong></p>
-                                <ul>
-                                    <li>AI responses are generated automatically and may contain errors or inaccuracies</li>
-                                    <li>Chatbot guidance should not replace proper academic research and verification</li>
-                                    <li>Users are responsible for verifying information provided by the AI</li>
-                                    <li>The university is not liable for decisions made based on AI-generated content</li>
-                                    <li>Conversation history may be stored for service improvement purposes</li>
-                                </ul>
-                                
-                                <p><strong>6.3 Appropriate Use:</strong> The AI chatbot should be used to:</p>
-                                <ul>
-                                    <li>Search and discover relevant research projects</li>
-                                    <li>Receive guidance on research methodology</li>
-                                    <li>Generate properly formatted citations</li>
-                                    <li>Understand project abstracts and summaries</li>
-                                </ul>
-                                
-                                <h3>7. Content Moderation and Removal</h3>
-                                <p><strong>7.1 Review Process:</strong> Authorized administrators and librarians reserve the right to:</p>
-                                <ul>
-                                    <li>Review submitted content for compliance with academic standards</li>
-                                    <li>Remove content that violates these terms or institutional policies</li>
-                                    <li>Request modifications to uploaded materials</li>
-                                    <li>Temporarily suspend access to projects under investigation</li>
-                                </ul>
-                                
-                                <p><strong>7.2 Reporting Violations:</strong> Users can report inappropriate content or violations through the platform's reporting mechanism. All reports will be investigated promptly and confidentially.</p>
-                                
-                                <h3>8. Service Availability and Modifications</h3>
-                                <p><strong>8.1 Service Continuity:</strong> While we strive to maintain 99.9% uptime, we do not guarantee uninterrupted access. The platform may be temporarily unavailable due to:</p>
-                                <ul>
-                                    <li>Scheduled maintenance and updates</li>
-                                    <li>Technical difficulties or system failures</li>
-                                    <li>Security threats or breach responses</li>
-                                    <li>Force majeure events</li>
-                                </ul>
-                                
-                                <p><strong>8.2 Modifications:</strong> We reserve the right to:</p>
-                                <ul>
-                                    <li>Modify, suspend, or discontinue any feature without prior notice</li>
-                                    <li>Update these Terms and Conditions at any time</li>
-                                    <li>Change pricing or access policies for institutional users</li>
-                                </ul>
-                                
-                                <p><strong>8.3 Notice of Changes:</strong> Material changes to these terms will be communicated via:</p>
-                                <ul>
-                                    <li>Email notifications to registered users</li>
-                                    <li>In-platform announcements and banners</li>
-                                    <li>Updated "Last Modified" date in this document</li>
-                                </ul>
-                                
-                                <h3>9. Limitation of Liability</h3>
-                                <p><strong>9.1 Platform Use:</strong> Your use of the RE-CAPS platform is at your own risk. The platform and all content are provided "as is" without warranties of any kind.</p>
-                                
-                                <p><strong>9.2 No Liability for User Content:</strong> We are not responsible for:</p>
-                                <ul>
-                                    <li>Accuracy, quality, or legality of user-submitted content</li>
-                                    <li>Intellectual property infringement by users</li>
-                                    <li>Losses arising from reliance on platform content</li>
-                                    <li>Consequences of unauthorized access to your account</li>
-                                </ul>
-                                
-                                <p><strong>9.3 Maximum Liability:</strong> To the fullest extent permitted by law, our total liability for any claims shall not exceed the amount you paid to access the platform (if applicable), or PHP 1,000, whichever is less.</p>
-                                
-                                <h3>10. Account Termination</h3>
-                                <p><strong>10.1 Voluntary Termination:</strong> You may request account deletion by contacting system administrators. Note that:</p>
-                                <ul>
-                                    <li>Some data may be retained for legal or archival purposes</li>
-                                    <li>Published research may remain accessible to maintain academic record integrity</li>
-                                    <li>Deletion requests are processed within 30 business days</li>
-                                </ul>
-                                
-                                <p><strong>10.2 Involuntary Termination:</strong> We may suspend or terminate your account if:</p>
-                                <ul>
-                                    <li>You violate these Terms and Conditions</li>
-                                    <li>You engage in fraudulent or illegal activities</li>
-                                    <li>You are no longer affiliated with the institution</li>
-                                    <li>Required by law or institutional policy</li>
-                                </ul>
-                                
-                                <p><strong>10.3 Effects of Termination:</strong> Upon termination:</p>
-                                <ul>
-                                    <li>Your access to the platform will be revoked immediately</li>
-                                    <li>Certain content may be retained per institutional archival policies</li>
-                                    <li>You remain bound by obligations that survive termination (e.g., confidentiality, IP rights)</li>
-                                </ul>
-                                
-                                <h3>11. Governing Law and Dispute Resolution</h3>
-                                <p><strong>11.1 Jurisdiction:</strong> These Terms and Conditions shall be governed by and construed in accordance with the laws of the Republic of the Philippines.</p>
-                                
-                                <p><strong>11.2 Venue:</strong> Any disputes arising from these terms shall be resolved in the appropriate courts of Cebu, Philippines.</p>
-                                
-                                <p><strong>11.3 Dispute Resolution Process:</strong></p>
-                                <ol>
-                                    <li>Initial contact with platform administrators</li>
-                                    <li>Escalation to institutional authorities if unresolved</li>
-                                    <li>Mediation through university dispute resolution mechanisms</li>
-                                    <li>Legal action as a last resort</li>
-                                </ol>
-                                
-                                <h3>12. Miscellaneous Provisions</h3>
-                                <p><strong>12.1 Severability:</strong> If any provision of these terms is found to be unenforceable, the remaining provisions shall remain in full effect.</p>
-                                
-                                <p><strong>12.2 Entire Agreement:</strong> These Terms and Conditions, along with our Privacy Policy, constitute the entire agreement between you and RE-CAPS regarding platform use.</p>
-                                
-                                <p><strong>12.3 No Waiver:</strong> Failure to enforce any provision does not constitute a waiver of that provision.</p>
-                                
-                                <p><strong>12.4 Assignment:</strong> You may not assign your rights or obligations under these terms without our prior written consent.</p>
-                                
-                                <h3>13. Contact Information</h3>
-                                <p>For questions, concerns, or requests regarding these Terms and Conditions, please contact:</p>
-                                <div class="contact-info">
-                                    <p><strong>RE-CAPS Platform Administration</strong><br>
-                                    Cebu Technological University - Daanbantayan Campus<br>
-                                    Email: <a href="mailto:recap@ctu.edu.ph">support@recaps.cebutech.digital</a><br>
-                                    Data Privacy Officer: <a href="mailto:dpo@ctu.edu.ph">dpo@ctu.edu.ph</a></p>
+                                                        <div class="terms-content" id="terms-content">
+                                <h2>RE-CAPS Platform Terms of Service & System Transparency</h2>
+                                <p class="terms-effective-date"><strong>Academic Year:</strong> 2026–2027 • <strong>Platform Version:</strong> 2.5</p>
+                                <p class="terms-effective-date"><strong>Governing Campus:</strong> Cebu Technological University - Daanbantayan Campus</p>
+
+                                <div class="terms-intro">
+                                    Welcome to <strong>RE-CAPS (Research Capstone Archiving and Retrieval System)</strong>.
+                                    This document outlines our official terms of service, acceptable use policies, and a
+                                    <strong>100% transparent disclosure</strong> of how our architecture, databases, AI models,
+                                    and client-side privacy safeguards handle your academic data.
                                 </div>
-                                
-                                <h3>14. Acknowledgment and Consent</h3>
+
+                                <!-- SECTION 1: INSTITUTIONAL PURPOSE & SCOPE -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 1 • Institutional Scope</span>
+                                    <h3 class="terms-section-title">Institutional Purpose & Zero-Monetization</h3>
+                                    <p>
+                                        RE-CAPS is an official, non-profit academic research repository and semantic discovery platform operated exclusively for <strong>Cebu Technological University - Daanbantayan Campus</strong>.
+                                    </p>
+                                    <p><strong>1.1 Supported Academic Programs:</strong> The catalog houses verified capstone and research manuscripts across accredited programs:</p>
+                                    <ul>
+                                        <li><strong>BSIT:</strong> Bachelor of Science in Information Technology</li>
+                                        <li><strong>BSFi:</strong> Bachelor of Science in Fisheries</li>
+                                        <li><strong>BSHM:</strong> Bachelor of Science in Hospitality Management</li>
+                                        <li><strong>BEEd:</strong> Bachelor of Elementary Education</li>
+                                        <li><strong>BSEd:</strong> Bachelor of Secondary Education</li>
+                                        <li><strong>BIT:</strong> Bachelor of Industrial Technology</li>
+                                    </ul>
+                                    <div class="terms-callout-box highlight-success">
+                                        <strong>Zero-Monetization & Free Academic Access:</strong> RE-CAPS is 100% free for all authorized students, faculty, and university personnel. We do not charge subscription fees, sell user data, display commercial advertisements, or monetize institutional research.
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 2: IDENTITY REGISTRATION & IN-BROWSER OCR -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 2 • Registration & Verification</span>
+                                    <h3 class="terms-section-title">Identity Registration & Client-Side OCR</h3>
+                                    <p>
+                                        To maintain academic integrity and prevent unauthorized access, user registration follows a structured verification protocol:
+                                    </p>
+                                    <ul>
+                                        <li><strong>User-Provided Legal Identity:</strong> In Step 1, you enter your legal First Name, Middle Name, and Last Name.</li>
+                                        <li><strong>In-Browser Optical Character Recognition (Tesseract.js):</strong> In Step 2, your physical CTU ID card is parsed inside your web browser using HTML5 Canvas. The AI optical scanner identifies institutional markers, academic courses, and student/employee numbers in local memory.</li>
+                                        <li><strong>No Cloud ID Photo Harvesting:</strong> Your captured ID photo is used strictly in-browser for visual credential confirmation and client-side OCR. Raw photographs of your ID are not permanently harvested or sold to third-party databases.</li>
+                                        <li><strong>Federated Google Authentication:</strong> Step 3 utilizes Google Sign-In (Firebase Authentication) for verified institutional/personal email binding, eliminating the need to transmit external Google passwords to our platform.</li>
+                                        <li><strong>Credentials & Recovery Security:</strong> Passwords are encrypted using high-security cryptographic hashing (bcrypt/scrypt). Account recovery questions (preset or custom-written) and answers are stored securely for account recovery.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- SECTION 3: SYSTEM DATA ARCHITECTURE & TRANSPARENCY -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 3 • Data Transparency</span>
+                                    <h3 class="terms-section-title">Dual-Storage Transparency: Cloud vs. Local Device</h3>
+                                    <p>
+                                        RE-CAPS implements a strict <strong>Dual-Database Architecture</strong> designed to maximize user privacy while ensuring database sustainability on institutional cloud infrastructure:
+                                    </p>
+
+                                    <div class="terms-table-wrapper">
+                                        <table class="terms-transparency-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Data Category</th>
+                                                    <th>Storage Location</th>
+                                                    <th>System Purpose</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>Account Profiles & Roles</strong><br><small>Name, email, role, CTU ID number, college, program</small></td>
+                                                    <td><span class="terms-pill-tag pill-cloud">Cloud Firestore</span></td>
+                                                    <td>Account authentication, role-based access control (Student, Faculty, Librarian, Admin).</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Cataloged Research Records</strong><br><small>Titles, authors, abstracts, call numbers, year</small></td>
+                                                    <td><span class="terms-pill-tag pill-cloud">Cloud Firestore</span></td>
+                                                    <td>Institutional repository search, discovery, and citation building.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Saved Research Bookmarks</strong><br><small>User-bookmarked project associations</small></td>
+                                                    <td><span class="terms-pill-tag pill-cloud">Cloud Firestore</span></td>
+                                                    <td>Syncing your bookmarked reference list across sessions.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Assistant Chat Sessions</strong><br><small>User queries and AI research responses</small></td>
+                                                    <td><span class="terms-pill-tag pill-cloud">Cloud Firestore</span></td>
+                                                    <td>Persisting multi-turn research conversations with the AI Copilot.</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Personal Research Activity Logs</strong><br><small>Search history, project view clicks, citation generation, filter toggles, timeline audits</small></td>
+                                                    <td><span class="terms-pill-tag pill-local">Local Device Only (localStorage)</span></td>
+                                                    <td>Personal research history and self-auditing. <strong>Never uploaded or stored in Firestore.</strong></td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Raw CTU ID Card Photos</strong><br><small>Camera capture frames and crop zone images</small></td>
+                                                    <td><span class="terms-pill-tag pill-client">Browser Memory Only</span></td>
+                                                    <td>Transient optical character extraction. Discarded after verification.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="terms-callout-box highlight-success">
+                                        <strong>Zero-Cloud Activity Tracking Guarantee:</strong> Unlike commercial platforms that monitor and profile your clicks on remote servers, RE-CAPS stores all your search logs, project browsing history, and activity timestamps <em>strictly on your own personal device</em> (<code>localStorage</code>). No activity tracking records are ever appended or written to Firestore cloud databases.
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 4: PINECONE VECTOR RETRIEVAL -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 4 • Semantic AI Vector Indexing</span>
+                                    <h3 class="terms-section-title">Vector Search & Pinecone Semantic Indexing</h3>
+                                    <p>
+                                        To enable intuitive semantic search beyond basic keyword matching, RE-CAPS utilizes the <strong>Pinecone Vector Database</strong> and the <strong>Pinecone Inference API</strong>:
+                                    </p>
+                                    <ul>
+                                        <li><strong>Vector Embedding Model:</strong> Research abstracts, methodology summaries, and academic metadata are transformed into 1024-dimensional dense vectors using the <code>multilingual-e5-large</code> embedding model.</li>
+                                        <li><strong>Dedicated Indexes:</strong> Primary capstone catalog (<code>recaps-capstone</code>) and staff knowledge base (<code>recaps-staff-copilot</code>).</li>
+                                        <li><strong>User Privacy Isolation:</strong> Only approved, publicly archivable capstone research texts are embedded. <strong>Personal user records, names, passwords, security questions, and reading histories are strictly excluded from vector indexing.</strong></li>
+                                    </ul>
+                                </div>
+
+                                <!-- SECTION 5: CASCADING AI RESEARCH COPILOT -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 5 • AI Research Assistant</span>
+                                    <h3 class="terms-section-title">Cascading AI Copilot & Model Privacy</h3>
+                                    <p>
+                                        The RE-CAPS AI Research Assistant leverages <strong>Retrieval-Augmented Generation (RAG)</strong> to synthesize grounded answers directly from the university's research catalog.
+                                    </p>
+                                    <p><strong>5.1 Cascading Multi-Provider Failover:</strong> To ensure high service availability, queries execute through an automated fallback cascade:</p>
+                                    <ol>
+                                        <li><strong>Primary Provider:</strong> Mistral AI (<code>open-mistral-nemo</code>)</li>
+                                        <li><strong>First Failover:</strong> Groq API (<code>llama-3.3-70b-versatile</code>)</li>
+                                        <li><strong>Second Failover:</strong> Google Gemini API (<code>gemini-2.5-flash</code>)</li>
+                                        <li><strong>Final Fallback:</strong> OpenRouter API (<code>Ling-3.0-Flash</code>)</li>
+                                    </ol>
+                                    <p><strong>5.2 Strict Citation Grounding:</strong> The AI assistant is constrained to provide references and APA citations from real CTU capstone manuscripts retrieved during semantic vector search.</p>
+                                    <div class="terms-callout-box highlight-warning">
+                                        <strong>Zero Model Training Guarantee & Academic Disclaimer:</strong>
+                                        <br>• User prompts and research questions are processed in real-time inference and are <strong>NEVER used to train public commercial AI models</strong>.
+                                        <br>• The AI assistant is an advisory discovery companion. It is not an author, and its summaries do not substitute for rigorous literature review, faculty mentorship, or formal thesis defense evaluation.
+                                    </div>
+                                </div>
+
+                                <!-- SECTION 6: EXTERNAL SERVICE PROVIDERS -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 6 • Infrastructure Partners</span>
+                                    <h3 class="terms-section-title">External Infrastructure & Asset Guard</h3>
+                                    <p>
+                                        RE-CAPS partners with industry-standard cloud providers under strict data privacy agreements:
+                                    </p>
+                                    <ul>
+                                        <li><strong>Cloudinary (Encrypted Document Pipeline):</strong> High-resolution digital manuscripts, capstone PDFs, and cover thumbnails are stored securely with encrypted HTTPS delivery and RBAC download guards.</li>
+                                        <li><strong>Resend (Transactional Dispatch):</strong> Account verification notifications, password reset links, and institutional alerts are transmitted through encrypted SMTP/API channels without selling recipient information.</li>
+                                        <li><strong>Render & Node.js Hosting:</strong> Back-end REST APIs operate on managed server containers with CORS domain isolation, connection pooling, and request rate-limiting.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- SECTION 7: INTELLECTUAL PROPERTY & ACADEMIC INTEGRITY -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 7 • Intellectual Property</span>
+                                    <h3 class="terms-section-title">Intellectual Property Rights & Academic Honesty</h3>
+                                    <p>
+                                        <strong>7.1 Ownership of Student & Faculty Works:</strong> In compliance with <strong>Republic Act No. 8293 (Intellectual Property Code of the Philippines)</strong>, student researchers and faculty authors retain original copyright and moral rights over their submitted capstones and theses.
+                                    </p>
+                                    <p>
+                                        <strong>7.2 Institutional Archival License:</strong> By submitting research to RE-CAPS, authors grant Cebu Technological University - Daanbantayan Campus a non-exclusive, perpetual, royalty-free institutional license to archive, index, generate vector embeddings, and provide read-only educational access to the university community.
+                                    </p>
+                                    <p>
+                                        <strong>7.3 Zero Tolerance for Plagiarism:</strong> All work uploaded or referenced must adhere to ethical academic standards:
+                                    </p>
+                                    <ul>
+                                        <li>Direct copying, unattributed paraphrasing, or falsifying citations constitutes academic dishonesty.</li>
+                                        <li>All citations must conform to standard <strong>APA (American Psychological Association) 7th Edition</strong> format.</li>
+                                        <li>Violations will be forwarded to the CTU Academic Grievance & Disciplinary Committee.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- SECTION 8: PHILIPPINE DATA PRIVACY ACT COMPLIANCE -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 8 • Privacy Law Compliance</span>
+                                    <h3 class="terms-section-title">Republic Act No. 10173 (Data Privacy Act of 2012)</h3>
+                                    <p>
+                                        We are committed to upholding your statutory rights as an academic data subject under Philippine law:
+                                    </p>
+                                    <ul>
+                                        <li><strong>Right to be Informed:</strong> Transparent disclosure of data schemas, database locations, and processing purposes.</li>
+                                        <li><strong>Right to Access:</strong> View your profile, verified role credentials, bookmarked projects, and local research activities at any time.</li>
+                                        <li><strong>Right to Rectification:</strong> Request corrections to erroneous names, institutional identification numbers, or academic affiliations.</li>
+                                        <li><strong>Right to Erasure / Account Termination:</strong> Request complete account deletion and credential scrubbing by contacting system administrators.</li>
+                                        <li><strong>Right to Data Portability:</strong> Export your local activity history using the built-in JSON / CSV activity exporter.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- SECTION 9: ACCEPTABLE USE & SYSTEM INTEGRITY -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 9 • Code of Conduct</span>
+                                    <h3 class="terms-section-title">Acceptable Use Policy & RBAC Boundaries</h3>
+                                    <p><strong>9.1 Role-Based Access Control (RBAC):</strong> Users must respect system boundaries based on their verified tier:</p>
+                                    <ul>
+                                        <li><strong>Students:</strong> Public catalog search, semantic AI assistance, and project detail view.</li>
+                                        <li><strong>Faculty / Advisers:</strong> Student research advising, progress tracking, and evaluation feedback.</li>
+                                        <li><strong>Librarians:</strong> Physical cataloging (call numbers, accession numbers), OCR ingestion, and thesis review.</li>
+                                        <li><strong>Administrators:</strong> System configurations, batch catalog sync, and user account governance.</li>
+                                    </ul>
+                                    <p><strong>9.2 Prohibited Actions:</strong> Users shall not:</p>
+                                    <ul>
+                                        <li>Deploy automated scrapers, crawlers, or harvesting scripts against RE-CAPS endpoints.</li>
+                                        <li>Attempt to bypass authentication gates, RBAC middleware, or tamper with security tokens.</li>
+                                        <li>Share accounts, impersonate university officials, or misrepresent academic credentials.</li>
+                                        <li>Upload infected files, destructive scripts, or exploit vulnerabilities.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- SECTION 10: INSTITUTIONAL CONTACT & GOVERNANCE -->
+                                <div class="terms-section-card">
+                                    <span class="terms-section-badge">Section 10 • Administration</span>
+                                    <h3 class="terms-section-title">Institutional Administration & Contact</h3>
+                                    <p>For inquiries, support, data rectification, or privacy concerns, please contact the governing offices:</p>
+                                    <div class="contact-info">
+                                        <p><strong>RE-CAPS System Administration & Library Services</strong><br>
+                                        Cebu Technological University - Daanbantayan Campus<br>
+                                        Agujo, Daanbantayan, Cebu, Philippines 6013<br>
+                                        Institutional Support: <a href="mailto:support@recaps.cebutech.digital">support@recaps.cebutech.digital</a><br>
+                                        Campus Data Privacy Officer: <a href="mailto:dpo@ctu.edu.ph">dpo@ctu.edu.ph</a></p>
+                                    </div>
+                                </div>
+
                                 <p class="terms-acknowledgment">
-                                    By clicking "I Agree" below, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. You also confirm that you have the authority to enter into this agreement and that the information you provided during registration is accurate and complete.
+                                    By checking the agreement box below, you certify that you have thoroughly read, understood, and consented to these Terms of Service. You confirm that you are an authorized member of Cebu Technological University and that all information provided during registration is accurate and legally truthful.
                                 </p>
-                                
+
                                 <p class="terms-footer">
-                                    <strong>Thank you for being part of the RE-CAPS academic community. Together, we advance knowledge and research excellence.</strong>
+                                    <strong>Cebu Technological University - Daanbantayan Campus • RE-CAPS</strong><br>
+                                    Advancing Academic Discovery, Research Integrity, and Institutional Excellence.
                                 </p>
                             </div>
                         </div>
-                        
+
                         <!-- Read Progress Indicator -->
                         <div class="terms-progress-container">
                             <div class="terms-progress-bar">
                                 <div class="terms-progress-fill" id="terms-progress-fill"></div>
                             </div>
                             <p class="terms-progress-text" id="terms-progress-text">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="vertical-align: middle;">
-                                    <path d="M12 5v14M5 12l7 7 7-7"/>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" width="16" height="16" style="vertical-align: middle;">
+                                    <path d="M12 5v14M5 12l7 7 7-7" />
                                 </svg>
                                 Please scroll down to read all terms (0% complete)
                             </p>
                         </div>
-                        
+
                         <!-- Agreement Checkbox -->
                         <div class="terms-agreement-container" id="terms-agreement-container" style="display: none;">
                             <label class="terms-checkbox-label">
                                 <input type="checkbox" id="terms-agreement-checkbox" class="terms-checkbox">
                                 <span class="terms-checkbox-custom"></span>
                                 <span class="terms-checkbox-text">
-                                    I have read and agree to the Terms and Conditions, and I confirm that all information I provided is accurate and complete.
+                                    I have read and agree to the Terms and Conditions, and I confirm that all
+                                    information I provided is accurate and complete.
                                 </span>
                             </label>
                         </div>
                     </div>
-                    
+
                     <div class="button-group">
-                        <button type="button" id="back-to-step-7" class="btn btn-secondary btn-large btn-back" aria-label="Back" title="Back">
+                        <button type="button" id="back-to-step-7" class="btn btn-secondary btn-large btn-back"
+                            aria-label="Back" title="Back">
                             <svg class="btn-back-icon" viewBox="0 0 17 17" fill="currentColor" width="20" height="20">
-                                <path d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z" fill="currentColor"></path>
+                                <path
+                                    d="M15 7.5c0 3.033-2.467 5.5-5.5 5.5h-2.912l2.646 2.646-0.707 0.707-3.853-3.853 3.854-3.854 0.707 0.707-2.647 2.647h2.912c2.481 0 4.5-2.019 4.5-4.5s-2.019-4.5-4.5-4.5h-7.083v-1h7.083c3.033 0 5.5 2.467 5.5 5.5z"
+                                    fill="currentColor"></path>
                             </svg>
                             <span class="btn-back-text">Back</span>
                         </button>
                         <button id="complete-registration" class="btn btn-primary btn-large" disabled>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem; vertical-align: middle;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                width="20" height="20" style="margin-right: 0.5rem; vertical-align: middle;">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="8.5" cy="7" r="4"></circle>
                                 <line x1="20" y1="8" x2="20" y2="14"></line>
@@ -830,7 +979,7 @@
             </div>
 
         </div>
-        
+
         <!-- Decorative Background -->
         <div class="registration-bg">
             <div class="deco-blob-1"></div>
@@ -844,21 +993,24 @@
     </div>
 
     <!-- Account Creation Loading / Blur Overlay to prevent disruptions and going back -->
-    <div class="registration-loading-overlay" id="registrationLoadingOverlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="registration-loading-overlay" id="registrationLoadingOverlay" aria-hidden="true" role="dialog"
+        aria-modal="true">
         <div class="registration-loading-backdrop"></div>
         <div class="registration-loading-card">
             <div class="registration-loading-spinner">
                 <div class="spinner-pulse-glow"></div>
                 <div class="spinner-orbit-ring"></div>
                 <div class="spinner-icon-badge">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                     </svg>
                 </div>
             </div>
             <h2 class="registration-loading-title">Creating Your Account</h2>
-            <p class="registration-loading-desc" id="registrationLoadingStatus">Connecting credentials and establishing secure session...</p>
-            
+            <p class="registration-loading-desc" id="registrationLoadingStatus">Connecting credentials and establishing
+                secure session...</p>
+
             <div class="registration-loading-bar-track">
                 <div class="registration-loading-bar-fill" id="registrationLoadingBar"></div>
             </div>
@@ -879,7 +1031,8 @@
             </div>
 
             <div class="registration-loading-warning">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -894,25 +1047,29 @@
         <div class="success-modal-backdrop"></div>
         <div class="success-modal-content">
             <button class="success-modal-close" id="successModalClose" style="display: none;">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             </button>
-            
+
             <div class="success-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="64" height="64">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="64" height="64">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                 </svg>
             </div>
-            
+
             <h2 class="success-title">Account Created Successfully!</h2>
             <p class="success-subtitle">Your RE-CAPS account is ready to use</p>
-            
+
             <div class="success-options">
                 <button class="btn btn-primary btn-large btn-full" id="autoLoginBtn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="margin-right: 0.5rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"
+                        style="margin-right: 0.5rem;">
                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                         <polyline points="10 17 15 12 10 7"></polyline>
                         <line x1="15" y1="12" x2="3" y2="12"></line>
@@ -934,8 +1091,9 @@
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
-    <script src="../js/registration/registration.js"></script>
+    <script src="../js/registration/registration.js?v=terms_fix_scroll_threshold_1"></script>
     <script src="../js/shared/smooth-scroll.js?v=2"></script>
     <!-- <script src="js/secondary-header.js"></script> -->
 </body>
+
 </html>

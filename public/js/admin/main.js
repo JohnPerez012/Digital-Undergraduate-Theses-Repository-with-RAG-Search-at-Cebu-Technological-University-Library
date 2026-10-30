@@ -204,10 +204,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             const studentUsers = usersList.filter(user => user.userType === 'student').length;
             const librarianUsers = usersList.filter(user => user.userType === 'librarian').length;
 
-            document.getElementById('total-projects-stat').textContent = totalProjects;
-            document.getElementById('total-users-stat').textContent = totalUsers;
-            document.getElementById('student-users-stat').textContent = `${studentUsers} Students / ${librarianUsers} Librarians`;
-            document.getElementById('recent-activity-stat').textContent = totalProjects + totalUsers;
+            const projStat = document.getElementById('total-projects-stat');
+            if (projStat) projStat.textContent = totalProjects;
+
+            const userStat = document.getElementById('total-users-stat');
+            if (userStat) userStat.textContent = totalUsers;
+
+            const studentsCountEl = document.getElementById('stat-students-count');
+            const librariansCountEl = document.getElementById('stat-librarians-count');
+            if (studentsCountEl && librariansCountEl) {
+                studentsCountEl.textContent = studentUsers;
+                librariansCountEl.textContent = librarianUsers;
+            } else {
+                const statElem = document.getElementById('student-users-stat');
+                if (statElem) statElem.textContent = `${studentUsers} Students / ${librarianUsers} Librarians`;
+            }
+
+            const actStat = document.getElementById('recent-activity-stat');
+            if (actStat) {
+                if (window.ActivityService && typeof window.ActivityService.getAllActivities === 'function') {
+                    window.ActivityService.getAllActivities().then(activities => {
+                        actStat.textContent = Array.isArray(activities) ? activities.length : 0;
+                    }).catch(() => {
+                        const user = window.ActivityService?.getCurrentUserContext?.();
+                        const list = user?.uid ? window.ActivityService.getLocalCache(user.uid) : [];
+                        actStat.textContent = list.length;
+                    });
+                } else {
+                    const user = window.ActivityService?.getCurrentUserContext?.();
+                    const list = user?.uid ? window.ActivityService.getLocalCache(user.uid) : [];
+                    actStat.textContent = list.length;
+                }
+            }
 
             db.collection('pendingProjects').get().then(snap => {
                 if (typeof updatePendingCounters === 'function') {
@@ -225,19 +253,59 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return dateB - dateA;
                 }).slice(0, 5);
 
+                const recentProjectsCountEl = document.getElementById('recent-projects-count');
+                if (recentProjectsCountEl) {
+                    recentProjectsCountEl.textContent = `${sortedProjects.length} Latest`;
+                }
+
                 if (sortedProjects.length === 0) {
-                    recentProjectsList.innerHTML = '<p class="empty-state">No projects yet</p>';
+                    recentProjectsList.innerHTML = `
+                        <div class="dash-empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <span>No projects cataloged yet</span>
+                        </div>
+                    `;
                 } else {
                     sortedProjects.forEach(data => {
                         const item = document.createElement('div');
-                        item.className = 'recent-item';
+                        item.className = 'recent-item recent-item-project';
+                        item.setAttribute('role', 'button');
+                        item.setAttribute('tabindex', '0');
+                        item.setAttribute('title', 'Click to inspect thesis details');
+
+                        const rawDate = formatDate(data.createdAt);
+                        const yearStr = data.year ? String(data.year) : '';
+                        const dateStr = (rawDate && rawDate !== 'N/A') ? rawDate : (yearStr ? `AY ${yearStr}` : 'Cataloged');
+                        const program = escapeHtml(data.program || 'General');
+
                         item.innerHTML = `
-                            <div class="recent-item-title">${escapeHtml(data.title || 'Untitled')}</div>
-                            <div class="recent-item-meta">
-                                ${data.program || 'N/A'} · ${data.year || 'N/A'} · 
-                                ${formatDate(data.createdAt)}
+                            <div class="recent-item-main">
+                                <div class="recent-item-title">${escapeHtml(data.title || 'Untitled Project')}</div>
+                                <div class="recent-item-meta">
+                                    <span class="dash-prog-tag dash-prog-${program.toLowerCase().replace(/[^a-z0-9]/g, '')}">${program}</span>
+                                    ${yearStr ? `<span class="dash-year-tag">${yearStr}</span>` : ''}
+                                    <span class="dash-meta-sep">•</span>
+                                    <span class="dash-meta-date">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                        ${dateStr}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="recent-item-arrow" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                             </div>
                         `;
+                        item.addEventListener('click', () => {
+                            if (typeof window.viewProject === 'function' && data.id) {
+                                window.viewProject(data.id);
+                            }
+                        });
+                        item.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                item.click();
+                            }
+                        });
                         recentProjectsList.appendChild(item);
                     });
                 }
@@ -253,18 +321,69 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return dateB - dateA;
                 }).slice(0, 5);
 
+                const recentUsersCountEl = document.getElementById('recent-users-count');
+                if (recentUsersCountEl) {
+                    recentUsersCountEl.textContent = `${sortedUsers.length} Latest`;
+                }
+
                 if (sortedUsers.length === 0) {
-                    recentUsersList.innerHTML = '<p class="empty-state">No users yet</p>';
+                    recentUsersList.innerHTML = `
+                        <div class="dash-empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            <span>No users registered yet</span>
+                        </div>
+                    `;
                 } else {
                     sortedUsers.forEach(data => {
                         const item = document.createElement('div');
-                        item.className = 'recent-item';
+                        const userType = (data.userType || 'student').toLowerCase();
+                        item.className = `recent-item recent-item-user role-${userType}`;
+                        item.setAttribute('role', 'button');
+                        item.setAttribute('tabindex', '0');
+
+                        const roleName = userType === 'librarian' ? 'Librarian' : (userType === 'admin' ? 'Admin' : 'Student');
+                        item.setAttribute('title', `Click to search ${roleName} in Users directory`);
+
+                        const rawDate = formatDate(data.createdAt || data.joinedDate);
+                        const dateStr = (rawDate && rawDate !== 'N/A') ? `Joined ${rawDate}` : 'Active Account';
+                        const displayName = escapeHtml(data.fullName || data.email || 'Unknown User');
+                        const displayEmail = (data.fullName && data.email && data.fullName !== data.email) ? escapeHtml(data.email) : '';
+                        const initial = (data.fullName || data.email || 'U').charAt(0).toUpperCase();
+
                         item.innerHTML = `
-                            <div class="recent-item-title">${escapeHtml(data.fullName || data.email || 'Unknown')}</div>
-                            <div class="recent-item-meta">
-                                ${data.userType || 'N/A'} · Joined ${formatDate(data.createdAt)}
+                            <div class="dash-user-avatar role-avatar-${userType}">
+                                <span>${initial}</span>
+                            </div>
+                            <div class="recent-item-main">
+                                <div class="recent-item-title">${displayName}</div>
+                                <div class="recent-item-meta">
+                                    <span class="dash-role-badge role-${userType}">${roleName}</span>
+                                    ${displayEmail ? `<span class="dash-user-email">${displayEmail}</span>` : ''}
+                                    <span class="dash-meta-sep">•</span>
+                                    <span class="dash-meta-date">${dateStr}</span>
+                                </div>
+                            </div>
+                            <div class="recent-item-arrow" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                             </div>
                         `;
+                        item.addEventListener('click', () => {
+                            const usersNav = document.querySelector('.rail-nav-item[data-section="users"]');
+                            if (usersNav) {
+                                usersNav.click();
+                                const searchInput = document.getElementById('users-search');
+                                if (searchInput) {
+                                    searchInput.value = data.email || data.fullName || '';
+                                    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                }
+                            }
+                        });
+                        item.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                item.click();
+                            }
+                        });
                         recentUsersList.appendChild(item);
                     });
                 }
@@ -285,10 +404,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderedFromCache = true;
             console.log('🚀 Loaded dashboard elements from cache immediately');
         } else {
-            document.getElementById('total-projects-stat').textContent = '...';
-            document.getElementById('total-users-stat').textContent = '...';
-            document.getElementById('student-users-stat').textContent = '...';
-            document.getElementById('recent-activity-stat').textContent = '...';
+            const pStat = document.getElementById('total-projects-stat');
+            if (pStat) pStat.textContent = '...';
+            const uStat = document.getElementById('total-users-stat');
+            if (uStat) uStat.textContent = '...';
+            const studentsCountEl = document.getElementById('stat-students-count');
+            const librariansCountEl = document.getElementById('stat-librarians-count');
+            if (studentsCountEl && librariansCountEl) {
+                studentsCountEl.textContent = '...';
+                librariansCountEl.textContent = '...';
+            } else {
+                const statElem = document.getElementById('student-users-stat');
+                if (statElem) statElem.textContent = '...';
+            }
+            const aStat = document.getElementById('recent-activity-stat');
+            if (aStat) aStat.textContent = '...';
         }
 
         // Asynchronously check cache validation and fetch updates in background
@@ -319,7 +449,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 projects = freshProjects;
                 needReRender = true;
             } else {
-                console.log('✓ Projects cache is valid for dashboard');
+                console.log('Projects cache is valid for dashboard');
             }
 
             // 2. Verify users cache freshness (less than 5 minutes old)
@@ -357,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 users = freshUsers;
                 needReRender = true;
             } else {
-                console.log('✓ Users cache is valid/fresh for dashboard');
+                console.log('Users cache is valid/fresh for dashboard');
             }
 
             // 3. Re-render UI if any updates occurred
@@ -371,10 +501,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (!renderedFromCache) {
                 // Set error states for stats
-                document.getElementById('total-projects-stat').textContent = 'Error';
-                document.getElementById('total-users-stat').textContent = 'Error';
-                document.getElementById('student-users-stat').textContent = 'Error';
-                document.getElementById('recent-activity-stat').textContent = 'Error';
+                const pStat = document.getElementById('total-projects-stat');
+                if (pStat) pStat.textContent = '-';
+                const uStat = document.getElementById('total-users-stat');
+                if (uStat) uStat.textContent = '-';
+                const studentsCountEl = document.getElementById('stat-students-count');
+                const librariansCountEl = document.getElementById('stat-librarians-count');
+                if (studentsCountEl && librariansCountEl) {
+                    studentsCountEl.textContent = '-';
+                    librariansCountEl.textContent = '-';
+                } else {
+                    const statElem = document.getElementById('student-users-stat');
+                    if (statElem) statElem.textContent = 'Error';
+                }
+                const aStat = document.getElementById('recent-activity-stat');
+                if (aStat) aStat.textContent = '-';
                 
                 let errorMessage = 'Error loading dashboard data';
                 let errorDetail = '';
@@ -463,7 +604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return false;
             }
             
-            console.log('✓ Cache is up-to-date!');
+            console.log('Cache is up-to-date!');
             return true;
             
         } catch (error) {
@@ -481,7 +622,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!cachedProjects) return null;
             
             const projects = JSON.parse(cachedProjects);
-            console.log(`✓ Loaded ${projects.length} projects from cache`);
+            console.log(`Loaded ${projects.length} projects from cache`);
             return projects;
             
         } catch (error) {
@@ -499,7 +640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!cachedUsers) return null;
             
             const users = JSON.parse(cachedUsers);
-            console.log(`✓ Loaded ${users.length} users from cache`);
+            console.log(`Loaded ${users.length} users from cache`);
             return users;
             
         } catch (error) {
@@ -529,7 +670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Save metadata
             localStorage.setItem('projectsMetadata', JSON.stringify(metadata));
             
-            console.log(`✓ Cached ${projects.length} projects with metadata:`, metadata);
+            console.log(`Cached ${projects.length} projects with metadata:`, metadata);
             
         } catch (error) {
             console.error('Error saving to cache:', error);
@@ -552,7 +693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Save metadata
             localStorage.setItem('usersMetadata', JSON.stringify(metadata));
             
-            console.log(`✓ Cached ${users.length} users with metadata:`, metadata);
+            console.log(`Cached ${users.length} users with metadata:`, metadata);
             
         } catch (error) {
             console.error('Error saving users to cache:', error);
@@ -636,7 +777,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const cacheValid = await isCacheValid();
                 
                 if (cacheValid && renderedFromCache) {
-                    console.log('✓ Projects cache is valid. Reconciling Pinecone status in background...');
+                    console.log('Projects cache is valid. Reconciling Pinecone status in background...');
                     checkPineconeSyncStatus();
                     return;
                 }
@@ -765,7 +906,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 if (updatedAny) {
-                    console.log(`✓ Reconciled projects with Pinecone: updated sync indicators`);
+                    console.log(`Reconciled projects with Pinecone: updated sync indicators`);
                     const tbody = document.getElementById('projects-table-body');
                     if (tbody) {
                         renderProjectsTablePaginated(tbody);
@@ -1272,33 +1413,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         Array.from(rows).forEach(row => {
             if (row.classList.contains('table-loading') || row.classList.contains('table-empty')) return;
-            const nameCell = row.cells[0]?.querySelector('strong') || row.cells[0];
+            const nameCell = row.cells[0]?.querySelector('.user-name-text') || row.cells[0]?.querySelector('strong') || row.cells[0];
             const emailCell = row.cells[1];
-            const typeCell = row.cells[2]?.querySelector('.badge') || row.cells[2];
+            const typeCell = row.cells[2]?.querySelector('.badge');
 
             // Keep raw original text to re-highlight cleanly
             const rawName = row.getAttribute('data-original-name') || (nameCell ? nameCell.textContent.trim() : '');
             const rawEmail = row.getAttribute('data-original-email') || (emailCell ? emailCell.textContent.trim() : '');
-            const rawType = row.getAttribute('data-original-type') || (typeCell ? typeCell.textContent.trim() : '');
+            const rawType = row.getAttribute('data-original-type') || '';
             if (!row.getAttribute('data-original-name') && rawName) row.setAttribute('data-original-name', rawName);
             if (!row.getAttribute('data-original-email') && rawEmail) row.setAttribute('data-original-email', rawEmail);
             if (!row.getAttribute('data-original-type') && rawType) row.setAttribute('data-original-type', rawType);
 
             const rowTypeLower = rawType.toLowerCase();
+            const rowStatus = (row.getAttribute('data-status') || 'active').toLowerCase();
 
             // 1. Filter pill check
             let matchesPill = true;
-            if (activeFilter !== 'all') {
-                if (activeFilter === 'teacher' || activeFilter === 'faculty') {
-                    matchesPill = rowTypeLower.includes('teacher') || rowTypeLower.includes('faculty');
-                } else if (activeFilter === 'admin') {
-                    matchesPill = rowTypeLower.includes('admin');
-                } else {
-                    matchesPill = rowTypeLower.includes(activeFilter);
+            if (activeFilter === 'quarantined') {
+                matchesPill = (rowStatus === 'quarantined');
+            } else if (activeFilter === 'suspended') {
+                matchesPill = (rowStatus === 'suspended');
+            } else {
+                // In standard views ('all', 'student', 'teacher', 'admin'), quarantined users stay safely in the Trash bin
+                if (rowStatus === 'quarantined') {
+                    matchesPill = false;
+                } else if (activeFilter !== 'all') {
+                    if (activeFilter === 'teacher' || activeFilter === 'faculty') {
+                        matchesPill = rowTypeLower.includes('teacher') || rowTypeLower.includes('faculty');
+                    } else if (activeFilter === 'admin') {
+                        matchesPill = rowTypeLower.includes('admin');
+                    } else {
+                        matchesPill = rowTypeLower.includes(activeFilter);
+                    }
                 }
             }
 
-            // 2. Search check (Name, Email, or Role / Type with synonyms)
+            // 2. Search check (Name, Email, Role / Type, Status with synonyms)
             let matchesSearch = true;
             if (searchTokens.length > 0) {
                 let searchableRole = rowTypeLower;
@@ -1315,7 +1466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     searchableRole += ' librarian library staff';
                 }
 
-                const fullSearchable = `${rawName} ${rawEmail} ${rawType} ${searchableRole}`.toLowerCase();
+                const fullSearchable = `${rawName} ${rawEmail} ${rawType} ${rowStatus} ${searchableRole}`.toLowerCase();
                 matchesSearch = searchTokens.every(token => fullSearchable.includes(token));
             }
 
@@ -1351,45 +1502,234 @@ document.addEventListener('DOMContentLoaded', async () => {
         function renderUsersTable(usersList) {
             tbody.innerHTML = '';
             if (usersList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No users found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="table-empty">No users found</td></tr>';
                 return;
+            }
+
+            // Calculate status counts for filter pill badges
+            let suspendedCount = 0;
+            let quarantineCount = 0;
+            usersList.forEach(u => {
+                const s = (u.status || 'active').toLowerCase();
+                if (s === 'suspended') suspendedCount++;
+                if (s === 'quarantined') quarantineCount++;
+            });
+
+            const suspBadge = document.getElementById('suspended-count-badge');
+            if (suspBadge) {
+                suspBadge.textContent = suspendedCount;
+                suspBadge.style.display = suspendedCount > 0 ? 'inline-flex' : 'none';
+            }
+            const quarBadge = document.getElementById('quarantine-count-badge');
+            if (quarBadge) {
+                quarBadge.textContent = quarantineCount;
+                quarBadge.style.display = quarantineCount > 0 ? 'inline-flex' : 'none';
             }
             
             const userSearchQuery = (document.getElementById('users-search')?.value || '').trim();
 
             usersList.forEach(data => {
                 const userType = data.userType || 'N/A';
-                const badgeColor = userType === 'admin' ? 'linear-gradient(to right, #08D488, #FCCC56)' : 
-                                  userType === 'librarian' ? '#08D488' :
-                                  userType === 'student' ? '#fad882ff' : '#94a3b8';
-                
+                const rawUserType = (data.userType || '').toLowerCase();
+                const status = (data.status || 'active').toLowerCase();
+
+                // 1. Role Icon Badge (compact SVG icon with tooltip and screen-reader label)
+                let roleIconHtml = '';
+                if (rawUserType === 'admin') {
+                    roleIconHtml = `
+                        <div class="user-type-icon-badge role-admin" title="Admin" aria-label="Admin" data-tooltip="Admin">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                            </svg>
+                            <span class="sr-only">Admin</span>
+                        </div>
+                    `;
+                } else if (rawUserType === 'librarian') {
+                    roleIconHtml = `
+                        <div class="user-type-icon-badge role-librarian" title="Librarian" aria-label="Librarian" data-tooltip="Librarian">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                            <span class="sr-only">Librarian</span>
+                        </div>
+                    `;
+                } else if (rawUserType === 'student') {
+                    roleIconHtml = `
+                        <div class="user-type-icon-badge role-student" title="Student" aria-label="Student" data-tooltip="Student">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                                <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                            </svg>
+                            <span class="sr-only">Student</span>
+                        </div>
+                    `;
+                } else if (rawUserType.includes('teacher') || rawUserType.includes('faculty')) {
+                    roleIconHtml = `
+                        <div class="user-type-icon-badge role-teacher" title="Teacher / Faculty" aria-label="Teacher" data-tooltip="Teacher">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            <span class="sr-only">Teacher</span>
+                        </div>
+                    `;
+                } else {
+                    roleIconHtml = `
+                        <div class="user-type-icon-badge role-other" title="${escapeHtml(userType)}" aria-label="${escapeHtml(userType)}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <span class="sr-only">${escapeHtml(userType)}</span>
+                        </div>
+                    `;
+                }
+
+                // 2. Account Status Indication (green dot for active, suspension with duration, quarantine with duration)
+                let statusBadgeHtml = '';
+                if (status === 'suspended') {
+                    let durText = '';
+                    if (data.suspendedDuration) {
+                        const d = String(data.suspendedDuration).trim();
+                        durText = ` (${escapeHtml(d)})`;
+                    }
+                    statusBadgeHtml = `
+                        <span class="user-status-indicator status-ind-suspended" title="Reason: ${escapeHtml(data.suspensionReason || 'Academic Policy Violation')}">
+                            <span class="status-indicator-dot dot-amber"></span>
+                            <span class="status-indicator-label">Suspended${durText}</span>
+                        </span>
+                    `;
+                } else if (status === 'quarantined') {
+                    let daysLeft = 14;
+                    if (data.scheduledPurgeAt) {
+                        const purgeMs = getTimestamp(data.scheduledPurgeAt);
+                        if (purgeMs) {
+                            daysLeft = Math.max(0, Math.ceil((purgeMs - Date.now()) / (1000 * 60 * 60 * 24)));
+                        }
+                    }
+                    statusBadgeHtml = `
+                        <span class="user-status-indicator status-ind-quarantined" title="Scheduled purge in ${daysLeft} days. Can be restored anytime before purge.">
+                            <span class="status-indicator-dot dot-rose"></span>
+                            <span class="status-indicator-label">Quarantined (${daysLeft}d left)</span>
+                        </span>
+                    `;
+                } else {
+                    statusBadgeHtml = `
+                        <span class="user-status-indicator status-ind-active" title="Active Account">
+                            <span class="status-indicator-dot dot-green"></span>
+                            <span class="status-indicator-label">Active</span>
+                        </span>
+                    `;
+                }
+
+                // 3. User Avatar Profile Display (circular photo or fallback initials with dynamic palette)
+                const rawFullName = (data.fullName || data.name || '').trim();
+                const displayName = rawFullName || data.email || 'User';
+                const nameParts = displayName.split(/\s+/).filter(Boolean);
+                let initials = 'U';
+                if (nameParts.length >= 2) {
+                    initials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+                } else if (nameParts.length === 1 && nameParts[0].length > 0) {
+                    initials = nameParts[0].slice(0, 2).toUpperCase();
+                }
+
+                const avatarColors = [
+                    'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                    'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                    'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+                    'linear-gradient(135deg, #06b6d4 0%, #0e7490 100%)',
+                    'linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)'
+                ];
+                let charSum = 0;
+                for (let i = 0; i < displayName.length; i++) charSum += displayName.charCodeAt(i);
+                const avatarBg = avatarColors[charSum % avatarColors.length];
+
+                const photoUrl = data.photoURL || data.avatar || data.profileImage || '';
+                const avatarHtml = photoUrl ? `
+                    <div class="user-avatar-wrap">
+                        <img src="${escapeHtml(photoUrl)}" alt="${escapeHtml(displayName)}" class="user-avatar-img" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'user-avatar-initials\\' style=\\'background: ${avatarBg};\\'>${initials}</span>';">
+                    </div>
+                ` : `
+                    <div class="user-avatar-wrap">
+                        <span class="user-avatar-initials" style="background: ${avatarBg};">${initials}</span>
+                    </div>
+                `;
+
+                // 4. Actions: Single "Sanction" action button (shield icon, hover reveals "Sanction"), or NOT VISIBLE for admin users
+                let actionsHtml = '';
+                if (data.userType === 'admin') {
+                    // Actions must be NOT visible for admin users
+                    actionsHtml = '';
+                } else {
+                    const escapedName = escapeHtml(data.fullName || data.email || 'User').replace(/'/g, "\\'");
+                    const escapedEmail = escapeHtml(data.email || '').replace(/'/g, "\\'");
+
+                    if (status === 'quarantined') {
+                        actionsHtml = `
+                            <div class="table-actions">
+                                <button class="action-btn action-restore" onclick="restoreQuarantinedUser('${data.id}', '${escapedName}')" title="Restore account from quarantine" aria-label="Restore Account">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                                    <span class="action-btn-text">Restore</span>
+                                </button>
+                                <button class="action-btn action-purge" onclick="purgeQuarantinedUser('${data.id}', '${escapedName}', '${escapedEmail}')" title="Permanently Purge Account" aria-label="Permanent Purge">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    <span class="action-btn-text">Purge</span>
+                                </button>
+                            </div>
+                        `;
+                    } else if (status === 'suspended') {
+                        actionsHtml = `
+                            <div class="table-actions">
+                                <button class="action-btn action-unsuspend" onclick="unsuspendUser('${data.id}', '${escapedName}')" title="Reactivate suspended user" aria-label="Reactivate User">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+                                    <span class="action-btn-text">Reactivate</span>
+                                </button>
+                                <button class="action-btn action-govern" onclick="openUserGovernanceModal('${data.id}', '${escapedName}', '${escapedEmail}', '${userType}', 'suspended')" title="Sanction User" aria-label="Sanction User">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    <span class="action-btn-text">Sanction</span>
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        // Active user: Single action button "Sanction" with shield-like icon that reveals text "Sanction" on hover
+                        actionsHtml = `
+                            <div class="table-actions">
+                                <button class="action-btn action-govern" onclick="openUserGovernanceModal('${data.id}', '${escapedName}', '${escapedEmail}', '${userType}', 'active')" title="Sanction User" aria-label="Sanction User">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg>
+                                    <span class="action-btn-text">Sanction</span>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+
                 const row = document.createElement('tr');
                 row.setAttribute('data-original-name', data.fullName || 'N/A');
                 row.setAttribute('data-original-email', data.email || 'N/A');
                 row.setAttribute('data-original-type', userType.toUpperCase());
+                row.setAttribute('data-status', status);
                 row.innerHTML = `
-                    <td><strong>${highlightSearchTerms(data.fullName || 'N/A', userSearchQuery)}</strong></td>
+                    <td>
+                        <div class="user-profile-cell">
+                            ${avatarHtml}
+                            <strong class="user-name-text">${highlightSearchTerms(rawFullName || 'N/A', userSearchQuery)}</strong>
+                        </div>
+                    </td>
                     <td>${highlightSearchTerms(data.email || 'N/A', userSearchQuery)}</td>
                     <td>
-                        <span class="badge" style="background: ${badgeColor}; color: white;">
-                            ${highlightSearchTerms(userType.toUpperCase(), userSearchQuery)}
-                        </span>
+                        ${roleIconHtml}
                     </td>
+                    <td>${statusBadgeHtml}</td>
                     <td>${formatDate(data.createdAt)}</td>
                     <td>${formatDate(data.lastLogin) || 'Never'}</td>
-                    <td>
-                        <div class="table-actions">
-                            <button class="action-btn action-view" onclick="viewUser('${data.id}')" title="View user details" aria-label="View user details">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                <span class="action-btn-text">View</span>
-                            </button>
-                            ${data.userType !== 'admin' ? `
-                                <button class="action-btn action-delete" onclick="deleteUser('${data.id}', '${escapeHtml(data.fullName || data.email).replace(/'/g, "\\'")}')" title="Delete user" aria-label="Delete user">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                    <span class="action-btn-text">Delete</span>
-                                </button>
-                            ` : '<span class="badge" style="background: #cbd5e1; color: #475569;">Protected</span>'}
-                        </div>
+                    <td class="user-actions-cell">
+                        ${actionsHtml}
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1416,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderedFromCache = true;
             console.log('🚀 Using cached user data for instant render - revalidating in background...');
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
         }
 
         // 2. Asynchronously verify and update users cache (skip check if forceRefresh is true)
@@ -1433,14 +1773,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (usersCacheAgeFresh && renderedFromCache) {
-                    console.log('✓ Users cache is fresh. No Firestore fetch needed.');
+                    console.log('Users cache is fresh. No Firestore fetch needed.');
                     return;
                 }
             }
 
             console.log('📡 Fetching fresh users data from Firestore...');
             if (!renderedFromCache) {
-                tbody.innerHTML = '<tr><td colspan="6" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
             }
 
             let freshUsers = [];
@@ -1475,7 +1815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     console.warn(`Retry ${retryCount}/${maxRetries} for users...`);
                     if (!renderedFromCache) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="table-loading"><div class="spinner"></div> Retrying (${retryCount}/${maxRetries})...</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="7" class="table-loading"><div class="spinner"></div> Retrying (${retryCount}/${maxRetries})...</td></tr>`;
                     }
                     await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
                 }
@@ -1499,7 +1839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let errorHtml = '';
                 if (error.code === 'permission-denied' || error.message?.includes('permission')) {
                     errorHtml = `
-                        <tr><td colspan="6" class="table-error">
+                        <tr><td colspan="7" class="table-error">
                             <div class="error-box">
                                 <div class="error-icon">🔒</div>
                                 <h4>Permission Denied</h4>
@@ -1511,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     showToast('Permission denied - Check Firestore rules', '❌');
                 } else {
                     errorHtml = `
-                        <tr><td colspan="6" class="table-error">
+                        <tr><td colspan="7" class="table-error">
                             <div class="error-box">
                                 <div class="error-icon">⚠️</div>
                                 <h4>Error Loading Users</h4>
@@ -1617,19 +1957,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 promises.push(Promise.resolve({ type: 'savedProjects', data: savedProjects }));
             }
 
-            // 4. Activities (userActivities)
+            // 4. Activities (stored strictly on local device to protect Firebase free-tier quota)
             if (!activities) {
-                promises.push(
-                    db.collection('userActivities').limit(500).get().then(snapshot => {
-                        const list = [];
-                        snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+                const localFetchPromise = (window.ActivityService && typeof window.ActivityService.getAllActivities === 'function')
+                    ? window.ActivityService.getAllActivities().then(list => {
                         try { sessionStorage.setItem('recap_analytics_activities', JSON.stringify(list)); } catch (e) {}
                         return { type: 'activities', data: list };
-                    }).catch(err => {
-                        console.warn('userActivities fetch warning:', err);
-                        return { type: 'activities', data: [] };
                     })
-                );
+                    : Promise.resolve().then(() => {
+                        let list = [];
+                        try { list = JSON.parse(sessionStorage.getItem('recap_analytics_activities') || '[]'); } catch (e) {}
+                        return { type: 'activities', data: list };
+                    });
+                promises.push(localFetchPromise);
             } else {
                 promises.push(Promise.resolve({ type: 'activities', data: activities }));
             }
@@ -2787,6 +3127,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tsEl) {
                     tsEl.textContent = `Generated on ${new Date().toLocaleString()} | Filter: ${currentAnalyticsFilter.program} (${currentAnalyticsFilter.range.toUpperCase()})`;
                 }
+
+                if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                    window.ActivityService.logAdmin(
+                        'report_printed',
+                        'Accreditation Report',
+                        `Generated and printed official repository research report (${currentAnalyticsFilter.program}, ${currentAnalyticsFilter.range}).`
+                    );
+                }
+
                 window.print();
             });
         }
@@ -2833,7 +3182,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
+                    if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                        window.ActivityService.logAdmin(
+                            'report_exported',
+                            'Analytics CSV Dataset',
+                            `Exported comprehensive analytics CSV report with ${filtered.length} capstone manuscript records.`
+                        );
+                    }
 
                     showToast('Analytics CSV dataset exported successfully', '✅');
                 } catch (e) {
@@ -2863,14 +3218,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!timestamp) return 0;
         
         try {
-            if (timestamp.toDate) {
+            if (timestamp.toDate && typeof timestamp.toDate === 'function') {
                 return timestamp.toDate().getTime();
             } else if (timestamp instanceof Date) {
                 return timestamp.getTime();
             } else if (typeof timestamp === 'number') {
                 return timestamp;
             } else if (typeof timestamp === 'string') {
-                return new Date(timestamp).getTime();
+                const parsed = new Date(timestamp).getTime();
+                return isNaN(parsed) ? 0 : parsed;
+            } else if (timestamp.seconds !== undefined) {
+                return timestamp.seconds * 1000;
+            } else if (timestamp._seconds !== undefined) {
+                return timestamp._seconds * 1000;
             }
         } catch (error) {
             console.error('Error parsing timestamp:', error);
@@ -2894,7 +3254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         try {
             let date;
-            if (timestamp.toDate) {
+            if (timestamp.toDate && typeof timestamp.toDate === 'function') {
                 date = timestamp.toDate();
             } else if (timestamp instanceof Date) {
                 date = timestamp;
@@ -2902,12 +3262,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 date = new Date(timestamp);
             } else if (typeof timestamp === 'string') {
                 date = new Date(timestamp);
+            } else if (timestamp.seconds !== undefined) {
+                date = new Date(timestamp.seconds * 1000);
+            } else if (timestamp._seconds !== undefined) {
+                date = new Date(timestamp._seconds * 1000);
             } else {
                 return 'N/A';
             }
 
             // Check if date is valid
-            if (isNaN(date.getTime())) {
+            if (!date || isNaN(date.getTime())) {
                 return 'N/A';
             }
 
@@ -3231,10 +3595,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Fetch project data to verify lock status and get image URLs before deletion
             let projectImages = [];
+            let deletedProjectData = null;
             try {
                 const projectDoc = await db.collection('projects').doc(secureDeleteProjectId).get();
                 if (projectDoc.exists) {
                     const projectData = projectDoc.data() || {};
+                    deletedProjectData = projectData;
                     if (projectData.isLockedByAdmin) {
                         showToast('Delete blocked: This project is locked by the Administrator.', '🔒');
                         setDeleteProcessing(false);
@@ -3270,7 +3636,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log(`🗑️  Deleting ${projectImages.length} images from Cloudinary...`);
                 try {
                     const deleteResults = await window.CloudinaryService.deleteMultipleImages(projectImages);
-                    console.log(`✓ Deleted ${deleteResults.deletedCount} images, ${deleteResults.failedCount} failed`);
+                    console.log(`Deleted ${deleteResults.deletedCount} images, ${deleteResults.failedCount} failed`);
                     
                     if (deleteResults.failedCount > 0) {
                         console.warn('Some images failed to delete:', deleteResults.results.filter(r => !r.success));
@@ -3288,7 +3654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await countRef.transaction((current) => Math.max(0, (current || 0) - 1));
                     const updateCounterRef = rtdb.ref('update_counter');
                     await updateCounterRef.transaction((current) => (current || 0) + 1);
-                    console.log('✓ RTDB counters updated after deletion');
+                    console.log('RTDB counters updated after deletion');
                 } else {
                     console.warn('RTDB not available, skipping counter update');
                 }
@@ -3313,7 +3679,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     throw new Error(errorData.error || 'Pinecone delete failed');
                 }
 
-                console.log('✓ Project deleted from Pinecone successfully');
+                console.log('Project deleted from Pinecone successfully');
             } catch (pineconeErr) {
                 console.error('⚠️ Pinecone delete failed (non-critical):', pineconeErr);
             }
@@ -3326,6 +3692,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Log admin activity
             if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
                 window.ActivityService.logAdmin('project_deleted', secureDeleteProjectTitle, `Permanently deleted project: "${secureDeleteProjectTitle}"`);
+
+                if (deletedProjectData && deletedProjectData.submittedBy && typeof window.ActivityService.logForUser === 'function') {
+                    window.ActivityService.logForUser(deletedProjectData.submittedBy, {
+                        category: window.ActivityService.CATEGORIES.PROJECT,
+                        action: 'project_deleted',
+                        title: `Manuscript Deleted: "${secureDeleteProjectTitle}"`,
+                        details: 'Thesis manuscript was permanently deleted from the repository by Administrator.',
+                        userEmail: deletedProjectData.submittedByEmail || '',
+                        userName: deletedProjectData.submittedByName || 'Student',
+                        metadata: { projectId: secureDeleteProjectId, title: secureDeleteProjectTitle }
+                    });
+                }
             }
             
             await loadProjectsData();
@@ -3464,7 +3842,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (response.ok) {
                     const resJson = await response.json();
                     authDeleted = resJson.authDeleted;
-                    console.log('✓ Backend user delete success:', resJson);
+                    console.log('Backend user delete success:', resJson);
                 } else {
                     console.warn(`⚠️ Backend delete returned status ${response.status}`);
                 }
@@ -3475,7 +3853,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 4. Also guarantee Firestore document deletion directly from client SDK
             try {
                 await db.collection('users').doc(userId).delete();
-                console.log(`✓ Firestore document deleted for ${userId}`);
+                console.log(`Firestore document deleted for ${userId}`);
             } catch (fsError) {
                 console.warn('⚠️ Client-side Firestore delete:', fsError.message);
             }
@@ -3503,135 +3881,480 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    window.deleteUser = async (userId, name) => {
-        try {
-            // Fetch user data to get security question
-            const userDoc = await db.collection('users').doc(userId).get();
-            
-            if (!userDoc.exists) {
-                // Doc not in Firestore – offer to purge the Auth account directly
-                const confirmed = await ModalDialog.confirm({
-                    title: 'Delete Account',
-                    message: `This user does not exist in the Firestore database, but may still remain in Firebase Authentication.\n\nDo you want to permanently delete authentication account "${name || userId}"?`,
-                    confirmText: 'Delete Auth Account',
-                    cancelText: 'Cancel',
-                    isDanger: true,
-                    icon: 'trash'
-                });
-                if (confirmed) {
-                    await performUserDeletion(userId, { email: '' }, name);
-                }
-                return;
-            }
-            
-            const userData = userDoc.data();
-            
-            // Check if user has security question/answer
-            if (!userData.securityQuestion || !userData.securityAnswer) {
-                // Fallback for accounts without security questions
-                const confirmed = await ModalDialog.confirm({
-                    title: 'Delete User',
-                    message: `This user has not configured a security question.\n\nAre you sure you want to permanently delete "${name || userData.fullName || userData.email}"?\nThis will delete their account from both Firebase Authentication and Firestore.`,
-                    confirmText: 'Delete User',
-                    cancelText: 'Cancel',
-                    isDanger: true,
-                    icon: 'trash'
-                });
-                if (confirmed) {
-                    await performUserDeletion(userId, userData, name);
-                }
-                return;
-            }
-            
-            // Map security question codes to readable text
-            const questionMap = {
-                'pet': 'What was the name of your first pet?',
-                'school': 'What was the name of your first school?',
-                'city': 'What city were you born in?',
-                'maiden': 'What is your mother\'s maiden name?',
-                'book': 'What is your favorite book?'
-            };
-            
-            const questionText = questionMap[userData.securityQuestion] || userData.securityQuestion;
-            
-            // Show security question modal
-            const modal = document.getElementById('security-question-modal');
-            const overlay = document.getElementById('security-question-modal-overlay');
-            const userNameEl = document.getElementById('security-question-user-name');
-            const questionDisplayEl = document.getElementById('security-question-display');
-            const answerInput = document.getElementById('security-answer-input');
-            const errorEl = document.getElementById('security-answer-error');
-            const closeBtn = document.getElementById('security-question-modal-close-btn');
-            const cancelBtn = document.getElementById('security-question-cancel-btn');
-            const verifyBtn = document.getElementById('security-question-verify-btn');
-            
-            // Set modal content
-            userNameEl.textContent = name;
-            questionDisplayEl.textContent = questionText;
-            answerInput.value = '';
-            errorEl.style.display = 'none';
-            
-            // Show modal
-            modal.classList.add('active');
-            answerInput.focus();
-            
-            // Close modal function
-            const closeModal = () => {
+    // ===== 3-Tier Account Governance & Sanctions System =====
+    // Protection against impulsive or retaliatory account deletions
+    // Tier 1: Graduated Sanctions (Suspension vs 14-Day Deletion Quarantine)
+    // Tier 2: Mandatory Policy Infraction Reason & Justification (Logged to Immutable Audit)
+    // Tier 3: Admin Affirmation & Due Process Safeguard
+
+    let currentUgTargetUserId = null;
+    let currentUgTargetUserName = '';
+    let currentUgTargetUserEmail = '';
+    let currentUgTargetUserRole = '';
+    let currentUgTargetUserStatus = 'active';
+    let isUgModalInitialized = false;
+
+    function initUserGovernanceModalEvents() {
+        if (isUgModalInitialized) return;
+        isUgModalInitialized = true;
+
+        const modal = document.getElementById('user-governance-modal');
+        const overlay = document.getElementById('ug-modal-overlay');
+        const closeBtn = document.getElementById('ug-close-btn');
+        const cancelBtn = document.getElementById('ug-cancel-btn');
+        const submitBtn = document.getElementById('ug-submit-btn');
+
+        const cardSuspend = document.getElementById('ug-card-suspend');
+        const cardQuarantine = document.getElementById('ug-card-quarantine');
+        const categorySelect = document.getElementById('ug-violation-category');
+        const notesTextarea = document.getElementById('ug-justification-notes');
+        const charCountEl = document.getElementById('ug-char-count');
+        const affirmationCheckbox = document.getElementById('ug-affirmation-checkbox');
+
+        const closeModal = () => {
+            if (modal) {
+                modal.style.display = 'none';
                 modal.classList.remove('active');
-                answerInput.value = '';
-                errorEl.style.display = 'none';
-            };
-            
-            // Event listeners (remove any existing ones first)
-            const newCloseBtn = closeBtn.cloneNode(true);
-            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-            const newCancelBtn = cancelBtn.cloneNode(true);
-            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-            const newVerifyBtn = verifyBtn.cloneNode(true);
-            verifyBtn.parentNode.replaceChild(newVerifyBtn, verifyBtn);
-            const newOverlay = overlay.cloneNode(true);
-            overlay.parentNode.replaceChild(newOverlay, overlay);
-            
-            // Add new event listeners
-            newCloseBtn.addEventListener('click', closeModal);
-            newCancelBtn.addEventListener('click', closeModal);
-            newOverlay.addEventListener('click', (e) => {
-                if (e.target === newOverlay) closeModal();
-            });
-            
-            // Handle Enter key in input
-            answerInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    newVerifyBtn.click();
+            }
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+        if (overlay) overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        // Toggle Tier 1 Action Cards
+        const setActionType = (type) => {
+            const radioSuspend = cardSuspend?.querySelector('input[type="radio"]');
+            const radioQuarantine = cardQuarantine?.querySelector('input[type="radio"]');
+            const submitBtnText = document.getElementById('ug-submit-btn-text');
+
+            if (type === 'suspend') {
+                if (radioSuspend) radioSuspend.checked = true;
+                if (radioQuarantine) radioQuarantine.checked = false;
+                cardSuspend?.classList.add('is-selected');
+                cardQuarantine?.classList.remove('is-selected');
+                if (submitBtnText) submitBtnText.textContent = 'Apply Suspension';
+                if (submitBtn) {
+                    submitBtn.classList.remove('btn-quarantine-submit');
+                    submitBtn.classList.add('btn-suspend-submit');
                 }
-            });
-            
-            // Verify and delete
-            newVerifyBtn.addEventListener('click', async () => {
-                const enteredAnswer = answerInput.value.trim();
-                const correctAnswer = userData.securityAnswer.trim();
-                
-                // Case-insensitive comparison
-                if (enteredAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                    closeModal();
-                    await performUserDeletion(userId, userData, name);
-                } else {
-                    // Incorrect answer
-                    errorEl.style.display = 'block';
-                    answerInput.style.borderColor = '#e53e3e';
-                    answerInput.focus();
-                    
-                    // Reset border color after 3 seconds
-                    setTimeout(() => {
-                        answerInput.style.borderColor = '';
-                    }, 3000);
+            } else {
+                if (radioQuarantine) radioQuarantine.checked = true;
+                if (radioSuspend) radioSuspend.checked = false;
+                cardQuarantine?.classList.add('is-selected');
+                cardSuspend?.classList.remove('is-selected');
+                if (submitBtnText) submitBtnText.textContent = 'Move to 14-Day Quarantine';
+                if (submitBtn) {
+                    submitBtn.classList.remove('btn-suspend-submit');
+                    submitBtn.classList.add('btn-quarantine-submit');
                 }
+            }
+            validateGovernanceForm();
+        };
+
+        if (cardSuspend) {
+            cardSuspend.addEventListener('click', (e) => {
+                // Don't trigger if clicking inside the duration select dropdown
+                if (e.target.closest('#ug-suspend-duration')) return;
+                setActionType('suspend');
             });
-            
-        } catch (error) {
-            console.error('Error in deleteUser:', error);
-            showToast('Error: ' + error.message, '❌');
         }
+        if (cardQuarantine) {
+            cardQuarantine.addEventListener('click', () => {
+                setActionType('quarantine');
+            });
+        }
+
+        // Tier 2 & Tier 3 Validation Check
+        function validateGovernanceForm() {
+            const category = categorySelect?.value || '';
+            const notes = (notesTextarea?.value || '').trim();
+            const affirmed = affirmationCheckbox ? affirmationCheckbox.checked : false;
+
+            if (charCountEl) {
+                charCountEl.textContent = notes.length;
+                if (notes.length < 15) {
+                    charCountEl.style.color = '#ef4444';
+                } else {
+                    charCountEl.style.color = '#10b981';
+                }
+            }
+
+            const isValid = category !== '' && notes.length >= 15 && affirmed;
+            if (submitBtn) {
+                submitBtn.disabled = !isValid;
+            }
+        }
+
+        if (categorySelect) categorySelect.addEventListener('change', validateGovernanceForm);
+        if (notesTextarea) notesTextarea.addEventListener('input', validateGovernanceForm);
+        if (affirmationCheckbox) affirmationCheckbox.addEventListener('change', validateGovernanceForm);
+
+        // Submit Disciplinary Action
+        if (submitBtn) {
+            submitBtn.addEventListener('click', async () => {
+                if (!currentUgTargetUserId) return;
+
+                const category = categorySelect?.value || '';
+                const notes = (notesTextarea?.value || '').trim();
+                const affirmed = affirmationCheckbox?.checked;
+
+                if (!category || notes.length < 15 || !affirmed) {
+                    showToast('Please complete all mandatory fields and affirmation.', '⚠️');
+                    return;
+                }
+
+                const actionType = cardQuarantine?.classList.contains('is-selected') ? 'quarantine' : 'suspend';
+                const durationSelect = document.getElementById('ug-suspend-duration');
+                const duration = durationSelect ? durationSelect.value : '7d';
+
+                const adminUser = auth.currentUser;
+                const adminName = adminUser?.displayName || adminUser?.email || 'Administrator';
+                const adminId = adminUser?.uid || 'admin';
+
+                submitBtn.disabled = true;
+                const submitBtnText = document.getElementById('ug-submit-btn-text');
+                const origText = submitBtnText ? submitBtnText.textContent : 'Processing...';
+                if (submitBtnText) submitBtnText.textContent = 'Applying...';
+
+                try {
+                    if (actionType === 'suspend') {
+                        // Apply Suspension in Firestore
+                        await db.collection('users').doc(currentUgTargetUserId).update({
+                            status: 'suspended',
+                            suspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            suspendedBy: adminName,
+                            suspendedById: adminId,
+                            suspendedDuration: duration,
+                            suspensionCategory: category,
+                            suspensionReason: notes,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // Audit Trail Log
+                        if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                            window.ActivityService.logAdmin(
+                                'user_suspended',
+                                currentUgTargetUserName,
+                                `Suspended account (${duration}). Category: ${category}. Justification: ${notes}`
+                            );
+                        }
+
+                        // DUAL-LOG directly into target user's personal activity feed
+                        if (window.ActivityService && typeof window.ActivityService.logForUser === 'function') {
+                            window.ActivityService.logForUser(currentUgTargetUserId, {
+                                category: 'admin',
+                                action: 'account_suspended',
+                                title: 'Disciplinary Suspension Placed on Account',
+                                details: `Account suspended (${duration}) by Administrator. Category: ${category}. Reason: ${notes}`,
+                                userRole: currentUgTargetUserRole || 'student',
+                                userName: currentUgTargetUserName,
+                                userEmail: currentUgTargetUserEmail,
+                                metadata: {
+                                    duration,
+                                    category,
+                                    notes,
+                                    suspendedBy: adminName
+                                }
+                            });
+                        }
+
+                        invalidateUsersCache();
+                        closeModal();
+                        showToast(`Account for "${currentUgTargetUserName}" has been suspended (${duration}).`, '🛡️');
+                        await loadUsersData(true);
+
+                    } else if (actionType === 'quarantine') {
+                        // Move to 14-Day Deletion Quarantine (Soft-Delete)
+                        const scheduledPurge = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+                        await db.collection('users').doc(currentUgTargetUserId).update({
+                            status: 'quarantined',
+                            quarantinedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            quarantinedBy: adminName,
+                            quarantinedById: adminId,
+                            scheduledPurgeAt: scheduledPurge,
+                            deletionCategory: category,
+                            deletionReason: notes,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        // Audit Trail Log
+                        if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                            window.ActivityService.logAdmin(
+                                'user_quarantined',
+                                currentUgTargetUserName,
+                                `Moved to 14-day Deletion Quarantine (Trash holding bin). Category: ${category}. Justification: ${notes}`
+                            );
+                        }
+
+                        // DUAL-LOG directly into target user's personal activity feed
+                        if (window.ActivityService && typeof window.ActivityService.logForUser === 'function') {
+                            window.ActivityService.logForUser(currentUgTargetUserId, {
+                                category: 'admin',
+                                action: 'account_quarantined',
+                                title: 'Account Placed in 14-Day Deletion Quarantine',
+                                details: `Account moved to 14-day deletion quarantine by Administrator. Category: ${category}. Justification: ${notes}`,
+                                userRole: currentUgTargetUserRole || 'student',
+                                userName: currentUgTargetUserName,
+                                userEmail: currentUgTargetUserEmail,
+                                metadata: {
+                                    category,
+                                    notes,
+                                    scheduledPurge: scheduledPurge.toISOString(),
+                                    quarantinedBy: adminName
+                                }
+                            });
+                        }
+
+                        invalidateUsersCache();
+                        closeModal();
+                        showToast(`Account for "${currentUgTargetUserName}" moved to 14-Day Quarantine holding bin.`, '⏳');
+                        await loadUsersData(true);
+                    }
+                } catch (err) {
+                    console.error('Governance action failed:', err);
+                    showToast('Failed to apply governance action: ' + err.message, '❌');
+                } finally {
+                    submitBtn.disabled = false;
+                    if (submitBtnText) submitBtnText.textContent = origText;
+                }
+            });
+        }
+    }
+
+    /**
+     * Open User Governance Modal for progressive discipline / sanctions
+     */
+    window.openUserGovernanceModal = async (userId, name, email, role, currentStatus = 'active') => {
+        initUserGovernanceModalEvents();
+
+        currentUgTargetUserId = userId;
+        currentUgTargetUserName = name || 'User';
+        currentUgTargetUserEmail = email || '';
+        currentUgTargetUserRole = role || 'student';
+        currentUgTargetUserStatus = currentStatus || 'active';
+
+        // Fetch user document if details are missing
+        if (!email || !role) {
+            try {
+                const doc = await db.collection('users').doc(userId).get();
+                if (doc.exists) {
+                    const uData = doc.data();
+                    currentUgTargetUserName = name || uData.fullName || uData.email || 'User';
+                    currentUgTargetUserEmail = uData.email || '';
+                    currentUgTargetUserRole = uData.userType || 'student';
+                    currentUgTargetUserStatus = uData.status || currentStatus || 'active';
+                }
+            } catch (e) {
+                console.warn('Could not fetch user details for modal:', e);
+            }
+        }
+
+        const modal = document.getElementById('user-governance-modal');
+        if (!modal) return;
+
+        // Populate Target User Card
+        const avatarEl = document.getElementById('ug-user-avatar');
+        const nameEl = document.getElementById('ug-user-name');
+        const roleEl = document.getElementById('ug-user-role-badge');
+        const statusEl = document.getElementById('ug-user-status-badge');
+        const emailEl = document.getElementById('ug-user-email');
+
+        if (avatarEl) avatarEl.textContent = (currentUgTargetUserName.charAt(0) || 'U').toUpperCase();
+        if (nameEl) nameEl.textContent = currentUgTargetUserName;
+        if (emailEl) emailEl.textContent = currentUgTargetUserEmail || 'No email registered';
+        if (roleEl) {
+            roleEl.textContent = currentUgTargetUserRole.toUpperCase();
+            roleEl.style.background = currentUgTargetUserRole === 'admin' ? 'linear-gradient(to right, #08D488, #FCCC56)' : 
+                                     currentUgTargetUserRole === 'librarian' ? '#08D488' :
+                                     currentUgTargetUserRole === 'student' ? '#fad882ff' : '#94a3b8';
+        }
+        if (statusEl) {
+            statusEl.textContent = currentUgTargetUserStatus.toUpperCase();
+            statusEl.className = 'ug-mini-status ' + (currentUgTargetUserStatus === 'suspended' ? 'ug-status-suspended' : currentUgTargetUserStatus === 'quarantined' ? 'ug-status-quarantined' : 'ug-status-active');
+        }
+
+        // Reset Tier 1 Selection
+        const cardSuspend = document.getElementById('ug-card-suspend');
+        const cardQuarantine = document.getElementById('ug-card-quarantine');
+        const radioSuspend = cardSuspend?.querySelector('input[type="radio"]');
+        const radioQuarantine = cardQuarantine?.querySelector('input[type="radio"]');
+        const submitBtnText = document.getElementById('ug-submit-btn-text');
+
+        if (currentUgTargetUserStatus === 'suspended') {
+            // If already suspended, default to quarantine (escalation)
+            if (radioQuarantine) radioQuarantine.checked = true;
+            if (radioSuspend) radioSuspend.checked = false;
+            cardQuarantine?.classList.add('is-selected');
+            cardSuspend?.classList.remove('is-selected');
+            if (submitBtnText) submitBtnText.textContent = 'Move to 14-Day Quarantine';
+        } else {
+            // Default to temporary suspension (cooling-off)
+            if (radioSuspend) radioSuspend.checked = true;
+            if (radioQuarantine) radioQuarantine.checked = false;
+            cardSuspend?.classList.add('is-selected');
+            cardQuarantine?.classList.remove('is-selected');
+            if (submitBtnText) submitBtnText.textContent = 'Apply Suspension';
+        }
+
+        // Reset Tier 2 Fields
+        const categorySelect = document.getElementById('ug-violation-category');
+        const notesTextarea = document.getElementById('ug-justification-notes');
+        const charCountEl = document.getElementById('ug-char-count');
+        const affirmationCheckbox = document.getElementById('ug-affirmation-checkbox');
+        const submitBtn = document.getElementById('ug-submit-btn');
+
+        if (categorySelect) categorySelect.value = '';
+        if (notesTextarea) notesTextarea.value = '';
+        if (charCountEl) {
+            charCountEl.textContent = '0';
+            charCountEl.style.color = '#ef4444';
+        }
+        if (affirmationCheckbox) affirmationCheckbox.checked = false;
+        if (submitBtn) submitBtn.disabled = true;
+
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+    };
+
+    /**
+     * Unsuspend / Reactivate User
+     */
+    window.unsuspendUser = async (userId, name) => {
+        const confirmed = await ModalDialog.confirm({
+            title: 'Reactivate Account',
+            message: `Are you sure you want to unsuspend "${name}"?\n\nThe user will immediately regain access to log in and interact with the repository.`,
+            confirmText: 'Reactivate Account',
+            cancelText: 'Keep Suspended',
+            isDanger: false,
+            icon: 'check'
+        });
+
+        if (!confirmed) return;
+
+        try {
+            const adminUser = auth.currentUser;
+            const adminName = adminUser?.displayName || adminUser?.email || 'Administrator';
+
+            await db.collection('users').doc(userId).update({
+                status: 'active',
+                unsuspendedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                unsuspendedBy: adminName,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin(
+                    'user_unsuspended',
+                    name,
+                    `Reactivated and lifted suspension for user "${name}"`
+                );
+            }
+
+            // DUAL-LOG directly into target user's personal activity feed
+            if (window.ActivityService && typeof window.ActivityService.logForUser === 'function') {
+                window.ActivityService.logForUser(userId, {
+                    category: 'admin',
+                    action: 'account_reactivated',
+                    title: 'Account Suspension Lifted',
+                    details: 'Administrator reactivated your account and restored normal repository privileges.',
+                    userName: name,
+                    metadata: { unsuspendedBy: adminName }
+                });
+            }
+
+            invalidateUsersCache();
+            showToast(`Account for "${name}" has been reactivated successfully.`, '✅');
+            await loadUsersData(true);
+        } catch (err) {
+            console.error('Error reactivating user:', err);
+            showToast('Failed to reactivate user: ' + err.message, '❌');
+        }
+    };
+
+    /**
+     * Restore Quarantined User
+     */
+    window.restoreQuarantinedUser = async (userId, name) => {
+        const confirmed = await ModalDialog.confirm({
+            title: 'Restore Account from Quarantine',
+            message: `Are you sure you want to restore "${name}" from the 14-day deletion quarantine?\n\nThe scheduled deletion will be cancelled and normal account status restored immediately.`,
+            confirmText: 'Restore Account',
+            cancelText: 'Keep in Quarantine',
+            isDanger: false,
+            icon: 'check'
+        });
+
+        if (!confirmed) return;
+
+        try {
+            const adminUser = auth.currentUser;
+            const adminName = adminUser?.displayName || adminUser?.email || 'Administrator';
+
+            await db.collection('users').doc(userId).update({
+                status: 'active',
+                restoredAt: firebase.firestore.FieldValue.serverTimestamp(),
+                restoredBy: adminName,
+                scheduledPurgeAt: firebase.firestore.FieldValue.delete(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin(
+                    'user_restored',
+                    name,
+                    `Restored user "${name}" from 14-day deletion quarantine`
+                );
+            }
+
+            // DUAL-LOG directly into target user's personal activity feed
+            if (window.ActivityService && typeof window.ActivityService.logForUser === 'function') {
+                window.ActivityService.logForUser(userId, {
+                    category: 'admin',
+                    action: 'account_restored',
+                    title: 'Account Restored from Quarantine',
+                    details: 'Administrator restored your account from deletion quarantine. Scheduled deletion has been cancelled.',
+                    userName: name,
+                    metadata: { restoredBy: adminName }
+                });
+            }
+
+            invalidateUsersCache();
+            showToast(`Account for "${name}" restored from quarantine successfully.`, '✅');
+            await loadUsersData(true);
+        } catch (err) {
+            console.error('Error restoring quarantined user:', err);
+            showToast('Failed to restore user: ' + err.message, '❌');
+        }
+    };
+
+    /**
+     * Permanent Purge for Quarantined User
+     * High-friction confirmation requiring explicit admin approval
+     */
+    window.purgeQuarantinedUser = async (userId, name, email) => {
+        const confirmed = await ModalDialog.confirm({
+            title: 'Permanently Purge Account',
+            message: `⚠️ PERMANENT PURGE WARNING\n\nThis account is currently in Quarantine.\nPurging will permanently delete authentication and profile data for "${name || email}".\n\n🛡️ ACADEMIC INTEGRITY SAFEGUARD:\nAll capstone manuscripts and institutional research authored or advised by this user will remain preserved in the institutional repository.\n\nAre you sure you want to proceed with permanent purge?`,
+            confirmText: 'Permanently Purge',
+            cancelText: 'Keep in Quarantine',
+            isDanger: true,
+            icon: 'trash'
+        });
+
+        if (!confirmed) return;
+
+        await performUserDeletion(userId, { email }, name);
+    };
+
+    /**
+     * Backward compatibility wrapper: Routes any legacy delete calls to User Governance Modal
+     */
+    window.deleteUser = async (userId, name) => {
+        window.openUserGovernanceModal(userId, name, '', '', 'active');
     };
 
     // ===== Dynamic Field Helpers =====
@@ -4053,6 +4776,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (pineconeResultSubtitle) pineconeResultSubtitle.textContent = `All ${successCount} project(s) are now active in the Pinecone vector database.`;
             if (pineconeResultErrorsContainer) pineconeResultErrorsContainer.style.display = 'none';
             if (pineconeSyncRetryFailedBtn) pineconeSyncRetryFailedBtn.style.display = 'none';
+
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin(
+                    'pinecone_sync',
+                    'Pinecone AI Search Index',
+                    `Completed full vector synchronization for ${successCount} thesis manuscript(s).`
+                );
+            }
+
             showToast(`Pinecone sync completed: ${successCount} project(s) indexed`, '✅');
         } else {
             if (pineconeResultHero) pineconeResultHero.classList.add('has-errors');
@@ -4073,6 +4805,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (pineconeResultErrorsContainer) pineconeResultErrorsContainer.style.display = 'block';
             if (pineconeSyncRetryFailedBtn) pineconeSyncRetryFailedBtn.style.display = 'inline-flex';
+
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin(
+                    'pinecone_sync',
+                    'Pinecone AI Search Index',
+                    `Pinecone vector sync completed with partial status: ${successCount} synced, ${failedCount} failed.`
+                );
+            }
+
             showToast(`Pinecone sync finished: ${successCount} synced, ${failedCount} failed`, '⚠️');
         }
 
@@ -4989,7 +5730,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 isPineconeSynced = true;
-                console.log('✓ Project synced to Pinecone successfully');
+                console.log('Project synced to Pinecone successfully');
             } catch (pineconeErr) {
                 console.error('⚠️ Pinecone sync failed (non-critical):', pineconeErr);
                 // Don't fail the entire operation if Pinecone sync fails
@@ -5007,6 +5748,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
                 const changedFieldNames = changedFields.join(', ');
                 window.ActivityService.logAdmin('project_updated', title, `Updated project "${title}" — changed: ${changedFieldNames || 'metadata'}`);
+
+                const existingProj = (allProjectsData || []).find(x => x.id === projectId);
+                if (existingProj && existingProj.submittedBy && typeof window.ActivityService.logForUser === 'function') {
+                    window.ActivityService.logForUser(existingProj.submittedBy, {
+                        category: window.ActivityService.CATEGORIES.PROJECT,
+                        action: 'project_updated',
+                        title: `Manuscript Updated by Admin: "${title}"`,
+                        details: `Administrator updated thesis details (${changedFieldNames || 'metadata'}).`,
+                        userEmail: existingProj.submittedByEmail || '',
+                        userName: existingProj.submittedByName || 'Student',
+                        metadata: { projectId, title, changedFields }
+                    });
+                }
             }
             
             setSaveProcessing(false);
@@ -5126,7 +5880,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 isPineconeSynced = true;
-                console.log('✓ New project synced to Pinecone successfully');
+                console.log('New project synced to Pinecone successfully');
             } catch (pineconeErr) {
                 console.error('⚠️ Pinecone sync failed (non-critical):', pineconeErr);
                 // Don't fail the entire operation if Pinecone sync fails
@@ -5241,7 +5995,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 Refreshing...
             `;
             
-            await loadDashboardData();
+            await loadDashboardData(true);
             
             setTimeout(() => {
                 refreshDashboardBtn.disabled = false;
@@ -5249,10 +6003,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
                     Refresh
                 `;
+                const lastUpdatedEl = document.getElementById('dash-last-updated');
+                if (lastUpdatedEl) {
+                    const now = new Date();
+                    lastUpdatedEl.textContent = `Updated ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                }
                 showToast('Dashboard refreshed successfully', '✅');
             }, 500);
         });
     }
+
+    // ===== Dashboard Quick-Navigation Shortcuts =====
+    const jumpToSection = (sectionName) => {
+        const navItem = document.querySelector(`.rail-nav-item[data-section="${sectionName}"]`);
+        if (navItem) navItem.click();
+    };
+
+    document.getElementById('dash-stat-projects')?.addEventListener('click', () => jumpToSection('projects'));
+    document.getElementById('dash-view-all-projects')?.addEventListener('click', () => jumpToSection('projects'));
+
+    document.getElementById('dash-stat-users')?.addEventListener('click', () => jumpToSection('users'));
+    document.getElementById('dash-stat-roles')?.addEventListener('click', () => jumpToSection('users'));
+    document.getElementById('dash-view-all-users')?.addEventListener('click', () => jumpToSection('users'));
+
+    document.getElementById('dash-stat-activity')?.addEventListener('click', () => jumpToSection('activity'));
+
+    // Real-time listener for Local Device Activity changes
+    const syncRecentActivityBadge = () => {
+        const el = document.getElementById('recent-activity-stat');
+        if (!el) return;
+        if (window.ActivityService && typeof window.ActivityService.getAllActivities === 'function') {
+            window.ActivityService.getAllActivities().then(acts => {
+                el.textContent = Array.isArray(acts) ? acts.length : 0;
+            }).catch(() => {});
+        }
+    };
+    window.addEventListener('userActivityLogged', syncRecentActivityBadge);
+    window.addEventListener('userActivityDeleted', syncRecentActivityBadge);
+    window.addEventListener('userActivityCleared', syncRecentActivityBadge);
+
+    ['dash-stat-projects', 'pending-approvals-card', 'dash-stat-users', 'dash-stat-roles', 'dash-stat-activity'].forEach(id => {
+        const card = document.getElementById(id);
+        if (card) {
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    card.click();
+                }
+            });
+        }
+    });
 
     // ===== Keyboard Shortcuts =====
     document.addEventListener('keydown', (e) => {
@@ -5483,7 +6283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         );
 
-        console.log('Real-time listeners activated ✓');
+        console.log('Real-time listeners activated');
     }
 
     // Quick stats update function (lighter than full reload)
@@ -5499,10 +6299,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             const librarianUsers = usersSnapshot.docs.filter(doc => doc.data().userType === 'librarian').length;
             const pendingCount = pendingSnapshot.size || 0;
 
-            document.getElementById('total-projects-stat').textContent = totalProjects;
-            document.getElementById('total-users-stat').textContent = totalUsers;
-            document.getElementById('student-users-stat').textContent = `${studentUsers} Students / ${librarianUsers} Librarians`;
-            document.getElementById('recent-activity-stat').textContent = totalProjects + totalUsers;
+            const pStat = document.getElementById('total-projects-stat');
+            if (pStat) pStat.textContent = totalProjects;
+
+            const uStat = document.getElementById('total-users-stat');
+            if (uStat) uStat.textContent = totalUsers;
+
+            const studentsCountEl = document.getElementById('stat-students-count');
+            const librariansCountEl = document.getElementById('stat-librarians-count');
+            if (studentsCountEl && librariansCountEl) {
+                studentsCountEl.textContent = studentUsers;
+                librariansCountEl.textContent = librarianUsers;
+            } else {
+                const statElem = document.getElementById('student-users-stat');
+                if (statElem) statElem.textContent = `${studentUsers} Students / ${librarianUsers} Librarians`;
+            }
+
+            const actStat = document.getElementById('recent-activity-stat');
+            if (actStat) {
+                if (window.ActivityService && typeof window.ActivityService.getAllActivities === 'function') {
+                    window.ActivityService.getAllActivities().then(activities => {
+                        actStat.textContent = Array.isArray(activities) ? activities.length : 0;
+                    }).catch(() => {
+                        const user = window.ActivityService?.getCurrentUserContext?.();
+                        const list = user?.uid ? window.ActivityService.getLocalCache(user.uid) : [];
+                        actStat.textContent = list.length;
+                    });
+                } else {
+                    const user = window.ActivityService?.getCurrentUserContext?.();
+                    const list = user?.uid ? window.ActivityService.getLocalCache(user.uid) : [];
+                    actStat.textContent = list.length;
+                }
+            }
 
             updatePendingCounters(pendingCount);
         } catch (error) {
@@ -5537,8 +6365,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Sort rows
         rows.sort((a, b) => {
-            const aText = a.cells[columnIndex]?.textContent.trim() || '';
-            const bText = b.cells[columnIndex]?.textContent.trim() || '';
+            let aText = a.cells[columnIndex]?.textContent.trim() || '';
+            let bText = b.cells[columnIndex]?.textContent.trim() || '';
+            
+            if (tableId === 'users-table') {
+                if (columnIndex === 0) {
+                    aText = a.getAttribute('data-original-name') || aText;
+                    bText = b.getAttribute('data-original-name') || bText;
+                } else if (columnIndex === 2) {
+                    aText = a.getAttribute('data-original-type') || aText;
+                    bText = b.getAttribute('data-original-type') || bText;
+                }
+            }
             
             let comparison = 0;
             if (dataType === 'number') {
@@ -5581,6 +6419,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             liveCounter.style.color = count > 0 ? '#f59e0b' : '#08D488';
             liveCounter.style.borderColor = count > 0 ? 'rgba(245, 158, 11, 0.3)' : 'rgba(8, 212, 136, 0.3)';
         }
+        const pendingStatusPill = document.getElementById('pending-status-pill');
+        if (pendingStatusPill) {
+            if (count > 0) {
+                pendingStatusPill.textContent = 'Action Required';
+                pendingStatusPill.className = 'stat-badge stat-badge-amber';
+            } else {
+                pendingStatusPill.textContent = 'Clear';
+                pendingStatusPill.className = 'stat-badge stat-badge-emerald';
+            }
+        }
+        const batchBtn = document.getElementById('batch-approve-all-btn');
+        const batchCountPill = document.getElementById('batch-approve-count-pill');
+        if (batchCountPill) batchCountPill.textContent = count;
+        if (batchBtn) {
+            if (count > 0) {
+                batchBtn.disabled = false;
+                batchBtn.classList.remove('is-empty');
+                batchBtn.classList.add('has-pending');
+                batchBtn.title = `Approve all ${count} pending submissions at once`;
+            } else {
+                batchBtn.disabled = true;
+                batchBtn.classList.remove('has-pending');
+                batchBtn.classList.add('is-empty');
+                batchBtn.title = 'No pending submissions to approve';
+            }
+        }
     }
 
     // ===== Pending Approvals Cache Helpers (Instant Render Strategy) =====
@@ -5601,7 +6465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 count: data.length,
                 lastCached: new Date().toISOString()
             }));
-            console.log(`✓ Cached ${data.length} pending submissions`);
+            console.log(`Cached ${data.length} pending submissions`);
         } catch (e) {
             console.warn('Error saving pendingApprovals cache:', e);
         }
@@ -5650,7 +6514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updatePendingCounters(allPendingApprovals.length);
             filterAndRenderApprovals();
 
-            if (showFeedback) showToast('Pending submissions refreshed', '✓');
+            if (showFeedback) showToast('Pending submissions refreshed');
         } catch (err) {
             console.error('loadPendingApprovalsData error:', err);
             if (!renderedFromCache && tbody) {
@@ -5686,7 +6550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (allPendingApprovals.length === 0) {
-            if (emptyState) emptyState.style.display = 'block';
+            if (emptyState) emptyState.style.display = 'flex';
             if (tableContainer) tableContainer.style.display = 'none';
             return;
         }
@@ -5791,26 +6655,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).join('');
     }
 
-    function openApprovalReviewModal(id) {
+    function openApprovalReviewModal(id, customData = null) {
         const item = allPendingApprovals.find(x => x.id === id);
-        if (!item) {
+        if (!item && !customData) {
             showToast('Submission not found.', '❌');
             return;
         }
 
-        document.getElementById('approval-pending-id').value = item.id;
-        document.getElementById('approval-title').value = item.title || '';
-        document.getElementById('approval-authors').value = Array.isArray(item.authors) ? item.authors.join(', ') : (item.authors || '');
-        document.getElementById('approval-program').value = item.program || 'BSIT';
-        document.getElementById('approval-year').value = item.year || new Date().getFullYear();
-        document.getElementById('approval-adviser').value = item.adviser || '';
-        document.getElementById('approval-keywords').value = Array.isArray(item.keywords) ? item.keywords.join(', ') : (item.keywords || '');
-        document.getElementById('approval-abstract').value = item.abstract || '';
+        const data = customData || item;
+        document.getElementById('approval-pending-id').value = id;
+        document.getElementById('approval-title').value = data.title || '';
+        document.getElementById('approval-authors').value = Array.isArray(data.authors) ? data.authors.join(', ') : (data.authors || '');
+        document.getElementById('approval-program').value = data.program || 'BSIT';
+        document.getElementById('approval-year').value = data.year || new Date().getFullYear();
+        document.getElementById('approval-adviser').value = data.adviser || '';
+        document.getElementById('approval-keywords').value = Array.isArray(data.keywords) ? data.keywords.join(', ') : (data.keywords || '');
+        document.getElementById('approval-abstract').value = data.abstract || '';
 
         const nameEl = document.getElementById('approval-submitter-name');
-        if (nameEl) nameEl.textContent = item.submittedByName || 'Librarian';
+        if (nameEl) nameEl.textContent = item?.submittedByName || 'Librarian';
         const emailEl = document.getElementById('approval-submitter-email');
-        if (emailEl) emailEl.textContent = item.submittedByEmail || 'N/A';
+        if (emailEl) emailEl.textContent = item?.submittedByEmail || 'N/A';
         const dateEl = document.getElementById('approval-submitted-date');
         if (dateEl) dateEl.textContent = formatDate(item.createdAt);
 
@@ -5879,7 +6744,631 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    async function approvePendingSubmission(id, customData = null) {
+    function closeApprovalDuplicateConfirmModal() {
+        const modal = document.getElementById('approval-duplicate-confirm-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+
+    async function ensureProjectsDataLoaded() {
+        if (!allProjectsData || allProjectsData.length === 0) {
+            const cached = loadProjectsFromCache();
+            if (cached && cached.length > 0) {
+                allProjectsData = cached;
+            } else if (typeof db !== 'undefined') {
+                try {
+                    const snap = await db.collection('projects').get();
+                    allProjectsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                } catch (e) {
+                    console.warn('Could not fetch projects for duplicate check:', e);
+                }
+            }
+        }
+    }
+
+    function normalizeDuplicateString(str) {
+        if (!str) return '';
+        return String(str).toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    }
+
+    function findPotentialDuplicates(candidate, candidateId = null) {
+        if (!candidate || !candidate.title) return [];
+        const normCandTitle = normalizeDuplicateString(candidate.title);
+        if (!normCandTitle) return [];
+
+        const candAuthors = (Array.isArray(candidate.authors) ? candidate.authors : String(candidate.authors || '').split(','))
+            .map(a => a.trim().toLowerCase())
+            .filter(Boolean);
+        const candProgram = (candidate.program || '').trim().toLowerCase();
+        const candYear = String(candidate.year || '').trim();
+        const candAdviser = normalizeDuplicateString(candidate.adviser);
+
+        const duplicates = [];
+
+        // 1. Check existing published/completed projects in catalog
+        const completedProjects = Array.isArray(allProjectsData) ? allProjectsData : [];
+        completedProjects.forEach(proj => {
+            const normProjTitle = normalizeDuplicateString(proj.title);
+            if (!normProjTitle) return;
+
+            const isExactTitle = normCandTitle === normProjTitle;
+            const isTitleSimilar = !isExactTitle && normCandTitle.length >= 3 && normProjTitle.length >= 3 &&
+                (normCandTitle.includes(normProjTitle) || normProjTitle.includes(normCandTitle));
+
+            const projAuthors = (Array.isArray(proj.authors) ? proj.authors : String(proj.authors || '').split(','))
+                .map(a => a.trim().toLowerCase())
+                .filter(Boolean);
+            const commonAuthors = candAuthors.filter(ca => projAuthors.some(pa => pa.includes(ca) || ca.includes(pa)));
+            const isProgramMatch = candProgram && proj.program && candProgram === String(proj.program).trim().toLowerCase();
+            const isYearMatch = candYear && proj.year && candYear === String(proj.year).trim();
+            const isAdviserMatch = candAdviser && proj.adviser && candAdviser === normalizeDuplicateString(proj.adviser);
+
+            let isDuplicate = false;
+            if (isExactTitle) isDuplicate = true;
+            else if (isTitleSimilar && (isProgramMatch || isYearMatch || commonAuthors.length > 0)) isDuplicate = true;
+            else if (isProgramMatch && isYearMatch && commonAuthors.length > 0 && commonAuthors.length === candAuthors.length) isDuplicate = true;
+
+            if (isDuplicate) {
+                let matchCount = 0;
+                if (isExactTitle || isTitleSimilar) matchCount++;
+                if (isProgramMatch) matchCount++;
+                if (isYearMatch) matchCount++;
+                if (commonAuthors.length > 0) matchCount++;
+                if (isAdviserMatch) matchCount++;
+
+                duplicates.push({
+                    targetId: proj.id,
+                    targetTitle: proj.title || 'Untitled',
+                    targetAuthors: Array.isArray(proj.authors) ? proj.authors.join(', ') : (proj.authors || 'N/A'),
+                    targetProgram: proj.program || 'N/A',
+                    targetYear: proj.year || 'N/A',
+                    targetAdviser: proj.adviser || '',
+                    source: 'Completed Projects Catalog',
+                    statusBadge: 'Completed',
+                    statusBadgeClass: 'adc-badge-emerald',
+                    isExactTitle,
+                    isTitleSimilar,
+                    commonFieldCount: matchCount,
+                    commonFields: {
+                        title: isExactTitle ? 'Exact Title Match' : (isTitleSimilar ? 'Similar Title' : null),
+                        program: isProgramMatch ? proj.program : null,
+                        year: isYearMatch ? proj.year : null,
+                        authors: commonAuthors.length > 0 ? commonAuthors.join(', ') : null,
+                        adviser: isAdviserMatch ? proj.adviser : null
+                    }
+                });
+            }
+        });
+
+        // 2. Check other pending submissions in queue
+        const pendingSubmissions = Array.isArray(allPendingApprovals) ? allPendingApprovals : [];
+        pendingSubmissions.forEach(pend => {
+            if (candidateId && pend.id === candidateId) return; // skip self
+            const normPendTitle = normalizeDuplicateString(pend.title);
+            if (!normPendTitle) return;
+
+            const isExactTitle = normCandTitle === normPendTitle;
+            const isTitleSimilar = !isExactTitle && normCandTitle.length >= 3 && normPendTitle.length >= 3 &&
+                (normCandTitle.includes(normPendTitle) || normPendTitle.includes(normCandTitle));
+
+            const pendAuthors = (Array.isArray(pend.authors) ? pend.authors : String(pend.authors || '').split(','))
+                .map(a => a.trim().toLowerCase())
+                .filter(Boolean);
+            const commonAuthors = candAuthors.filter(ca => pendAuthors.some(pa => pa.includes(ca) || ca.includes(pa)));
+            const isProgramMatch = candProgram && pend.program && candProgram === String(pend.program).trim().toLowerCase();
+            const isYearMatch = candYear && pend.year && candYear === String(pend.year).trim();
+            const isAdviserMatch = candAdviser && pend.adviser && candAdviser === normalizeDuplicateString(pend.adviser);
+
+            let isDuplicate = false;
+            if (isExactTitle) isDuplicate = true;
+            else if (isTitleSimilar && (isProgramMatch || isYearMatch || commonAuthors.length > 0)) isDuplicate = true;
+            else if (isProgramMatch && isYearMatch && commonAuthors.length > 0) isDuplicate = true;
+
+            if (isDuplicate) {
+                let matchCount = 0;
+                if (isExactTitle || isTitleSimilar) matchCount++;
+                if (isProgramMatch) matchCount++;
+                if (isYearMatch) matchCount++;
+                if (commonAuthors.length > 0) matchCount++;
+                if (isAdviserMatch) matchCount++;
+
+                duplicates.push({
+                    targetId: pend.id,
+                    targetTitle: pend.title || 'Untitled',
+                    targetAuthors: Array.isArray(pend.authors) ? pend.authors.join(', ') : (pend.authors || 'N/A'),
+                    targetProgram: pend.program || 'N/A',
+                    targetYear: pend.year || 'N/A',
+                    targetAdviser: pend.adviser || '',
+                    source: 'Pending Submissions Queue',
+                    statusBadge: 'Pending',
+                    statusBadgeClass: 'adc-badge-amber',
+                    isExactTitle,
+                    isTitleSimilar,
+                    commonFieldCount: matchCount,
+                    commonFields: {
+                        title: isExactTitle ? 'Exact Title Match' : (isTitleSimilar ? 'Similar Title' : null),
+                        program: isProgramMatch ? pend.program : null,
+                        year: isYearMatch ? pend.year : null,
+                        authors: commonAuthors.length > 0 ? commonAuthors.join(', ') : null,
+                        adviser: isAdviserMatch ? pend.adviser : null
+                    }
+                });
+            }
+        });
+
+        // Sort: exact title matches first, then by match count descending
+        duplicates.sort((a, b) => {
+            if (a.isExactTitle && !b.isExactTitle) return -1;
+            if (!a.isExactTitle && b.isExactTitle) return 1;
+            return b.commonFieldCount - a.commonFieldCount;
+        });
+
+        return duplicates;
+    }
+
+    async function openApprovalConfirmationDialog(id, customData = null) {
+        closeApprovalReviewModal();
+        await ensureProjectsDataLoaded();
+        const item = allPendingApprovals.find(x => x.id === id);
+        if (!item && !customData) {
+            showToast('Submission not found.', '❌');
+            return;
+        }
+
+        const cand = {
+            id,
+            title: (customData?.title || item?.title || 'Untitled').trim(),
+            abstract: (customData?.abstract || item?.abstract || '').trim(),
+            authors: customData?.authors || (Array.isArray(item?.authors) ? item.authors : String(item?.authors || '').split(',').map(a => a.trim()).filter(Boolean)),
+            program: (customData?.program || item?.program || 'BSIT').trim(),
+            year: parseInt(customData?.year || item?.year, 10) || new Date().getFullYear(),
+            adviser: (customData?.adviser || item?.adviser || '').trim(),
+            submittedByName: item?.submittedByName || 'Librarian'
+        };
+
+        const duplicates = findPotentialDuplicates(cand, id);
+        const modal = document.getElementById('approval-duplicate-confirm-modal');
+        if (!modal) return;
+
+        const headerIconBadge = document.getElementById('adc-header-icon-badge');
+        const modalTitle = document.getElementById('adc-modal-title');
+        const statusPill = document.getElementById('adc-status-pill');
+        const modalSubtitle = document.getElementById('adc-modal-subtitle');
+        const modalBody = document.getElementById('adc-modal-body');
+        const evaluateBtn = document.getElementById('adc-evaluate-btn');
+        const approveBtn = document.getElementById('adc-approve-btn');
+        const approveBtnText = document.getElementById('adc-approve-btn-text');
+        const cancelBtn = document.getElementById('adc-cancel-btn');
+        const closeBtn = document.getElementById('adc-close-btn');
+
+        const candAuthorsStr = Array.isArray(cand.authors) ? cand.authors.join(', ') : cand.authors;
+
+        if (duplicates.length > 0) {
+            // DUPLICATE DETECTED!
+            headerIconBadge.className = 'adc-icon-badge badge-amber';
+            headerIconBadge.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            `;
+            modalTitle.textContent = 'Are you sure you want to approve?';
+            statusPill.className = 'adc-status-pill pill-amber';
+            statusPill.textContent = '⚠️ Duplicate Detected';
+            modalSubtitle.textContent = `A potential duplicate or existing project was detected. You have the freedom to evaluate and modify details per field before approving, or approve anyway.`;
+
+            let activeDupIdx = 0;
+
+            function renderSingleComparison(dupIdx) {
+                activeDupIdx = dupIdx;
+                const currentDup = duplicates[dupIdx];
+
+                let tabsHtml = '';
+                if (duplicates.length > 1) {
+                    tabsHtml = `
+                        <div class="adc-match-tabs" role="tablist">
+                            <span style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-right:0.25rem;">Compare With:</span>
+                            ${duplicates.map((d, i) => `
+                                <button type="button" class="adc-match-tab-btn ${i === activeDupIdx ? 'is-active' : ''}" data-dup-idx="${i}" role="tab" aria-selected="${i === activeDupIdx}">
+                                    ${d.source.includes('Completed') ? '🏛️ Catalog' : '⏳ Pending Queue'}: "${escapeHtml(d.targetTitle.slice(0, 18))}${d.targetTitle.length > 18 ? '...' : ''}" (${d.commonFieldCount} match${d.commonFieldCount > 1 ? 'es' : ''})
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                modalBody.innerHTML = `
+                    <div class="adc-alert-banner">
+                        <div class="adc-alert-icon">⚠️</div>
+                        <div class="adc-alert-text">
+                            <strong>Duplicate / Common Value Alert (${duplicates.length} match${duplicates.length > 1 ? 'es' : ''} found)</strong>
+                            <span>This submission shares identical or similar values with an existing project in the <strong>${escapeHtml(currentDup.source)}</strong>. You have the free will to evaluate and adjust any field or proceed with approval.</span>
+                        </div>
+                    </div>
+
+                    ${tabsHtml}
+
+                    <div class="adc-comparison-grid">
+                        <!-- Incoming Submission Card -->
+                        <div class="adc-project-card adc-card-incoming">
+                            <div class="adc-card-header">
+                                <span class="adc-card-tag adc-tag-incoming">Incoming Submission</span>
+                                <span class="adc-badge adc-badge-amber">Pending Approval</span>
+                            </div>
+                            <div class="adc-card-body">
+                                <div class="adc-field-row ${currentDup.commonFields.title ? 'is-match' : ''}">
+                                    <span class="adc-field-label">Title</span>
+                                    <span class="adc-field-value adc-val-title">${escapeHtml(cand.title)}</span>
+                                    ${currentDup.commonFields.title ? `<span class="adc-match-tag">Common Title (${escapeHtml(currentDup.commonFields.title)})</span>` : ''}
+                                </div>
+                                <div class="adc-field-row ${currentDup.commonFields.authors ? 'is-match' : ''}">
+                                    <span class="adc-field-label">Authors</span>
+                                    <span class="adc-field-value">${escapeHtml(candAuthorsStr)}</span>
+                                    ${currentDup.commonFields.authors ? `<span class="adc-match-tag">Common Author: ${escapeHtml(currentDup.commonFields.authors)}</span>` : ''}
+                                </div>
+                                <div class="adc-field-subgrid">
+                                    <div class="adc-field-row ${currentDup.commonFields.program ? 'is-match' : ''}">
+                                        <span class="adc-field-label">Program</span>
+                                        <span class="adc-field-value">${escapeHtml(cand.program || 'N/A')}</span>
+                                        ${currentDup.commonFields.program ? `<span class="adc-match-tag">Same Program</span>` : ''}
+                                    </div>
+                                    <div class="adc-field-row ${currentDup.commonFields.year ? 'is-match' : ''}">
+                                        <span class="adc-field-label">Year</span>
+                                        <span class="adc-field-value">${escapeHtml(String(cand.year || 'N/A'))}</span>
+                                        ${currentDup.commonFields.year ? `<span class="adc-match-tag">Same Year</span>` : ''}
+                                    </div>
+                                </div>
+                                ${cand.adviser ? `
+                                    <div class="adc-field-row ${currentDup.commonFields.adviser ? 'is-match' : ''}">
+                                        <span class="adc-field-label">Adviser</span>
+                                        <span class="adc-field-value">${escapeHtml(cand.adviser)}</span>
+                                        ${currentDup.commonFields.adviser ? `<span class="adc-match-tag">Same Adviser</span>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Visual VS Divider -->
+                        <div class="adc-comparison-divider">
+                            <span class="adc-vs-badge">VS</span>
+                            <span class="adc-common-count">${currentDup.commonFieldCount} Match${currentDup.commonFieldCount > 1 ? 'es' : ''}</span>
+                        </div>
+
+                        <!-- Existing Project Match Card -->
+                        <div class="adc-project-card adc-card-existing">
+                            <div class="adc-card-header">
+                                <span class="adc-card-tag adc-tag-existing">Existing in Database</span>
+                                <span class="adc-badge ${currentDup.statusBadgeClass}">${escapeHtml(currentDup.source)}</span>
+                            </div>
+                            <div class="adc-card-body">
+                                <div class="adc-field-row ${currentDup.commonFields.title ? 'is-match' : ''}">
+                                    <span class="adc-field-label">Title</span>
+                                    <span class="adc-field-value adc-val-title">${escapeHtml(currentDup.targetTitle)}</span>
+                                    ${currentDup.commonFields.title ? `<span class="adc-match-tag">Common Title (${escapeHtml(currentDup.commonFields.title)})</span>` : ''}
+                                </div>
+                                <div class="adc-field-row ${currentDup.commonFields.authors ? 'is-match' : ''}">
+                                    <span class="adc-field-label">Authors</span>
+                                    <span class="adc-field-value">${escapeHtml(currentDup.targetAuthors)}</span>
+                                    ${currentDup.commonFields.authors ? `<span class="adc-match-tag">Common Author: ${escapeHtml(currentDup.commonFields.authors)}</span>` : ''}
+                                </div>
+                                <div class="adc-field-subgrid">
+                                    <div class="adc-field-row ${currentDup.commonFields.program ? 'is-match' : ''}">
+                                        <span class="adc-field-label">Program</span>
+                                        <span class="adc-field-value">${escapeHtml(currentDup.targetProgram || 'N/A')}</span>
+                                        ${currentDup.commonFields.program ? `<span class="adc-match-tag">Same Program</span>` : ''}
+                                    </div>
+                                    <div class="adc-field-row ${currentDup.commonFields.year ? 'is-match' : ''}">
+                                        <span class="adc-field-label">Year</span>
+                                        <span class="adc-field-value">${escapeHtml(String(currentDup.targetYear || 'N/A'))}</span>
+                                        ${currentDup.commonFields.year ? `<span class="adc-match-tag">Same Year</span>` : ''}
+                                    </div>
+                                </div>
+                                ${currentDup.targetAdviser ? `
+                                    <div class="adc-field-row ${currentDup.commonFields.adviser ? 'is-match' : ''}">
+                                        <span class="adc-field-label">Adviser</span>
+                                        <span class="adc-field-value">${escapeHtml(currentDup.targetAdviser)}</span>
+                                        ${currentDup.commonFields.adviser ? `<span class="adc-match-tag">Same Adviser</span>` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Wire up tab buttons
+                modalBody.querySelectorAll('.adc-match-tab-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const nextIdx = parseInt(btn.dataset.dupIdx, 10);
+                        if (!isNaN(nextIdx)) renderSingleComparison(nextIdx);
+                    };
+                });
+            }
+
+            renderSingleComparison(0);
+
+            // Show Evaluate & Edit button
+            evaluateBtn.style.display = 'inline-flex';
+            evaluateBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Evaluate &amp; Edit Details</span>
+            `;
+            evaluateBtn.onclick = () => {
+                closeApprovalDuplicateConfirmModal();
+                openApprovalReviewModal(id, cand);
+            };
+
+            // Approve anyway button
+            approveBtnText.textContent = 'Approve Anyway';
+        } else {
+            // NO DUPLICATES FOUND — CLEAN CONFIRMATION
+            headerIconBadge.className = 'adc-icon-badge badge-emerald';
+            headerIconBadge.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            `;
+            modalTitle.textContent = 'Are you sure you want to approve?';
+            statusPill.className = 'adc-status-pill pill-emerald';
+            statusPill.textContent = 'Verified Clean';
+            modalSubtitle.textContent = 'No duplicate projects were found. This project will be published to the public CTU repository.';
+
+            modalBody.innerHTML = `
+                <div class="adc-alert-banner banner-info">
+                    <div class="adc-alert-icon"></div>
+                    <div class="adc-alert-text">
+                        <strong>Ready for Publication</strong>
+                        <span>This submission has no duplicate conflicts in the published catalog or pending submissions queue.</span>
+                    </div>
+                </div>
+
+                <div class="adc-single-summary-card">
+                    <div class="adc-field-row">
+                        <span class="adc-field-label">Project Title</span>
+                        <span class="adc-field-value adc-val-title">${escapeHtml(cand.title)}</span>
+                    </div>
+                    <div class="adc-field-row">
+                        <span class="adc-field-label">Authors</span>
+                        <span class="adc-field-value">${escapeHtml(candAuthorsStr)}</span>
+                    </div>
+                    <div class="adc-field-subgrid">
+                        <div class="adc-field-row">
+                            <span class="adc-field-label">Program</span>
+                            <span class="adc-field-value">${escapeHtml(cand.program || 'N/A')}</span>
+                        </div>
+                        <div class="adc-field-row">
+                            <span class="adc-field-label">Year</span>
+                            <span class="adc-field-value">${escapeHtml(String(cand.year || 'N/A'))}</span>
+                        </div>
+                    </div>
+                    ${cand.adviser ? `
+                        <div class="adc-field-row">
+                            <span class="adc-field-label">Adviser</span>
+                            <span class="adc-field-value">${escapeHtml(cand.adviser)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            evaluateBtn.style.display = 'none';
+            approveBtnText.textContent = 'Approve & Publish';
+        }
+
+        approveBtn.onclick = async () => {
+            closeApprovalDuplicateConfirmModal();
+            await approvePendingSubmission(id, customData, true);
+        };
+
+        cancelBtn.onclick = closeApprovalDuplicateConfirmModal;
+        closeBtn.onclick = closeApprovalDuplicateConfirmModal;
+        document.getElementById('adc-modal-overlay').onclick = closeApprovalDuplicateConfirmModal;
+
+        modal.style.display = 'flex';
+        void modal.offsetHeight;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function openBatchApprovalConfirmationDialog(batchConflicts, cleanItems) {
+        closeApprovalReviewModal();
+        const modal = document.getElementById('approval-duplicate-confirm-modal');
+        if (!modal) return;
+
+        const headerIconBadge = document.getElementById('adc-header-icon-badge');
+        const modalTitle = document.getElementById('adc-modal-title');
+        const statusPill = document.getElementById('adc-status-pill');
+        const modalSubtitle = document.getElementById('adc-modal-subtitle');
+        const modalBody = document.getElementById('adc-modal-body');
+        const evaluateBtn = document.getElementById('adc-evaluate-btn');
+        const approveBtn = document.getElementById('adc-approve-btn');
+        const approveBtnText = document.getElementById('adc-approve-btn-text');
+        const cancelBtn = document.getElementById('adc-cancel-btn');
+        const closeBtn = document.getElementById('adc-close-btn');
+
+        const totalSubmissions = batchConflicts.length + cleanItems.length;
+
+        if (batchConflicts.length > 0) {
+            headerIconBadge.className = 'adc-icon-badge badge-amber';
+            headerIconBadge.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            `;
+            modalTitle.textContent = `Are you sure you want to approve all (${totalSubmissions}) submissions?`;
+            statusPill.className = 'adc-status-pill pill-amber';
+            statusPill.textContent = `⚠️ ${batchConflicts.length} Conflict${batchConflicts.length > 1 ? 's' : ''} Detected`;
+            modalSubtitle.textContent = `Potential duplicates were found in ${batchConflicts.length} of ${totalSubmissions} pending submissions. You have the freedom to evaluate individual conflicting items, approve only clean submissions, or approve all anyway.`;
+
+            modalBody.innerHTML = `
+                <div class="adc-alert-banner">
+                    <div class="adc-alert-icon">⚠️</div>
+                    <div class="adc-alert-text">
+                        <strong>Batch Approval Conflict Warning</strong>
+                        <span>${batchConflicts.length} of ${totalSubmissions} submissions share common or identical values with existing projects in the catalog or pending queue. You have the freedom to evaluate any project below before proceeding.</span>
+                    </div>
+                </div>
+
+                <div class="adc-batch-conflicts-wrap">
+                    ${batchConflicts.map(c => {
+                        const cand = c.candidate;
+                        const primaryDup = c.duplicates[0];
+                        const candAuthors = Array.isArray(cand.authors) ? cand.authors.join(', ') : (cand.authors || 'N/A');
+                        return `
+                            <div class="adc-conflict-item">
+                                <div class="adc-conflict-info">
+                                    <div class="adc-conflict-title">${escapeHtml(cand.title || 'Untitled')}</div>
+                                    <div class="adc-conflict-meta">
+                                        <span class="adc-badge adc-badge-amber">Program: ${escapeHtml(cand.program || 'N/A')}</span>
+                                        <span class="adc-badge adc-badge-neutral">Year: ${escapeHtml(String(cand.year || 'N/A'))}</span>
+                                        <span>Authors: ${escapeHtml(candAuthors)}</span>
+                                    </div>
+                                    <div style="font-size:0.75rem;color:#f59e0b;margin-top:0.25rem;">
+                                        Matches <strong>${escapeHtml(primaryDup.targetTitle)}</strong> (${primaryDup.source} • ${primaryDup.commonFieldCount} common field${primaryDup.commonFieldCount > 1 ? 's' : ''})
+                                    </div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+                                    <button type="button" class="adc-btn adc-btn-evaluate" style="height:32px;padding:0 0.85rem;font-size:0.8rem;" data-eval-id="${escapeHtml(cand.id)}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        <span>Evaluate</span>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+
+                ${cleanItems.length > 0 ? `
+                    <div style="margin-top:0.75rem;padding:0.65rem 0.9rem;background:rgba(16,185,129,0.08);border:1px dashed rgba(16,185,129,0.3);border-radius:8px;font-size:0.82rem;color:var(--text-secondary);display:flex;align-items:center;gap:0.5rem;">
+                        <span><strong>${cleanItems.length} submission${cleanItems.length > 1 ? 's' : ''}</strong> verified clean with no duplicate conflicts detected.</span>
+                    </div>
+                ` : ''}
+            `;
+
+            modalBody.querySelectorAll('[data-eval-id]').forEach(btn => {
+                btn.onclick = () => {
+                    const evalId = btn.getAttribute('data-eval-id');
+                    closeApprovalDuplicateConfirmModal();
+                    openApprovalReviewModal(evalId);
+                };
+            });
+
+            if (cleanItems.length > 0) {
+                evaluateBtn.style.display = 'inline-flex';
+                evaluateBtn.innerHTML = `<span>Approve Clean Only (${cleanItems.length})</span>`;
+                evaluateBtn.onclick = () => executeBatchApproval(cleanItems);
+            } else {
+                evaluateBtn.style.display = 'none';
+            }
+
+            approveBtnText.textContent = `Approve All Anyway (${totalSubmissions})`;
+            approveBtn.onclick = () => executeBatchApproval([...allPendingApprovals]);
+        } else {
+            // CLEAN BATCH
+            headerIconBadge.className = 'adc-icon-badge badge-emerald';
+            headerIconBadge.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            `;
+            modalTitle.textContent = `Are you sure you want to approve all (${totalSubmissions}) submissions?`;
+            statusPill.className = 'adc-status-pill pill-emerald';
+            statusPill.textContent = `All ${totalSubmissions} Verified Clean`;
+            modalSubtitle.textContent = `No duplicate projects were detected across all ${totalSubmissions} pending submissions. All are ready for publication.`;
+
+            modalBody.innerHTML = `
+                <div class="adc-alert-banner banner-info">
+                    <div class="adc-alert-icon"></div>
+                    <div class="adc-alert-text">
+                        <strong>All Submissions Ready for Publication</strong>
+                        <span>All ${totalSubmissions} projects have been verified against the completed projects catalog and pending submissions queue with zero duplicate conflicts found.</span>
+                    </div>
+                </div>
+
+                <div class="adc-single-summary-card">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-weight:700;color:var(--text-primary);">Total Submissions to Publish</span>
+                        <span style="font-size:1.15rem;font-weight:800;color:#10b981;">${totalSubmissions} Projects</span>
+                    </div>
+                    <p style="margin:0;font-size:0.85rem;color:var(--text-secondary);line-height:1.5;">
+                        Confirming will publish all items to the public CTU undergraduate theses repository and archive them from the librarian submission queue.
+                    </p>
+                </div>
+            `;
+
+            evaluateBtn.style.display = 'none';
+            approveBtnText.textContent = `Approve & Publish All (${totalSubmissions})`;
+            approveBtn.onclick = () => executeBatchApproval(cleanItems);
+        }
+
+        cancelBtn.onclick = closeApprovalDuplicateConfirmModal;
+        closeBtn.onclick = closeApprovalDuplicateConfirmModal;
+        document.getElementById('adc-modal-overlay').onclick = closeApprovalDuplicateConfirmModal;
+
+        modal.style.display = 'flex';
+        void modal.offsetHeight;
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function executeBatchApproval(itemsToApprove) {
+        closeApprovalDuplicateConfirmModal();
+        if (!itemsToApprove || !itemsToApprove.length) {
+            showToast('No items selected for approval.', 'ℹ️');
+            return;
+        }
+
+        const batchBtn = document.getElementById('batch-approve-all-btn');
+        if (batchBtn) {
+            batchBtn.disabled = true;
+            batchBtn.textContent = 'Approving All...';
+        }
+
+        let successCount = 0;
+        const total = itemsToApprove.length;
+
+        for (const item of itemsToApprove) {
+            try {
+                await approvePendingSubmission(item.id, null, true); // bypassConfirm = true
+                successCount++;
+            } catch (e) {
+                console.error(`Batch approval error on ${item.id}:`, e);
+            }
+        }
+
+        if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+            window.ActivityService.logAdmin(
+                'batch_approved',
+                `${successCount} Projects`,
+                `Batch approved and published ${successCount} of ${total} pending submissions publicly.`
+            );
+        }
+
+        showToast(`Successfully approved and published ${successCount} of ${total} projects!`, '✅');
+        if (batchBtn) {
+            batchBtn.disabled = false;
+            batchBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <span>Approve All</span>
+                <span class="batch-count-pill" id="batch-approve-count-pill">${allPendingApprovals.length}</span>`;
+        }
+        updatePendingCounters(allPendingApprovals.length);
+    }
+
+    async function approvePendingSubmission(id, customData = null, bypassConfirm = false) {
+        if (!bypassConfirm) {
+            await openApprovalConfirmationDialog(id, customData);
+            return;
+        }
         const item = allPendingApprovals.find(x => x.id === id);
         if (!item && !customData) {
             showToast('Submission not found.', '❌');
@@ -5972,13 +7461,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn('Pinecone sync trigger failed:', syncErr);
             }
 
-            // 4. Log admin audit activity
+            // 4. Log admin audit activity and dual-log into submitting student's personal activity feed
             if (typeof ActivityService !== 'undefined') {
-                ActivityService.logAdmin('project_approved', `Approved "${title}" submitted by ${approvedProject.submittedByName}`);
+                ActivityService.logAdmin(
+                    'project_approved',
+                    title,
+                    `Approved and published "${title}" submitted by ${approvedProject.submittedByName || 'Student'}.`,
+                    { projectId: docRef.id, submittedBy: approvedProject.submittedBy, program: approvedProject.program, year: approvedProject.year }
+                );
+
+                if (approvedProject.submittedBy && typeof ActivityService.logForUser === 'function') {
+                    ActivityService.logForUser(approvedProject.submittedBy, {
+                        category: ActivityService.CATEGORIES.PROJECT,
+                        action: 'submission_approved',
+                        title: `Capstone Submission Approved: "${title}"`,
+                        details: `Your undergraduate thesis submission was reviewed, approved, and published publicly by Administrator.`,
+                        userEmail: approvedProject.submittedByEmail || '',
+                        userName: approvedProject.submittedByName || 'Student',
+                        metadata: {
+                            projectId: docRef.id,
+                            title,
+                            program: approvedProject.program,
+                            year: approvedProject.year,
+                            approvedByRole: 'admin'
+                        }
+                    });
+                }
             }
 
             closeApprovalReviewModal();
-            showToast(`✓ Project "${title}" approved and published publicly!`, '✅');
+            showToast(`Project "${title}" approved and published publicly!`);
 
             // 5. Update local state & persistent cache optimistically
             allPendingApprovals = allPendingApprovals.filter(x => x.id !== id);
@@ -6042,7 +7554,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             await db.collection('pendingProjects').doc(id).delete();
 
             if (typeof ActivityService !== 'undefined') {
-                ActivityService.logAdmin('project_rejected', `Rejected submission: "${title}"`);
+                ActivityService.logAdmin(
+                    'project_rejected',
+                    title,
+                    `Rejected and discarded manuscript submission: "${title}".`,
+                    { submissionId: id, submittedBy: item?.submittedBy }
+                );
+
+                if (item && item.submittedBy && typeof ActivityService.logForUser === 'function') {
+                    ActivityService.logForUser(item.submittedBy, {
+                        category: ActivityService.CATEGORIES.PROJECT,
+                        action: 'submission_rejected',
+                        title: `Capstone Submission Rejected: "${title}"`,
+                        details: `Your manuscript submission was rejected and removed from review queue by Administrator.`,
+                        userEmail: item.submittedByEmail || '',
+                        userName: item.submittedByName || 'Student',
+                        metadata: {
+                            submissionId: id,
+                            title,
+                            rejectedByRole: 'admin'
+                        }
+                    });
+                }
             }
 
             closeApprovalReviewModal();
@@ -6061,49 +7594,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function batchApproveAllPending() {
-        if (!allPendingApprovals.length) {
+        if (!allPendingApprovals || !allPendingApprovals.length) {
             showToast('No pending submissions to approve.', 'ℹ️');
             return;
         }
 
-        let confirmed = false;
-        const total = allPendingApprovals.length;
-        if (typeof ModalDialog !== 'undefined' && ModalDialog.confirm) {
-            confirmed = await ModalDialog.confirm({
-                title: 'Approve All Submissions',
-                message: `Are you sure you want to approve all ${total} pending project submissions at once and publish them to the repository?`,
-                confirmText: `Approve All (${total})`,
-                confirmClass: 'btn-primary',
-                icon: 'question'
-            });
-        } else {
-            confirmed = confirm(`Approve all ${total} pending submissions at once?`);
-        }
+        await ensureProjectsDataLoaded();
 
-        if (!confirmed) return;
+        const batchConflicts = [];
+        const cleanItems = [];
 
-        const batchBtn = document.getElementById('batch-approve-all-btn');
-        if (batchBtn) { batchBtn.disabled = true; batchBtn.textContent = 'Approving All...'; }
-
-        let successCount = 0;
-        const itemsToApprove = [...allPendingApprovals];
-
-        for (const item of itemsToApprove) {
-            try {
-                await approvePendingSubmission(item.id);
-                successCount++;
-            } catch (e) {
-                console.error(`Batch approval error on ${item.id}:`, e);
+        allPendingApprovals.forEach(cand => {
+            const dups = findPotentialDuplicates(cand, cand.id);
+            if (dups && dups.length > 0) {
+                batchConflicts.push({ candidate: cand, duplicates: dups });
+            } else {
+                cleanItems.push(cand);
             }
-        }
+        });
 
-        showToast(`Successfully approved and published ${successCount} of ${total} projects!`, '✅');
-        if (batchBtn) {
-            batchBtn.disabled = false;
-            batchBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                Approve All`;
-        }
+        openBatchApprovalConfirmationDialog(batchConflicts, cleanItems);
     }
 
     function initPendingApprovals() {
@@ -6165,6 +7675,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.__adminEvaluateSubmission = (id) => openApprovalReviewModal(id);
         window.__adminQuickApproveSubmission = (id) => approvePendingSubmission(id);
         window.__adminQuickRejectSubmission = (id) => rejectPendingSubmission(id);
+
+        // Global Escape key handler for duplicate confirmation modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const dupModal = document.getElementById('approval-duplicate-confirm-modal');
+                if (dupModal && dupModal.classList.contains('active')) {
+                    closeApprovalDuplicateConfirmModal();
+                }
+            }
+        });
         window.__adminToggleLockPendingProject = async (id, lockState) => {
             try {
                 const isLock = Boolean(lockState);
@@ -6190,7 +7710,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (typeof ActivityService !== 'undefined') {
-                    ActivityService.logAdmin('project_lock_toggle', `${isLock ? 'Locked' : 'Unlocked'} pending project: ${item?.title || id}`);
+                    ActivityService.logAdmin('project_lock_toggle', item?.title || id, `${isLock ? 'Locked' : 'Unlocked'} pending project: ${item?.title || id}`);
+
+                    if (item && item.submittedBy && typeof ActivityService.logForUser === 'function') {
+                        ActivityService.logForUser(item.submittedBy, {
+                            category: ActivityService.CATEGORIES.PROJECT,
+                            action: isLock ? 'project_locked' : 'project_unlocked',
+                            title: isLock ? `Pending Submission Locked: "${item.title || id}"` : `Pending Submission Unlocked: "${item.title || id}"`,
+                            details: isLock ? 'Administrator placed an editing lock on your pending submission.' : 'Administrator released editing lock on your pending submission.',
+                            userEmail: item.submittedByEmail || '',
+                            userName: item.submittedByName || 'Student',
+                            metadata: { projectId: id, isLock }
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('toggleLockPendingProject error:', err);
@@ -6224,7 +7756,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (typeof ActivityService !== 'undefined') {
-                    ActivityService.logAdmin('project_lock_toggle', `${isLock ? 'Locked' : 'Unlocked'} published project: ${item?.title || id}`);
+                    ActivityService.logAdmin('project_lock_toggle', item?.title || id, `${isLock ? 'Locked' : 'Unlocked'} published project: ${item?.title || id}`);
+
+                    if (item && item.submittedBy && typeof ActivityService.logForUser === 'function') {
+                        ActivityService.logForUser(item.submittedBy, {
+                            category: ActivityService.CATEGORIES.PROJECT,
+                            action: isLock ? 'project_locked' : 'project_unlocked',
+                            title: isLock ? `Published Project Locked: "${item.title || id}"` : `Published Project Unlocked: "${item.title || id}"`,
+                            details: isLock ? 'Administrator locked cataloging and modifications on this thesis.' : 'Administrator enabled cataloging and modifications on this thesis.',
+                            userEmail: item.submittedByEmail || '',
+                            userName: item.submittedByName || 'Student',
+                            metadata: { projectId: id, isLock }
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('toggleLockProject error:', err);
@@ -6257,6 +7801,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 saveProjectsToCache(allProjectsData);
                 const tbody = document.getElementById('projects-table-body');
                 if (tbody) renderProjectsTablePaginated(tbody);
+
+                if (typeof ActivityService !== 'undefined') {
+                    ActivityService.logAdmin('lock_released', item?.title || id, `Admin manually broke cataloging/editing lock on "${item?.title || id}".`);
+                }
 
                 showToast('Session lock released successfully.', '🔓');
             } catch (err) {
@@ -6552,7 +8100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (pwd === confirm) {
-            librarianPwdMatchHint.textContent = '✓ Passwords match';
+            librarianPwdMatchHint.textContent = 'Passwords match';
             librarianPwdMatchHint.className = 'pform-match-feedback match';
         } else {
             librarianPwdMatchHint.textContent = '✗ Passwords do not match';
@@ -6690,7 +8238,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const result = await response.json().catch(() => ({ success: false, message: 'Backend endpoint returned ' + response.status }));
                 if (response.ok && result.success) {
-                    console.log('✓ Librarian created successfully via backend API');
+                    console.log('Librarian created successfully via backend API');
                     creationSuccess = true;
                     createdUserRecord = result.user || { uid: 'lib_' + Date.now(), email, fullName: name, userType: 'librarian' };
                 } else {
@@ -6747,7 +8295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             fullName: name,
                             userType: 'librarian'
                         };
-                        console.log('✓ Librarian created successfully via secondary client instance');
+                        console.log('Librarian created successfully via secondary client instance');
                     } finally {
                         await secondaryApp.delete();
                     }
@@ -6780,12 +8328,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 // Log system activity if ActivityService is available
                 try {
-                    if (window.ActivityService && typeof window.ActivityService.logActivity === 'function') {
-                        window.ActivityService.logActivity('account_created', {
-                            title: 'Created Librarian Account',
-                            description: `Admin created librarian profile for ${name} (${email})`,
+                    if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                        window.ActivityService.logAdmin('librarian_created', name, `Admin created librarian profile for ${name} (${email})`, {
                             targetEmail: email,
                             role: 'librarian'
+                        });
+                    }
+
+                    const targetUid = createdUserRecord?.uid || email;
+                    if (targetUid && window.ActivityService && typeof window.ActivityService.logForUser === 'function') {
+                        window.ActivityService.logForUser(targetUid, {
+                            category: 'auth',
+                            action: 'account_created',
+                            title: 'Librarian Account Provisioned',
+                            details: 'Administrator initialized your RE-CAPS librarian account.',
+                            userName: name,
+                            userEmail: email,
+                            userRole: 'librarian'
                         });
                     }
                 } catch (logErr) {
@@ -7837,6 +9396,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Invalidate cache
             invalidateCache();
+
+            // Log admin activity
+            if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
+                window.ActivityService.logAdmin(
+                    'bulk_import',
+                    `${successCount} Projects`,
+                    `Bulk imported ${successCount} capstone manuscript(s) across ${bulkImportBatches.length} batch(es). Errors encountered: ${errorCount}.`,
+                    { successCount, errorCount, batchCount: bulkImportBatches.length }
+                );
+            }
             
             // Show final toast
             if (successCount > 0) {
@@ -7879,7 +9448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     bulkImportBatches = restored;
                     updateBatchesUI();
                     showToast('Draft restored ✨', 'ℹ️');
-                    console.log('✓ Bulk import draft loaded:', bulkImportBatches.length, 'batches');
+                    console.log('Bulk import draft loaded:', bulkImportBatches.length, 'batches');
                 }
             } catch (error) {
                 console.warn('Failed to load bulk import draft:', error);

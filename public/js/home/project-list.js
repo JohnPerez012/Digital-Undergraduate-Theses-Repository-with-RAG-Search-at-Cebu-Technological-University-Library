@@ -307,8 +307,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     savedProjectsFull.push({
                         id: project.id,
                         title: project.title,
+                        authors: project.authors || project.author || (project.rawData && (project.rawData.authors || project.rawData.author)) || [],
                         year: project.year,
                         program: project.program,
+                        adviser: project.adviser || project.advisor || (project.rawData && (project.rawData.adviser || project.rawData.advisor)) || '',
+                        abstract: project.abstract || (project.rawData && project.rawData.abstract) || '',
+                        department: project.department || (project.rawData && project.rawData.department) || '',
                         rawData: project
                     });
                 }
@@ -611,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!rtdbData) {
                 // If RTDB is temporarily unreachable, trust fresh local cache
                 if (isRecent && cachedCount > 0) {
-                    console.log('✓ RTDB offline, using fresh local cache');
+                    console.log('RTDB offline, using fresh local cache');
                     return true;
                 }
                 return false;
@@ -633,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
             
-            console.log('✓ Cache is up-to-date!');
+            console.log('Cache is up-to-date!');
             return true;
             
         } catch (error) {
@@ -651,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!cachedProjects) return null;
             
             const projects = JSON.parse(cachedProjects);
-            console.log(`✓ Loaded ${projects.length} projects from cache`);
+            console.log(`Loaded ${projects.length} projects from cache`);
             return projects;
             
         } catch (error) {
@@ -692,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save metadata
             localStorage.setItem('projectsMetadata', JSON.stringify(metadata));
             
-            console.log(`✓ Cached ${projects.length} projects with metadata:`, metadata);
+            console.log(`Cached ${projects.length} projects with metadata:`, metadata);
             
             // Ensure UI counter updates immediately
             const countElement = document.getElementById('total-projects-count');
@@ -1313,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // If cache is less than 5 minutes old, skip fetching
                 if (cacheAge < 5 * 60 * 1000) {
-                    console.log('✓ Users cache is fresh, skipping fetch');
+                    console.log('Users cache is fresh, skipping fetch');
                     return;
                 }
             }
@@ -1331,7 +1335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('usersData', JSON.stringify(users));
             localStorage.setItem('usersMetadata', JSON.stringify(metadata));
             
-            console.log(`✓ Cached ${users.length} users for admin dashboard`);
+            console.log(`Cached ${users.length} users for admin dashboard`);
             
         } catch (error) {
             console.error('Error fetching users for cache:', error);

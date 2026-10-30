@@ -16,7 +16,6 @@
 
     let currentRole = 'student';
     let currentUserId = null;
-    let isAdminAuditMode = false; // For Admin role: 'my' vs 'audit'
     let currentActivities = [];
     let activeModalActivity = null; // Currently inspected activity in modal
     let currentFilters = {
@@ -324,19 +323,6 @@
                 </div>
             </div>
 
-            <!-- Admin Mode Switcher (Admin Only) -->
-            ${isAdmin ? `
-                <div class="activity-mode-tabs">
-                    <button class="activity-mode-tab active" data-mode="my">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                        My Personal Activity
-                    </button>
-                    <button class="activity-mode-tab" data-mode="audit">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                        System Audit Trail (All Users)
-                    </button>
-                </div>
-            ` : ''}
 
             <!-- Summary Stats Cards (Includes Storage Transparent Usage Counter) -->
             <div class="activity-stats-grid" id="activity-stats-container">
@@ -408,15 +394,7 @@
                             <option value="month">Past 30 Days</option>
                         </select>
 
-                        ${isAdmin ? `
-                            <select class="activity-select" id="activity-role-filter" style="display: none;">
-                                <option value="all">All Roles</option>
-                                <option value="student">Students</option>
-                                <option value="teacher">Teachers</option>
-                                <option value="librarian">Librarians</option>
-                                <option value="admin">Admins</option>
-                            </select>
-                        ` : ''}
+
                     </div>
                 </div>
 
@@ -521,14 +499,6 @@
             });
         }
 
-        // Role Select (Admin Audit mode)
-        const roleSelect = section.querySelector('#activity-role-filter');
-        if (roleSelect) {
-            roleSelect.addEventListener('change', (e) => {
-                currentFilters.role = e.target.value;
-                renderFilteredTimeline();
-            });
-        }
 
         // Category Pills
         const pills = section.querySelectorAll('.activity-pill');
@@ -541,26 +511,6 @@
             });
         });
 
-        // Admin Audit Mode tabs
-        const modeTabs = section.querySelectorAll('.activity-mode-tab');
-        modeTabs.forEach(tab => {
-            tab.addEventListener('click', async () => {
-                modeTabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                isAdminAuditMode = tab.dataset.mode === 'audit';
-                
-                if (roleSelect) {
-                    roleSelect.style.display = isAdminAuditMode ? 'inline-block' : 'none';
-                }
-
-                const feedTitle = section.querySelector('#activity-feed-title');
-                if (feedTitle) {
-                    feedTitle.textContent = isAdminAuditMode ? 'System-Wide Activity Audit Log' : 'Personal Activity Timeline';
-                }
-
-                await refreshActivities();
-            });
-        });
 
         // Export Log Button
         const exportBtn = section.querySelector('#activity-export-btn');
@@ -676,14 +626,11 @@
         const usage = window.ActivityService.getStorageUsage(currentUserId);
         const count = currentActivities.length;
 
-        const isAudit = isAdminAuditMode && currentRole === 'admin';
-        const title = isAudit ? 'Clear Personal Activity Cache?' : 'Clear All Activity History?';
-        const msg = isAudit 
-            ? `Are you sure you want to clear your personal activity cache (${count} events, ${usage.formatted} of local storage)?`
-            : `Are you sure you want to delete all your activity history?\n\n` +
-              `• Events to remove: ${count}\n` +
-              `• Storage to reclaim: ${usage.formatted}\n\n` +
-              `This will purge your activity data from browser local storage. This action cannot be undone.`;
+        const title = 'Clear All Activity History?';
+        const msg = `Are you sure you want to delete all your activity history?\n\n` +
+          `• Events to remove: ${count}\n` +
+          `• Storage to reclaim: ${usage.formatted}\n\n` +
+          `This will purge your activity data from browser local storage. This action cannot be undone.`;
 
         const confirmed = await ModalDialog.confirm({
             title,
@@ -714,11 +661,7 @@
         isRefreshing = true;
 
         try {
-            if (isAdminAuditMode && currentRole === 'admin') {
-                currentActivities = await window.ActivityService.getAllActivities();
-            } else {
-                currentActivities = await window.ActivityService.getUserActivities(currentUserId);
-            }
+            currentActivities = await window.ActivityService.getUserActivities(currentUserId);
             renderFilteredTimeline();
         } catch (error) {
             console.error('[ActivityUI] Error fetching activities:', error);
@@ -807,6 +750,9 @@
                                     <div class="activity-item-title-row">
                                         <span class="activity-item-title">${escapeHtml(item.title)}</span>
                                         <span class="activity-badge ${categoryClass}">${escapeHtml(item.category || 'general')}</span>
+                                        ${(item.metadata && item.metadata.isAdminAction) ? `
+                                            <span class="activity-badge badge-admin" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); font-weight: 600;">Admin Action</span>
+                                        ` : ''}
                                     </div>
                                     <div class="activity-item-meta-group">
                                         <span class="activity-item-time">${timeAgo}</span>
@@ -817,13 +763,13 @@
                                 </div>
                                 <div class="activity-item-desc">${escapeHtml(item.details)}</div>
                                 
-                                ${isAdminAuditMode && item.userName ? `
-                                    <div class="activity-item-user-info">
-                                        <span class="activity-user-badge">${getActivityIconSvg('user')} ${escapeHtml(item.userName)}</span>
-                                        <span>(${escapeHtml(item.userRole || 'student')})</span>
-                                        ${item.device ? `<span class="activity-device-badge">• ${getActivityIconSvg('device')} ${escapeHtml(item.device)}</span>` : ''}
+                                ${((item.metadata && item.metadata.isAdminAction) ? `
+                                    <div class="activity-item-user-info" style="color: #6366f1; margin-top: 0.35rem;">
+                                        <span class="activity-user-badge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.25); color: #6366f1;">
+                                            ${getActivityIconSvg('admin')} Administrator: ${escapeHtml(item.metadata.adminActorName || 'Administrator')}
+                                        </span>
                                     </div>
-                                ` : ''}
+                                ` : '')}
 
                                 ${actionLink}
                             </div>
@@ -942,6 +888,16 @@
                 <div class="activity-modal-field-label">Description & Details</div>
                 <div class="activity-modal-field-val">${escapeHtml(activity.details || 'No additional details recorded.')}</div>
             </div>
+
+            ${activity.metadata && activity.metadata.isAdminAction ? `
+                <div class="activity-modal-field" style="border-left: 3px solid #6366f1; padding-left: 0.75rem;">
+                    <div class="activity-modal-field-label" style="color: #6366f1; font-weight: 600;">Administrative Authority</div>
+                    <div class="activity-modal-field-val">
+                        Action enforced by <strong>${escapeHtml(activity.metadata.adminActorName || 'Administrator')}</strong>
+                        (${escapeHtml(activity.metadata.adminActorEmail || 'admin')}) [Role: ${escapeHtml(activity.metadata.adminActorRole || 'admin')}]
+                    </div>
+                </div>
+            ` : ''}
 
             <div class="activity-modal-field">
                 <div class="activity-modal-field-label">User Context</div>

@@ -19,10 +19,8 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // User Activities: accessible by authenticated users (personal & admin audit logs)
-    match /userActivities/{activityId} {
-      allow read, write: if request.auth != null;
-    }
+    // NOTE: User Activities are strictly stored on the owner's local device (localStorage)
+    // to preserve Firestore Spark free-tier quotas (avoiding write/read bursting).
     
     // Conversations & AI chat history
     match /conversations/{conversationId} {

@@ -226,6 +226,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const userDoc = await db.collection('users').doc(user.uid).get();
                     const userData = userDoc.data();
+
+                    if (userData) {
+                        if (userData.status === 'suspended') {
+                            await auth.signOut();
+                            sessionStorage.clear();
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = 'Login';
+                            const reason = userData.suspensionReason || 'Academic/institutional policy violation';
+                            const duration = userData.suspendedDuration ? ` (${userData.suspendedDuration})` : '';
+                            alert(`⚠️ Account Suspended${duration}\n\nYour account access has been temporarily restricted by Library Administration.\nReason: ${reason}\n\nFor inquiries or formal appeals, please contact the CTU Daanbantayan Campus Library Office.`);
+                            return;
+                        }
+                        if (userData.status === 'quarantined') {
+                            await auth.signOut();
+                            sessionStorage.clear();
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = 'Login';
+                            const reason = userData.deletionReason || 'Administrative request';
+                            alert(`⚠️ Account Quarantined\n\nThis account has been scheduled for deletion.\nReason: ${reason}\n\nIf you believe this was done in error, please contact Library Administration within the 14-day grace period to restore your account.`);
+                            return;
+                        }
+                    }
                     
                     sessionStorage.setItem('userId', user.uid);
                     sessionStorage.setItem('userEmail', user.email);
@@ -308,6 +330,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     const userData = userDoc.data();
+
+                    if (userData) {
+                        if (userData.status === 'suspended') {
+                            await auth.signOut();
+                            sessionStorage.clear();
+                            googleLoginBtn.disabled = false;
+                            googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+                            const reason = userData.suspensionReason || 'Academic/institutional policy violation';
+                            const duration = userData.suspendedDuration ? ` (${userData.suspendedDuration})` : '';
+                            alert(`⚠️ Account Suspended${duration}\n\nYour account access has been temporarily restricted by Library Administration.\nReason: ${reason}\n\nFor inquiries or formal appeals, please contact the CTU Daanbantayan Campus Library Office.`);
+                            return;
+                        }
+                        if (userData.status === 'quarantined') {
+                            await auth.signOut();
+                            sessionStorage.clear();
+                            googleLoginBtn.disabled = false;
+                            googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+                            const reason = userData.deletionReason || 'Administrative request';
+                            alert(`⚠️ Account Quarantined\n\nThis account has been scheduled for deletion.\nReason: ${reason}\n\nIf you believe this was done in error, please contact Library Administration within the 14-day grace period to restore your account.`);
+                            return;
+                        }
+                    }
                     
                     sessionStorage.setItem('userId', user.uid);
                     sessionStorage.setItem('userEmail', user.email);

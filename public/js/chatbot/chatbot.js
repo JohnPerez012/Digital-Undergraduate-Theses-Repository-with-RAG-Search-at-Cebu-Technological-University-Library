@@ -76,7 +76,7 @@ const Chatbot = {
       });
     }
     
-    console.log('✓ Guest dialog created');
+    console.log('Guest dialog created');
   },
   
   /**
@@ -171,7 +171,7 @@ const Chatbot = {
     
     observer.observe(loginModal, { attributes: true });
     
-    console.log('✓ Login modal monitoring active');
+    console.log('Login modal monitoring active');
   },
   
   /**
@@ -211,7 +211,7 @@ const Chatbot = {
         }
       });
       
-      console.log('✓ Auth state listener active');
+      console.log('Auth state listener active');
     }
   },
   
@@ -259,7 +259,7 @@ const Chatbot = {
     // Auto-load last viewed conversation if returning from another page
     this.autoLoadLastConversation();
     
-    console.log('✓ Chatbot initialized with RAG support');
+    console.log('Chatbot initialized with RAG support');
   },
   
   /**
@@ -1220,7 +1220,7 @@ const Chatbot = {
    */
   applySettings(newSettings) {
     if (newSettings && newSettings.preferredProvider) {
-      console.log(`✓ Chatbot active provider updated to: ${newSettings.preferredProvider}`);
+      console.log(`Chatbot active provider updated to: ${newSettings.preferredProvider}`);
     }
   },
   
@@ -1303,7 +1303,7 @@ const Chatbot = {
     this.updateClearButtonVisibility();
 
     this.scrollToBottom();
-    console.log('✓ Conversation rendered:', conversation.id, `(${cleanedMessages.length} messages)`);
+    console.log('Conversation rendered:', conversation.id, `(${cleanedMessages.length} messages)`);
   },
 
   /**
@@ -1448,7 +1448,7 @@ const Chatbot = {
     if (typeof ChatService !== 'undefined' && ChatService.currentConversationId) {
       try {
         await ChatService.deleteConversation(ChatService.currentConversationId);
-        console.log('✓ Conversation deleted from database');
+        console.log('Conversation deleted from database');
         
         // Invalidate cache after deletion
         this.invalidateConversationCache();
@@ -1487,7 +1487,7 @@ const Chatbot = {
     // Clear last viewed conversation from sessionStorage
     sessionStorage.removeItem('lastViewedConversation');
     
-    console.log('✓ Conversation cleared');
+    console.log('Conversation cleared');
     
     // Update clear button visibility (should hide now)
     this.updateClearButtonVisibility();
@@ -1546,7 +1546,7 @@ const Chatbot = {
     // Clear last viewed conversation from sessionStorage
     sessionStorage.removeItem('lastViewedConversation');
     
-    console.log('✓ New conversation started');
+    console.log('New conversation started');
   },
   
   /**
@@ -1577,7 +1577,7 @@ const Chatbot = {
       if (typeof ChatService !== 'undefined') {
         const conversations = await ChatService.loadConversations();
         this.cachedConversations = conversations;
-        console.log(`✓ Lazy load complete: ${conversations.length} conversation(s) cached`);
+        console.log(`Lazy load complete: ${conversations.length} conversation(s) cached`);
       }
     } catch (error) {
       console.error('Failed to lazy load conversations:', error);
@@ -1594,7 +1594,7 @@ const Chatbot = {
   async getConversations() {
     // Return cached conversations if available
     if (this.cachedConversations !== null) {
-      console.log('✓ Using cached conversations');
+      console.log('Using cached conversations');
       return this.cachedConversations;
     }
     
@@ -1656,7 +1656,7 @@ const Chatbot = {
         
         if (conversation) {
           this.renderConversation(conversation);
-          console.log('✓ Last conversation auto-loaded successfully');
+          console.log('Last conversation auto-loaded successfully');
         } else {
           console.warn('⚠️ Last conversation not found, clearing from sessionStorage');
           sessionStorage.removeItem('lastViewedConversation');

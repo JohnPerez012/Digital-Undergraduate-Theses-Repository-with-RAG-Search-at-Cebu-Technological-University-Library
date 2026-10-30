@@ -336,7 +336,7 @@ const Citation = {
    */
   init() {
     // Setup citation format tabs - will be initialized when modal is shown
-    console.log('✓ Citation module loaded');
+    console.log('Citation module loaded');
   }
 };
 

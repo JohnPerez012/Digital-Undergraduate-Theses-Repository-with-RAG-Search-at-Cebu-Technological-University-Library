@@ -1246,52 +1246,83 @@
 
                 <!-- ===== DASHBOARD ===== -->
                 <section id="section-dashboard" class="content-section active">
-                    <div class="section-header">
-                        <div>
-                            <h1 class="section-title">Library Dashboard</h1>
-                            <p class="section-desc">Welcome back — here's your library at a glance.</p>
+                    <!-- Hero Welcome Banner -->
+                    <div class="dash-hero-banner">
+                        <div class="dash-hero-left">
+                            <div class="dash-hero-badge">
+                                <span class="dash-pulse-dot"></span>
+                                CTU Daanbantayan Library Archival System
+                            </div>
+                            <h1 class="section-title dash-hero-title">Library Dashboard</h1>
+                            <p class="section-desc dash-hero-desc">Welcome back, <strong id="dash-greeting-name">Librarian Staff</strong>. Real-time repository holdings and archival studio status.</p>
                         </div>
-                        <button class="lib-btn lib-btn-ghost lib-btn-sm" id="refresh-dashboard-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                            Refresh
-                        </button>
+                        <div class="dash-hero-actions">
+                            <button class="lib-btn lib-btn-ghost lib-btn-sm" id="refresh-dashboard-btn" title="Refresh dashboard data">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                Refresh
+                            </button>
+                            <button class="lib-btn lib-btn-primary lib-btn-sm" id="dash-quick-upload-btn" title="Submit new project for admin approval">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                New Submission
+                            </button>
+                        </div>
                     </div>
 
+                    <!-- Unified Enterprise KPI Grid (4 Normalized Cards) -->
                     <div class="lib-stats-grid">
-                        <div class="lib-stat-card">
-                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #08D488, #069F66);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <div class="lib-stat-card interactive" id="dash-card-projects" role="button" tabindex="0" title="Click to view all projects">
+                            <div class="lib-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                             </div>
                             <div class="lib-stat-body">
+                                <div class="lib-stat-header-row">
+                                    <span class="lib-stat-label">Total Theses</span>
+                                    <span class="lib-stat-chip">Holdings</span>
+                                </div>
                                 <div class="lib-stat-value" id="dash-total-projects">—</div>
-                                <div class="lib-stat-label">Total Projects</div>
+                                <div class="lib-stat-sub">Live in repository catalog</div>
                             </div>
                         </div>
-                        <div class="lib-stat-card">
-                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+
+                        <div class="lib-stat-card interactive" id="dash-card-catalog" role="button" tabindex="0" title="Click to manage catalog locations">
+                            <div class="lib-stat-icon icon-emerald">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             </div>
                             <div class="lib-stat-body">
-                                <div class="lib-stat-value" id="dash-cataloged">—</div>
-                                <div class="lib-stat-label">Cataloged Items</div>
+                                <div class="lib-stat-header-row">
+                                    <span class="lib-stat-label">Shelved &amp; Located</span>
+                                    <span class="lib-stat-chip chip-emerald" id="dash-cataloged-badge">Archived</span>
+                                </div>
+                                <div class="lib-stat-value text-emerald" id="dash-cataloged">—</div>
+                                <div class="lib-stat-sub">Location &amp; call # recorded</div>
                             </div>
                         </div>
-                        <div class="lib-stat-card">
-                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+
+                        <div class="lib-stat-card interactive" id="dash-card-pending" role="button" tabindex="0" title="Click to view pending submissions">
+                            <div class="lib-stat-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
                             </div>
                             <div class="lib-stat-body">
+                                <div class="lib-stat-header-row">
+                                    <span class="lib-stat-label">Pending Approval</span>
+                                    <span class="lib-stat-chip">Staged</span>
+                                </div>
                                 <div class="lib-stat-value" id="dash-pending">—</div>
-                                <div class="lib-stat-label">Pending Approval</div>
+                                <div class="lib-stat-sub">Awaiting Admin evaluation</div>
                             </div>
                         </div>
-                        <div class="lib-stat-card">
-                            <div class="lib-stat-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">
+
+                        <div class="lib-stat-card" id="dash-card-month">
+                            <div class="lib-stat-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             </div>
                             <div class="lib-stat-body">
+                                <div class="lib-stat-header-row">
+                                    <span class="lib-stat-label">Added This Month</span>
+                                    <span class="lib-stat-chip">Inflow</span>
+                                </div>
                                 <div class="lib-stat-value" id="dash-this-month">—</div>
-                                <div class="lib-stat-label">Added This Month</div>
+                                <div class="lib-stat-sub">Current calendar intake</div>
                             </div>
                         </div>
                     </div>
@@ -1303,46 +1334,113 @@
                         </div>
                         <div class="lib-perm-alert-body">
                             <div class="lib-perm-alert-title">&#9888; Edit Permission Active</div>
-                            <div class="lib-perm-alert-msg" id="dash-alert-msg">Admin has granted you editing rights for a project.</div>
+                            <div class="lib-perm-alert-msg" id="dash-alert-msg">Admin has granted you temporary editing rights for a published capstone project.</div>
                         </div>
                         <button class="libm-btn libm-btn-amber libm-btn-sm" id="dash-go-edit-btn">Edit Now</button>
                     </div>
 
-                    <div class="lib-widgets-grid">
-                        <div class="lib-widget">
-                            <div class="lib-widget-hd">
-                                <h3 class="lib-widget-title">Recent Projects</h3>
+                    <!-- Enhanced Main Widgets Layout -->
+                    <div class="dash-main-grid">
+                        <!-- Left Feed: Recent Theses Activity -->
+                        <div class="dash-widget dash-feed-widget">
+                            <div class="dash-widget-header">
+                                <div class="dash-widget-title-group">
+                                    <h3 class="dash-widget-title">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                        Recent Capstone Theses
+                                    </h3>
+                                    <span class="dash-widget-badge">Latest Repository Inflow</span>
+                                </div>
+                                <button class="dash-link-btn" id="dash-view-all-projects-btn">
+                                    View All Theses
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
                             </div>
                             <div id="dash-recent-list" class="lib-recent-list">
-                                <div class="lib-loading-text">Loading...</div>
+                                <div class="lib-loading-text">Loading recent projects...</div>
                             </div>
                         </div>
-                        <div class="lib-widget">
-                            <div class="lib-widget-hd">
-                                <h3 class="lib-widget-title">Quick Actions</h3>
+
+                        <!-- Right Column: Archival Studio Progress & Operations Hub -->
+                        <div class="dash-side-widgets">
+                            <!-- Archival Studio Card -->
+                            <div class="dash-widget dash-archival-widget">
+                                <div class="dash-widget-header">
+                                    <div class="dash-widget-title-group">
+                                        <h3 class="dash-widget-title">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                            Physical Archival Coverage
+                                        </h3>
+                                        <span class="dash-widget-badge badge-direct">Direct Access</span>
+                                    </div>
+                                    <button class="dash-link-btn" id="dash-go-catalog-btn">
+                                        Studio
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                                    </button>
+                                </div>
+                                <div class="dash-archival-body">
+                                    <div class="dash-archival-metrics-row">
+                                        <div class="dash-archival-mini-stat">
+                                            <span class="mini-stat-label">Shelved &amp; Located</span>
+                                            <strong class="mini-stat-val text-emerald" id="dash-archival-shelved">—</strong>
+                                        </div>
+                                        <div class="dash-archival-mini-stat">
+                                            <span class="mini-stat-label">Needs Shelving</span>
+                                            <strong class="mini-stat-val" id="dash-archival-needs">—</strong>
+                                        </div>
+                                        <div class="dash-archival-mini-stat">
+                                            <span class="mini-stat-label">Coverage</span>
+                                            <strong class="mini-stat-val" id="dash-archival-pct">—</strong>
+                                        </div>
+                                    </div>
+                                    <div class="dash-progress-track">
+                                        <div class="dash-progress-bar" id="dash-archival-bar" style="width: 0%;"></div>
+                                    </div>
+                                    <div class="dash-archival-subtext" id="dash-archival-sub">Calculating archival coverage...</div>
+                                </div>
                             </div>
-                            <div class="lib-quick-tiles">
-                                <button class="lib-tile" id="qa-upload-btn">
-                                    <div class="lib-tile-icon" style="background: linear-gradient(135deg, #08D488, #069F66);">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+
+                            <!-- Operations Hub -->
+                            <div class="dash-widget dash-ops-widget">
+                                <div class="dash-widget-header">
+                                    <div class="dash-widget-title-group">
+                                        <h3 class="dash-widget-title">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                            Quick Operations
+                                        </h3>
+                                        <span class="dash-widget-badge">Librarian Tools</span>
                                     </div>
-                                    <span class="lib-tile-label">Upload Metadata</span>
-                                    <span class="lib-tile-sub">For admin review</span>
-                                </button>
-                                <button class="lib-tile" id="qa-projects-btn">
-                                    <div class="lib-tile-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                    </div>
-                                    <span class="lib-tile-label">View Projects</span>
-                                    <span class="lib-tile-sub">Browse all</span>
-                                </button>
-                                <button class="lib-tile" id="qa-catalog-btn">
-                                    <div class="lib-tile-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                                    </div>
-                                    <span class="lib-tile-label">Cataloging</span>
-                                    <span class="lib-tile-sub">Manage locations</span>
-                                </button>
+                                </div>
+                                <div class="lib-quick-tiles">
+                                    <button class="lib-tile" id="qa-upload-btn">
+                                        <div class="lib-tile-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                                        </div>
+                                        <span class="lib-tile-label">Submit Metadata</span>
+                                        <span class="lib-tile-sub">For Admin review</span>
+                                    </button>
+                                    <button class="lib-tile" id="qa-bulk-btn">
+                                        <div class="lib-tile-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M14 2v6h6"/></svg>
+                                        </div>
+                                        <span class="lib-tile-label">Batch Import</span>
+                                        <span class="lib-tile-sub">Excel / CSV upload</span>
+                                    </button>
+                                    <button class="lib-tile" id="qa-catalog-btn">
+                                        <div class="lib-tile-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                        </div>
+                                        <span class="lib-tile-label">Catalog Studio</span>
+                                        <span class="lib-tile-sub">Physical shelves</span>
+                                    </button>
+                                    <button class="lib-tile" id="qa-projects-btn">
+                                        <div class="lib-tile-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </div>
+                                        <span class="lib-tile-label">All Projects</span>
+                                        <span class="lib-tile-sub">Browse directory</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1457,9 +1555,9 @@
                         </div>
                     </div>
 
-                    <!-- Studio KPI Metrics Bar (Interactive Quick Filters) -->
+                    <!-- Studio KPI Metrics Bar (Interactive Primary Filters) -->
                     <div class="catalog-kpi-grid">
-                        <div class="catalog-kpi-card active" id="catalog-kpi-total" data-filter="all" title="Click to view all theses">
+                        <div class="catalog-kpi-card active" id="catalog-kpi-total" data-filter="all" title="Click to filter: All Archive Theses" role="button" tabindex="0" aria-pressed="true">
                             <div class="catalog-kpi-icon icon-total">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                             </div>
@@ -1470,24 +1568,24 @@
                             </div>
                         </div>
 
-                        <div class="catalog-kpi-card" id="catalog-kpi-shelved" data-filter="shelved" title="Click to view shelved theses">
+                        <div class="catalog-kpi-card" id="catalog-kpi-shelved" data-filter="shelved" title="Click to filter: Shelved & Located" role="button" tabindex="0" aria-pressed="false">
                             <div class="catalog-kpi-icon icon-shelved">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                             </div>
                             <div class="catalog-kpi-info">
                                 <span class="catalog-kpi-label">Shelved &amp; Located</span>
-                                <div class="catalog-kpi-val text-emerald" id="catalog-kpi-val-shelved">0</div>
+                                <div class="catalog-kpi-val" id="catalog-kpi-val-shelved">0</div>
                                 <span class="catalog-kpi-sub">Location Assigned</span>
                             </div>
                         </div>
 
-                        <div class="catalog-kpi-card" id="catalog-kpi-needs" data-filter="needs-shelf" title="Click to view theses needing shelving">
+                        <div class="catalog-kpi-card" id="catalog-kpi-needs" data-filter="needs-shelf" title="Click to filter: Needs Shelving" role="button" tabindex="0" aria-pressed="false">
                             <div class="catalog-kpi-icon icon-needs">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                             </div>
                             <div class="catalog-kpi-info">
                                 <span class="catalog-kpi-label">Needs Shelving</span>
-                                <div class="catalog-kpi-val text-amber" id="catalog-kpi-val-needs">0</div>
+                                <div class="catalog-kpi-val" id="catalog-kpi-val-needs">0</div>
                                 <span class="catalog-kpi-sub">Awaiting Physical Shelf</span>
                             </div>
                         </div>
@@ -1509,24 +1607,13 @@
                         </div>
                     </div>
 
-                    <!-- Studio Toolbar (Filters, Search, Sort) -->
-                    <div class="catalog-toolbar">
-                        <!-- Left Status Tabs -->
-                        <div class="catalog-filter-tabs" id="catalog-filter-tabs">
-                            <button type="button" class="catalog-filter-tab active" data-tab="all">
-                                <span>All Theses</span>
-                                <span class="catalog-tab-badge" id="catalog-count-all">0</span>
-                            </button>
-                            <button type="button" class="catalog-filter-tab" data-tab="needs-shelf">
-                                <span class="catalog-tab-dot dot-amber"></span>
-                                <span>Needs Shelving</span>
-                                <span class="catalog-tab-badge badge-amber" id="catalog-count-needs">0</span>
-                            </button>
-                            <button type="button" class="catalog-filter-tab" data-tab="shelved">
-                                <span class="catalog-tab-dot dot-emerald"></span>
-                                <span>Shelved &amp; Located</span>
-                                <span class="catalog-tab-badge badge-emerald" id="catalog-count-shelved">0</span>
-                            </button>
+                    <!-- Studio Toolbar (Active Scope, Filters, Search, Sort) -->
+                    <div class="catalog-toolbar" id="catalog-toolbar">
+                        <!-- Left Active Filter Indicator -->
+                        <div class="catalog-active-filter-indicator" id="catalog-active-filter-indicator">
+                            <span class="catalog-indicator-dot"></span>
+                            <span class="catalog-indicator-prefix">Viewing:</span>
+                            <strong class="catalog-indicator-name" id="catalog-active-filter-text">All Theses</strong>
                         </div>
 
                         <!-- Right Filters & Controls -->
@@ -1559,6 +1646,9 @@
                     <div class="catalog-grid" id="catalog-grid">
                         <div class="lib-loading-text" style="grid-column:1/-1;text-align:center;padding:3rem;">Loading completed projects...</div>
                     </div>
+
+                    <!-- Catalog Pagination -->
+                    <div class="pagination-container" id="lib-catalog-pagination"></div>
                 </section>
 
                 <!-- ===== ACTIVITY ===== -->
@@ -1568,33 +1658,201 @@
 
                 <!-- ===== SETTINGS ===== -->
                 <section id="section-settings" class="content-section">
-                    <div class="section-header">
-                        <div>
-                            <h1 class="section-title">Settings</h1>
-                            <p class="section-desc">Manage your account and preferences.</p>
-                        </div>
-                    </div>
+                    <div class="lset-layout">
+                        <!-- ── Left: Profile Card ── -->
+                        <aside class="lset-profile-card" id="lset-profile-card" aria-label="Librarian profile summary">
+                            <div class="lset-profile-cover" aria-hidden="true"></div>
+                            <div class="lset-avatar-wrap">
+                                <div class="lset-avatar" id="lset-avatar" aria-hidden="true"><span id="lset-avatar-initials">L</span></div>
+                                <span class="lset-avatar-status" title="Signed in"></span>
+                            </div>
+                            <h2 class="lset-profile-name" id="lset-profile-name">Loading...</h2>
+                            <div class="lset-email-wrap">
+                                <span class="lset-profile-email" id="lset-profile-email">librarian@ctu.edu.ph</span>
+                                <button type="button" class="lset-email-copy-btn" id="lset-card-copy-email-btn" title="Copy email address" aria-label="Copy email address">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                </button>
+                            </div>
 
-                    <div class="lib-settings-block">
+                            <div class="lset-contrib" aria-label="Your contributions">
+                                <p class="lset-contrib-title">Your Contributions</p>
+                                <div class="lset-contrib-grid">
+                                    <button type="button" class="lset-contrib-item" id="lset-action-pending" title="View your pending submissions awaiting approval">
+                                        <span class="lset-contrib-val" id="lset-stat-pending">–</span>
+                                        <span class="lset-contrib-lbl">Pending</span>
+                                    </button>
+                                    <button type="button" class="lset-contrib-item" id="lset-action-published" title="View your approved and published theses">
+                                        <span class="lset-contrib-val" id="lset-stat-published">–</span>
+                                        <span class="lset-contrib-lbl">Published</span>
+                                    </button>
+                                    <button type="button" class="lset-contrib-item" id="lset-action-shelved" title="Open Physical Cataloging Studio">
+                                        <span class="lset-contrib-val" id="lset-stat-shelved">–</span>
+                                        <span class="lset-contrib-lbl">Shelved</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <nav class="lset-jump-nav" aria-label="Settings sections">
+                                <button type="button" class="lset-jump-link active" data-lset-target="lset-block-account" id="lset-jump-account">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    Account Profile
+                                </button>
+                                <button type="button" class="lset-jump-link" data-lset-target="lset-block-security" id="lset-jump-security">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    Security &amp; Sign-in
+                                </button>
+                                <button type="button" class="lset-jump-link" data-lset-target="lset-block-prefs" id="lset-jump-prefs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                                    Workspace Preferences
+                                </button>
+                                <button type="button" class="lset-jump-link lset-jump-danger" data-lset-target="danger-zone-container" id="lset-jump-danger">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    Danger Zone
+                                </button>
+                            </nav>
+                        </aside>
+
+                        <!-- ── Right: Settings Blocks ── -->
+                        <div class="lset-main">
+
+                    <!-- Block 1: Account Profile -->
+                    <div class="lib-settings-block" id="lset-block-account">
                         <div class="lib-settings-block-hd">
                             <div class="lib-settings-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             </div>
                             <div>
-                                <h3 class="lib-settings-block-title">Account Management</h3>
-                                <p class="lib-settings-block-sub">Manage your credentials and account data</p>
+                                <h3 class="lib-settings-block-title">Account Profile</h3>
+                                <p class="lib-settings-block-sub">How your name appears on submissions, shelf records, and audit trails</p>
                             </div>
                         </div>
                         <div class="lib-settings-rows">
-                            <div class="lib-settings-row"><span class="lib-settings-row-lbl">Email</span><span id="settings-user-email" class="lib-settings-row-val">Loading...</span></div>
-                            <div class="lib-settings-row"><span class="lib-settings-row-lbl">Account Type</span><span class="lib-settings-row-val"><span class="lib-badge-pill lib-badge-green">Librarian</span></span></div>
-                            <div class="lib-settings-row"><span class="lib-settings-row-lbl">Full Name</span><span id="settings-user-name" class="lib-settings-row-val">Loading...</span></div>
+                            <div class="lib-settings-row lset-row" id="lset-row-name">
+                                <div class="lset-row-text">
+                                    <span class="lib-settings-row-lbl">Full Name</span>
+                                    <span id="settings-user-name" class="lib-settings-row-val">Loading...</span>
+                                    <div class="lset-inline-edit" id="lset-name-edit-wrap" hidden>
+                                        <input type="text" id="lset-name-input" class="lset-input" maxlength="80" autocomplete="name" aria-label="Full name">
+                                        <span class="lset-input-hint" id="lset-name-hint">Press Enter to save · Esc to cancel</span>
+                                    </div>
+                                </div>
+                                <div class="lset-row-actions">
+                                    <button type="button" class="lset-icon-btn" id="lset-name-edit-btn" title="Edit full name" aria-label="Edit full name">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                        <span>Edit</span>
+                                    </button>
+                                    <button type="button" class="lset-icon-btn lset-icon-btn-primary" id="lset-name-save-btn" hidden>Save</button>
+                                    <button type="button" class="lset-icon-btn" id="lset-name-cancel-btn" hidden>Cancel</button>
+                                </div>
+                            </div>
+
+                            <div class="lib-settings-row lset-row">
+                                <div class="lset-row-text">
+                                    <span class="lib-settings-row-lbl">Account ID</span>
+                                    <code id="lset-user-uid" class="lset-code">—</code>
+                                    <span class="lset-row-note">Share this with the administrator when requesting support.</span>
+                                </div>
+                                <div class="lset-row-actions">
+                                    <button type="button" class="lset-icon-btn" id="lset-copy-uid-btn" title="Copy account ID" aria-label="Copy account ID">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                        <span>Copy</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="lib-settings-btn-row">
-                            <button id="change-password-btn" class="libm-btn libm-btn-green">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                Change Password
-                            </button>
+                    </div>
+
+                    <!-- Block 2: Security & Sign-in -->
+                    <div class="lib-settings-block" id="lset-block-security">
+                        <div class="lib-settings-block-hd">
+                            <div class="lib-settings-icon" style="background: linear-gradient(135deg, #08D488, #069F66);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="lib-settings-block-title">Security &amp; Sign-in</h3>
+                                <p class="lib-settings-block-sub">Keep your librarian credentials protected</p>
+                            </div>
+                        </div>
+                        <div class="lib-settings-rows">
+                            <div class="lib-settings-row lset-row">
+                                <div class="lset-row-text">
+                                    <span class="lib-settings-row-lbl">Password</span>
+                                    <span class="lib-settings-row-val lset-dots">••••••••••</span>
+                                    <span class="lset-row-note">Changing your password requires answering your security question.</span>
+                                </div>
+                                <div class="lset-row-actions">
+                                    <button id="change-password-btn" class="libm-btn libm-btn-green libm-btn-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        Change Password
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="lib-settings-row lset-row">
+                                <div class="lset-row-text">
+                                    <span class="lib-settings-row-lbl">Email Verification</span>
+                                    <span class="lib-settings-row-val" id="lset-verify-status">Checking…</span>
+                                </div>
+                            </div>
+                            <div class="lib-settings-row lset-row">
+                                <div class="lset-row-text">
+                                    <span class="lib-settings-row-lbl">Current Session</span>
+                                    <span class="lib-settings-row-val" id="lset-session-device">This device</span>
+                                    <span class="lset-row-note" id="lset-session-since">Signed in</span>
+                                </div>
+                                <div class="lset-row-actions">
+                                    <button type="button" class="lset-icon-btn" id="lset-signout-btn" title="Sign out of this device">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                        <span>Sign out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Block 3: Workspace Preferences -->
+                    <div class="lib-settings-block" id="lset-block-prefs">
+                        <div class="lib-settings-block-hd">
+                            <div class="lib-settings-icon" style="background: linear-gradient(135deg, #4facfe, #3b82f6);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="lib-settings-block-title">Workspace Preferences</h3>
+                                <p class="lib-settings-block-sub">Saved on this browser and applied instantly</p>
+                            </div>
+                        </div>
+                        <div class="lib-settings-rows">
+                            <div class="lib-settings-row lset-row">
+                                <div class="lset-row-text">
+                                    <span class="lib-settings-row-lbl">Appearance</span>
+                                    <span class="lset-row-note">Choose a theme or follow your device setting.</span>
+                                </div>
+                                <div class="lset-segmented" role="radiogroup" aria-label="Theme" id="lset-theme-group">
+                                    <button type="button" role="radio" class="lset-seg-btn" data-theme-choice="light" id="lset-theme-light" aria-checked="false">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                                        Light
+                                    </button>
+                                    <button type="button" role="radio" class="lset-seg-btn" data-theme-choice="dark" id="lset-theme-dark" aria-checked="false">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                                        Dark
+                                    </button>
+                                    <button type="button" role="radio" class="lset-seg-btn" data-theme-choice="system" id="lset-theme-system" aria-checked="false">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                                        System
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="lib-settings-row lset-row">
+                                <div class="lset-row-text">
+                                    <label class="lib-settings-row-lbl" for="lset-landing-select">Default Landing Page</label>
+                                    <span class="lset-row-note">The section that opens when you sign in.</span>
+                                </div>
+                                <select id="lset-landing-select" class="lset-select">
+                                    <option value="dashboard">Dashboard</option>
+                                    <option value="projects">Projects</option>
+                                    <option value="catalog">Catalog Studio</option>
+                                    <option value="activity">Activity</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -1632,6 +1890,9 @@
                             </div>
                         </div>
                     </div>
+
+                        </div><!-- /.lset-main -->
+                    </div><!-- /.lset-layout -->
                 </section>
 
             </div>
@@ -1667,6 +1928,6 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="../js/shared/cloudinary-service.js"></script>
     <script src="../js/pages/settings-handler.js"></script>
-    <script src="../js/pages/librarian_main.js"></script>
+    <script src="../js/pages/librarian_main.js?v=2"></script>
 </body>
 </html>

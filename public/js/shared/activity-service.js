@@ -1,14 +1,15 @@
 /**
  * ============================================================================
- * ActivityService - User's Activity Logging & Management System
+ * ActivityService - User's Activity Logging & Management System (Local Device Storage)
  * ============================================================================
  * 
- * Provides unified activity logging, offline caching, real-time sync, 
- * administrative audit log retrieval, and data export across ALL roles.
+ * Provides unified activity logging and management stored STRICTLY on the user's
+ * local machine / device (localStorage). Zero network requests or collection writes
+ * are sent to Firebase Firestore, eliminating quota exhaustion on the free-tier (Spark) plan.
  * 
  * @module ActivityService
  * @author RE-CAPS Team
- * @version 1.0.0
+ * @version 2.0.0 (Local Device Storage Only)
  */
 
 (function(window) {
@@ -149,26 +150,13 @@
                     metadata: options.metadata || {},
                     device: this.getDeviceContext(),
                     timestamp,
-                    createdAt: (typeof firebase !== 'undefined' && firebase.firestore) 
-                        ? firebase.firestore.FieldValue.serverTimestamp() 
-                        : timestamp
+                    createdAt: timestamp
                 };
 
-                // 1. Save to Local Storage Cache
+                // 1. Save strictly to Local Device Storage (avoids Firestore free-tier quota exhaustion)
                 this.saveToLocalCache(userId, activityRecord);
 
-                // 2. Save to Firestore collection `userActivities` (only if authenticated)
-                const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
-                                 (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
-                if (typeof db !== 'undefined' && db && db.collection && userId !== 'guest' && authUser) {
-                    try {
-                        await db.collection('userActivities').doc(id).set(activityRecord);
-                    } catch (fsErr) {
-                        console.debug('[ActivityService] Firestore write fallback to local cache:', fsErr);
-                    }
-                }
-
-                // 3. Dispatch Custom Event for instant UI reactivity
+                // 2. Dispatch Custom Event for instant UI reactivity
                 window.dispatchEvent(new CustomEvent('userActivityLogged', {
                     detail: activityRecord
                 }));
@@ -370,16 +358,187 @@
         },
 
         /**
-         * Log Admin action (Approval, User update, Role change, Project creation/deletion)
+         * Log Admin action (Approval, User update, Role change, Project creation/deletion, System ops)
+         * Accepts flexible signatures:
+         * 1) logAdmin(actionCodeOrName, targetName, details, metadata)
+         * 2) logAdmin(optionsObject)
+         * 3) logAdmin(actionCode, detailsString)
          */
         logAdmin(actionName, targetName, details = '', metadata = {}) {
+            // Friendly title mapping for admin actions
+            const ACTION_TITLES = {
+                'project_created': 'Created Thesis Manuscript',
+                'project_updated': 'Updated Thesis Manuscript',
+                'project_deleted': 'Deleted Thesis Manuscript',
+                'project_approved': 'Approved Capstone Submission',
+                'project_rejected': 'Rejected Capstone Submission',
+                'project_lock_toggle': 'Toggled Project Lock',
+                'batch_approved': 'Batch Approved Submissions',
+                'pinecone_sync': 'Synchronized Pinecone AI Search',
+                'bulk_import': 'Bulk Imported Capstone Projects',
+                'report_printed': 'Printed Official Accreditation Report',
+                'report_exported': 'Exported Analytics Data',
+                'catalog_exported': 'Exported Institutional Catalog',
+                'cache_purged': 'Purged Client Repository Cache',
+                'settings_updated': 'Updated System Settings',
+                'settings_reset': 'Restored Factory Default Settings',
+                'profile_updated': 'Updated Administrator Profile',
+                'librarian_created': 'Provisioned Librarian Account',
+                'user_suspended': 'Enforced Disciplinary Suspension',
+                'user_quarantined': 'Placed Account in 14-Day Quarantine',
+                'user_unsuspended': 'Reactivated Suspended Account',
+                'user_restored': 'Restored Account from Quarantine',
+                'user_deleted': 'Purged User Account',
+                'lock_released': 'Force Released Editing Lock'
+            };
+
+            // Case A: Options object passed directly
+            if (actionName && typeof actionName === 'object' && !Array.isArray(actionName)) {
+                return this.log({
+                    category: CATEGORIES.ADMIN,
+                    action: actionName.action || 'admin_action',
+                    title: actionName.title || 'Administrative Action',
+                    details: actionName.details || actionName.description || '',
+                    metadata: {
+                        ...(actionName.metadata || {}),
+                        isAdminAction: true
+                    }
+                });
+            }
+
+            // Case B: 2 string args where targetName is actually details (e.g. logAdmin('project_approved', 'Approved "..."'))
+            let title = '';
+            let finalDetails = details;
+            let finalMetadata = { ...(metadata || {}) };
+
+            const prettyPrefix = ACTION_TITLES[actionName] || null;
+
+            if (details === '' && typeof targetName === 'string') {
+                if (prettyPrefix) {
+                    title = `${prettyPrefix}: ${targetName}`;
+                    finalDetails = targetName;
+                } else {
+                    title = `${actionName}: ${targetName}`;
+                    finalDetails = `Administrative operation performed: ${targetName}`;
+                }
+            } else if (targetName) {
+                title = prettyPrefix ? `${prettyPrefix}: ${targetName}` : `${actionName}: ${targetName}`;
+                finalDetails = details || `Administrative operation performed on ${targetName}.`;
+            } else {
+                title = prettyPrefix || actionName || 'Administrative Action';
+                finalDetails = details || '';
+            }
+
+            finalMetadata.actionName = actionName;
+            finalMetadata.targetName = targetName;
+            finalMetadata.isAdminAction = true;
+
             return this.log({
                 category: CATEGORIES.ADMIN,
-                action: 'admin_action',
-                title: `${actionName}: ${targetName}`,
-                details: details || `Administrative operation performed on ${targetName}.`,
-                metadata: { actionName, targetName, ...metadata }
+                action: actionName || 'admin_action',
+                title,
+                details: finalDetails,
+                metadata: finalMetadata
             });
+        },
+
+        /**
+         * Generic activity logger supporting legacy signatures
+         * Supports:
+         * - logActivity('category', 'details', { metadata })
+         * - logActivity('action_code', { options })
+         * - logActivity({ ...options })
+         */
+        logActivity(actionOrCategory, optionsOrDetails, meta = {}) {
+            if (typeof actionOrCategory === 'object') {
+                return this.log(actionOrCategory);
+            }
+
+            if (typeof optionsOrDetails === 'object' && optionsOrDetails !== null) {
+                const category = optionsOrDetails.category || 
+                    (Object.values(CATEGORIES).includes(actionOrCategory) ? actionOrCategory : CATEGORIES.ADMIN);
+                return this.log({
+                    category,
+                    action: actionOrCategory,
+                    title: optionsOrDetails.title || (optionsOrDetails.details ? optionsOrDetails.details.slice(0, 50) : 'System Event'),
+                    details: optionsOrDetails.description || optionsOrDetails.details || '',
+                    metadata: {
+                        ...(optionsOrDetails.metadata || {}),
+                        ...(optionsOrDetails.targetEmail ? { targetEmail: optionsOrDetails.targetEmail } : {}),
+                        ...(optionsOrDetails.role ? { role: optionsOrDetails.role } : {})
+                    }
+                });
+            }
+
+            // String details signature: logActivity('system', 'Updated settings...', { meta })
+            const category = Object.values(CATEGORIES).includes(actionOrCategory) ? actionOrCategory : CATEGORIES.ADMIN;
+            return this.log({
+                category,
+                action: actionOrCategory,
+                title: typeof optionsOrDetails === 'string' ? optionsOrDetails : 'System Activity',
+                details: typeof optionsOrDetails === 'string' ? optionsOrDetails : '',
+                metadata: meta || {}
+            });
+        },
+
+        /**
+         * Log an activity directly into a specific TARGET user's personal activity timeline.
+         * MUST be called whenever an administrator performs an action affecting that user or their project.
+         * 
+         * @param {string} targetUserId - Target User UID whose feed will receive this entry
+         * @param {Object} options - Activity details { category, action, title, details, metadata, icon }
+         */
+        async logForUser(targetUserId, options = {}) {
+            if (!targetUserId || targetUserId === 'guest') {
+                console.debug('[ActivityService] logForUser skipped: No target user ID provided.');
+                return null;
+            }
+
+            try {
+                const adminCtx = this.getCurrentUserContext();
+                const id = options.id || this.generateId();
+                const timestamp = options.timestamp || new Date().toISOString();
+                const category = options.category || CATEGORIES.PROJECT;
+                const icon = options.icon || DEFAULT_ICONS[category] || DEFAULT_ICONS[CATEGORIES.PROJECT];
+
+                const userRecord = {
+                    id,
+                    userId: targetUserId,
+                    userEmail: options.userEmail || '',
+                    userName: options.userName || 'User',
+                    userRole: options.userRole || 'student',
+                    category,
+                    action: options.action || 'admin_action_applied',
+                    title: options.title || 'Administrative Action',
+                    details: options.details || '',
+                    icon,
+                    metadata: {
+                        ...(options.metadata || {}),
+                        isAdminAction: true,
+                        adminActorId: adminCtx.uid || 'admin',
+                        adminActorName: adminCtx.name || 'Administrator',
+                        adminActorEmail: adminCtx.email || 'admin@recaps.edu',
+                        adminActorRole: adminCtx.role || 'admin',
+                        appliedAt: timestamp
+                    },
+                    device: this.getDeviceContext(),
+                    timestamp,
+                    createdAt: timestamp
+                };
+
+                // 1. Save strictly to target user's local device storage
+                this.saveToLocalCache(targetUserId, userRecord);
+
+                // 2. Dispatch event for instant UI reactivity
+                window.dispatchEvent(new CustomEvent('userActivityLogged', {
+                    detail: userRecord
+                }));
+
+                return userRecord;
+            } catch (err) {
+                console.error('[ActivityService] logForUser error:', err);
+                return null;
+            }
         },
 
         /**
@@ -427,107 +586,44 @@
         async getUserActivities(userId, filters = {}) {
             let activities = [];
 
-            // Check if user is currently authenticated with Firebase
-            const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
-                             (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
-
-            // Only attempt Firestore query if user is actively authenticated and not guest
-            if (typeof db !== 'undefined' && db && db.collection && userId && userId !== 'guest' && authUser) {
-                try {
-                    const query = db.collection('userActivities')
-                        .where('userId', '==', userId);
-
-                    // Fetch by userId and sort in-memory to avoid index errors
-                    const snapshot = await query.limit(150).get();
-                    
-                    if (!snapshot.empty) {
-                        activities = snapshot.docs.map(doc => {
-                            const data = doc.data();
-                            return {
-                                id: doc.id,
-                                ...data,
-                                timestamp: (data.createdAt && typeof data.createdAt.toDate === 'function')
-                                    ? data.createdAt.toDate().toISOString()
-                                    : (data.timestamp || new Date().toISOString())
-                            };
-                        });
-                    }
-                } catch (err) {
-                    if (err && (err.code === 'permission-denied' || String(err).includes('permissions'))) {
-                        console.debug('[ActivityService] Firestore permissions restricted, using local cache fallback.');
-                    } else {
-                        console.warn('[ActivityService] Firestore fetch error, falling back to local cache:', err);
-                    }
-                }
-            }
-
-            // Fallback / Merge with Local Cache with strict deduplication
-            const seen = new Set();
-            const merged = [];
-
-            activities.forEach(item => {
-                if (item && item.id && !seen.has(item.id)) {
-                    seen.add(item.id);
-                    merged.push(item);
-                }
-            });
-
+            // Retrieve activities strictly from local device storage (owner machine)
             if (userId) {
-                const local = this.getLocalCache(userId);
-                local.forEach(item => {
-                    if (item && item.id && !seen.has(item.id)) {
-                        seen.add(item.id);
-                        merged.push(item);
-                    }
-                });
+                activities = this.getLocalCache(userId);
+            } else {
+                const user = this.getCurrentUserContext();
+                if (user.uid) {
+                    activities = this.getLocalCache(user.uid);
+                }
             }
-
-            activities = merged;
 
             // Sort descending by timestamp
-            activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            activities.sort((a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime());
 
             // Apply in-memory filters
             return this.filterActivities(activities, filters);
         },
 
         /**
-         * Admin Audit Query: Fetch all activities across all users
+         * Query activities stored locally on this device
          */
         async getAllActivities(filters = {}) {
             let activities = [];
 
-            const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
-                             (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
-
-            if (typeof db !== 'undefined' && db && db.collection && authUser) {
-                try {
-                    const snapshot = await db.collection('userActivities')
-                        .limit(300)
-                        .get();
-
-                    if (!snapshot.empty) {
-                        activities = snapshot.docs.map(doc => {
-                            const data = doc.data();
-                            return {
-                                id: doc.id,
-                                ...data,
-                                timestamp: (data.createdAt && typeof data.createdAt.toDate === 'function')
-                                    ? data.createdAt.toDate().toISOString()
-                                    : (data.timestamp || new Date().toISOString())
-                            };
-                        });
-                    }
-                } catch (err) {
-                    if (err && (err.code === 'permission-denied' || String(err).includes('permissions'))) {
-                        console.debug('[ActivityService] Firestore audit permissions restricted, using local cache.');
-                    } else {
-                        console.warn('[ActivityService] Firestore audit query failed:', err);
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('recaps_activities_')) {
+                        const raw = JSON.parse(localStorage.getItem(key) || '[]');
+                        if (Array.isArray(raw)) {
+                            activities.push(...raw);
+                        }
                     }
                 }
+            } catch (err) {
+                console.warn('[ActivityService] Error reading local device activities:', err);
             }
 
-            // If empty, fall back to current user's local cache
+            // Fallback to current user's local cache if empty
             if (activities.length === 0) {
                 const user = this.getCurrentUserContext();
                 if (user.uid) {
@@ -535,7 +631,7 @@
                 }
             }
 
-            // Strict deduplication
+            // Strict deduplication by id
             const seen = new Set();
             activities = activities.filter(item => {
                 if (!item || !item.id) return false;
@@ -545,7 +641,7 @@
             });
 
             // Sort descending
-            activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            activities.sort((a, b) => new Date(b.timestamp || b.createdAt).getTime() - new Date(a.timestamp || a.createdAt).getTime());
 
             return this.filterActivities(activities, filters);
         },
@@ -679,18 +775,7 @@
                 console.warn('[ActivityService] Error removing item from local storage:', e);
             }
 
-            // 2. Remove from Firestore if authenticated
-            const authUser = (typeof auth !== 'undefined' && auth && auth.currentUser) ||
-                             (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
-            if (typeof db !== 'undefined' && db && db.collection && userId !== 'guest' && authUser) {
-                try {
-                    await db.collection('userActivities').doc(activityId).delete();
-                } catch (fsErr) {
-                    console.debug('[ActivityService] Firestore single doc delete fallback:', fsErr);
-                }
-            }
-
-            // 3. Dispatch event for UI reactivity
+            // 2. Dispatch event for UI reactivity
             window.dispatchEvent(new CustomEvent('userActivityDeleted', {
                 detail: { userId, activityId }
             }));
@@ -699,32 +784,15 @@
         },
 
         /**
-         * Clear activities for current user
+         * Clear activities for current user strictly on this local device
          */
         async clearUserActivities(userId) {
             if (!userId) return false;
 
-            // 1. Clear LocalStorage
+            // 1. Clear LocalStorage on user's device
             localStorage.removeItem(`recaps_activities_${userId}`);
 
-            // 2. Clear from Firestore
-            if (typeof db !== 'undefined' && db && db.collection) {
-                try {
-                    const snapshot = await db.collection('userActivities')
-                        .where('userId', '==', userId)
-                        .get();
-
-                    const batch = db.batch();
-                    snapshot.docs.forEach(doc => {
-                        batch.delete(doc.ref);
-                    });
-                    await batch.commit();
-                } catch (e) {
-                    console.warn('[ActivityService] Batch delete error:', e);
-                }
-            }
-
-            // Dispatch event
+            // 2. Dispatch event
             window.dispatchEvent(new CustomEvent('userActivityCleared', { detail: { userId } }));
             return true;
         },
