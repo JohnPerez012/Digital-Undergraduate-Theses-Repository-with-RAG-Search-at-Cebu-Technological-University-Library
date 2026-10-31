@@ -41,6 +41,16 @@
                 // Update active nav item
                 navItems.forEach(nav => nav.classList.remove('active'));
                 this.classList.add('active');
+
+                // Sync mobile bottom dock items
+                const dockItems = document.querySelectorAll('.dock-nav-item[data-section]');
+                dockItems.forEach(d => {
+                    if (d.getAttribute('data-section') === sectionId) {
+                        d.classList.add('active');
+                    } else {
+                        d.classList.remove('active');
+                    }
+                });
                 
                 // Show corresponding content section
                 contentSections.forEach(section => {
@@ -75,6 +85,37 @@
                 }
             });
         });
+
+        // Mobile bottom dock click handling
+        const dockItems = document.querySelectorAll('.dock-nav-item[data-section]');
+        dockItems.forEach(dockBtn => {
+            dockBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const secId = this.getAttribute('data-section');
+                const targetRail = document.querySelector(`.rail-nav-item[data-section="${secId}"]`);
+                if (targetRail) {
+                    targetRail.click();
+                }
+            });
+        });
+
+        // Reactive sync for live saved count badge on mobile dock
+        const savedCountElem = document.getElementById('saved-count');
+        const dockSavedBadge = document.getElementById('dock-saved-badge');
+        if (savedCountElem && dockSavedBadge) {
+            const updateDockBadge = () => {
+                const count = parseInt(savedCountElem.textContent, 10) || 0;
+                dockSavedBadge.textContent = count;
+                if (count > 0) {
+                    dockSavedBadge.classList.add('visible');
+                } else {
+                    dockSavedBadge.classList.remove('visible');
+                }
+            };
+            updateDockBadge();
+            const badgeObserver = new MutationObserver(updateDockBadge);
+            badgeObserver.observe(savedCountElem, { childList: true, characterData: true, subtree: true });
+        }
 
         // Theme toggle functionality
         const themeToggle = document.querySelector('[id^="theme-toggle"]');

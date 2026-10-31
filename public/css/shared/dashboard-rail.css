@@ -1657,3 +1657,207 @@ body {
         justify-content: center;
     }
 }
+
+
+/* =====================================
+   FLOATING MOBILE BOTTOM NAVIGATION DOCK
+   Modern, Ergonomic, Pill-Shaped Dock
+   ===================================== */
+
+/* Desktop & Tablet: Hidden by default */
+.mobile-bottom-dock {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    /* Hide the old hamburger button, overlay, and sidebar on mobile */
+    .mobile-rail-toggle,
+    .rail-overlay,
+    .sidebar-rail {
+        display: none !important;
+    }
+
+    /* Content Area full width and clearance for the bottom dock */
+    .dashboard-main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .dashboard-content {
+        padding-bottom: calc(105px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    /* The Floating Dock Container */
+    .mobile-bottom-dock {
+        display: flex !important;
+        position: fixed;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 28px);
+        max-width: 440px;
+        height: 68px;
+        background: rgba(18, 22, 30, 0.94);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 36px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        padding: 6px 10px;
+        align-items: center;
+        justify-content: space-around;
+        user-select: none;
+        -webkit-user-select: none;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    [data-theme="light"] .mobile-bottom-dock {
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12), 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Navigation Items */
+    .dock-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        height: 100%;
+        padding: 4px 6px;
+        border-radius: 24px;
+        color: #94a3b8;
+        text-decoration: none;
+        cursor: pointer;
+        background: transparent;
+        border: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        -webkit-tap-highlight-color: transparent;
+        min-width: 0;
+    }
+
+    [data-theme="light"] .dock-nav-item {
+        color: #64748b;
+    }
+
+    .dock-nav-item:active {
+        transform: scale(0.92);
+    }
+
+    /* Active Item Pill Highlight */
+    .dock-nav-item.active {
+        background: rgba(8, 212, 136, 0.14);
+        color: #08D488;
+    }
+
+    .dashboard-layout.role-teacher .dock-nav-item.active {
+        background: rgba(234, 179, 8, 0.15);
+        color: #eab308;
+    }
+
+    .dock-nav-item.active .dock-label {
+        font-weight: 700;
+        color: inherit;
+    }
+
+    .dock-icon-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dock-nav-item.active .dock-icon-wrap {
+        transform: translateY(-1px);
+    }
+
+    .dock-icon-wrap svg {
+        width: 20px;
+        height: 20px;
+        stroke: currentColor;
+        transition: stroke 0.2s ease;
+    }
+
+    .dock-label {
+        font-size: 0.6875rem;
+        letter-spacing: 0.2px;
+        line-height: 1;
+        white-space: nowrap;
+        transition: color 0.2s ease;
+    }
+
+    /* Center Featured Action (Citations Tool) */
+    .dock-item-featured {
+        position: relative;
+    }
+
+    .dock-featured-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(8, 212, 136, 0.22), rgba(6, 159, 102, 0.32));
+        border: 1px solid rgba(8, 212, 136, 0.45);
+        color: #08D488;
+        transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 4px 12px rgba(8, 212, 136, 0.25);
+    }
+
+    .dashboard-layout.role-teacher .dock-featured-btn {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.22), rgba(202, 138, 4, 0.32));
+        border-color: rgba(234, 179, 8, 0.45);
+        color: #eab308;
+        box-shadow: 0 4px 12px rgba(234, 179, 8, 0.25);
+    }
+
+    .dock-nav-item.dock-item-featured.active .dock-featured-btn {
+        background: linear-gradient(135deg, #08D488, #069F66);
+        color: #ffffff;
+        box-shadow: 0 6px 20px rgba(8, 212, 136, 0.5);
+        transform: scale(1.06);
+    }
+
+    .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured.active .dock-featured-btn {
+        background: linear-gradient(135deg, #eab308, #ca8a04);
+        color: #1a1e23;
+        box-shadow: 0 6px 20px rgba(234, 179, 8, 0.5);
+    }
+
+    .dock-featured-btn svg {
+        width: 20px;
+        height: 20px;
+        stroke: currentColor;
+    }
+
+    /* Saved Count Live Badge */
+    .dock-badge {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 0.625rem;
+        font-weight: 700;
+        min-width: 16px;
+        height: 16px;
+        line-height: 16px;
+        border-radius: 8px;
+        padding: 0 4px;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        display: none;
+    }
+
+    .dock-badge.visible {
+        display: inline-block;
+    }
+}
