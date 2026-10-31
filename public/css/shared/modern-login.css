@@ -1013,16 +1013,26 @@
    ==================================== */
 
 @media (max-width: 968px) {
+    .login-modal-modern.active {
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .login-modal-container {
         flex-direction: column;
         height: auto;
-        max-height: 95vh;
+        max-height: 92vh;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .login-left-panel {
-        min-height: 220px;
-        padding: 2rem;
+        min-height: 200px;
+        padding: 1.75rem;
+        flex-shrink: 0;
     }
 
     .brand-line {
@@ -1039,6 +1049,8 @@
 
     .login-right-panel {
         padding: 2rem 1.5rem;
+        justify-content: flex-start;
+        flex: 1 0 auto;
     }
 
     .login-title {
@@ -1047,24 +1059,44 @@
 }
 
 @media (max-width: 640px) {
+    .login-modal-modern {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .login-modal-modern.active {
+        align-items: flex-start !important;
+        justify-content: center !important;
+        padding: 0 !important;
+    }
+
     .login-modal-container {
-        width: 100%;
-        height: 100vh;
-        max-height: 100vh;
-        border-radius: 0;
+        width: 100% !important;
+        min-height: 100% !important;
+        min-height: 100dvh !important;
+        height: auto !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow-y: visible !important;
+        box-shadow: none !important;
+        margin: 0 !important;
     }
 
     .login-left-panel {
-        min-height: 180px;
-        padding: 1.5rem;
+        min-height: 130px;
+        padding: 1.25rem 1rem 1rem;
+        flex-shrink: 0;
     }
 
     .brand-line {
-        font-size: 2rem !important;
+        font-size: 1.75rem !important;
     }
 
     .welcome-line {
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
     }
 
     .tagline-animated {
@@ -1072,13 +1104,60 @@
     }
 
     .login-right-panel {
-        padding: 1.5rem 1rem;
+        padding: 1.25rem 1.25rem calc(3.5rem + env(safe-area-inset-bottom, 0px)) 1.25rem !important;
+        justify-content: flex-start !important;
+        flex: 1 0 auto !important;
+    }
+
+    .login-modal-close {
+        top: 1rem;
+        right: 1rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1.25rem;
+    }
+
+    .login-title {
+        font-size: 1.4rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .login-subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .modern-input-group {
+        margin-bottom: 0.85rem;
+    }
+
+    .modern-label {
+        font-size: 0.88rem;
+        margin-bottom: 0.35rem;
     }
 
     .modern-input,
     .modern-login-btn,
     .modern-google-btn {
-        height: 48px;
+        height: 46px;
+        font-size: 0.95rem;
+    }
+
+    .modern-options {
+        margin-bottom: 0.85rem;
+    }
+
+    .divider-with-text {
+        margin: 0.85rem 0;
+    }
+
+    .signup-link {
+        margin-top: 1.25rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        font-size: 0.95rem;
+        text-align: center;
+        display: block;
     }
 }
 
