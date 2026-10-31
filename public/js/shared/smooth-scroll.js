@@ -339,8 +339,23 @@ class SmoothScroll {
   }
 }
 
+// Helper: Check if device is a phone / mobile touch device
+function isMobileDevice() {
+  const isNarrow = window.innerWidth <= 768;
+  const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  return isNarrow || (hasTouch && isMobileUA);
+}
+
 // Instantiate and wire up custom overrides
 function initSmoothScroller() {
+  // Mobile optimization: DO NOT hijack or emulate scroll on mobile phones/touch screens!
+  // Android and iOS have native 120Hz hardware-accelerated momentum scrolling on the compositor thread.
+  if (isMobileDevice()) {
+    console.log('📱 SmoothScroll: Mobile/touch viewport detected. Preserving native 120Hz compositor momentum scrolling.');
+    return;
+  }
+
   if (!window.smoothScroller) {
     window.smoothScroller = new SmoothScroll();
   }

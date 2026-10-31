@@ -80,7 +80,15 @@
         }
     }
     
+    function isMobileDevice() {
+        return window.innerWidth <= 768 || ('ontouchstart' in window && window.innerWidth <= 1024);
+    }
+
     function initCanvas() {
+        if (isMobileDevice()) {
+            console.log('📱 [AI Particles] Mobile device: Canvas loop skipped to protect mobile frame rate.');
+            return;
+        }
         canvas = document.getElementById('ai-particles-canvas');
         if (!canvas) return;
         
@@ -141,6 +149,7 @@
     }
     
     function startParticles() {
+        if (isMobileDevice()) return;
         if (isActive) return;
         
         isActive = true;

@@ -909,6 +909,8 @@
     .project-card {
         padding: 1.15rem 1rem;
         border-radius: 10px;
+        content-visibility: auto;
+        contain-intrinsic-size: auto 240px;
     }
 
     .project-header {
