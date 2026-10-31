@@ -386,7 +386,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     googleLoginBtn.disabled = false;
                     googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
 
-                    showToast('Sign-in failed: ' + error.message, '❌');
+                    const isPopupIssue = error.code === 'auth/popup-blocked' ||
+                                         error.code === 'auth/cancelled-popup-request' ||
+                                         (error.message && error.message.toLowerCase().includes('popup'));
+
+                    if (isPopupIssue) {
+                        showToast('Google Sign-In popups are blocked in this IDE preview pane. Click the ↗ (Open in Browser) icon at top right or log in with Email & Password.', '⚠️');
+                    } else {
+                        showToast('Sign-in failed: ' + error.message, '❌');
+                    }
                 }
             });
         }
