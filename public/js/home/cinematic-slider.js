@@ -4,6 +4,18 @@
  */
 
 (function() {
+    let slideInterval = null;
+    let resizeTimer = null;
+    let lastWasMobile = null;
+
+    // Helper: Determine if user is viewing from a phone/mobile device
+    function isMobileDevice() {
+        const isNarrow = window.innerWidth <= 768;
+        const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        return isNarrow || (hasTouch && isMobileUA);
+    }
+
     // Wait for dramatic intro to complete before initializing
     function waitForElement(callback) {
         const slideTrack = document.getElementById('slideTrack');
@@ -17,6 +29,12 @@
     function initCinematicSlider() {
         console.log('🎬 Initializing cinematic slider...');
         
+        // Clear any previously running interval
+        if (slideInterval) {
+            clearInterval(slideInterval);
+            slideInterval = null;
+        }
+
         // Check user preference for background images
         const bgMode = localStorage.getItem('bgImageMode') || 'random';
         const staticImage = localStorage.getItem('bgStaticImage');
@@ -47,9 +65,9 @@
             return;
         }
         
-        // If static mode and user has selected an image, show only that image
+        // 1. If explicit static mode selected by user in Settings, show only that image
         if (bgMode === 'static' && staticImage) {
-            console.log('[Cinematic Slider] Using STATIC mode with:', staticImage);
+            console.log('[Cinematic Slider] Using user-defined STATIC mode with:', staticImage);
             
             const img = document.createElement('img');
             img.src = staticImage;
@@ -57,23 +75,53 @@
             img.alt = 'Selected Background';
             img.loading = 'eager';
             img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
             img.style.position = 'absolute';
             img.style.top = '0';
             img.style.left = '0';
             
-            slideTrack.innerHTML = ''; // Clear any existing slides
+            slideTrack.innerHTML = '';
             slideTrack.appendChild(img);
-            slideTrack.style.transform = 'translateX(0)'; // No animation needed
-            
-            console.log('Static background loaded');
-            return; // Exit - no animation needed
+            slideTrack.style.transform = 'translateX(0)';
+            slideTrack.style.transition = 'none';
+            return;
         }
         
-        // Otherwise, proceed with RANDOM animated slider
-        console.log('[Cinematic Slider] Using RANDOM animated mode');
+        // 2. MOBILE OPTIMIZATION: Pick a random image ONCE per entrance/visit, but keep it completely STATIC.
+        // Avoids multiple image loads, continuous GPU compositing, motion blur filters, and device lag.
+        const onMobile = isMobileDevice();
+        lastWasMobile = onMobile;
+
+        if (onMobile) {
+            const randomBaseIndex = Math.floor(Math.random() * baseImages.length);
+            const chosenImage = baseImages[randomBaseIndex];
+            console.log(`📱 [Cinematic Slider] Mobile device detected (width: ${window.innerWidth}px). Applying STATIC RANDOM background:`, chosenImage);
+
+            const img = document.createElement('img');
+            img.src = chosenImage;
+            img.className = 'slide active-focus static-mobile-mode';
+            img.alt = `Background ${randomBaseIndex + 1}`;
+            img.loading = 'eager';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.position = 'absolute';
+            img.style.top = '0';
+            img.style.left = '0';
+
+            slideTrack.innerHTML = '';
+            slideTrack.appendChild(img);
+            slideTrack.style.transform = 'translateX(0)';
+            slideTrack.style.transition = 'none';
+
+            console.log('✅ [Cinematic Slider] Static random mobile background loaded with 0 recurring animation overhead.');
+            return; // Exit here - zero setInterval, zero sliding animation
+        }
+
+        // 3. DESKTOP / WIDE SCREEN: Proceed with full dynamic animated elastic slider
+        console.log('[Cinematic Slider] Desktop/Wide screen detected. Using DYNAMIC animated slider mode');
         console.log('🎯 slideTrack found:', slideTrack);
-        console.log('🎯 slideTrack parent:', slideTrack.parentElement);
-        console.log('🎯 Parent computed style:', window.getComputedStyle(slideTrack.parentElement));
         
         // Infinite loop setup: [Last, 1, 2, 3, 4, First]
         const images = [baseImages[baseImages.length - 1], ...baseImages, baseImages[0]];
@@ -84,6 +132,8 @@
 
         function initSlider() {
             console.log('🎨 Building slider with images:', baseImages);
+            slideTrack.innerHTML = '';
+            slideElements = [];
             
             // Randomize the initial starting slide index between 1 and baseImages.length
             const randomBaseIndex = Math.floor(Math.random() * baseImages.length);
@@ -94,33 +144,23 @@
                 img.src = src;
                 img.className = `slide ${index === currentIndex ? 'active-focus' : ''}`;
                 img.alt = `Background ${index}`;
-                img.loading = 'eager'; // Load immediately for background
-                
-                // Add load event listener for debugging
-                img.addEventListener('load', () => {
-                    console.log('✅ Image loaded:', src);
-                });
-                img.addEventListener('error', () => {
-                    console.error('❌ Image failed to load:', src);
-                });
+                img.loading = 'eager';
                 
                 slideTrack.appendChild(img);
                 slideElements.push(img);
             });
 
             // Position track instantly to the random start index without animation
+            slideTrack.style.transition = 'none';
             slideTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
             
             console.log('Cinematic slider initialized at index:', currentIndex);
-            console.log('📊 SlideTrack element:', slideTrack);
-            console.log('📊 Total slides created:', slideElements.length);
         }
 
         function getNextRandomIndex() {
             let nextIndex;
             const realCurrentIndex = currentIndex;
             
-            // Get a random index that's different from current (if we have more than 1 image)
             do {
                 nextIndex = Math.floor(Math.random() * baseImages.length) + 1;
             } while (nextIndex === realCurrentIndex && baseImages.length > 1);
@@ -182,13 +222,25 @@
         // Initialize slider
         initSlider();
 
-        // Auto-play interval (6 seconds between transitions)
-        setInterval(() => {
+        // Auto-play interval for desktop (6 seconds between transitions)
+        slideInterval = setInterval(() => {
             if (!isAnimating) {
                 moveSlide();
             }
         }, 6000);
     }
+
+    // Responsive listener for viewport switches (e.g. device rotation or browser resizing)
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const currentIsMobile = isMobileDevice();
+            if (lastWasMobile !== null && currentIsMobile !== lastWasMobile) {
+                console.log('🔄 [Cinematic Slider] Viewport category changed, adjusting slider mode...');
+                initCinematicSlider();
+            }
+        }, 300);
+    });
 
     // Wait for both DOM and dramatic intro
     if (document.readyState === 'loading') {

@@ -1417,6 +1417,14 @@ html[data-user-role="admin"] #pd-saved-divider,
     filter: brightness(0.65) blur(0px);
 }
 
+.slide.static-mobile-mode,
+.slide.static-mode {
+    filter: brightness(0.65) blur(0px) !important;
+    transition: none !important;
+    animation: none !important;
+    will-change: auto !important;
+}
+
 /* AI Particles Canvas - Layer above slider */
 .ai-particles-canvas {
     position: absolute;
