@@ -53,8 +53,11 @@
     <script>
         // Show warning if not in secure context
         if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            document.getElementById('insecure-warning').style.display = 'block';
-            document.body.style.paddingTop = '3rem'; // Offset for banner
+            const warnEl = document.getElementById('insecure-warning');
+            if (warnEl) {
+                warnEl.style.display = 'block';
+                document.body.style.paddingTop = '3rem';
+            }
         }
     </script>
 
@@ -178,14 +181,28 @@
                                     <div class="viewfinder-corner br"></div>
                                     <div class="viewfinder-card-badge">CTU ID CARD ZONE</div>
                                 </div>
+                                <!-- LAN / Insecure HTTP Device Camera Shutter Fallback Overlay -->
+                                <div class="camera-fallback-overlay" id="camera-fallback-overlay" style="display: none;">
+                                    <div class="fallback-camera-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="44" height="44">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                            <circle cx="12" cy="13" r="4"></circle>
+                                        </svg>
+                                    </div>
+                                    <div class="fallback-camera-badge">LAN / Device Camera Mode</div>
+                                    <div class="fallback-camera-title">Tap to Snap CTU ID</div>
+                                    <div class="fallback-camera-sub">Direct live stream requires HTTPS. Tap here or button below to capture using your device camera shutter.</div>
+                                </div>
                             </div>
+                            <!-- Hidden native camera capture input for LAN HTTP mode -->
+                            <input type="file" id="id-camera-fallback-input" accept="image/*" capture="environment" style="display: none;">
                             <div class="camera-controls">
                                 <button type="button" class="btn-camera-capture" id="btn-capture-photo">
                                     <span class="btn-shutter-circle"></span>
                                     <span>Capture ID Card</span>
                                 </button>
                             </div>
-                            <div class="camera-hint-text">💡 Tip: Place your ID on a well-lit flat surface. Outside the framed zone will be cropped out.</div>
+                            <div class="camera-hint-text" id="camera-hint-text">💡 Tip: Place your ID on a well-lit flat surface. Outside the framed zone will be cropped out.</div>
                         </div>
 
                         <!-- 2. Upload ID Photo Panel -->

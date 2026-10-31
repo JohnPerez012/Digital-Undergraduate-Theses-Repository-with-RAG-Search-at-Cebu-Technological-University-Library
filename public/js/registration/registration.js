@@ -613,12 +613,28 @@
         const summaryMiddleName = document.getElementById('summary-middle-name');
         const summaryLastName  = document.getElementById('summary-last-name');
         const summaryNameHint  = document.getElementById('summary-name-hint');
+        const idCameraFallbackInput = document.getElementById('id-camera-fallback-input');
+        const cameraFallbackOverlay = document.getElementById('camera-fallback-overlay');
+        let isCameraFallback = false;
 
-        // Camera Management
+        // Camera Management & LAN Device Shutter Fallback
+        function enableCameraFallbackMode() {
+            isCameraFallback = true;
+            stopCameraStream();
+            if (idCameraVideo) idCameraVideo.style.display = 'none';
+            if (cameraFallbackOverlay) cameraFallbackOverlay.style.display = 'flex';
+            const btnCaptureSpan = btnCapturePhoto ? btnCapturePhoto.querySelector('span:last-child') : null;
+            if (btnCaptureSpan) btnCaptureSpan.textContent = 'Open Camera Shutter';
+            const hintText = document.getElementById('camera-hint-text');
+            if (hintText) {
+                hintText.innerHTML = '📱 <strong>LAN Mode:</strong> Live WebRTC streaming requires HTTPS. Tap the shutter button above to snap your ID card directly with your camera.';
+            }
+        }
+
         async function initCameraCapture() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                console.warn('getUserMedia not supported in this environment');
-                switchToUploadMode();
+                console.warn('getUserMedia not supported in this environment (LAN or insecure HTTP context). Enabling device camera shutter fallback.');
+                enableCameraFallbackMode();
                 return;
             }
             try {
@@ -632,13 +648,22 @@
                     audio: false
                 };
                 cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                isCameraFallback = false;
+                if (cameraFallbackOverlay) cameraFallbackOverlay.style.display = 'none';
                 if (idCameraVideo) {
+                    idCameraVideo.style.display = 'block';
                     idCameraVideo.srcObject = cameraStream;
                     await idCameraVideo.play().catch(e => console.warn('Video play error:', e));
                 }
+                const btnCaptureSpan = btnCapturePhoto ? btnCapturePhoto.querySelector('span:last-child') : null;
+                if (btnCaptureSpan) btnCaptureSpan.textContent = 'Capture ID Card';
+                const hintText = document.getElementById('camera-hint-text');
+                if (hintText) {
+                    hintText.innerHTML = '💡 Tip: Place your ID on a well-lit flat surface. Outside the framed zone will be cropped out.';
+                }
             } catch (err) {
-                console.warn('Camera access denied or unavailable:', err);
-                switchToUploadMode();
+                console.warn('Camera access denied or unavailable on current origin:', err);
+                enableCameraFallbackMode();
             }
         }
 
@@ -680,9 +705,17 @@
         const btnResetZone = document.getElementById('btn-reset-zone');
         const btnConfirmZoneScan = document.getElementById('btn-confirm-zone-scan');
 
-        // Capture from Live Video - CROPS STRICTLY TO THE ID ZONE!
+        // Capture from Live Video or Device Shutter Fallback - CROPS STRICTLY TO THE ID ZONE!
         function capturePhotoFromVideo() {
-            if (!idCameraVideo || !cameraStream) {
+            if (isCameraFallback || !cameraStream) {
+                if (idCameraFallbackInput) {
+                    idCameraFallbackInput.click();
+                } else if (idFileInput) {
+                    idFileInput.click();
+                }
+                return;
+            }
+            if (!idCameraVideo) {
                 if (window.showToast) showToast('Camera is not active', '⚠️');
                 return;
             }
@@ -2246,13 +2279,7 @@
             }
 
             // Populate summary card with the verified full name from Step 1
-            if (summaryNameVal) {
-                const f = firstNameInput ? firstNameInput.value.trim() : '';
-                const m = middleNameInput ? middleNameInput.value.trim() : '';
-                const l = lastNameInput ? lastNameInput.value.trim() : '';
-                const enteredFullName = [f, m, l].filter(Boolean).join(' ');
-                summaryNameVal.textContent = enteredFullName || parsed.fullName || '—';
-            }
+            syncSummaryCardName();
 
             // Enable Next button on Step 2 to advance to Step 3 (Google Auth)
             if (nextToStep3Btn) {
@@ -2294,6 +2321,32 @@
         }
 
         // Rescan / Reset ID Verification
+        // Dynamic State Synchronization: Sync Step 1 Name inputs into Step 2 summary card & verifiedIdData
+        function syncSummaryCardName() {
+            const f = firstNameInput ? firstNameInput.value.trim() : '';
+            const m = middleNameInput ? middleNameInput.value.trim() : '';
+            const l = lastNameInput ? lastNameInput.value.trim() : '';
+            const enteredFullName = [f, m, l].filter(Boolean).join(' ');
+
+            if (summaryNameVal) {
+                if (enteredFullName) {
+                    summaryNameVal.textContent = enteredFullName;
+                } else if (verifiedIdData && verifiedIdData.fullName) {
+                    summaryNameVal.textContent = verifiedIdData.fullName;
+                }
+            }
+            if (summaryFirstName && f) summaryFirstName.value = f;
+            if (summaryMiddleName && m) summaryMiddleName.value = m;
+            if (summaryLastName && l) summaryLastName.value = l;
+
+            if (verifiedIdData && enteredFullName) {
+                verifiedIdData.fullName = enteredFullName;
+                verifiedIdData.firstName = f;
+                verifiedIdData.middleName = m;
+                verifiedIdData.lastName = l;
+            }
+        }
+
         function resetIdVerification() {
             stopPixelRenderingAnimation();
             verifiedIdData = null;
@@ -2329,6 +2382,24 @@
         if (tabCameraCapture) tabCameraCapture.addEventListener('click', switchToCameraMode);
         if (tabUploadCapture) tabUploadCapture.addEventListener('click', switchToUploadMode);
         if (btnCapturePhoto) btnCapturePhoto.addEventListener('click', capturePhotoFromVideo);
+
+        if (idCameraFallbackInput) {
+            idCameraFallbackInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => openZoneFramingView(event.target.result);
+                    reader.readAsDataURL(file);
+                }
+                idCameraFallbackInput.value = '';
+            });
+        }
+
+        if (cameraFallbackOverlay) {
+            cameraFallbackOverlay.addEventListener('click', () => {
+                if (idCameraFallbackInput) idCameraFallbackInput.click();
+            });
+        }
 
         if (btnBrowseId && idFileInput) {
             btnBrowseId.addEventListener('click', () => idFileInput.click());
@@ -2593,11 +2664,18 @@
             return valid;
         }
 
-        // Wire Step 1 inputs
+        // Wire Step 1 inputs with live Step 2 state synchronization
         [firstNameInput, middleNameInput, lastNameInput].forEach(inp => {
             if (!inp) return;
-            inp.addEventListener('input', (e) => { preventNumbers(e); validateStep1(); });
-            inp.addEventListener('blur', () => { validateStep1(); });
+            inp.addEventListener('input', (e) => {
+                preventNumbers(e);
+                validateStep1();
+                syncSummaryCardName();
+            });
+            inp.addEventListener('blur', () => {
+                validateStep1();
+                syncSummaryCardName();
+            });
         });
 
         if (firstNameInput) {
@@ -3078,6 +3156,7 @@
             } else if (stepNumber === 2) {
                 stopCameraStream();
                 if (step2) step2.classList.add('active');
+                syncSummaryCardName();
                 if (currentCaptureMode === 'camera' && !verifiedIdData) {
                     initCameraCapture();
                 }
@@ -3278,6 +3357,7 @@
                     }
                     return;
                 }
+                syncSummaryCardName();
                 markStepCompleted(1);
                 showStep(2);
             });
