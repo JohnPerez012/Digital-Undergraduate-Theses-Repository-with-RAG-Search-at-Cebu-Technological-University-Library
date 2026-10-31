@@ -597,6 +597,15 @@
         const idCaptureTabs = document.getElementById('id-capture-tabs');
         const idOcrProcessingView = document.getElementById('id-ocr-processing-view');
         const idCapturedPreview = document.getElementById('id-captured-preview');
+        const ocrSpinner = document.getElementById('ocr-spinner');
+        const ocrStatusHeader = document.getElementById('ocr-status-header');
+        const ocrProgressTrack = document.getElementById('ocr-progress-track');
+        const ocrErrorBanner = document.getElementById('ocr-error-banner');
+        const ocrErrorHeader = document.getElementById('ocr-error-header');
+        const ocrErrorTitle = document.getElementById('ocr-error-title');
+        const ocrErrorBody = document.getElementById('ocr-error-body');
+        const ocrErrorDetails = document.getElementById('ocr-error-details');
+        const ocrErrorToggleBtn = document.getElementById('ocr-error-toggle-btn');
         const ocrStatusText = document.getElementById('ocr-status-text');
         const ocrProgressBarFill = document.getElementById('ocr-progress-bar-fill');
         const ocrRetakeAction = document.getElementById('ocr-retake-action');
@@ -1863,6 +1872,10 @@
             if (idVerificationSummary) idVerificationSummary.style.display = 'none';
             if (idOcrProcessingView) idOcrProcessingView.style.display = 'block';
             if (ocrRetakeAction) ocrRetakeAction.style.display = 'none';
+            if (ocrErrorBanner) ocrErrorBanner.style.display = 'none';
+            if (ocrSpinner) ocrSpinner.style.display = 'inline-block';
+            if (ocrStatusHeader) ocrStatusHeader.style.display = 'flex';
+            if (ocrProgressTrack) ocrProgressTrack.style.display = 'block';
             if (idCapturedPreview) idCapturedPreview.src = imageSource;
             startPixelRenderingAnimation(imageSource);
 
@@ -1978,9 +1991,8 @@
             } catch (err) {
                 console.error('OCR Processing error:', err);
                 const userMsg = err.message || 'The image is blurry or cannot be scanned. Please capture clearly.';
-                updateOcrStatus('⚠️ ' + userMsg, 0);
+                showOcrError(userMsg);
                 if (idCapturedPreview) idCapturedPreview.src = imageSource;
-                if (ocrRetakeAction) ocrRetakeAction.style.display = 'block';
                 if (window.showToast) {
                     showToast(userMsg, '⚠️');
                 }
@@ -2029,6 +2041,69 @@
             if (reticleTag) {
                 const tagEl = document.getElementById('reticle-step-tag');
                 if (tagEl) tagEl.textContent = reticleTag;
+            }
+        }
+
+        // Display structured, collapsible OCR error notice (Default: Collapsed)
+        function showOcrError(userMsg) {
+            // Hide the active progress and spinning wheel on error
+            if (ocrSpinner) ocrSpinner.style.display = 'none';
+            if (ocrStatusHeader) ocrStatusHeader.style.display = 'none';
+            if (ocrProgressTrack) ocrProgressTrack.style.display = 'none';
+
+            const cleanMsg = (userMsg || 'Verification unsuccessful. Please try again.').replace(/^[⚠️❌🚨ℹ️\s]+/, '').trim();
+            const dotIndex = cleanMsg.indexOf('. ');
+            let title = cleanMsg;
+            let body = '';
+            if (dotIndex !== -1) {
+                title = cleanMsg.slice(0, dotIndex).trim();
+                body = cleanMsg.slice(dotIndex + 2).trim();
+            } else if (cleanMsg.length > 55) {
+                title = cleanMsg.slice(0, 52) + '...';
+                body = cleanMsg;
+            } else {
+                body = 'Please ensure your CTU ID card is well-lit, fully framed, and in clear focus, then retake the photo.';
+            }
+
+            if (ocrErrorTitle) ocrErrorTitle.textContent = title;
+            if (ocrErrorBody) ocrErrorBody.textContent = body;
+
+            // Default to COLLAPSED state
+            if (ocrErrorDetails) ocrErrorDetails.style.display = 'none';
+            if (ocrErrorBanner) {
+                ocrErrorBanner.classList.remove('expanded');
+                ocrErrorBanner.style.display = 'block';
+            }
+            if (ocrErrorToggleBtn) {
+                ocrErrorToggleBtn.setAttribute('aria-expanded', 'false');
+                const tText = ocrErrorToggleBtn.querySelector('.toggle-text');
+                if (tText) tText.textContent = 'Details';
+            }
+
+            if (ocrRetakeAction) ocrRetakeAction.style.display = 'block';
+        }
+
+        function toggleOcrErrorDetails() {
+            if (!ocrErrorDetails || !ocrErrorBanner) return;
+            const isCurrentlyOpen = (ocrErrorDetails.style.display === 'block');
+            if (isCurrentlyOpen) {
+                ocrErrorDetails.style.display = 'none';
+                ocrErrorBanner.classList.remove('expanded');
+                if (ocrErrorToggleBtn) {
+                    ocrErrorToggleBtn.setAttribute('aria-expanded', 'false');
+                    const tText = ocrErrorToggleBtn.querySelector('.toggle-text');
+                    if (tText) tText.textContent = 'Details';
+                }
+                if (ocrErrorHeader) ocrErrorHeader.setAttribute('aria-expanded', 'false');
+            } else {
+                ocrErrorDetails.style.display = 'block';
+                ocrErrorBanner.classList.add('expanded');
+                if (ocrErrorToggleBtn) {
+                    ocrErrorToggleBtn.setAttribute('aria-expanded', 'true');
+                    const tText = ocrErrorToggleBtn.querySelector('.toggle-text');
+                    if (tText) tText.textContent = 'Hide';
+                }
+                if (ocrErrorHeader) ocrErrorHeader.setAttribute('aria-expanded', 'true');
             }
         }
 
@@ -2405,6 +2480,10 @@
                 attachTooltipToButton(nextToStep3Btn, 'Please scan and verify your official CTU ID card first');
             }
 
+            if (ocrErrorBanner) ocrErrorBanner.style.display = 'none';
+            if (ocrSpinner) ocrSpinner.style.display = 'inline-block';
+            if (ocrStatusHeader) ocrStatusHeader.style.display = 'flex';
+            if (ocrProgressTrack) ocrProgressTrack.style.display = 'block';
             if (idVerificationSummary) idVerificationSummary.style.display = 'none';
             if (idOcrProcessingView) idOcrProcessingView.style.display = 'none';
             if (uploadZoneFramingPanel) uploadZoneFramingPanel.style.display = 'none';
@@ -2481,6 +2560,16 @@
         if (btnResetZone) btnResetZone.addEventListener('click', initCropBox);
         if (btnConfirmZoneScan) btnConfirmZoneScan.addEventListener('click', confirmZoneCropAndScan);
         setupCropBoxInteractions();
+
+        if (ocrErrorHeader) {
+            ocrErrorHeader.addEventListener('click', () => toggleOcrErrorDetails());
+            ocrErrorHeader.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleOcrErrorDetails();
+                }
+            });
+        }
 
         if (btnRetakeId) {
             btnRetakeId.addEventListener('click', () => {
