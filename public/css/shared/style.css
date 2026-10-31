@@ -639,6 +639,192 @@ html[data-user-role="admin"] #pd-saved-divider,
 }
 
 /* ==========================================================================
+   No Account Found Modal (Clean, Modern, Tone-on-Tone UI)
+   ========================================================================== */
+.no-account-modal-content {
+    background: var(--surface, #1e293b);
+    padding: 2.75rem 2.25rem 2.25rem;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    position: relative;
+    overflow: hidden;
+}
+
+[data-theme="light"] .no-account-modal-content {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12);
+}
+
+.no-account-icon-wrapper {
+    width: 76px;
+    height: 76px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.08) 100%);
+    border: 1.5px solid rgba(16, 185, 129, 0.32);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 1.5rem;
+    color: #10b981;
+    box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.22);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-theme="light"] .no-account-icon-wrapper {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%);
+    border: 1.5px solid rgba(16, 185, 129, 0.28);
+    color: #059669;
+    box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.14);
+}
+
+.no-account-icon-wrapper:hover {
+    transform: scale(1.06);
+}
+
+.no-account-svg {
+    stroke-width: 2;
+}
+
+.no-account-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    color: var(--text-primary, #f8fafc);
+    letter-spacing: -0.02em;
+}
+
+[data-theme="light"] .no-account-title {
+    color: #0f172a;
+}
+
+.no-account-text {
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+[data-theme="light"] .no-account-text {
+    color: #64748b;
+}
+
+.no-account-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.no-account-btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: none;
+    height: 48px;
+    padding: 0 1.5rem;
+    font-size: 0.98rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3);
+}
+
+.no-account-btn-primary:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
+}
+
+.no-account-btn-primary:active {
+    transform: translateY(0);
+}
+
+.no-account-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary, #e2e8f0);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    height: 48px;
+    padding: 0 1.5rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+[data-theme="light"] .no-account-btn-secondary {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+}
+
+.no-account-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.24);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+[data-theme="light"] .no-account-btn-secondary:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
+}
+
+.no-account-btn-secondary:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+    .no-account-modal-content {
+        padding: 2rem 1.25rem;
+        max-width: 360px;
+        width: 92%;
+    }
+
+    .no-account-icon-wrapper {
+        width: 66px;
+        height: 66px;
+        margin-bottom: 1.25rem;
+    }
+
+    .no-account-icon-wrapper svg {
+        width: 30px;
+        height: 30px;
+    }
+
+    .no-account-title {
+        font-size: 1.35rem;
+    }
+
+    .no-account-text {
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .no-account-btn-primary,
+    .no-account-btn-secondary {
+        height: 46px;
+        font-size: 0.95rem;
+    }
+}
+
+/* ==========================================================================
    Sync Local Data Modal (DELETE or CONTINUE only)
    ========================================================================== */
 .sync-modal-content {

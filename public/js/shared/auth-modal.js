@@ -708,18 +708,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // No Account Found Modal Function
     function showNoAccountModal() {
         const overlay = document.createElement('div');
-        overlay.className = 'welcome-modal-overlay';
+        overlay.className = 'welcome-modal-overlay no-account-modal-overlay';
         
         overlay.innerHTML = `
-            <div class="welcome-modal-content">
-                <div class="welcome-icon-wrapper">
-                    <span class="wave-emoji">🔍</span>
+            <div class="welcome-modal-content no-account-modal-content">
+                <div class="no-account-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="no-account-svg">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <circle cx="17.5" cy="10.5" r="3.5"></circle>
+                        <line x1="20" y1="13" x2="22" y2="15"></line>
+                    </svg>
                 </div>
-                <h2 class="welcome-modal-title">No Account Found</h2>
-                <p class="welcome-modal-text">The Google account you used is not registered in our system. Please register first to access RE-CAPS.</p>
-                <div class="welcome-modal-buttons">
-                    <button class="welcome-modal-btn-secondary" id="no-account-back-btn">Back to Login</button>
-                    <button class="welcome-modal-btn" id="no-account-register-btn">Register Now</button>
+                <h2 class="no-account-title">No Account Found</h2>
+                <p class="no-account-text">The Google account you used is not registered in our system. Please register first to access RE-CAPS.</p>
+                <div class="no-account-buttons">
+                    <button class="no-account-btn-secondary" id="no-account-back-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><polyline points="12 19 5 12 12 5"></polyline></svg>
+                        <span>Back to Login</span>
+                    </button>
+                    <button class="no-account-btn-primary" id="no-account-register-btn">
+                        <span>Register Now</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </button>
                 </div>
             </div>
         `;
