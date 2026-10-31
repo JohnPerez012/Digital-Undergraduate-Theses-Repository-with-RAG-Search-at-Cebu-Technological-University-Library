@@ -1,4 +1,4 @@
-(function() {
+(function () {
     'use strict';
 
     // Internal, immutable-like verification salt and state tokens (Closure Protected)
@@ -9,9 +9,9 @@
             .map(b => b.toString(16).padStart(2, '0')).join('');
     } else {
         // Fallback for non-secure contexts
-        SECRET_SALT = Math.random().toString(36).substring(2, 18) + 
-                      Math.random().toString(36).substring(2, 18) +
-                      Date.now().toString(36);
+        SECRET_SALT = Math.random().toString(36).substring(2, 18) +
+            Math.random().toString(36).substring(2, 18) +
+            Date.now().toString(36);
     }
     let activeSessionToken = null;
     let expectedHash = null;
@@ -52,7 +52,7 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Reset body padding
         document.body.style.paddingTop = "0px";
 
@@ -84,7 +84,7 @@
         const skipToStep7Btn = document.getElementById('skip-to-step-7');
         const backToStep6Btn = document.getElementById('back-to-step-6');
         const completeBtn = document.getElementById('complete-registration');
-        
+
         // Google Sign-In elements
         const googleSignInBtn = document.getElementById('googleSignInBtn');
         const googleAuthStatus = document.getElementById('googleAuthStatus');
@@ -96,16 +96,16 @@
         const accountExistsError = document.getElementById('accountExistsError');
         const errorMessage = document.getElementById('errorMessage');
         const tryDifferentAccountBtn = document.getElementById('tryDifferentAccountBtn');
-        
+
         // Form inputs
         const userTypeInput = document.getElementById('user-type');
         const roleCards = document.querySelectorAll('.role-card');
         const collegeCards = document.querySelectorAll('.college-card');
         const teacherCollegeInput = document.getElementById('teacher-college');
-        
+
         // Main back button to index.html
         const mainBackButton = document.getElementById('main-back-button');
-        
+
         // Student college elements
         const studentCollegeInput = document.getElementById('student-college');
         const studentCollegeCards = document.getElementById('student-college-cards');
@@ -113,7 +113,7 @@
         const studentCollegeSelected = document.getElementById('student-college-selected');
         const selectedCollegeName = document.getElementById('selected-college-name');
         const changeCollegeBtn = document.getElementById('change-college-btn');
-        
+
         // Program carousel elements
         const programInput = document.getElementById('program');
         const programGroup = document.getElementById('program-group');
@@ -122,11 +122,11 @@
         const programPrevArrow = document.getElementById('programPrevArrow');
         const programNextArrow = document.getElementById('programNextArrow');
         const programIndicators = document.getElementById('programIndicators');
-        
+
         // Academic profile ID inputs
         const studentIdInput = document.getElementById('student-id');
         const teacherIdInput = document.getElementById('teacher-id');
-        
+
         // Conditional ID groups
         const studentIdGroup = document.getElementById('student-id-group');
         const teacherIdGroup = document.getElementById('teacher-id-group');
@@ -151,7 +151,7 @@
         const completedSteps = new Set();
         let registrationCompleted = false; // True once account is successfully created
         let isCreatingAccount = false; // True during final account creation & credentials linking
-        
+
         // Dynamic custom cursor tooltip element
         const cursorTooltip = document.createElement('div');
         cursorTooltip.className = 'cursor-tooltip';
@@ -177,7 +177,7 @@
         initSliderVerify();
         setupTamperEvidentObservers();
         renderStepIndicator();
-        
+
         // Handle main back button click and Step 1 back-to-index button
         function handleLeaveRegistration(e) {
             if (isCreatingAccount) {
@@ -186,7 +186,7 @@
             }
             // Check if user has any filled data
             const hasData = hasRegistrationData();
-            
+
             if (hasData) {
                 if (e) e.preventDefault();
                 showLeaveConfirmationDialog();
@@ -208,9 +208,9 @@
         if (backToIndexBtn) {
             backToIndexBtn.addEventListener('click', handleLeaveRegistration);
         }
-        
+
         // Handle page unload - sign out if registration incomplete
-        window.addEventListener('beforeunload', function(e) {
+        window.addEventListener('beforeunload', function (e) {
             if (isCreatingAccount) {
                 e.preventDefault();
                 e.returnValue = 'Your account is being created. Please wait and do not close or reload this page.';
@@ -221,7 +221,7 @@
                 auth.signOut().catch(err => console.error('Sign out error:', err));
             }
         });
-        
+
         // Helper function to check if user has any registration data
         function hasRegistrationData() {
             const firstName = document.getElementById('first-name')?.value.trim();
@@ -234,23 +234,23 @@
             const teacherCollege = teacherCollegeInput.value;
             const program = programInput.value;
             const password = passwordInput.value;
-            
-            return userType || firstName || lastName || hasGoogleAuth || 
-                   studentId || teacherId || studentCollege || teacherCollege || 
-                   program || password;
+
+            return userType || firstName || lastName || hasGoogleAuth ||
+                studentId || teacherId || studentCollege || teacherCollege ||
+                program || password;
         }
-        
+
         // Helper function to check if registration is complete
         function isRegistrationComplete() {
             // Use the dedicated flag — the modal uses CSS classes (.active), not inline style.display
             return registrationCompleted;
         }
-        
+
         // Show confirmation dialog when user tries to leave with data
         function showLeaveConfirmationDialog() {
             const overlay = document.createElement('div');
             overlay.className = 'welcome-modal-overlay';
-            
+
             overlay.innerHTML = `
                 <div class="welcome-modal-content">
                     <div class="welcome-icon-wrapper">
@@ -264,20 +264,20 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(overlay);
-            
+
             setTimeout(() => {
                 overlay.classList.add('active');
             }, 10);
-            
+
             document.getElementById('leave-cancel-btn').addEventListener('click', () => {
                 overlay.classList.remove('active');
                 setTimeout(() => {
                     overlay.remove();
                 }, 400);
             });
-            
+
             document.getElementById('leave-confirm-btn').addEventListener('click', async () => {
                 // Sign out from Firebase Auth before leaving
                 if (googleUser !== null) {
@@ -288,19 +288,19 @@
                         console.error('Error signing out:', error);
                     }
                 }
-                
+
                 overlay.classList.remove('active');
                 setTimeout(() => {
                     window.location.href = '../index.html';
                 }, 400);
             });
         }
-        
+
         // Show warning dialog when user is authenticated but has no data
         function showAuthWarningDialog() {
             const overlay = document.createElement('div');
             overlay.className = 'welcome-modal-overlay';
-            
+
             overlay.innerHTML = `
                 <div class="welcome-modal-content">
                     <div class="welcome-icon-wrapper">
@@ -314,20 +314,20 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(overlay);
-            
+
             setTimeout(() => {
                 overlay.classList.add('active');
             }, 10);
-            
+
             document.getElementById('auth-cancel-btn').addEventListener('click', () => {
                 overlay.classList.remove('active');
                 setTimeout(() => {
                     overlay.remove();
                 }, 400);
             });
-            
+
             document.getElementById('auth-confirm-btn').addEventListener('click', async () => {
                 // Sign out from Firebase Auth before leaving
                 try {
@@ -336,7 +336,7 @@
                 } catch (error) {
                     console.error('Error signing out:', error);
                 }
-                
+
                 overlay.classList.remove('active');
                 setTimeout(() => {
                     window.location.href = '../index.html';
@@ -363,20 +363,20 @@
                 minJitterY: 0,             // Minimum Y-axis jitter required (disabled for UX)
                 trackVarianceThreshold: 0.3, // Track variance threshold (relaxed)
                 velocityChangeThreshold: 0.1, // Velocity change threshold (relaxed)
-                onVerified: function(result) {
+                onVerified: function (result) {
                     console.log('Slider verification successful:', result.metrics);
                     onVerifiedSuccess(container, gatekeeperView, formWrap);
                 },
-                onFailed: function(result) {
+                onFailed: function (result) {
                     console.warn('Slider verification failed:', result.errors);
                     console.warn('Metrics:', result.metrics);
-                    
+
                     // Show error feedback
                     const bgText = container.querySelector('.slider-verify-bg-text');
                     if (bgText) {
                         bgText.textContent = 'Verification Failed - Please try again';
                         bgText.style.color = '#ef4444';
-                        
+
                         setTimeout(() => {
                             bgText.textContent = 'Slide to verify you are human';
                             bgText.style.color = '';
@@ -411,11 +411,11 @@
             if (bgText) {
                 bgText.textContent = 'Verification Successful';
             }
-            
+
             // Cryptographic validation token generation with fallback
             const timestamp = Date.now();
             const randomArr = new Uint8Array(16);
-            
+
             // Check if crypto is available
             if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
                 console.warn('Crypto API not available, using fallback');
@@ -425,7 +425,7 @@
             } else {
                 crypto.getRandomValues(randomArr);
                 const randomVal = Array.from(randomArr).map(b => b.toString(16).padStart(2, '0')).join('');
-                
+
                 // Check if SubtleCrypto is available (requires secure context)
                 if (crypto.subtle && typeof crypto.subtle.digest === 'function') {
                     try {
@@ -444,7 +444,7 @@
                     expectedHash = simpleSHA256Fallback(message);
                 }
             }
-            
+
             activeSessionToken = expectedHash;
             Object.freeze(activeSessionToken);
 
@@ -470,12 +470,12 @@
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
                         const target = mutation.target;
-                        
+
                         // Tamper protection: Restrict Next 2 step trigger (Step 1 -> Step 2)
                         if (target.id === 'next-to-step-2') {
                             const isVerified = activeSessionToken !== null;
                             const hasName = firstNameInput && firstNameInput.value.trim().length >= 2 &&
-                                            lastNameInput && lastNameInput.value.trim().length >= 2;
+                                lastNameInput && lastNameInput.value.trim().length >= 2;
                             if ((!isVerified || !hasName) && !target.disabled) {
                                 target.disabled = true;
                                 showToast('⚠️ Please enter your legal first and last name to proceed.', '⛔');
@@ -545,7 +545,7 @@
         // Custom cursor helpers for disabled buttons
         function attachTooltipToButton(button, message) {
             let isHovering = false;
-            
+
             button.addEventListener('mouseenter', () => {
                 if (button.disabled) {
                     isHovering = true;
@@ -553,19 +553,19 @@
                     cursorTooltip.classList.add('show');
                 }
             });
-            
+
             button.addEventListener('mouseleave', () => {
                 isHovering = false;
                 cursorTooltip.classList.remove('show');
             });
-            
+
             button.addEventListener('mousemove', (e) => {
                 if (button.disabled && isHovering) {
                     cursorTooltip.style.left = e.clientX + 'px';
                     cursorTooltip.style.top = e.clientY + 'px';
                 }
             });
-            
+
             button.addEventListener('click', (e) => {
                 if (button.disabled) {
                     e.preventDefault();
@@ -611,23 +611,67 @@
         // Manual name inputs inside the verification summary card
         const summaryFirstName = document.getElementById('summary-first-name');
         const summaryMiddleName = document.getElementById('summary-middle-name');
-        const summaryLastName  = document.getElementById('summary-last-name');
-        const summaryNameHint  = document.getElementById('summary-name-hint');
+        const summaryLastName = document.getElementById('summary-last-name');
+        const summaryNameHint = document.getElementById('summary-name-hint');
         const idCameraFallbackInput = document.getElementById('id-camera-fallback-input');
         const cameraFallbackOverlay = document.getElementById('camera-fallback-overlay');
         let isCameraFallback = false;
 
-        // Camera Management & LAN Device Shutter Fallback
-        function enableCameraFallbackMode() {
+        // Camera Management & LAN / Desktop Diagnostics Fallback
+        function enableCameraFallbackMode(err = null) {
             isCameraFallback = true;
             stopCameraStream();
             if (idCameraVideo) idCameraVideo.style.display = 'none';
             if (cameraFallbackOverlay) cameraFallbackOverlay.style.display = 'flex';
+
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isLocalOrigin = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+            const isInsecureDomain = (!window.isSecureContext && !isLocalOrigin);
+
+            const badgeEl = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-badge') : null;
+            const titleEl = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-title') : null;
+            const subEl   = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-sub') : null;
             const btnCaptureSpan = btnCapturePhoto ? btnCapturePhoto.querySelector('span:last-child') : null;
-            if (btnCaptureSpan) btnCaptureSpan.textContent = 'Open Camera Shutter';
+
+            if (isMobile) {
+                if (badgeEl) badgeEl.textContent = 'LAN / Device Camera Mode';
+                if (titleEl) titleEl.textContent = 'Tap to Snap CTU ID';
+                if (subEl) subEl.textContent = 'Direct live stream requires HTTPS. Tap button below or touch here to capture using your phone camera shutter.';
+                if (btnCaptureSpan) btnCaptureSpan.textContent = 'Open Camera Shutter';
+            } else {
+                // Desktop diagnostics & guidance
+                if (isInsecureDomain) {
+                    if (badgeEl) badgeEl.textContent = 'HTTP Domain Restriction';
+                    if (titleEl) titleEl.textContent = 'Webcam Requires Localhost / HTTPS';
+                    if (subEl) subEl.textContent = 'Desktop browsers block webcam on non-localhost HTTP (e.g. pcg-2.local). Open via http://localhost:3000 to use your webcam, or select a photo below.';
+                    if (btnCaptureSpan) btnCaptureSpan.textContent = 'Select ID Photo';
+                } else if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+                    if (badgeEl) badgeEl.textContent = 'Webcam Permission Blocked';
+                    if (titleEl) titleEl.textContent = 'Camera Access Denied';
+                    if (subEl) subEl.textContent = 'Webcam access was denied. Click the lock/tune icon in your browser address bar to allow camera access, or select a photo.';
+                    if (btnCaptureSpan) btnCaptureSpan.textContent = 'Select ID Photo';
+                } else if (err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')) {
+                    if (badgeEl) badgeEl.textContent = 'No Webcam Found';
+                    if (titleEl) titleEl.textContent = 'No Camera Device Detected';
+                    if (subEl) subEl.textContent = 'No webcam hardware was detected on this PC. Please connect a webcam or select an ID photo.';
+                    if (btnCaptureSpan) btnCaptureSpan.textContent = 'Select ID Photo';
+                } else {
+                    if (badgeEl) badgeEl.textContent = 'Camera Unavailable';
+                    if (titleEl) titleEl.textContent = 'Webcam Inactive';
+                    if (subEl) subEl.textContent = 'Webcam stream could not start. Please ensure no other app (Zoom, Teams) is using the camera, or select an ID photo.';
+                    if (btnCaptureSpan) btnCaptureSpan.textContent = 'Select ID Photo';
+                }
+            }
+
             const hintText = document.getElementById('camera-hint-text');
             if (hintText) {
-                hintText.innerHTML = '📱 <strong>LAN Mode:</strong> Live WebRTC streaming requires HTTPS. Tap the shutter button above to snap your ID card directly with your camera.';
+                if (isMobile) {
+                    hintText.innerHTML = '📱 <strong>LAN Mode:</strong> Direct live stream requires HTTPS. Tap the shutter button above to snap your ID card directly with your camera.';
+                } else if (isInsecureDomain) {
+                    hintText.innerHTML = '💻 <strong>Desktop Tip:</strong> To use your live webcam on this PC, visit <a href="http://localhost:3000/pages/account_registration.html" style="color:#10b981;text-decoration:underline;">http://localhost:3000</a> instead of the LAN IP domain.';
+                } else {
+                    hintText.innerHTML = '💡 Tip: You can select a photo or connect a webcam to scan your CTU ID card.';
+                }
             }
         }
 
@@ -639,15 +683,24 @@
             }
             try {
                 stopCameraStream();
+                const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                // On mobile phones, request 'environment' for rear camera.
+                // On desktop PCs, do NOT force 'environment' because webcams are front-facing or USB!
                 const constraints = {
-                    video: {
-                        facingMode: { ideal: currentFacingMode },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
+                    video: isMobile 
+                        ? { facingMode: { ideal: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                        : { width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false
                 };
-                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                try {
+                    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (constraintErr) {
+                    console.warn('Strict constraints failed on webcam, falling back to basic { video: true }:', constraintErr);
+                    // Relax constraints if 1280x720 or facingMode is unsupported by desktop webcam
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                }
+
                 isCameraFallback = false;
                 if (cameraFallbackOverlay) cameraFallbackOverlay.style.display = 'none';
                 if (idCameraVideo) {
@@ -659,11 +712,11 @@
                 if (btnCaptureSpan) btnCaptureSpan.textContent = 'Capture ID Card';
                 const hintText = document.getElementById('camera-hint-text');
                 if (hintText) {
-                    hintText.innerHTML = '💡 Tip: Place your ID on a well-lit flat surface. Outside the framed zone will be cropped out.';
+                    hintText.innerHTML = '💡 Tip: Place your ID in front of the camera. Outside the framed zone will be cropped out.';
                 }
             } catch (err) {
                 console.warn('Camera access denied or unavailable on current origin:', err);
-                enableCameraFallbackMode();
+                enableCameraFallbackMode(err);
             }
         }
 
@@ -795,7 +848,7 @@
             if (idDropzone) idDropzone.style.display = 'none';
             uploadZoneFramingPanel.style.display = 'flex';
 
-            zoneSourceImage.onload = function() {
+            zoneSourceImage.onload = function () {
                 initCropBox();
             };
             zoneSourceImage.src = imageSource;
@@ -852,7 +905,7 @@
             if (!idCardCropBox || !zoneStage) return;
 
             // Center drag to move
-            idCardCropBox.addEventListener('pointerdown', function(e) {
+            idCardCropBox.addEventListener('pointerdown', function (e) {
                 if (e.target.classList.contains('crop-corner')) return;
                 e.preventDefault();
                 cropBoxState.isDragging = true;
@@ -866,7 +919,7 @@
             // Corner drag to scale with aspect ratio lock
             const handles = idCardCropBox.querySelectorAll('.crop-corner');
             handles.forEach(handle => {
-                handle.addEventListener('pointerdown', function(e) {
+                handle.addEventListener('pointerdown', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     cropBoxState.isResizing = true;
@@ -881,7 +934,7 @@
                 });
             });
 
-            window.addEventListener('pointermove', function(e) {
+            window.addEventListener('pointermove', function (e) {
                 if (!cropBoxState.isDragging && !cropBoxState.isResizing) return;
                 if (!zoneSourceImage) return;
                 const stageW = zoneSourceImage.clientWidth;
@@ -975,7 +1028,7 @@
                 }
             });
 
-            window.addEventListener('pointerup', function() {
+            window.addEventListener('pointerup', function () {
                 cropBoxState.isDragging = false;
                 cropBoxState.isResizing = false;
                 cropBoxState.activeHandle = null;
@@ -1127,7 +1180,7 @@
                     const x0 = Math.max(0, x - half), x1 = Math.min(w, x + half + 1);
                     const count = (y1 - y0) * (x1 - x0);
                     const s = integral[y1 * (w + 1) + x1] - integral[y0 * (w + 1) + x1]
-                            - integral[y1 * (w + 1) + x0] + integral[y0 * (w + 1) + x0];
+                        - integral[y1 * (w + 1) + x0] + integral[y0 * (w + 1) + x0];
                     const v = gray[y * w + x];
                     // Must be clearly darker than its neighbourhood AND genuinely dark
                     mask[y * w + x] = (v * count < s * (1 - sensitivity) && v < 170) ? 1 : 0;
@@ -1144,8 +1197,8 @@
                     const i = y * w + x;
                     if (!mask[i]) continue;
                     const nb = mask[i - w - 1] + mask[i - w] + mask[i - w + 1] +
-                               mask[i - 1] + mask[i + 1] +
-                               mask[i + w - 1] + mask[i + w] + mask[i + w + 1];
+                        mask[i - 1] + mask[i + 1] +
+                        mask[i + w - 1] + mask[i + w] + mask[i + w + 1];
                     if (nb <= 1) out[i] = 0;
                 }
             }
@@ -1266,7 +1319,7 @@
             const anchor = findIdAnchorWord(words);
             const numeric = findNumericCandidateWord(words);
             const target = (anchor && anchor.bbox) ? { kind: 'anchor', word: anchor }
-                         : (numeric ? { kind: 'number', word: numeric } : null);
+                : (numeric ? { kind: 'number', word: numeric } : null);
             if (!target) return '';
 
             const b = target.word.bbox;
@@ -1368,7 +1421,7 @@
             neuralPointerMoveHandler = onPointerMove;
             neuralPointerLeaveHandler = onPointerLeave;
 
-            sourceImg.onload = function() {
+            sourceImg.onload = function () {
                 const ctx = canvas.getContext('2d');
                 if (!ctx) return;
 
@@ -1386,12 +1439,12 @@
 
                 // 1. Feature Target Anchors mapping standard CTU ID card anatomy
                 const anchors = [
-                    { id: 'seal',   label: 'CTU SEAL',           x: 0.20, y: 0.12, type: 'seal' },
-                    { id: 'campus', label: 'CAMPUS HEADER',      x: 0.65, y: 0.12, type: 'point' },
-                    { id: 'photo',  label: 'BIOMETRIC PORTRAIT', x: 0.50, y: 0.38, w: 0.44, h: 0.32, type: 'box' },
-                    { id: 'name',   label: 'STUDENT IDENTITY',   x: 0.50, y: 0.60, w: 0.70, h: 0.08, type: 'box' },
-                    { id: 'prog',   label: 'ACADEMIC PROGRAM',   x: 0.50, y: 0.72, type: 'point' },
-                    { id: 'idno',   label: 'STUDENT ID NO.',     x: 0.50, y: 0.83, w: 0.60, h: 0.08, type: 'box' }
+                    { id: 'seal', label: 'CTU SEAL', x: 0.20, y: 0.12, type: 'seal' },
+                    { id: 'campus', label: 'CAMPUS HEADER', x: 0.65, y: 0.12, type: 'point' },
+                    { id: 'photo', label: 'BIOMETRIC PORTRAIT', x: 0.50, y: 0.38, w: 0.44, h: 0.32, type: 'box' },
+                    { id: 'name', label: 'STUDENT IDENTITY', x: 0.50, y: 0.60, w: 0.70, h: 0.08, type: 'box' },
+                    { id: 'prog', label: 'ACADEMIC PROGRAM', x: 0.50, y: 0.72, type: 'point' },
+                    { id: 'idno', label: 'STUDENT ID NO.', x: 0.50, y: 0.83, w: 0.60, h: 0.08, type: 'box' }
                 ];
 
                 // 2. Synaptic Constellation Particles
@@ -1843,20 +1896,20 @@
                 await new Promise(r => setTimeout(r, 30));
 
                 const FULL_CARD = { x: 0, y: 0, w: 1, h: 1 };
-                const HEADER   = { x: 0, y: 0,    w: 1, h: 0.42 }; // institutional header (school name, logo)
+                const HEADER = { x: 0, y: 0, w: 1, h: 0.42 }; // institutional header (school name, logo)
                 const CREDENTIALS = { x: 0, y: 0.48, w: 1, h: 0.52 }; // name, course/designation, ID No.
 
                 // Full card: two complementary binarization passes
-                const fullColorDrop  = buildOcrVariant(img, FULL_CARD, 'value', 'bradley');  // removes coloured backgrounds
-                const fullLumaBrad   = buildOcrVariant(img, FULL_CARD, 'luma', 'bradley');   // dark ink on any background
-                const fullLuma       = buildOcrVariant(img, FULL_CARD, 'luma', 'otsu');       // global threshold
+                const fullColorDrop = buildOcrVariant(img, FULL_CARD, 'value', 'bradley');  // removes coloured backgrounds
+                const fullLumaBrad = buildOcrVariant(img, FULL_CARD, 'luma', 'bradley');   // dark ink on any background
+                const fullLuma = buildOcrVariant(img, FULL_CARD, 'luma', 'otsu');       // global threshold
                 // Header: luma modes catch the dark-blue institutional text on yellow/green gradient
                 const headerLumaBrad = buildOcrVariant(img, HEADER, 'luma', 'bradley');
                 const headerLumaOtsu = buildOcrVariant(img, HEADER, 'luma', 'otsu');
                 // Credentials block: three variants for voting
-                const credColorDrop  = buildOcrVariant(img, CREDENTIALS, 'value', 'bradley');
-                const credLumaOtsu   = buildOcrVariant(img, CREDENTIALS, 'luma', 'otsu');
-                const credGray       = buildOcrVariant(img, CREDENTIALS, 'luma', 'none');
+                const credColorDrop = buildOcrVariant(img, CREDENTIALS, 'value', 'bradley');
+                const credLumaOtsu = buildOcrVariant(img, CREDENTIALS, 'luma', 'otsu');
+                const credGray = buildOcrVariant(img, CREDENTIALS, 'luma', 'none');
 
                 // Preserve original full-color ID preview under neural vision HUD
                 // (Tesseract reads binarized variants directly in background memory)
@@ -1962,7 +2015,7 @@
                     return sid === cleanId;
                 });
                 if (localMatch) return true;
-            } catch (e) {}
+            } catch (e) { }
 
             // 2. Check Firestore users collection (lazy query)
             if (typeof db !== 'undefined' && db && db.collection) {
@@ -2001,7 +2054,7 @@
             // Accept common OCR garbles: 'CEBU' may appear as 'CEBu', 'EBU', 'C£BU';
             // 'TECHNOLOGICAL' often truncated; 'Philippines' sometimes misread.
             const isCtu = /C[E3][BbRr][Uu]|TECHNOLOG|UNIVERSIT|Daanbantayan|Philippines|Republic/i.test(cleanFull)
-                       || /CEBU|CTU/i.test(cleanFull);
+                || /CEBU|CTU/i.test(cleanFull);
             if (!isCtu) {
                 throw new Error('Unable to verify CTU institutional header. The image is blurry, poorly lit, or not an authentic CTU ID card. Please capture clearly.');
             }
@@ -2048,10 +2101,10 @@
             if (!idNumber) {
                 const patterns = role === 'teacher'
                     ? [/Employee\s*I[D0O]\s*N[o0]\.?\s*[:.;]?\s*([0-9OoIlSB|]{4,8})/i,
-                       /\bI[D0O]\s*N[o0]\.?\s*[:.;]?\s*([0-9OoIlSB|]{4,8})/i,
-                       /\b([0-9]{4,8})\b/]
+                        /\bI[D0O]\s*N[o0]\.?\s*[:.;]?\s*([0-9OoIlSB|]{4,8})/i,
+                        /\b([0-9]{4,8})\b/]
                     : [/\bI[D0O]\s*N[o0]\.?\s*[:.;]?\s*([0-9OoIlSB|]{6,10})/i,
-                       /\b([0-9]{6,10})\b/];
+                        /\b([0-9]{6,10})\b/];
                 for (const re of patterns) {
                     const m = cleanFull.match(re);
                     const cand = m ? acceptIdCandidate(m[1]) : '';
@@ -2131,8 +2184,8 @@
                 let line = lines[i];
 
                 line = line.replace(/([A-Z]{2,})([A-Z]\.)/g, '$1 $2')
-                           .replace(/([A-Z]\.)([A-Z]{2,})/g, '$1 $2')
-                           .replace(/\b([A-Z]+)0([A-Z]*)\b/g, '$1O$2');
+                    .replace(/([A-Z]\.)([A-Z]{2,})/g, '$1 $2')
+                    .replace(/\b([A-Z]+)0([A-Z]*)\b/g, '$1O$2');
 
                 let clean = line.replace(/[^A-Za-z\s.]/g, ' ').replace(/\s+/g, ' ').trim();
                 if (!clean || clean.length < 5 || institutionalWords.test(clean)) continue;
@@ -2453,13 +2506,13 @@
             roleCards.forEach(card => {
                 card.setAttribute('tabindex', '0');
                 card.setAttribute('role', 'button');
-                card.addEventListener('keydown', function(e) {
+                card.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         this.click();
                     }
                 });
-                card.addEventListener('click', function() {
+                card.addEventListener('click', function () {
                     if (!verifiedIdData) {
                         this.classList.add('shake');
                         setTimeout(() => this.classList.remove('shake'), 500);
@@ -2472,7 +2525,7 @@
         }
 
         attachTooltipToButton(nextToStep2Btn, 'Please scan and verify your official CTU ID card first');
-        
+
         // Google authentication state validation
         function validateStep3() {
             const isValid = googleUser !== null && verifiedEmail !== null;
@@ -2481,25 +2534,25 @@
                 attachTooltipToButton(nextToStep4Btn, 'Please sign in with Google first');
             }
         }
-        
+
         validateStep3();
-        
+
         // Firebase Google Authentication Popup Handler
         if (googleSignInBtn) {
-            googleSignInBtn.addEventListener('click', async function() {
+            googleSignInBtn.addEventListener('click', async function () {
                 try {
                     accountExistsError.style.display = 'none';
                     googleSignInBtn.disabled = true;
                     googleSignInBtn.innerHTML = '<span>Signing in...</span>';
-                    
+
                     const provider = new firebase.auth.GoogleAuthProvider();
                     provider.addScope('email');
                     provider.addScope('profile');
-                    
+
                     const result = await auth.signInWithPopup(provider);
                     googleUser = result.user;
                     verifiedEmail = googleUser.email;
-                    
+
                     // Check if account has BOTH Google and Password providers linked (fully registered)
                     const providerIds = (googleUser.providerData || []).map(p => p.providerId);
                     const hasGoogleProvider = providerIds.includes('google.com') || providerIds.includes(firebase.auth.GoogleAuthProvider.PROVIDER_ID);
@@ -2522,15 +2575,15 @@
 
                     // An account is only already registered if it has BOTH providers (Google and email/password)
                     const isFullyRegistered = (hasGoogleProvider && hasPasswordProvider) ||
-                                              (hasGoogleMethod && hasPasswordMethod) ||
-                                              (userDoc.exists && docHasPassword);
+                        (hasGoogleMethod && hasPasswordMethod) ||
+                        (userDoc.exists && docHasPassword);
 
                     if (isFullyRegistered) {
                         const existingEmail = googleUser.email;
                         await auth.signOut();
                         googleUser = null;
                         verifiedEmail = null;
-                        
+
                         googleAuthStatus.style.display = 'none';
                         googleSignInBtn.style.display = 'none';
                         errorMessage.textContent = `The Google account "${existingEmail}" is already registered. Please login instead or use a different Google account.`;
@@ -2541,17 +2594,17 @@
                         nextToStep4Btn.disabled = true;
                         return;
                     }
-                    
+
                     accountExistsError.style.display = 'none';
                     googleUserAvatar.src = googleUser.photoURL || 'https://via.placeholder.com/48';
                     googleUserName.textContent = googleUser.displayName || 'User';
                     googleUserEmail.textContent = googleUser.email;
-                    
+
                     googleAuthStatus.style.display = 'none';
                     googleSignInBtn.style.display = 'none';
                     googleAuthInfo.style.display = 'flex';
                     nextToStep4Btn.disabled = false;
-                    
+
                 } catch (error) {
                     console.error('Google Sign-In error:', error);
                     googleSignInBtn.disabled = false;
@@ -2587,10 +2640,10 @@
                 }
             });
         }
-        
+
         // Change Google account handler
         if (changeGoogleAccountBtn) {
-            changeGoogleAccountBtn.addEventListener('click', async function() {
+            changeGoogleAccountBtn.addEventListener('click', async function () {
                 try {
                     await auth.signOut();
                     googleUser = null;
@@ -2621,10 +2674,10 @@
                 }
             });
         }
-        
+
         // Try Different Account popup trigger
         if (tryDifferentAccountBtn) {
-            tryDifferentAccountBtn.addEventListener('click', async function() {
+            tryDifferentAccountBtn.addEventListener('click', async function () {
                 accountExistsError.style.display = 'none';
                 googleAuthStatus.style.display = 'flex';
                 googleSignInBtn.style.display = 'flex';
@@ -2636,7 +2689,7 @@
                 setTimeout(() => googleSignInBtn.click(), 100);
             });
         }
-        
+
         // Step 1: Personal Information (Full Name) Validations
         const firstNameInput = document.getElementById('first-name');
         const middleNameInput = document.getElementById('middle-name');
@@ -2650,7 +2703,7 @@
         function validateStep1() {
             if (!firstNameInput || !lastNameInput) return false;
             const first = firstNameInput.value.trim();
-            const last  = lastNameInput.value.trim();
+            const last = lastNameInput.value.trim();
             const hasNumbers = /[0-9]/.test(first) || /[0-9]/.test(last);
 
             const valid = first.length >= 2 && last.length >= 2 && !hasNumbers;
@@ -2707,23 +2760,23 @@
         }
 
         function validateStep2() { return true; }
-        
+
 
         // Password strength algorithms
         function checkPasswordStrength(password) {
             if (!password) {
                 return { strength: '', suggestion: '' };
             }
-            
+
             const hasLowerCase = /[a-z]/.test(password);
             const hasUpperCase = /[A-Z]/.test(password);
             const hasNumber = /[0-9]/.test(password);
             const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
             const isLongEnough = password.length >= 8;
-            
+
             let strength = '';
             let suggestion = '';
-            
+
             if (!hasNumber) {
                 suggestion = 'Hint: Add numbers to strengthen';
                 strength = 'weak';
@@ -2743,31 +2796,31 @@
                 suggestion = 'Strong password';
                 strength = 'strong';
             }
-            
+
             return { strength, suggestion };
         }
-        
+
         function updatePasswordStrength() {
             const password = passwordInput.value;
             const result = checkPasswordStrength(password);
-            
+
             passwordStrengthFill.className = 'password-strength-fill';
             if (result.strength) {
                 passwordStrengthFill.classList.add(result.strength);
             }
             passwordSuggestion.textContent = result.suggestion;
         }
-        
+
         function setupPasswordToggle() {
             const toggleButtons = document.querySelectorAll('.toggle-password-btn');
-            
+
             toggleButtons.forEach(button => {
-                button.addEventListener('click', function() {
+                button.addEventListener('click', function () {
                     const targetId = this.getAttribute('data-target');
                     const targetInput = document.getElementById(targetId);
                     const eyeOpen = this.querySelector('.eye-open');
                     const eyeClosed = this.querySelector('.eye-closed');
-                    
+
                     if (targetInput.type === 'password') {
                         targetInput.type = 'text';
                         eyeOpen.style.display = 'none';
@@ -2780,7 +2833,7 @@
                 });
             });
         }
-        
+
         function validateStep5() {
             const password = passwordInput.value;
             const confirmPassword = confirmPasswordInput.value;
@@ -2795,7 +2848,7 @@
                 }
             }
         }
-        
+
         if (passwordInput && confirmPasswordInput) {
             passwordInput.addEventListener('input', () => {
                 updatePasswordStrength();
@@ -2805,17 +2858,17 @@
             validateStep5();
             setupPasswordToggle();
         }
-        
+
         // Step 6: Password Recall Check
         if (passwordTestInput) {
             passwordTestInput.addEventListener('copy', (e) => e.preventDefault());
             passwordTestInput.addEventListener('paste', (e) => e.preventDefault());
             passwordTestInput.addEventListener('cut', (e) => e.preventDefault());
             passwordTestInput.addEventListener('contextmenu', (e) => e.preventDefault());
-            
-            passwordTestInput.addEventListener('input', function() {
+
+            passwordTestInput.addEventListener('input', function () {
                 const enteredPassword = this.value;
-                
+
                 if (enteredPassword === savedPassword) {
                     this.className = 'form-input password-test-input correct';
                     passwordTestFeedback.textContent = 'Correct! Password verified';
@@ -2826,7 +2879,7 @@
                     passwordTestFeedback.textContent = '✗ Incorrect password. Try again';
                     passwordTestFeedback.className = 'password-test-feedback incorrect';
                     nextToStep7Btn.disabled = true;
-                    
+
                     setTimeout(() => {
                         this.value = '';
                         this.className = 'form-input password-test-input';
@@ -2839,7 +2892,7 @@
                 }
             });
         }
-        
+
         // Step 6: Validation and tooltip
         function validateStep6() {
             const enteredPassword = passwordTestInput.value;
@@ -2849,23 +2902,23 @@
                 attachTooltipToButton(nextToStep7Btn, 'Please enter the correct password to verify');
             }
         }
-        
+
         // Initialize Step 6 validation
         if (nextToStep7Btn) {
             validateStep6();
             attachTooltipToButton(nextToStep7Btn, 'Please enter the correct password to verify');
         }
-        
+
         // Step 4: Academic profile logic
         function validateStep4() {
             let isValid = false;
             let tooltipMessage = '';
-            
+
             if (userType === 'student') {
                 const studentId = studentIdInput.value.trim();
                 const college = studentCollegeInput.value;
                 const program = programInput.value;
-                
+
                 if (!studentId) {
                     tooltipMessage = 'Please enter your Student ID';
                 } else if (!college) {
@@ -2878,7 +2931,7 @@
             } else if (userType === 'teacher') {
                 const teacherId = teacherIdInput.value.trim();
                 const college = teacherCollegeInput.value;
-                
+
                 if (!teacherId) {
                     tooltipMessage = 'Please enter your Teacher ID';
                 } else if (!college) {
@@ -2887,28 +2940,28 @@
                     isValid = true;
                 }
             }
-            
+
             nextToStep5Btn.disabled = !isValid;
             if (!isValid) {
                 attachTooltipToButton(nextToStep5Btn, tooltipMessage);
             }
         }
-        
+
         if (studentIdInput) {
             studentIdInput.addEventListener('input', () => {
                 if (userType === 'student') validateStep4();
             });
         }
-        
+
         if (teacherIdInput) {
             teacherIdInput.addEventListener('input', () => {
                 if (userType === 'teacher') validateStep4();
             });
         }
-        
+
         // Teacher college selection
         collegeCards.forEach(card => {
-            card.addEventListener('click', function() {
+            card.addEventListener('click', function () {
                 const parentId = this.closest('#teacher-college-group');
                 if (parentId) {
                     const teacherCards = document.querySelectorAll('#teacher-college-group .college-card');
@@ -2916,7 +2969,7 @@
                     this.classList.add('selected');
                     const selectedCollege = this.getAttribute('data-college');
                     teacherCollegeInput.value = selectedCollege;
-                    
+
                     if (userType === 'teacher') validateStep4();
                 }
             });
@@ -2924,22 +2977,22 @@
 
         // Student college card selections
         studentCollegeCardsElements.forEach(card => {
-            card.addEventListener('click', function() {
+            card.addEventListener('click', function () {
                 studentCollegeCardsElements.forEach(c => c.classList.remove('selected'));
                 this.classList.add('selected');
-                
+
                 const selectedCollege = this.getAttribute('data-college');
                 studentCollegeInput.value = selectedCollege;
                 selectedCollegeName.textContent = selectedCollege;
-                
+
                 setTimeout(() => {
                     studentCollegeCards.classList.add('compact');
-                    
+
                     setTimeout(() => {
                         studentCollegeSelected.style.display = 'block';
                         setTimeout(() => {
                             studentCollegeSelected.classList.add('show');
-                            
+
                             setTimeout(() => {
                                 showProgramDropdown(selectedCollege);
                                 if (userType === 'student') validateStep4();
@@ -2952,20 +3005,20 @@
 
         // College change button
         if (changeCollegeBtn) {
-            changeCollegeBtn.addEventListener('click', function() {
+            changeCollegeBtn.addEventListener('click', function () {
                 programGroup.classList.remove('show');
-                
+
                 setTimeout(() => {
                     studentCollegeSelected.classList.remove('show');
-                    
+
                     setTimeout(() => {
                         studentCollegeSelected.style.display = 'none';
                         studentCollegeCards.classList.remove('compact');
-                        
+
                         studentCollegeInput.value = '';
                         programInput.value = '';
                         studentCollegeCardsElements.forEach(c => c.classList.remove('selected'));
-                        
+
                         if (userType === 'student') validateStep4();
                     }, 300);
                 }, 200);
@@ -2979,24 +3032,24 @@
             renderProgramCarousel();
             programGroup.classList.add('show');
         }
-        
+
         function renderProgramCarousel() {
             programCarouselTrack.innerHTML = '';
             programIndicators.innerHTML = '';
-            
+
             if (filteredPrograms.length === 0) return;
-            
+
             filteredPrograms.forEach((program, index) => {
                 const card = document.createElement('div');
                 card.className = 'program-card';
                 card.dataset.index = index;
                 card.dataset.code = program.code;
-                
+
                 card.innerHTML = `
                     <div class="program-code">${program.code}</div>
                     <div class="program-name">${program.name}</div>
                 `;
-                
+
                 card.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const idx = parseInt(card.dataset.index, 10);
@@ -3004,28 +3057,28 @@
                         selectProgram(idx);
                     }
                 });
-                
+
                 programCarouselTrack.appendChild(card);
-                
+
                 const dot = document.createElement('span');
                 dot.className = 'program-indicator-dot';
                 dot.dataset.index = index;
                 dot.addEventListener('click', () => selectProgram(index));
                 programIndicators.appendChild(dot);
             });
-            
+
             currentProgramIndex = 0;
             const firstProgram = filteredPrograms[0];
             programInput.value = firstProgram.code;
-            
+
             updateProgramCarousel();
             attachProgramParallax();
-            
+
             if (userType === 'student') {
                 setTimeout(() => validateStep4(), 100);
             }
         }
-        
+
         function selectProgram(index) {
             let targetIdx = index;
             if (typeof index === 'object' && index !== null && index.code) {
@@ -3037,37 +3090,37 @@
                 programInput.value = selectedProgram.code;
             }
             updateProgramCarousel();
-            
+
             if (userType === 'student') validateStep4();
         }
-        
+
         function updateProgramCarousel() {
             const cards = programCarouselTrack.querySelectorAll('.program-card');
             const dots = programIndicators.querySelectorAll('.program-indicator-dot');
-            
+
             if (cards.length === 0) return;
-            
+
             cards.forEach((card, i) => {
                 card.classList.toggle('active', i === currentProgramIndex);
             });
-            
+
             dots.forEach((dot, i) => {
                 dot.classList.toggle('active', i === currentProgramIndex);
             });
-            
+
             const viewportWidth = programCarouselViewport.clientWidth;
             const cardWidth = cards[0].offsetWidth + 16;
             const offset = (viewportWidth / 2) - (cardWidth / 2) - (currentProgramIndex * cardWidth);
             programCarouselTrack.style.transform = `translateX(${offset}px)`;
         }
-        
+
         function attachProgramParallax() {
             const cards = programCarouselTrack.querySelectorAll('.program-card');
-            
+
             programCarouselViewport.addEventListener('mousemove', (e) => {
                 const rect = programCarouselViewport.getBoundingClientRect();
                 const x = (e.clientX - rect.left) / rect.width - 0.5;
-                
+
                 cards.forEach(card => {
                     if (!card.classList.contains('active')) {
                         const shift = x * 8;
@@ -3075,26 +3128,26 @@
                     }
                 });
             });
-            
+
             programCarouselViewport.addEventListener('mouseleave', () => {
                 cards.forEach(card => {
                     card.style.transform = '';
                 });
             });
         }
-        
+
         function nextProgram() {
             if (currentProgramIndex < filteredPrograms.length - 1) {
                 selectProgram(currentProgramIndex + 1);
             }
         }
-        
+
         function prevProgram() {
             if (currentProgramIndex > 0) {
                 selectProgram(currentProgramIndex - 1);
             }
         }
-        
+
         function handleProgramWheel(e) {
             e.preventDefault();
             const delta = e.deltaY || e.deltaX;
@@ -3104,25 +3157,25 @@
                 prevProgram();
             }
         }
-        
+
         if (programPrevArrow) {
             programPrevArrow.addEventListener('click', (e) => {
                 e.stopPropagation();
                 prevProgram();
             });
         }
-        
+
         if (programNextArrow) {
             programNextArrow.addEventListener('click', (e) => {
                 e.stopPropagation();
                 nextProgram();
             });
         }
-        
+
         if (programCarouselViewport) {
             programCarouselViewport.addEventListener('wheel', handleProgramWheel, { passive: false });
         }
-        
+
         document.addEventListener('keydown', (e) => {
             if (programGroup && programGroup.classList.contains('show')) {
                 if (e.key === 'ArrowRight') {
@@ -3139,7 +3192,7 @@
         function showStep(stepNumber) {
             if (isCreatingAccount) return;
             const step8 = document.getElementById('step-8');
-            
+
             step1.classList.remove('active');
             if (step2) step2.classList.remove('active');
             step3.classList.remove('active');
@@ -3186,11 +3239,11 @@
             }
 
             currentStep = stepNumber;
-            
+
             if (stepNumber > maxReachedStep) {
                 maxReachedStep = stepNumber;
             }
-            
+
             updateStepIndicators();
 
             // Automatically focus the primary input field of the activated step
@@ -3334,7 +3387,7 @@
                 const stepData = flow[idx];
                 if (!stepData) return;
 
-                stepEl.addEventListener('click', function() {
+                stepEl.addEventListener('click', function () {
                     if (isCreatingAccount) return;
                     if (completedSteps.has(stepData.stepId)) {
                         showStep(stepData.stepId);
@@ -3362,7 +3415,7 @@
                 showStep(2);
             });
         }
-        
+
         // Step 2 (ID Verification) Back button -> returns to Step 1 (Full Name)
         if (backToStep1Btn) {
             backToStep1Btn.addEventListener('click', () => {
@@ -3370,7 +3423,7 @@
                 showStep(1);
             });
         }
-        
+
         // Step 2 (ID Verification) Next button -> proceeds to Step 3 (Google Auth)
         if (nextToStep3Btn) {
             nextToStep3Btn.addEventListener('click', () => {
@@ -3385,14 +3438,14 @@
                 showStep(3);
             });
         }
-        
+
         // Step 3 (Google Auth) Back button -> returns to Step 2 (ID verification)
         if (backToStep2Btn) {
             backToStep2Btn.addEventListener('click', () => {
                 showStep(2);
             });
         }
-        
+
         // Step 3 (Google Auth) Next button:
         // Student skips Academic Profile completely and goes directly to Step 5 (Create Password)!
         // Teacher proceeds to Step 4 (Faculty Affiliation to choose COTE or COED)!
@@ -3410,21 +3463,21 @@
                 }
             });
         }
-        
+
         // Step 4 (Faculty Affiliation) Back button -> returns to Step 3 (Google Auth)
         if (backToStep3Btn) {
             backToStep3Btn.addEventListener('click', async () => {
                 showStep(3);
             });
         }
-        
+
         // Step 4 (Faculty Affiliation) Next button -> proceeds to Step 5 (Create Password)
         if (nextToStep5Btn) {
             nextToStep5Btn.addEventListener('click', () => {
                 if (userType === 'teacher') {
                     const teacherId = teacherIdInput ? teacherIdInput.value.trim() : '';
                     const teacherCollege = teacherCollegeInput ? teacherCollegeInput.value : '';
-                    
+
                     if (!teacherId) {
                         showToast('Please enter your Employee ID', '⚠️');
                         return;
@@ -3434,12 +3487,12 @@
                         return;
                     }
                 }
-                
+
                 markStepCompleted(4);
                 showStep(5);
             });
         }
-        
+
         // Step 5 (Create Password) Back button:
         // Student goes back to Step 3 (Google Auth)!
         // Teacher goes back to Step 4 (Faculty Affiliation)!
@@ -3452,12 +3505,12 @@
                 }
             });
         }
-        
+
         if (nextToStep6Btn) {
             nextToStep6Btn.addEventListener('click', () => {
                 const password = passwordInput ? passwordInput.value : '';
                 const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
-                
+
                 if (!password) {
                     showToast('Please enter a password', '⚠️');
                     return;
@@ -3474,12 +3527,12 @@
                     showToast('Passwords do not match', '⚠️');
                     return;
                 }
-                
+
                 markStepCompleted(5);
                 showStep(6);
             });
         }
-        
+
         if (backToStep5Btn) {
             backToStep5Btn.addEventListener('click', () => showStep(5));
         }
@@ -3491,14 +3544,14 @@
                 showStep(7);
             });
         }
-        
+
         if (nextToStep7Btn) {
             nextToStep7Btn.addEventListener('click', () => {
                 markStepCompleted(6);
                 showStep(7);
             });
         }
-        
+
         if (backToStep6Btn) {
             backToStep6Btn.addEventListener('click', () => showStep(6));
         }
@@ -3506,7 +3559,7 @@
         // Step 7 to Step 8 Navigation (Security Question - Now Required)
         const nextToStep8Btn = document.getElementById('next-to-step-8');
         const backToStep7Btn = document.getElementById('back-to-step-7');
-        
+
         // Helper: Get effective security question value (preset code or custom text)
         function getEffectiveSecurityQuestion() {
             const selectEl = document.getElementById('security-question');
@@ -3609,7 +3662,7 @@
                 initializeTermsAndConditions();
             });
         }
-        
+
         if (backToStep7Btn) {
             backToStep7Btn.addEventListener('click', () => showStep(7));
         }
@@ -3931,10 +3984,10 @@
             });
         }
         setupStepKeyboardNavigation();
-        
+
         // Terms and Conditions Scroll Tracking
         let termsScrollComplete = false;
-        
+
         function initializeTermsAndConditions() {
             const termsScrollWrapper = document.getElementById('terms-scroll-wrapper');
             const termsProgressFill = document.getElementById('terms-progress-fill');
@@ -3943,14 +3996,14 @@
             const termsAgreementCheckbox = document.getElementById('terms-agreement-checkbox');
             const completeBtn = document.getElementById('complete-registration');
             if (!termsScrollWrapper || !termsProgressFill || !termsProgressText) return;
-            
+
             // Reset state
             termsScrollComplete = false;
             if (termsAgreementCheckbox) termsAgreementCheckbox.checked = false;
             if (completeBtn) completeBtn.disabled = true;
             if (termsAgreementContainer) termsAgreementContainer.style.display = 'none';
             termsProgressFill.style.width = '0%';
-            
+
             function updateTermsScrollStatus() {
                 const scrollTop = termsScrollWrapper.scrollTop;
                 const clientHeight = termsScrollWrapper.clientHeight;
@@ -3976,7 +4029,7 @@
                         You have read all terms. Please check the box below to agree.
                     `;
                     termsProgressText.classList.add('complete');
-                    
+
                     if (!termsScrollComplete) {
                         termsScrollComplete = true;
                         // Instantly reveal agreement checkbox without arbitrary delay
@@ -3995,16 +4048,16 @@
             // Clicking progress indicator smoothly auto-scrolls to the bottom
             termsProgressText.style.cursor = 'pointer';
             termsProgressText.title = 'Click to scroll to the end';
-            termsProgressText.onclick = function() {
+            termsProgressText.onclick = function () {
                 termsScrollWrapper.scrollTo({ top: termsScrollWrapper.scrollHeight, behavior: 'smooth' });
             };
 
             // Check immediately on load in case container is already at bottom or fits on screen
             setTimeout(updateTermsScrollStatus, 100);
-            
+
             // Track checkbox agreement
             if (termsAgreementCheckbox) {
-                termsAgreementCheckbox.onchange = function() {
+                termsAgreementCheckbox.onchange = function () {
                     if (this.checked && termsScrollComplete) {
                         if (completeBtn) completeBtn.disabled = false;
                     } else {
@@ -4014,7 +4067,7 @@
             }
         }
 
-        
+
         let carouselResizeTimer;
         window.addEventListener('resize', () => {
             clearTimeout(carouselResizeTimer);
@@ -4075,7 +4128,7 @@
         }
 
         // 3. Final Submission, Security Validation & Simulated Mock Database Hashing
-        completeBtn.addEventListener('click', async function() {
+        completeBtn.addEventListener('click', async function () {
             if (isCreatingAccount) return;
 
             try {
@@ -4085,7 +4138,7 @@
                     showToast('⚠️ You must read and agree to the Terms and Conditions', '⛔');
                     return;
                 }
-                
+
                 if (!termsScrollComplete) {
                     showToast('⚠️ Please read the complete Terms and Conditions first', '⛔');
                     return;
@@ -4101,7 +4154,7 @@
                     showToast('Please complete Google authentication first', '⚠️');
                     return;
                 }
-                
+
                 const userPassword = savedPassword;
                 if (!userPassword) {
                     showToast('Password is required. Please go back to Step 5.', '⚠️');
@@ -4117,13 +4170,13 @@
                     showToast('⚠️ Security question and answer are required', '❌');
                     return;
                 }
-                
+
                 // Collect and build form variables
                 const firstName = firstNameInput.value.trim();
                 const middleName = document.getElementById('middle-name').value.trim();
                 const lastName = lastNameInput.value.trim();
                 const fullName = firstName + " " + middleName + " " + lastName;
-                
+
                 let registeredId = '';
                 let college = '';
                 let program = null;
@@ -4178,7 +4231,7 @@
                 }
 
                 const isFullyRegistered = (hasGoogleProvider && hasPasswordProvider) ||
-                                          (signInMethods.includes('google.com') && signInMethods.includes('password'));
+                    (signInMethods.includes('google.com') && signInMethods.includes('password'));
 
                 if (isFullyRegistered) {
                     isCreatingAccount = false;
@@ -4212,7 +4265,7 @@
                         college: college || null
                     }
                 };
-                
+
                 if (userType === 'student') {
                     userData.studentId = registeredId;
                     userData.college = college;
@@ -4225,7 +4278,7 @@
                 }
 
                 const user = googleUser;
-                
+
                 // Step 1: Link credential to existing Google account on Firebase
                 try {
                     const googleProvider = new firebase.auth.GoogleAuthProvider();
@@ -4249,7 +4302,7 @@
                         throw linkError;
                     }
                 }
-                
+
                 // Step 2: Update Firebase display name if needed & save to Firestore
                 showCreatingAccountOverlay('Saving profile to institutional database...', 65, 1);
 
@@ -4258,7 +4311,7 @@
                         displayName: fullName
                     });
                 }
-                
+
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     userType: userData.userType,
@@ -4278,12 +4331,12 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastLogin: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                
+
                 // Step 3: Local secure storage hash & finalize
                 showCreatingAccountOverlay('Finalizing account and preparing dashboard...', 95, 2);
 
                 const hashedPassword = await hashPasswordSHA256(userPassword);
-                
+
                 const localUserRecord = {
                     uid: user.uid,
                     userType: userType,
@@ -4311,7 +4364,7 @@
                     hideCreatingAccountOverlay();
                     showSuccessModal(user);
                 }, 600);
-                
+
             } catch (error) {
                 console.error('Registration error:', error);
                 isCreatingAccount = false;
@@ -4320,23 +4373,23 @@
                 showToast('Registration failed: ' + (error.message || 'Please try again'), '❌');
             }
         });
-        
+
         // Success Modal management
         const successModal = document.getElementById('successModal');
         const successModalClose = document.getElementById('successModalClose');
         const autoLoginBtn = document.getElementById('autoLoginBtn');
         const manualLoginBtn = document.getElementById('manualLoginBtn');
         let currentUser = null;
-        
+
         function showSuccessModal(user) {
             currentUser = user;
             registrationCompleted = true; // Mark complete BEFORE showing modal so beforeunload guard is disabled
             successModal.classList.add('active');
-            
+
             setTimeout(() => {
                 successModalClose.classList.add('visible');
             }, 2000);
-            
+
             setTimeout(() => {
                 const preloadFrame = document.createElement('iframe');
                 preloadFrame.style.display = 'none';
@@ -4344,11 +4397,11 @@
                 document.body.appendChild(preloadFrame);
             }, 1000);
         }
-        
+
         successModalClose.addEventListener('click', () => {
             successModal.classList.remove('active');
         });
-        
+
         autoLoginBtn.addEventListener('click', async () => {
             try {
                 if (currentUser) {
@@ -4356,16 +4409,16 @@
                     await db.collection('users').doc(currentUser.uid).update({
                         lastLogin: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    
+
                     // Fetch user data and populate session storage BEFORE redirecting
                     const userDoc = await db.collection('users').doc(currentUser.uid).get();
                     const userData = userDoc.data();
-                    
+
                     sessionStorage.setItem('userId', currentUser.uid);
                     sessionStorage.setItem('userEmail', currentUser.email);
                     sessionStorage.setItem('userName', currentUser.displayName);
                     sessionStorage.setItem('userType', userData.userType);
-                    
+
                     // Redirect directly to user's dashboard
                     AuthService.navigateToDashboard(userData.userType);
                 } else {
@@ -4387,7 +4440,7 @@
                 window.location.href = '../index.html';
             }
         });
-        
+
         manualLoginBtn.addEventListener('click', async () => {
             try {
                 await auth.signOut();
