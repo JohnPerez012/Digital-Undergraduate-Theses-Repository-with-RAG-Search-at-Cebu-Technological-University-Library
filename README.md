@@ -1,394 +1,254 @@
-# 📚 CTU RECAP - Capstone Project Repository
-v.1
-**A modern, easy-to-use website for searching and viewing student research projects**
+# 📚 RE-CAPS — Research Capstone Archiving and Retrieval System
+
+[![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%26%20Auth-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Pinecone](https://img.shields.io/badge/Pinecone-Vector%20Database-000000?logo=pinecone&logoColor=white)](https://www.pinecone.io/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![License: Institutional](https://img.shields.io/badge/License-CTU%20Academic-blue.svg)](LICENSE)
+
+> **RE-CAPS** is an AI-powered academic discovery platform and digital undergraduate theses repository engineered for institutional research management, semantic vector search, and Retrieval-Augmented Generation (RAG) at **Cebu Technological University (CTU) — Daanbantayan Campus**.
 
 ---
 
-## 🎯 What is This?
+## 🎯 1. Overview & Institutional Purpose
 
-This is a website where students, teachers, and librarians can:
-- **Search** for past capstone projects
-- **Read** project details and abstracts
-- **Save** interesting projects for later
-- **Chat** with an AI assistant for help
-
----
-
-## ✨ Cool Features
-
-### 🌙 Dark Mode
-- Click the moon icon (🌙) in the top menu
-- The website changes to dark colors
-- Easy on your eyes at night!
-- Your choice is saved automatically
-
-### 🔍 Smart Search
-- Type what you're looking for
-- Results appear as you type
-- Filter by year, program, or topic
-- See active filters as colorful chips
-
-### 🤖 AI Chatbot
-- Click the orange button in the bottom-right corner
-- Ask questions about projects
-- Get instant help
-- See typing dots when the bot is thinking
-
-### ♿ Easy to Use
-- Works with keyboard only (press Tab to move around)
-- Screen reader friendly
-- High contrast mode support
-- Works on phones, tablets, and computers
-
-### 🎨 Beautiful Design
-- Smooth animations
-- Hover effects on cards
-- Ripple effects on buttons
-- Loading animations
+Traditional university thesis archiving relies on rigid keyword matching and manual shelves, making related research difficult to locate. RE-CAPS bridges this gap through high-dimensional vector embeddings and multi-provider AI assistance across diverse academic degree programs:
+- **BSIT** (Information Technology)
+- **BIT** (Industrial Technology - Computer, Electronics, Automotive, Drafting)
+- **BSFi** (Fisheries)
+- **BSHM** (Hospitality Management)
+- **BSIE** (Industrial Engineering)
+- **BEEd & BSEd** (Elementary & Secondary Education)
+- **BTLEd-HE** (Technology and Livelihood Education - Home Economics)
 
 ---
 
-## 🚀 How to Use
+## 🏗️ 2. System Architecture & Tech Stack
 
-### For Students:
-1. **Search** for projects related to your topic
-2. **Click** on a project to read more
-3. **Save** projects you like (click the ☆ Save button)
-4. **View** your saved projects in the Dashboard
+RE-CAPS employs a modern, decoupled architecture separating client rendering, backend orchestration, and dual-database indexing.
 
-### For Teachers (Advisers):
-1. Go to **Dashboard** → **Adviser View**
-2. **Check** if a project title is original
-3. **See** similar projects
-4. **Get** suggestions for students
+```mermaid
+flowchart TD
+    subgraph PresentationTier ["1. Presentation Tier (Client)"]
+        UI["HTML5 + ES6+ Vanilla / jQuery"]
+        Dock["Mobile Glassmorphic Floating Dock"]
+        OCR["Client-Side OCR (Tesseract.js)"]
+        MermaidGen["Native Mermaid.js Visuals"]
+    end
 
-### For Librarians:
-1. Go to **Dashboard** → **Librarian View**
-2. **Upload** new project information
-3. **See** all projects in the system
-4. **Manage** pending uploads
+    subgraph RoutingTier ["2. Application & API Gateway (/recap-backend)"]
+        Server["Express.js REST API (Node.js)"]
+        Pool["Undici 30s Connection Pooling"]
+        RBAC["RBAC Session & Auth Gateway"]
+        AssetGuard["Cloudinary Document Pipeline"]
+        EmailDispatch["Resend Transactional Email"]
+    end
 
----
+    subgraph DualDBTier ["3. Dual-Database Storage Layer"]
+        Firestore[("Firebase Firestore<br/>(Metadata, Users, Projects)")]
+        PineconeDB[("Pinecone Vector Index<br/>(1024-dim multilingual-e5-large)")]
+    end
 
-## 📱 Pages Explained
+    subgraph LLMFallbackTier ["4. Cascading LLM RAG Pipeline"]
+        L1{"1. Mistral API<br/>(open-mistral-nemo)"}
+        L2{"2. Groq API<br/>(llama-3.3-70b-versatile)"}
+        L3{"3. Google Gemini API<br/>(gemini-2.5-flash)"}
+        L4{"4. OpenRouter API<br/>(Ling-3.0-Flash)"}
+    end
 
-### 🏠 Search / Landing Page
-- **Hero section** with big search bar
-- **Filters** on the left side
-- **Project cards** showing results
-- Click any card to see full details
-
-### 👤 User Dashboard
-- **Student View**: See your saved projects
-- **Adviser View**: Check title originality
-- **Librarian View**: Manage all projects
-
-### 📄 Project Detail Page
-- Full project information
-- Abstract and methodology
-- Authors and adviser
-- Related projects
-- FAIR principles badge
-
-### 💬 AI Chatbot Page
-- Full chat interface
-- Quick suggestion buttons
-- Ask anything about the repository
-
----
-
-## 🎨 Color Guide
-
-| Color | What It Means |
-|-------|---------------|
-| 🔵 Blue | Main color (CTU brand) |
-| 🟠 Orange | Important buttons and highlights |
-| ⚪ White/Light Gray | Background (light mode) |
-| ⚫ Dark Gray | Background (dark mode) |
-| 🟢 Green | Success or low similarity |
-| 🟡 Yellow | Warning or medium similarity |
-| 🔴 Red | Alert or high similarity |
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Key | What It Does |
-|-----|--------------|
-| **Tab** | Move to next item |
-| **Shift + Tab** | Move to previous item |
-| **Arrow Keys** | Navigate between tabs |
-| **Enter** | Click the focused item |
-| **Escape** | Close chat or dialogs |
-
----
-
-## 📂 File Structure
-
-```
-TempUICAPSTONEREP/
-├── index.html              ← Main website file
-├── css/
-│   └── styles.css          ← All the colors and styles
-├── js/
-│   └── app-enhanced.js     ← Makes everything work
-└── README.md               ← This file!
+    UI -->|HTTP / JSON| Server
+    Dock --> UI
+    Server -->|Read / Write Metadata| Firestore
+    Server -->|Cosine Vector Query| PineconeDB
+    Server -->|Cascading Fallback| L1
+    L1 -- Fallback on Timeout --> L2
+    L2 -- Fallback on Limit --> L3
+    L3 -- Fallback on Error --> L4
+    Server -->|Asset Storage| AssetGuard
+    Server -->|Notifications| EmailDispatch
 ```
 
 ---
 
-## 🛠️ Technical Details
+## ✨ 3. Core Capabilities
 
-### Built With:
-- **HTML5** - Structure
-- **CSS3** - Styling and animations
-- **JavaScript** - Interactive features
-- **Inter Font** - Modern, readable text
+### 🧠 A. Semantic Vector RAG Search
+- **Pinecone Vector Database:** High-dimensional vector indexing using the Pinecone Inference API (`multilingual-e5-large`, 1024 dimensions, cosine distance metric).
+- **Dual Indexes:**
+  - `recaps-capstone`: Indexes research abstracts, methodology, problem statements, and academic degree programs.
+  - `recaps-staff-copilot`: Dedicated knowledge index for librarian operations, call numbers, and institutional repository rules.
 
-### Browser Support:
-- ✅ Chrome (recommended)
-- ✅ Firefox
-- ✅ Safari
-- ✅ Edge
-- ✅ Mobile browsers
+### 🤖 B. Resilient Cascading LLM Fallback
+The RAG chatbot leverages multi-provider cascading failover to maintain 99.9% uptime:
+1. **Mistral AI** (`open-mistral-nemo`) — Primary grounded synthesizer.
+2. **Groq** (`llama-3.3-70b-versatile`) — Ultra-low latency fallback.
+3. **Google Gemini** (`gemini-2.5-flash`) — Context-rich secondary fallback.
+4. **OpenRouter** (`Ling-3.0-Flash`) — Autonomous tertiary safety net.
 
-### Features:
-- Responsive design (works on all screen sizes)
-- Accessibility compliant (WCAG 2.2 AA)
-- Fast loading
-- Smooth animations
-- Dark mode support
+### 📱 C. Glassmorphic Mobile Navigation Dock
+- **Responsive Dock:** Automatically transforms from the desktop sidebar rail into a floating glassmorphic pill bar on mobile viewports (`<= 768px`).
+- **Center Action Focus:** Elevated circular button for instant access to the **Citation Generator**.
+- **Role-Accented Glow:** Emerald accent for Student profiles, warm amber/gold for Teacher profiles.
+- **Dynamic Content Clearance:** Viewport-aware padding prevents floating dock occlusion.
 
----
+### 🛡️ D. Role-Based Access Control (RBAC)
+- **Student (`student`):** Semantic search, public capstone exploration, interactive RAG chatbot, and project bookmarking.
+- **Teacher / Adviser (`teacher`):** Title originality analysis, research tracking, OCR paper parsing, and student advising tools.
+- **Librarian (`librarian`):** Physical library cataloging (`callNumber`, `accessionNo`, `location`), thesis ingestion, and Staff Copilot access.
+- **Administrator (`admin`):** Account provisioning, catalog vector synchronization, storage pruning, and audit inspection.
 
-## 🎓 For Developers
+### 📜 E. Automated Citation Generator
+Generates instant, academic-grade bibliography citations across 5 standard formats:
+- **APA (7th Edition)**
+- **MLA (9th Edition)**
+- **Chicago (17th Edition)**
+- **IEEE**
+- **Harvard**
 
-### To View Locally:
-1. Open `TempUICAPSTONEREP/index.html` in your browser
-2. That's it! No installation needed
-
-### To Edit:
-1. **HTML**: Edit `index.html` for content
-2. **Styles**: Edit `css/styles.css` for colors and design
-3. **Features**: Edit `js/app-enhanced.js` for functionality
-
-### Key Functions:
-- `toggleTheme()` - Switch between light/dark mode
-- `switchView(viewName)` - Change pages
-- `handleSearch(query)` - Search functionality
-- `toggleChat()` - Open/close chatbot
+### ⚡ F. Spark Free-Tier Quota Guard
+- Activity tracking strictly resides in device-local storage (`localStorage`) rather than Firestore, safeguarding against daily Spark write limit exhaustion.
 
 ---
 
-## 📋 Checklist for Testing
+## 📂 4. Project Directory Layout
 
-Test these features to make sure everything works:
-
-- [ ] Click the moon icon to switch to dark mode
-- [ ] Type in the search bar
-- [ ] Check and uncheck filters
-- [ ] Click on a project card
-- [ ] Save a project (click ☆ Save)
-- [ ] Open the chatbot (orange button)
-- [ ] Try keyboard navigation (Tab key)
-- [ ] Test on your phone
-- [ ] Try the suggestion chips in chat
-- [ ] Switch between Student/Adviser/Librarian views
-
----
-
-## 🐛 Common Issues
-
-### Problem: Dark mode doesn't work
-**Solution**: Clear your browser cache and refresh
-
-### Problem: Chatbot doesn't open
-**Solution**: Make sure JavaScript is enabled in your browser
-
-### Problem: Styles look broken
-**Solution**: Check that `css/styles.css` file exists
-
-### Problem: Search doesn't work
-**Solution**: Check that `js/app-enhanced.js` is loaded
-
----
-
-## 📞 Need Help?
-
-- Check the chatbot for quick answers
-- Review this README file
-- Contact your system administrator
-- Check browser console for errors (press F12)
+```
+RE-CAPS/
+├── public/                         # Client-Side Frontend
+│   ├── index.html                  # Public Landing & Search Portal
+│   ├── pages/                      # Role-Specific Dashboard Pages
+│   │   ├── student_page.html       # Student Research Workspace
+│   │   ├── teacher_page.html       # Adviser Review Portal
+│   │   ├── librarian_page.html     # Cataloging & Submission Ingestion
+│   │   └── admin_page.html         # System Administration & Analytics
+│   ├── css/                        # Modular Stylesheets & Glassmorphic UI
+│   │   ├── shared/dashboard-rail.css # Desktop Rail & Mobile Floating Dock
+│   │   └── ...
+│   └── js/                         # Vanilla ES6+ & jQuery Modules
+│       ├── core/auth-service.js    # Firebase Auth Client Gateway
+│       ├── shared/dashboard-rail.js# Navigation & Badge Sync Logic
+│       └── shared/citation-generator.js # Citation Engine
+├── recap-backend/                  # Express REST API Tier
+│   ├── server.js                   # Main Backend Server & LLM Cascade
+│   └── package.json                # Backend Dependencies
+├── scripts/                        # Automated CI/CD & Guard Scripts
+│   ├── preflight.js                # Instant Pre-Flight Integrity Test Suite
+│   ├── test-routes.js              # Route Contract Verification
+│   └── oxlint.json                 # Static Bug Analysis Config
+├── .agents/                        # Agentic Pair-Programming Rules
+│   ├── rules/academic-standards.md # Manuscript Layout & Degree Schemas
+│   ├── rules/coding-standards.md   # Security, Architecture & README Rules
+│   └── rules/rag-pipeline.md       # Pinecone Inference & Vector Sync
+├── AGENTS.md                       # Master Architectural Blueprint & Directives
+└── README.md                       # Public Project Documentation (This File)
+```
 
 ---
 
-## 📝 Version History
+## 🚀 5. Getting Started & Local Setup
 
-### Version 2.0 (Current)
-- ✨ Added dark mode
-- ✨ Enhanced accessibility
-- ✨ Added animations
-- ✨ Improved chatbot
-- ✨ Better mobile support
+### Prerequisites
+- [Node.js](https://nodejs.org/) v18.0.0 or higher
+- Modern Web Browser (Chrome, Edge, Firefox, Safari)
+- Git
 
-### Version 1.0
-- 🎉 Initial release
-- Basic search functionality
-- Simple design
-
----
-
-## 🎉 Credits
-
-**Developed for:** CTU Daanbantayan Campus  
-**Purpose:** Capstone Project Repository System  
-**Year:** 2026
-
----
-
-## 📜 License
-
-This project is for educational use at CTU Daanbantayan Campus.
-
----
-
-**Made with ❤️ for CTU Students**
-
-
----
-
-## 🔍 NEW: Meilisearch Integration
-
-### ✨ Intelligent Search System
-
-Your RECAP system now includes **Meilisearch** - a lightning-fast, typo-tolerant search engine!
-
-#### 🚀 Features:
-- ⚡ **Sub-millisecond search** (< 1ms response time)
-- 🔤 **Typo tolerance** - "atendance" finds "Attendance"
-- 🎯 **Smart ranking** - Most relevant results first
-- 🔍 **Multi-field search** - Search across all project fields
-- 🎛️ **Advanced filtering** - Filter by year, program, topics
-- 🔄 **Real-time sync** - Auto-sync with Firebase
-
-#### 📖 Quick Start:
-
+### 1. Clone the Repository
 ```bash
-# 1. Start Meilisearch
-./meilisearch-windows-amd64.exe
-
-# 2. Sync your data
-npm run sync
-
-# 3. Test search
-npm run test-search
+git clone https://github.com/JohnPerez012/Digital-Undergraduate-Theses-Repository-with-RAG-Search-at-Cebu-Technological-University-Library.git
+cd RE-CAPS
 ```
 
-#### 📚 Documentation:
-- **[Quick Start Guide](QUICK_START.md)** - Get started in 3 steps (1 minute)
-- **[Complete Guide](MEILISEARCH_GUIDE.md)** - Full implementation guide
-- **[Success Report](MEILISEARCH_SUCCESS.md)** - Features and test results
-- **[Architecture](SYSTEM_ARCHITECTURE.md)** - System design diagrams
-- **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - What was built
-
-#### 🎯 Current Status:
-```
-✓ Meilisearch Running: http://localhost:7700
-✓ Projects Indexed: 4
-✓ Search Speed: < 1ms
-✓ Typo Tolerance: Enabled
-✓ Tests Passing: 100%
-```
-
-#### 🧪 Try It:
-1. Open your web app
-2. Type "atendance" (misspelled) in the search bar
-3. Watch it find "Attendance Monitoring System" instantly! ✨
-
-#### 🔧 Admin Controls:
-- Login as Admin
-- Click **"🔍 Sync Search Index"** button
-- All projects sync to Meilisearch automatically
-
----
-
-## 📊 Performance Metrics
-
-### Before Meilisearch:
-- ❌ Slow searches (500ms+)
-- ❌ No typo tolerance
-- ❌ Limited filtering
-
-### After Meilisearch:
-- ✅ Lightning fast (< 1ms)
-- ✅ Typo tolerance enabled
-- ✅ Advanced filtering
-- ✅ Production ready!
-
----
-
-## 🛠️ NPM Scripts
-
+### 2. Install Dependencies
 ```bash
-# Sync Firestore data to Meilisearch
-npm run sync
+# Install root preflight dependencies
+npm install
 
-# Test search functionality
-npm run test-search
-
-# Inspect index data
-npm run inspect
-
-# Fix search configuration
-npm run fix-config
+# Install backend API dependencies
+cd recap-backend
+npm install
+cd ..
 ```
 
----
-    
-## 📁 Updated File Structure
+### 3. Configure Environment Variables
+Create a `.env` file inside `recap-backend/` following this template:
 
+```env
+# Application Port
+PORT=3000
+
+# Pinecone Vector Search
+PINECONE_API_KEY=your_pinecone_api_key_here
+PINECONE_INDEX_HOST=your_pinecone_index_host_here
+PINECONE_STAFF_COPILOT_HOST=your_staff_copilot_host_here
+
+# Cascading LLM API Providers
+MISTRAL_API_KEY=your_mistral_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+
+# Asset & Cloud Storage
+CLOUDINARY_CLOUD_NAME=your_cloudinary_name_here
+CLOUDINARY_API_KEY=your_cloudinary_api_key_here
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret_here
+
+# Transactional Email
+RESEND_API_KEY=your_resend_api_key_here
 ```
-UIDesign4ReCap/
-├── public/
-│   ├── index.html                 # Main HTML file
-│   ├── css/                       # Stylesheets
-│   └── js/                        # JavaScript modules
-│       ├── meilisearch-config.js  # Search configuration
-│       ├── meilisearch-service.js # Search service
-│       └── ...
-├── meilisearch-windows-amd64.exe  # Search engine
-├── sync.js                        # Data sync script
-├── test-real-search.js            # Search tests
-├── inspect-index.js               # Index inspector
-├── package.json                   # Dependencies
-├── README.md                      # This file
-└── docs/                          # Documentation
-    ├── QUICK_START.md
-    ├── MEILISEARCH_GUIDE.md
-    ├── MEILISEARCH_SUCCESS.md
-    ├── SYSTEM_ARCHITECTURE.md
-    └── IMPLEMENTATION_SUMMARY.md
-```
 
----
+> [!NOTE]
+> Never commit your live `.env` file. It is ignored by default in `.gitignore`.
 
-## 🎉 Achievement Unlocked!
+### 4. Run the Application
+```bash
+# Start backend server
+node recap-backend/server.js
 
-```
-╔════════════════════════════════════════╗
-║   🎉 INTELLIGENT SEARCH ENABLED 🎉    ║
-║                                        ║
-║   ✓ Meilisearch Running                ║
-║   ✓ 4 Projects Indexed                 ║
-║   ✓ Typo Tolerance Active              ║
-║   ✓ < 1ms Search Speed                 ║
-║   ✓ Production Ready                   ║
-║                                        ║
-║   Your repository is now SUPERCHARGED! ║
-╚════════════════════════════════════════╝
+# Access in browser
+# Open: http://localhost:3000/
 ```
 
 ---
 
-**Updated: May 2, 2026**  
-**Powered by Meilisearch** 🚀
+## 🔒 6. Security, Privacy & Secret Protection
+
+RE-CAPS maintains a strict **Public vs. Private Information Boundary**:
+- 🚫 **Strictly Private:** Live API keys, service account JSON certificates, database connection strings, bot tokens, and user credentials are **never exposed** in source code, commit history, or public documentation.
+- 📢 **Public Transparency:** Architecture workflows, public endpoints, UI guidelines, and mock configuration schemas are openly documented to support academic peer review and open science.
+- **Client Security:** All client inputs pass through sanitizers before DOM insertion to mitigate Cross-Site Scripting (XSS).
+
+---
+
+## 🧪 7. Automated Quality & Pre-Flight Suite
+
+The repository includes a comprehensive 5-stage preflight guard script (`scripts/preflight.js`):
+```bash
+node scripts/preflight.js
+```
+
+| Guard Stage | Tool / Method | Purpose |
+| :--- | :--- | :--- |
+| **1. Syntax Check** | `node -c` | Verifies zero syntax typos across all server & client scripts |
+| **2. Static Bug Scan** | `oxlint` (Rust) | Sub-millisecond linting for dead code and undefined references |
+| **3. Route Contract** | Custom Scanner | Cross-checks frontend `fetch()` routes against Express endpoints |
+| **4. Secrets Hygiene** | Regex Audit | Ensures no private keys or bot tokens leak into public directories |
+| **5. Graph Status** | `graphify-out` | Verifies AST call-graph indexing freshness |
+
+*Integrated Git Hooks (`.git/hooks/pre-commit` and `post-commit`) run these health checks automatically on every commit.*
+
+---
+
+## 📝 8. Recent Changelog & Visual Enhancements
+
+- **Mobile Floating Bottom Dock:** Replaced drawer navigation on mobile viewports with an ergonomic glassmorphic tab dock featuring an elevated center Citation tool and real-time saved badge counter.
+- **Pre-Flight Quality Suite:** Automated sub-second syntax checks, route contract validation, and secret hygiene verification prior to commits.
+- **Continuous Knowledge Graph (graphify):** Real-time AST dependency graph indexing tracking over 1,100 nodes across all frontend and backend services.
+- **Cascading LLM Resilience:** Quadruple failover engine guaranteeing constant availability for student and faculty queries.
+
+---
+
+## 🎓 Institutional Credits
+
+- **Institution:** Cebu Technological University — Daanbantayan Campus
+- **Repository:** Digital Undergraduate Theses Repository with RAG Search
+- **Academic Year:** 2026
