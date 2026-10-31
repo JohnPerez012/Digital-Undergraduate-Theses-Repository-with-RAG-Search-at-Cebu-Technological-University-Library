@@ -23,7 +23,9 @@ const CRITICAL_JS_FILES = [
   'public/js/shared/password-change.js',
   'public/js/shared/dashboard-rail.js',
   'public/js/pages/settings-handler.js',
-  'public/js/admin/admin-settings.js'
+  'public/js/admin/admin-settings.js',
+  'public/js/registration/registration.js',
+  'public/js/registration/slider-captcha.js'
 ];
 
 function stepSyntaxCheck() {

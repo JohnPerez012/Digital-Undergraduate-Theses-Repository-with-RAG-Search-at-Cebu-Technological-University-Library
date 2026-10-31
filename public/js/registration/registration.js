@@ -663,16 +663,7 @@
                 }
             }
 
-            const hintText = document.getElementById('camera-hint-text');
-            if (hintText) {
-                if (isMobile) {
-                    hintText.innerHTML = '📱 <strong>LAN Mode:</strong> Direct live stream requires HTTPS. Tap the shutter button above to snap your ID card directly with your camera.';
-                } else if (isInsecureDomain) {
-                    hintText.innerHTML = '💻 <strong>Desktop Tip:</strong> To use your live webcam on this PC, visit <a href="http://localhost:3000/pages/account_registration.html" style="color:#10b981;text-decoration:underline;">http://localhost:3000</a> instead of the LAN IP domain.';
-                } else {
-                    hintText.innerHTML = '💡 Tip: You can select a photo or connect a webcam to scan your CTU ID card.';
-                }
-            }
+
         }
 
         async function initCameraCapture() {
