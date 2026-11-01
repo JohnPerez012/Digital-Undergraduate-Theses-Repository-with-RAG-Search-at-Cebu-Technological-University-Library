@@ -71,7 +71,7 @@
                 initialList = this.splitPastedNames(this.authorsInput.value);
             }
             if (initialList.length === 0) {
-                initialList = ['Cadaro, John P.', 'Allan P. De Jesus Jr.'];
+                initialList = [''];
             }
 
             initialList.forEach(name => this.addAuthorRow(name, false));
@@ -86,7 +86,7 @@
                 <div class="citation-author-badge">1</div>
                 <div class="citation-author-input-wrap">
                     <input type="text" class="citation-text-input citation-author-item-input" 
-                           placeholder="Author name (e.g. John Cadaro, or Cadaro, John, or Juan Dela Cruz)" 
+                           placeholder="Author full name (e.g., Juan Dela Cruz or Dela Cruz, Juan)" 
                            value="${this.escapeHtml(value)}">
                 </div>
                 <button type="button" class="btn-remove-citation-author" title="Remove author" aria-label="Remove author">
@@ -443,13 +443,39 @@
         getMetadata() {
             const authorList = this.getAuthorEntries();
             return {
-                title: this.titleInput?.value.trim() || '[Project Title]',
+                title: this.titleInput?.value.trim() || '',
                 authors: authorList.length > 0 ? authorList : [],
-                year: this.yearInput?.value.trim() || new Date().getFullYear().toString(),
+                year: this.yearInput?.value.trim() || '',
                 program: this.programInput?.value.trim() || '',
                 institution: this.institutionInput?.value.trim() || 'Cebu Technological University - Daanbantayan Campus',
                 repository: this.repositoryInput?.value.trim() || 'RE-CAPS University Repository'
             };
+        },
+
+        setActionsEnabled(enabled) {
+            const btns = [
+                this.copyRefBtn,
+                this.copyBibtexBtn,
+                this.downloadTxtBtn,
+                this.copyParenBtn,
+                this.copyNarrBtn
+            ];
+            btns.forEach(btn => {
+                if (!btn) return;
+                btn.disabled = !enabled;
+                btn.classList.toggle('btn-disabled', !enabled);
+            });
+
+            const liveStatus = document.getElementById('citation-live-status');
+            if (liveStatus) {
+                if (enabled) {
+                    liveStatus.textContent = 'Live Preview Active';
+                    liveStatus.classList.remove('citation-live-pill-idle');
+                } else {
+                    liveStatus.textContent = 'Awaiting Input';
+                    liveStatus.classList.add('citation-live-pill-idle');
+                }
+            }
         },
 
         parseAuthors(authorInput) {
@@ -535,7 +561,51 @@
 
         generate(isUserAction = false) {
             const data = this.getMetadata();
+            const hasContent = Boolean(data.title || data.authors.length > 0);
+
+            if (!hasContent) {
+                this.setActionsEnabled(false);
+                if (this.displayBox) {
+                    this.displayBox.innerHTML = `
+                        <div class="citation-empty-state">
+                            <div class="citation-empty-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                                </svg>
+                            </div>
+                            <h4 class="citation-empty-heading">Citation Generator Ready</h4>
+                            <p class="citation-empty-text">Enter your thesis title and author on the left, or choose a capstone from <strong>Import Saved Capstone</strong> to format your citation instantly.</p>
+                            <div class="citation-empty-hint">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                <span>Supports APA 7th, MLA 9th, Chicago 17th, IEEE, Harvard &amp; BibTeX</span>
+                            </div>
+                        </div>
+                    `;
+                    this.displayBox.classList.remove('bibtex-mode');
+                }
+                if (this.legacyOutputBox) {
+                    this.legacyOutputBox.textContent = '';
+                }
+                if (this.intextParenthetical) {
+                    this.intextParenthetical.innerHTML = '<span class="citation-intext-muted">&mdash;</span>';
+                }
+                if (this.intextNarrative) {
+                    this.intextNarrative.innerHTML = '<span class="citation-intext-muted">&mdash;</span>';
+                }
+                if (isUserAction && typeof showToast === 'function') {
+                    showToast('Please provide a thesis title or author first', 'warning');
+                }
+                return;
+            }
+
+            this.setActionsEnabled(true);
             const authors = this.parseAuthors(data.authors);
+            const effectiveYear = data.year || new Date().getFullYear().toString();
+            const formatData = {
+                ...data,
+                title: data.title || 'Untitled Research Project',
+                year: effectiveYear
+            };
 
             let htmlCitation = '';
             let plainTextCitation = '';
@@ -546,52 +616,56 @@
             switch (this.currentFormat) {
                 case 'apa':
                     formatTitle = 'APA 7th Edition';
-                    htmlCitation = this.buildAPA(data, authors, true);
-                    plainTextCitation = this.buildAPA(data, authors, false);
-                    parenthetical = this.buildInTextParenAPA(authors, data.year);
-                    narrative = this.buildInTextNarrativeAPA(authors, data.year);
+                    htmlCitation = this.buildAPA(formatData, authors, true);
+                    plainTextCitation = this.buildAPA(formatData, authors, false);
+                    parenthetical = this.buildInTextParenAPA(authors, effectiveYear);
+                    narrative = this.buildInTextNarrativeAPA(authors, effectiveYear);
                     break;
                 case 'mla':
                     formatTitle = 'MLA 9th Edition';
-                    htmlCitation = this.buildMLA(data, authors, true);
-                    plainTextCitation = this.buildMLA(data, authors, false);
+                    htmlCitation = this.buildMLA(formatData, authors, true);
+                    plainTextCitation = this.buildMLA(formatData, authors, false);
                     parenthetical = this.buildInTextParenMLA(authors);
                     narrative = this.buildInTextNarrativeMLA(authors);
                     break;
                 case 'chicago':
                     formatTitle = 'Chicago 17th (Author-Date)';
-                    htmlCitation = this.buildChicago(data, authors, true);
-                    plainTextCitation = this.buildChicago(data, authors, false);
-                    parenthetical = this.buildInTextParenChicago(authors, data.year);
-                    narrative = this.buildInTextNarrativeChicago(authors, data.year);
+                    htmlCitation = this.buildChicago(formatData, authors, true);
+                    plainTextCitation = this.buildChicago(formatData, authors, false);
+                    parenthetical = this.buildInTextParenChicago(authors, effectiveYear);
+                    narrative = this.buildInTextNarrativeChicago(authors, effectiveYear);
                     break;
                 case 'ieee':
                     formatTitle = 'IEEE Style';
-                    htmlCitation = this.buildIEEE(data, authors, true);
-                    plainTextCitation = this.buildIEEE(data, authors, false);
+                    htmlCitation = this.buildIEEE(formatData, authors, true);
+                    plainTextCitation = this.buildIEEE(formatData, authors, false);
                     parenthetical = '[1]';
                     narrative = `${authors[0].last} et al. [1]`;
                     break;
                 case 'harvard':
                     formatTitle = 'Harvard (Author-Date)';
-                    htmlCitation = this.buildHarvard(data, authors, true);
-                    plainTextCitation = this.buildHarvard(data, authors, false);
-                    parenthetical = this.buildInTextParenHarvard(authors, data.year);
-                    narrative = this.buildInTextNarrativeHarvard(authors, data.year);
+                    htmlCitation = this.buildHarvard(formatData, authors, true);
+                    plainTextCitation = this.buildHarvard(formatData, authors, false);
+                    parenthetical = this.buildInTextParenHarvard(authors, effectiveYear);
+                    narrative = this.buildInTextNarrativeHarvard(authors, effectiveYear);
                     break;
                 case 'bibtex':
                     formatTitle = 'BibTeX Entry';
-                    const bib = this.buildBibTeX(data, authors);
+                    const bib = this.buildBibTeX(formatData, authors);
                     htmlCitation = `<pre style="margin: 0; font-family: inherit;">${this.escapeHtml(bib)}</pre>`;
                     plainTextCitation = bib;
-                    parenthetical = `\\cite{${this.makeCitationKey(authors, data.year)}}`;
-                    narrative = `\\citet{${this.makeCitationKey(authors, data.year)}}`;
+                    parenthetical = `\\cite{${this.makeCitationKey(authors, effectiveYear)}}`;
+                    narrative = `\\citet{${this.makeCitationKey(authors, effectiveYear)}}`;
                     break;
             }
 
             // Update DOM
             if (this.displayBox) {
-                this.displayBox.innerHTML = htmlCitation;
+                if (this.currentFormat === 'bibtex') {
+                    this.displayBox.innerHTML = htmlCitation;
+                } else {
+                    this.displayBox.innerHTML = `<div class="citation-academic-entry">${htmlCitation}</div>`;
+                }
                 this.displayBox.classList.toggle('bibtex-mode', this.currentFormat === 'bibtex');
             }
 
@@ -615,7 +689,6 @@
                 this.intextNarrative.textContent = narrative;
             }
 
-            // If triggered explicitly by button
             if (isUserAction) {
                 this.saveToHistory({
                     format: this.currentFormat.toUpperCase(),
@@ -806,7 +879,12 @@
         },
 
         copyToClipboard(text, button, originalText) {
-            if (!text) return;
+            if (!text || text.trim() === '—' || text.trim() === '&mdash;' || text.includes('citation-empty-state')) {
+                if (typeof showToast === 'function') {
+                    showToast('Please enter manuscript details first to copy citation', 'warning');
+                }
+                return;
+            }
 
             navigator.clipboard.writeText(text).then(() => {
                 if (button) {
@@ -834,6 +912,12 @@
         },
 
         downloadCitationFile() {
+            if (!this.titleInput?.value.trim() && this.getAuthorEntries().length === 0) {
+                if (typeof showToast === 'function') {
+                    showToast('Please enter manuscript details first to download citation', 'warning');
+                }
+                return;
+            }
             const isBib = this.currentFormat === 'bibtex';
             const content = isBib ? this.buildBibTeX() : this.getPlainTextReference();
             const ext = isBib ? 'bib' : 'txt';
@@ -978,17 +1062,7 @@
         },
 
         resetForm() {
-            if (this.titleInput) this.titleInput.value = '';
-            this.setAuthors(['Cadaro, John P.', 'Allan P. De Jesus Jr.']);
-            if (this.yearInput) this.yearInput.value = new Date().getFullYear().toString();
-            if (this.programInput) this.programInput.value = 'BS in Information Technology';
-            if (this.institutionInput) this.institutionInput.value = 'Cebu Technological University - Daanbantayan Campus';
-            if (this.repositoryInput) this.repositoryInput.value = 'RE-CAPS University Repository';
-
-            this.generate(false);
-            if (typeof showToast === 'function') {
-                showToast('Citation form reset', 'info');
-            }
+            this.clearForm();
         },
 
         saveToHistory(item) {

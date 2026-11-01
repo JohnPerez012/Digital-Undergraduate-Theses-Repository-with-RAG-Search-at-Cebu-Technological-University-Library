@@ -942,3 +942,101 @@
     padding: 1.25rem 0;
     line-height: 1.4;
 }
+
+/* ==========================================================================
+   CITATION STUDIO EMPTY STATE & REFINED UX STYLES
+   ========================================================================== */
+.citation-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2.25rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+.citation-empty-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: rgba(8, 212, 136, 0.08);
+    border: 1px solid rgba(8, 212, 136, 0.22);
+    color: var(--brand-green, #08D488);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 14px rgba(8, 212, 136, 0.12);
+}
+
+.citation-empty-heading {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.35rem 0;
+    letter-spacing: -0.01em;
+}
+
+.citation-empty-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0 0 1.25rem 0;
+    max-width: 380px;
+}
+
+.citation-empty-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.775rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+}
+
+[data-theme="light"] .citation-empty-hint {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.citation-live-pill.citation-live-pill-idle {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border);
+}
+
+[data-theme="light"] .citation-live-pill.citation-live-pill-idle {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.citation-intext-muted {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    font-weight: 400;
+}
+
+.citation-intext-guide {
+    font-size: 0.725rem;
+    color: var(--text-secondary);
+    margin-top: 0.4rem;
+    line-height: 1.35;
+    opacity: 0.85;
+}
+
+.btn-disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+.citation-academic-entry {
+    padding-left: 1.75rem;
+    text-indent: -1.75rem;
+    font-size: 0.95rem;
+    line-height: 1.75;
+    color: var(--text-primary);
+}

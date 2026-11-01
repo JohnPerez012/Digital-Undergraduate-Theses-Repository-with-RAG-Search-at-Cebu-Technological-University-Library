@@ -240,6 +240,14 @@ node scripts/preflight.js
 
 ## 📝 8. Recent Changelog & Visual Enhancements
 
+- **Citation Generator Workspace De-clutter & Stress-Free Guided UX:** Overhauled the Academic Citation & Bibliography Studio across Student and Teacher dashboards (`citation-generator.js`, `citation-generator.css`, `student_page.html`, `teacher_page.html`):
+  - *Complete Purge of Dummy / Templated Data:* Completely removed all hardcoded student author names (`Cadaro, John P.`, `Allan P. De Jesus Jr.`, `Christine D. Conde`, `Cabardo`, `Ompoy`), dummy fallback titles (`[Project Title]`), and fake in-text citations (`(Cadaro et al., 2024)`).
+  - *Serene Empty State on Load:* On initial workstation load or form clearing, replaces broken fake citations with a clean, reassuring empty-state illustration (`.citation-empty-state`) guiding the scholar to enter their thesis details or import directly from their bookmarked capstones.
+  - *Awaiting Input Live Pill:* Status indicator now dynamically toggles between `Awaiting Input` (neutral tone) when empty and `Live Preview Active` (brand green) once active research details are provided.
+  - *Contextual In-Text Writing Guides:* In-text citation cards now feature concise usage micro-guides explaining exactly when to use *Parenthetical* (end-of-sentence citations) versus *Narrative* (in-sentence subject citations) to eliminate student writing stress.
+  - *Intelligent Copy & Export Guards:* Copy and download buttons are cleanly guarded when fields are empty, preventing accidental clipboard pollution or empty file downloads while providing helpful toast feedback.
+  - *Sanitized Form Reset:* Replaced the legacy reset function that was re-injecting templated values with a clean reset mechanism that returns all fields to a pristine state.
+
 - **Brand Palette Hardening, Saved Collection Export Modal, and 4-Step Account Deletion Lifecycle:** Comprehensive institutional alignment and security enhancements across student settings (`student-settings.css`, `settings-handler.js`, `password-change.css`, `auth-modal.js`):
   - *Institutional Color Alignment (Zero Lingering Blue):* Strictly purged unauthorized blue hues (`#3b82f6`, `#2563eb`, `#1d4ed8`, `#60a5fa`) across toggles, chips, status pills, and focus states in settings. Replaced colorful purple/blue linear gradients on `.password-change-icon` with institutional brand green accents (`rgba(8, 212, 136, 0.1)`, `border: 2px solid rgba(8, 212, 136, 0.25)`, `color: var(--brand-green, #08D488)`), locking all visuals to the core brand palette (`#2a2f35`, `#F7F7F8`, `#08D488`, `#FCCC56`).
   - *Progressive 4-Step Account Deletion Wizard:* Replaced the abrupt single-click deletion modal with an audited 4-step progressive lifecycle:
