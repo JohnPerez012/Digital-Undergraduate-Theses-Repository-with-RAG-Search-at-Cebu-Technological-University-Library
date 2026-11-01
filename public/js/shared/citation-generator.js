@@ -60,6 +60,8 @@
             this.clearAuthorsBtn = document.getElementById('btn-clear-citation-authors');
             this.historyList = document.getElementById('citation-history-list');
             this.clearHistoryBtn = document.getElementById('btn-clear-citation-history');
+            this.outputCard = document.querySelector('.citation-output-card');
+            this.intextCard = document.querySelector('.citation-intext-card');
         },
 
         initAuthors() {
@@ -404,6 +406,17 @@
             this.setAuthors(['']);
             if (this.yearInput) this.yearInput.value = '';
             if (this.programInput) this.programInput.value = '';
+
+            // Reset device-hidden on mobile/tablet viewports
+            if (this.outputCard) {
+                this.outputCard.classList.remove('device-visible');
+                this.outputCard.classList.add('device-hidden');
+            }
+            if (this.intextCard) {
+                this.intextCard.classList.remove('device-visible');
+                this.intextCard.classList.add('device-hidden');
+            }
+
             this.generate(false);
             if (this.titleInput) this.titleInput.focus();
             if (typeof showToast === 'function') {
@@ -429,8 +442,12 @@
         switchFormat(format) {
             this.currentFormat = format;
             this.formatPills.forEach(p => {
-                p.classList.toggle('active', p.dataset.format === format);
-                p.setAttribute('aria-selected', p.dataset.format === format ? 'true' : 'false');
+                const isActive = p.dataset.format === format;
+                p.classList.toggle('active', isActive);
+                p.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                if (isActive) {
+                    p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
             });
 
             if (this.legacyFormatSelect) {
@@ -690,6 +707,23 @@
             }
 
             if (isUserAction) {
+                // Reveal output cards on device viewports when user clicks generate
+                if (this.outputCard) {
+                    this.outputCard.classList.remove('device-hidden');
+                    this.outputCard.classList.add('device-visible');
+                }
+                if (this.intextCard) {
+                    this.intextCard.classList.remove('device-hidden');
+                    this.intextCard.classList.add('device-visible');
+                }
+
+                // Smooth scroll to revealed citation output on mobile devices
+                if (window.innerWidth <= 1024 && this.outputCard) {
+                    setTimeout(() => {
+                        this.outputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 80);
+                }
+
                 this.saveToHistory({
                     format: this.currentFormat.toUpperCase(),
                     title: data.title,
