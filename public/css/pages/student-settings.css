@@ -917,3 +917,475 @@ html, body, .dashboard-layout {
 .sset-flash {
     animation: ssetFlashGlow 1.4s ease-out;
 }
+
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS & UX SUITE FOR ALL SSET-BLOCKS
+   Viewport-optimized (< 768px & < 480px) for Student & Teacher Workstations
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* 1. SSET-BLOCK CARD CONTAINER */
+    .sset-block {
+        border-radius: 14px !important;
+        padding: 1rem 1.05rem !important;
+        gap: 0.85rem !important;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04) !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 2. CARD HEADER ERGONOMICS & TOUCH FEEDBACK */
+    .sset-block-hd {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+        cursor: pointer !important;
+        user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        transition: opacity 0.15s ease, padding 0.2s ease !important;
+    }
+
+    .sset-block-hd:active {
+        opacity: 0.82;
+    }
+
+    .sset-icon-box {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 10px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .sset-icon-box svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .sset-block-hd-text {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .sset-block-hd h3 {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        line-height: 1.25 !important;
+        margin: 0 0 0.15rem 0 !important;
+    }
+
+    .sset-block-desc {
+        font-size: 0.78rem !important;
+        line-height: 1.35 !important;
+        color: var(--text-secondary) !important;
+        margin: 0 !important;
+    }
+
+    .sset-block-chevron-wrap {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 30px !important;
+        height: 30px !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
+        margin-left: auto !important;
+    }
+
+    .sset-block-chevron {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    /* 3. EXPANDED BODY */
+    .sset-block.is-expanded .sset-block-body {
+        display: flex !important;
+        flex-direction: column !important;
+        margin-top: 0.85rem !important;
+        gap: 0.85rem !important;
+    }
+
+    /* 4. SSET-ROW: ACTION-BEARING ROWS (Password & Security, Account Actions) */
+    .sset-row.sset-row-stacked,
+    .sset-row:has(.sset-row-actions),
+    .sset-row:has(button) {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+        padding: 0.95rem 1rem !important;
+        background: var(--background) !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--border) !important;
+        box-sizing: border-box !important;
+    }
+
+    .sset-row.sset-row-stacked .sset-row-text,
+    .sset-row:has(.sset-row-actions) .sset-row-text,
+    .sset-row:has(button) .sset-row-text {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.25rem !important;
+        min-width: 0 !important;
+    }
+
+    .sset-row.sset-row-stacked .sset-row-lbl,
+    .sset-row:has(.sset-row-actions) .sset-row-lbl,
+    .sset-row:has(button) .sset-row-lbl {
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: var(--text-primary) !important;
+        line-height: 1.25 !important;
+    }
+
+    .sset-row.sset-row-stacked .sset-dots,
+    .sset-row:has(.sset-row-actions) .sset-dots {
+        font-size: 1.15rem !important;
+        letter-spacing: 0.28em !important;
+        color: var(--text-primary) !important;
+        padding: 0.1rem 0 !important;
+        display: inline-block !important;
+    }
+
+    .sset-row.sset-row-stacked .sset-row-note,
+    .sset-row:has(.sset-row-actions) .sset-row-note,
+    .sset-row:has(button) .sset-row-note {
+        font-size: 0.78rem !important;
+        line-height: 1.4 !important;
+        color: var(--text-secondary) !important;
+    }
+
+    .sset-row.sset-row-stacked .sset-row-actions,
+    .sset-row:has(.sset-row-actions) .sset-row-actions {
+        width: 100% !important;
+        margin-top: 0.15rem !important;
+    }
+
+    .sset-row.sset-row-stacked .btn-secondary,
+    .sset-row:has(.sset-row-actions) .btn-secondary {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        min-height: 44px !important;
+        border-radius: 10px !important;
+        background: var(--surface) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border) !important;
+        box-sizing: border-box !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .sset-row.sset-row-stacked .btn-secondary:active,
+    .sset-row:has(.sset-row-actions) .btn-secondary:active {
+        transform: scale(0.985) !important;
+    }
+
+    /* 5. SSET-ROW: TOGGLE SWITCH ROWS (Dark Mode, Toast Notifications) */
+    .sset-row:not(.sset-row-stacked):not(:has(.sset-row-actions)):not(:has(button)) {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.85rem !important;
+        padding: 0.9rem 1rem !important;
+        background: var(--background) !important;
+        border-radius: 12px !important;
+        border: 1px solid var(--border) !important;
+        box-sizing: border-box !important;
+    }
+
+    .sset-row:not(.sset-row-stacked):not(:has(.sset-row-actions)):not(:has(button)) .sset-row-text {
+        flex: 1 !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0.2rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    .sset-row:not(.sset-row-stacked):not(:has(.sset-row-actions)):not(:has(button)) .sset-row-lbl {
+        font-size: 0.92rem !important;
+        font-weight: 600 !important;
+        color: var(--text-primary) !important;
+    }
+
+    .sset-row:not(.sset-row-stacked):not(:has(.sset-row-actions)):not(:has(button)) .sset-row-note {
+        font-size: 0.76rem !important;
+        line-height: 1.35 !important;
+        color: var(--text-secondary) !important;
+    }
+
+    .sset-row .settings-toggle {
+        flex-shrink: 0 !important;
+        margin-left: auto !important;
+        width: 46px !important;
+        height: 25px !important;
+    }
+
+    .sset-row .settings-toggle-slider:before {
+        height: 19px !important;
+        width: 19px !important;
+    }
+
+    .sset-row .settings-toggle input:checked + .settings-toggle-slider:before {
+        transform: translateX(21px) !important;
+    }
+
+    /* 6. DANGER ZONE MOBILE ERGONOMICS */
+    .danger-zone-container {
+        margin-top: 0.85rem !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(239, 68, 68, 0.2) !important;
+        box-sizing: border-box !important;
+    }
+
+    .danger-zone-toggle {
+        padding: 0.8rem 0.95rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 0.65rem !important;
+        min-height: 44px !important;
+        width: 100% !important;
+        cursor: pointer !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+
+    .danger-zone-toggle-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.65rem !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .danger-zone-icon {
+        width: 16px !important;
+        height: 16px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .danger-zone-title-wrap {
+        flex: 1 !important;
+        min-width: 0 !important;
+        text-align: left !important;
+    }
+
+    .danger-zone-title {
+        font-size: 0.88rem !important;
+        font-weight: 600 !important;
+        display: block !important;
+    }
+
+    .danger-zone-subtitle {
+        font-size: 0.74rem !important;
+        line-height: 1.3 !important;
+        color: var(--text-secondary) !important;
+        display: block !important;
+        white-space: normal !important;
+    }
+
+    .danger-zone-chevron {
+        width: 16px !important;
+        height: 16px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .danger-zone-content {
+        padding: 0.25rem 0.95rem 0.85rem !important;
+    }
+
+    .danger-zone-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.65rem !important;
+        padding: 0.85rem 0 !important;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.08) !important;
+    }
+
+    .danger-zone-item-info {
+        width: 100% !important;
+    }
+
+    .danger-zone-item-title {
+        font-size: 0.88rem !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.2rem !important;
+    }
+
+    .danger-zone-item-desc {
+        font-size: 0.77rem !important;
+        line-height: 1.4 !important;
+        color: var(--text-secondary) !important;
+    }
+
+    .btn-danger-subtle {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.45rem !important;
+        min-height: 42px !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        border-radius: 9px !important;
+        padding: 0.65rem 1rem !important;
+        box-sizing: border-box !important;
+    }
+
+    .btn-danger-subtle:active {
+        transform: scale(0.985) !important;
+    }
+
+    /* 7. RESEARCH DATA MANAGEMENT GRID */
+    .sset-actions-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.85rem !important;
+    }
+
+    .sset-action-item {
+        padding: 0.95rem 1rem !important;
+        border-radius: 12px !important;
+        gap: 0.85rem !important;
+    }
+
+    .sset-action-title {
+        font-size: 0.92rem !important;
+        font-weight: 700 !important;
+    }
+
+    .sset-action-desc {
+        font-size: 0.78rem !important;
+        line-height: 1.4 !important;
+    }
+
+    .sset-action-item button,
+    .sset-action-item .btn-secondary {
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+        min-height: 44px !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        padding: 0.7rem 1rem !important;
+        box-sizing: border-box !important;
+    }
+
+    .sset-action-item button:active,
+    .sset-action-item .btn-secondary:active {
+        transform: scale(0.985) !important;
+    }
+
+    /* 8. CINEMATIC BACKGROUND PREFERENCE */
+    .sset-bg-mode-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    .bg-mode-card {
+        padding: 0.85rem 0.95rem !important;
+        border-radius: 12px !important;
+        gap: 0.75rem !important;
+    }
+
+    .bg-mode-title {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+    }
+
+    .bg-mode-desc {
+        font-size: 0.78rem !important;
+        line-height: 1.35 !important;
+    }
+
+    .sset-gallery-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.65rem !important;
+        padding: 0.75rem !important;
+        max-height: 320px !important;
+        border-radius: 12px !important;
+    }
+
+    .bg-image-item {
+        border-radius: 8px !important;
+        aspect-ratio: 16/9 !important;
+    }
+
+    /* 9. TEACHER WORKSTATION OVERRIDES */
+    .dashboard-layout.role-teacher #tset-block-account #change-password-btn,
+    .dashboard-layout.role-teacher #tset-block-data button {
+        width: 100% !important;
+        min-height: 44px !important;
+        padding: 0.8rem 1rem !important;
+        font-size: 0.875rem !important;
+        border-radius: 10px !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .sset-block {
+        padding: 0.95rem 0.9rem !important;
+        border-radius: 14px !important;
+        gap: 0.75rem !important;
+    }
+
+    .sset-icon-box {
+        width: 34px !important;
+        height: 34px !important;
+    }
+
+    .sset-icon-box svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .sset-block-hd h3 {
+        font-size: 1rem !important;
+    }
+
+    .sset-block-desc {
+        font-size: 0.75rem !important;
+    }
+
+    .sset-row.sset-row-stacked,
+    .sset-row:has(.sset-row-actions),
+    .sset-row:has(button) {
+        padding: 0.85rem 0.85rem !important;
+    }
+
+    .sset-row:not(.sset-row-stacked):not(:has(.sset-row-actions)):not(:has(button)) {
+        padding: 0.85rem 0.85rem !important;
+    }
+
+    .danger-zone-toggle {
+        padding: 0.75rem 0.85rem !important;
+    }
+
+    .danger-zone-content {
+        padding: 0.25rem 0.85rem 0.75rem !important;
+    }
+
+    .sset-action-item {
+        padding: 0.85rem 0.85rem !important;
+    }
+
+    .bg-mode-card {
+        padding: 0.75rem 0.85rem !important;
+    }
+}

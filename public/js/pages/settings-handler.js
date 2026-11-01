@@ -187,6 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     block.classList.add('is-expanded');
                     hd.setAttribute('aria-expanded', 'true');
+                    setTimeout(() => {
+                        const rect = block.getBoundingClientRect();
+                        if (rect.top < 65 || (window.innerHeight - rect.top < 160)) {
+                            block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }, 120);
                 }
             };
 
@@ -504,6 +510,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
             toggle.setAttribute('aria-expanded', !isExpanded);
             content.style.display = isExpanded ? 'none' : 'block';
+            if (!isExpanded) {
+                setTimeout(() => {
+                    content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
         });
 
         initClearAccountData();

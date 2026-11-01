@@ -240,6 +240,13 @@ node scripts/preflight.js
 
 ## 📝 8. Recent Changelog & Visual Enhancements
 
+- **Mobile UI Responsiveness & UX Suite for Settings Blocks (.sset-block):** Comprehensive ergonomic overhaul across all Student and Teacher settings workstations (student-settings.css, student_page.html, settings-handler.js):
+  - *Uncramped Vertical Stacking for Action Rows:* Replaced cramped horizontal flex wrapping on action rows (e.g. Password & Security) with a dedicated vertical stack (.sset-row-stacked, .sset-row:has(.sset-row-actions)). Titles and password masking dots now have full breathing room, helper notes display without truncation, and action buttons span full width with 44px thumb-friendly touch targets.
+  - *Mobile Toggle Alignment:* Streamlined toggle switch rows (Dark Mode Theme, Toast Notifications) with high-priority flex alignment, keeping switches locked to the right while labels and descriptions wrap naturally without clipping.
+  - *Mobile Danger Zone Optimization:* Refactored collapsible Danger Zone toggle and item actions with clean vertical stacking, clear hazard descriptions, and full-width touch buttons on screens <= 768px and <= 480px.
+  - *Data Management & Cinematic Background Grids:* Converted multi-column action grids (.sset-actions-grid) and background mode options (.sset-bg-mode-grid) into clean single-column cards on mobile, with a balanced 2-column image gallery (
+epeat(2, 1fr)) for campus ambiance selection.
+  - *Intelligent UX Auto-Scroll on Expansion:* Integrated subtle viewport auto-scrolling on mobile when expanding settings blocks or opening the Danger Zone, smoothly bringing expanded content into view.
 - **Institutional Anti-Plagiarism & Intellectual Property Protection System (R.A. 10173):** Comprehensive codebase-wide hardening safeguarding capstone research assets against unauthorized reproduction across all surfaces:
   - *Universal Title & Abstract Shield:* Closed loopholes across Saved Projects cards (`.saved-card-title`, `.saved-card-abstract`), search catalogs (`.project-title`, `.project-abstract`), detail modals (`.project-title-large`, `.section-text`), recent theses spotlights (`.recent-thesis-title`), and catalog cells (`.project-title-cell`, `.catalog-card-title`), enforcing strict uncopyable attributes (`user-select: none !important; -webkit-touch-callout: none !important; data-protected="true"`).
   - *Author Citation Whitelist Guarantee:* Explicitly whitelisted research authors across all views (`.authors`, `.saved-card-authors`, `.project-authors-line`, `.recent-thesis-authors`, `[data-allow-copy="true"]`), guaranteeing that scholars can seamlessly highlight, select, and copy author names for bibliography and literature citations without false-positive protection alerts.
