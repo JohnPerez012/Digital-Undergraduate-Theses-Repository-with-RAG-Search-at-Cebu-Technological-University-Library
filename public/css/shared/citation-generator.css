@@ -125,89 +125,346 @@
     background: rgba(0, 0, 0, 0.04);
 }
 
-/* Import Dropdown Menu */
-.citation-import-dropdown-wrap {
+/* ==========================================================================
+   IMPORT SAVED PROJECT MODAL DIALOG
+   Replaces overlapping floating dropdown with an authoritative, accessible,
+   centered modal dialog with dark backdrop blur and clean responsive touch list.
+   ========================================================================== */
+.citation-import-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.citation-import-modal-overlay.active,
+.citation-import-modal-overlay[style*="display: flex"],
+.citation-import-modal-overlay[style*="display: block"] {
+    display: flex !important;
+}
+
+.citation-import-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(42, 47, 53, 0.75);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    animation: citationBackdropFade 0.2s ease-out;
+}
+
+@keyframes citationBackdropFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.citation-import-dialog {
+    position: relative;
+    z-index: 2;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: min(540px, calc(100vw - 2rem));
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    animation: citationModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .citation-import-dialog {
+    background: #1e242a;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .citation-import-dialog {
+    background: #ffffff;
+    border-color: #e0e4e8;
+}
+
+@keyframes citationModalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.citation-import-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.25rem 1.35rem;
+    border-bottom: 1px solid var(--border);
     position: relative;
 }
 
-.citation-import-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    width: 340px;
-    max-width: 90vw;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-    z-index: 200;
-    overflow: hidden;
-    animation: citationMenuFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.citation-import-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(8, 212, 136, 0.15);
+    color: var(--brand-green, #08D488);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-@keyframes citationMenuFadeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
+.citation-import-header-info {
+    flex: 1;
+    min-width: 0;
 }
 
-.citation-import-menu-header {
-    padding: 0.85rem 1rem;
-    font-size: 0.8125rem;
-    font-weight: 600;
+.citation-import-dialog-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.01em;
+}
+
+.citation-import-dialog-desc {
+    font-size: 0.825rem;
     color: var(--text-secondary);
-    border-bottom: 1px solid var(--border);
-    background: rgba(0, 0, 0, 0.1);
+    margin: 0;
+    line-height: 1.45;
 }
 
-[data-theme="light"] .citation-import-menu-header {
-    background: rgba(0, 0, 0, 0.02);
+.citation-import-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    transition: color 0.15s ease, background 0.15s ease;
+    margin: -0.25rem -0.25rem 0 0;
+}
+
+.citation-import-close-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .citation-import-close-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .citation-import-list {
-    max-height: 260px;
+    flex: 1;
+    max-height: 48vh;
     overflow-y: auto;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.citation-import-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.citation-import-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+}
+
+[data-theme="light"] .citation-import-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .citation-import-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1rem;
     text-align: left;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid var(--border);
+    border-radius: 12px;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
 }
 
-.citation-import-item:last-child {
-    border-bottom: none;
+[data-theme="light"] .citation-import-item {
+    background: rgba(0, 0, 0, 0.015);
 }
 
-.citation-import-item:hover {
-    background: rgba(16, 185, 129, 0.08);
+.citation-import-item:hover,
+.citation-import-item:focus-visible {
+    background: rgba(8, 212, 136, 0.08);
+    border-color: rgba(8, 212, 136, 0.35);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.citation-import-item-content {
+    flex: 1;
+    min-width: 0;
 }
 
 .citation-import-item-title {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--text-primary);
-    white-space: nowrap;
+    line-height: 1.4;
+    margin-bottom: 0.35rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 0.2rem;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
 }
 
 .citation-import-item-meta {
-    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    font-size: 0.775rem;
     color: var(--text-secondary);
 }
 
-.citation-import-empty {
-    padding: 1.5rem 1rem;
-    text-align: center;
+.citation-import-item-authors {
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    user-select: text !important;
+}
+
+.citation-import-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    background: rgba(8, 212, 136, 0.12);
+    border: 1px solid rgba(8, 212, 136, 0.25);
+    color: var(--brand-green, #08D488);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.citation-import-badge-year {
+    background: rgba(252, 204, 86, 0.12);
+    border-color: rgba(252, 204, 86, 0.25);
+    color: var(--brand-yellow, #FCCC56);
+}
+
+.citation-import-item-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: all 0.18s ease;
+}
+
+.citation-import-item:hover .citation-import-item-arrow {
+    background: var(--brand-green, #08D488);
+    color: #1e242a;
+    transform: translateX(2px);
+}
+
+.citation-import-empty {
+    padding: 2.25rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.citation-import-empty-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(252, 204, 86, 0.12);
+    color: var(--brand-yellow, #FCCC56);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.25rem;
+}
+
+.citation-import-empty-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.citation-import-empty-desc {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 360px;
+    line-height: 1.5;
+}
+
+.citation-import-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.35rem;
+    border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .citation-import-dialog-footer {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.citation-import-count-tag {
+    font-size: 0.775rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.btn-citation-modal-cancel {
+    padding: 0.5rem 1.15rem;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.825rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-citation-modal-cancel:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .btn-citation-modal-cancel:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Format Tabs Bar - Single Row with Horizontal Momentum Scroll */

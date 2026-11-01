@@ -355,24 +355,41 @@
                         </div>
 
                         <div class="citation-header-actions">
-                            <!-- Import from Saved Projects dropdown -->
-                            <div class="citation-import-dropdown-wrap">
-                                <button type="button" class="btn-citation-import" id="btn-import-saved-project">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                                    <span>Import Saved Project</span>
-                                </button>
-                                <div class="citation-import-menu" id="citation-import-menu" style="display: none;">
-                                    <div class="citation-import-menu-header">Select a saved capstone:</div>
-                                    <div class="citation-import-list" id="citation-saved-projects-list">
-                                        <!-- Populated dynamically -->
-                                    </div>
-                                </div>
-                            </div>
+                            <button type="button" class="btn-citation-import" id="btn-import-saved-project" aria-haspopup="dialog">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                                <span>Import Saved Project</span>
+                            </button>
 
                             <button type="button" class="btn-citation-reset" id="btn-citation-reset" title="Reset all fields">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
                                 <span>Reset</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Import from Saved Projects Modal Dialog (Replaces overlapping dropdown) -->
+                    <div class="citation-import-modal-overlay" id="citation-import-menu" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="citation-import-modal-title">
+                        <div class="citation-import-backdrop" id="citation-import-backdrop"></div>
+                        <div class="citation-import-dialog">
+                            <div class="citation-import-dialog-header">
+                                <div class="citation-import-icon-wrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                                </div>
+                                <div class="citation-import-header-info">
+                                    <h3 class="citation-import-dialog-title" id="citation-import-modal-title">Import Saved Capstone</h3>
+                                    <p class="citation-import-dialog-desc">Select an approved manuscript from your saved collection to auto-fill citations.</p>
+                                </div>
+                                <button type="button" class="citation-import-close-btn" id="citation-import-close-btn" aria-label="Close dialog">&times;</button>
+                            </div>
+
+                            <div class="citation-import-list" id="citation-saved-projects-list">
+                                <!-- Populated dynamically -->
+                            </div>
+
+                            <div class="citation-import-dialog-footer">
+                                <span class="citation-import-count-tag" id="citation-import-count-tag">0 saved capstones</span>
+                                <button type="button" class="btn-citation-modal-cancel" id="citation-import-cancel-btn">Cancel</button>
+                            </div>
                         </div>
                     </div>
 

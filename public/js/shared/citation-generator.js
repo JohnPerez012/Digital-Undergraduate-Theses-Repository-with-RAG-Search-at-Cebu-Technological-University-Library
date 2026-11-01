@@ -55,6 +55,10 @@
             this.importToggleBtn = document.getElementById('btn-import-saved-project');
             this.importMenu = document.getElementById('citation-import-menu');
             this.savedProjectsList = document.getElementById('citation-saved-projects-list');
+            this.importCloseBtn = document.getElementById('citation-import-close-btn');
+            this.importCancelBtn = document.getElementById('citation-import-cancel-btn');
+            this.importBackdrop = document.getElementById('citation-import-backdrop');
+            this.importCountTag = document.getElementById('citation-import-count-tag');
             this.resetBtn = document.getElementById('btn-citation-reset');
             this.clearFormBtn = document.getElementById('btn-clear-citation-form');
             this.clearAuthorsBtn = document.getElementById('btn-clear-citation-authors');
@@ -342,23 +346,36 @@
                 });
             }
 
-            // Import Saved Project Dropdown Toggle
-            if (this.importToggleBtn && this.importMenu) {
+            // Import Saved Project Modal Toggle & Controls
+            if (this.importToggleBtn) {
                 this.importToggleBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const isOpen = this.importMenu.style.display === 'block';
-                    if (!isOpen) {
-                        this.populateSavedProjectsMenu();
-                    }
-                    this.importMenu.style.display = isOpen ? 'none' : 'block';
-                });
-
-                document.addEventListener('click', (e) => {
-                    if (!this.importMenu.contains(e.target) && e.target !== this.importToggleBtn) {
-                        this.importMenu.style.display = 'none';
+                    const isVisible = this.importMenu && (this.importMenu.style.display === 'flex' || this.importMenu.classList.contains('active'));
+                    if (isVisible) {
+                        this.closeImportModal();
+                    } else {
+                        this.openImportModal();
                     }
                 });
             }
+
+            if (this.importBackdrop) {
+                this.importBackdrop.addEventListener('click', () => this.closeImportModal());
+            }
+
+            if (this.importCloseBtn) {
+                this.importCloseBtn.addEventListener('click', () => this.closeImportModal());
+            }
+
+            if (this.importCancelBtn) {
+                this.importCancelBtn.addEventListener('click', () => this.closeImportModal());
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.importMenu && (this.importMenu.style.display === 'flex' || this.importMenu.classList.contains('active'))) {
+                    this.closeImportModal();
+                }
+            });
 
             // Real-time catalog & bookmark synchronization
             window.addEventListener('projectSavedStateChanged', () => {
@@ -1015,6 +1032,21 @@
             return this.extractAuthorList(rawAuthors);
         },
 
+        openImportModal() {
+            if (!this.importMenu) return;
+            this.populateSavedProjectsMenu();
+            this.importMenu.style.display = 'flex';
+            this.importMenu.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        },
+
+        closeImportModal() {
+            if (!this.importMenu) return;
+            this.importMenu.style.display = 'none';
+            this.importMenu.classList.remove('active');
+            document.body.style.overflow = '';
+        },
+
         populateSavedProjectsMenu() {
             if (!this.savedProjectsList) return;
 
@@ -1032,12 +1064,21 @@
                 } catch (e) {}
             }
 
+            if (this.importCountTag) {
+                const count = savedProjects.length;
+                this.importCountTag.textContent = `${count} saved capstone${count === 1 ? '' : 's'}`;
+            }
+
             this.savedProjectsList.innerHTML = '';
 
             if (savedProjects.length === 0) {
                 this.savedProjectsList.innerHTML = `
                     <div class="citation-import-empty">
-                        No saved projects found in your collection yet.
+                        <div class="citation-import-empty-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                        </div>
+                        <div class="citation-import-empty-title">No Saved Capstones Found</div>
+                        <p class="citation-import-empty-desc">You haven't bookmarked any capstones yet. Explore the campus repository catalog and bookmark projects to quickly import them here.</p>
                     </div>
                 `;
                 return;
@@ -1052,15 +1093,25 @@
                 const authorDisplay = authorList.length > 0 ? authorList.join(' · ') : 'Authors unknown';
                 const yearDisplay = proj.year || (proj.rawData && proj.rawData.year) || '2024';
                 const titleDisplay = proj.title || (proj.rawData && proj.rawData.title) || 'Untitled Project';
+                const programDisplay = proj.program || proj.department || (proj.rawData && (proj.rawData.program || proj.rawData.department)) || '';
 
                 item.innerHTML = `
-                    <div class="citation-import-item-title">${this.escapeHtml(titleDisplay)}</div>
-                    <div class="citation-import-item-meta">${this.escapeHtml(authorDisplay)} · ${this.escapeHtml(yearDisplay)}</div>
+                    <div class="citation-import-item-content">
+                        <div class="citation-import-item-title">${this.escapeHtml(titleDisplay)}</div>
+                        <div class="citation-import-item-meta">
+                            ${programDisplay ? `<span class="citation-import-badge">${this.escapeHtml(programDisplay)}</span>` : ''}
+                            <span class="citation-import-badge citation-import-badge-year">${this.escapeHtml(yearDisplay)}</span>
+                            <span class="citation-import-item-authors" data-allow-copy="true">${this.escapeHtml(authorDisplay)}</span>
+                        </div>
+                    </div>
+                    <div class="citation-import-item-arrow" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 `;
 
                 item.addEventListener('click', () => {
                     this.applyProjectData(proj);
-                    if (this.importMenu) this.importMenu.style.display = 'none';
+                    this.closeImportModal();
                     if (typeof showToast === 'function') {
                         showToast(`Imported: "${titleDisplay}"`, 'info');
                     }
