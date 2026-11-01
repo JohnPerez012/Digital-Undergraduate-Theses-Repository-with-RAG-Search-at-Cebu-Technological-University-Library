@@ -245,20 +245,71 @@ document.addEventListener('DOMContentLoaded', () => {
     initCollapsibleSettingsCards();
 
 
-    // Student Email Copy Button
-    document.getElementById('sset-card-copy-email-btn')?.addEventListener('click', () => {
-        const emailEl = document.getElementById('settings-user-email-card') || document.getElementById('settings-user-email');
-        const email = emailEl?.textContent?.trim() || '';
-        if (email && email !== 'Loading...') {
-            navigator.clipboard.writeText(email).then(() => {
+    // Helper: Copy with SVG Checkmark Morph (2.5s duration)
+    function setupEmailCopyBtn(buttonId, emailElementId) {
+        const btn = document.getElementById(buttonId);
+        if (!btn) return;
+
+        btn.addEventListener('click', (e) => {
+            const currentBtn = e.currentTarget;
+            const emailEl = document.getElementById(emailElementId) || document.getElementById('settings-user-email');
+            const email = emailEl?.textContent?.trim() || '';
+            if (!email || email === 'Loading...') return;
+
+            const copySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+            const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+            const triggerCheckFeedback = () => {
+                currentBtn.classList.add('is-copied');
+                currentBtn.innerHTML = checkSvg;
+                currentBtn.setAttribute('title', 'Copied to clipboard!');
                 if (typeof showToast === 'function') {
                     showToast('Email address copied to clipboard', 'success');
                 }
-            }).catch(err => {
-                console.warn('Copy failed:', err);
-            });
+                if (currentBtn._copyTimeout) clearTimeout(currentBtn._copyTimeout);
+                currentBtn._copyTimeout = setTimeout(() => {
+                    currentBtn.classList.remove('is-copied');
+                    currentBtn.innerHTML = copySvg;
+                    currentBtn.setAttribute('title', 'Copy email address');
+                    currentBtn._copyTimeout = null;
+                }, 2500); // Revert after 2.5 seconds
+            };
+
+            // Clipboard API with LAN HTTP fallback
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(email).then(triggerCheckFeedback).catch(err => {
+                    console.warn('[Settings] navigator.clipboard failed, attempting execCommand fallback:', err);
+                    executeFallbackCopy(email, triggerCheckFeedback);
+                });
+            } else {
+                executeFallbackCopy(email, triggerCheckFeedback);
+            }
+        });
+    }
+
+    function executeFallbackCopy(text, onSuccess) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            ta.style.top = '-9999px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const success = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (success && typeof onSuccess === 'function') {
+                onSuccess();
+            }
+        } catch (e) {
+            console.error('[Settings] Fallback copy failed:', e);
         }
-    });
+    }
+
+    // Initialize Copy Buttons for Student and Teacher
+    setupEmailCopyBtn('sset-card-copy-email-btn', 'settings-user-email-card');
+    setupEmailCopyBtn('tset-card-copy-email-btn', 'settings-user-email');
 
     // Student Contributions Action Buttons
     document.getElementById('sset-btn-saved')?.addEventListener('click', () => {

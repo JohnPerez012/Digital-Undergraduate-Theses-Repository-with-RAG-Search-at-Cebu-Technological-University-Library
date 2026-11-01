@@ -779,16 +779,46 @@
             }
         });
 
-        // Copy Admin Email
-        document.getElementById('aset-card-copy-email-btn')?.addEventListener('click', () => {
+        // Copy Admin Email with SVG Checkmark Morph (2.5s duration)
+        document.getElementById('aset-card-copy-email-btn')?.addEventListener('click', (e) => {
+            const btn = e.currentTarget;
             const email = document.getElementById('settings-admin-email')?.textContent?.trim() || '';
-            if (email) {
-                navigator.clipboard.writeText(email).then(() => {
-                    if (typeof showToast === 'function') {
-                        showToast('Admin email address copied to clipboard', 'success');
+            if (!email) return;
+
+            const copySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+            const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+            const triggerCheck = () => {
+                btn.classList.add('is-copied');
+                btn.innerHTML = checkSvg;
+                btn.setAttribute('title', 'Copied to clipboard!');
+                if (typeof showToast === 'function') {
+                    showToast('Admin email address copied to clipboard', 'success');
+                }
+                if (btn._copyTimeout) clearTimeout(btn._copyTimeout);
+                btn._copyTimeout = setTimeout(() => {
+                    btn.classList.remove('is-copied');
+                    btn.innerHTML = copySvg;
+                    btn.setAttribute('title', 'Copy admin email address');
+                    btn._copyTimeout = null;
+                }, 2500);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(email).then(triggerCheck).catch(() => {
+                    try {
+                        const ta = document.createElement('textarea');
+                        ta.value = email;
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        triggerCheck();
+                    } catch (e) {
+                        console.error('[AdminSettings] Copy failed:', e);
                     }
-                }).catch(err => {
-                    console.warn('Copy failed:', err);
                 });
             }
         });

@@ -288,6 +288,13 @@ html, body, .dashboard-layout {
     transform: translateY(0);
 }
 
+.aset-email-copy-btn.is-copied {
+    color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+    transform: scale(1.06);
+}
+
 .aset-profile-chips {
     display: flex;
     gap: 0.5rem;
