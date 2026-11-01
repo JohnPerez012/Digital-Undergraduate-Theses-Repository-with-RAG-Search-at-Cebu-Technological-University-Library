@@ -28,6 +28,7 @@
 
         bindElements() {
             this.formatPills = document.querySelectorAll('.citation-format-pill');
+            this.formatPillsContainer = document.querySelector('.citation-format-pills');
             this.legacyFormatSelect = document.getElementById('citation-format');
             this.titleInput = document.getElementById('citation-title');
             this.authorsInput = document.getElementById('citation-authors');
@@ -462,8 +463,14 @@
                 const isActive = p.dataset.format === format;
                 p.classList.toggle('active', isActive);
                 p.setAttribute('aria-selected', isActive ? 'true' : 'false');
-                if (isActive) {
-                    p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                if (isActive && this.formatPillsContainer) {
+                    const pillLeft = p.offsetLeft;
+                    const pillWidth = p.offsetWidth;
+                    const trackWidth = this.formatPillsContainer.offsetWidth;
+                    this.formatPillsContainer.scrollTo({
+                        left: Math.max(0, pillLeft - (trackWidth / 2) + (pillWidth / 2)),
+                        behavior: 'smooth'
+                    });
                 }
             });
 
@@ -734,10 +741,16 @@
                     this.intextCard.classList.add('device-visible');
                 }
 
-                // Smooth scroll to revealed citation output on mobile devices
+                // Vertical-only smooth scroll to revealed citation output on mobile devices (prevents horizontal shift / lost width)
                 if (window.innerWidth <= 1024 && this.outputCard) {
                     setTimeout(() => {
-                        this.outputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        const cardRect = this.outputCard.getBoundingClientRect();
+                        const targetY = cardRect.top + window.pageYOffset - 16;
+                        window.scrollTo({
+                            top: Math.max(0, targetY),
+                            left: 0,
+                            behavior: 'smooth'
+                        });
                     }, 80);
                 }
 

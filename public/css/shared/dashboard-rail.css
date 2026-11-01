@@ -553,6 +553,9 @@ body {
     
     .dashboard-content {
         padding: 1.5rem 1rem;
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
     }
     
     .topbar-title {
