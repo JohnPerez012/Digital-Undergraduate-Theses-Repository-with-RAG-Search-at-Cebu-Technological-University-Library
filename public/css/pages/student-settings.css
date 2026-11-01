@@ -181,8 +181,13 @@ html, body, .dashboard-layout {
     }
 
     .sset-block.is-expanded .sset-block-chevron-wrap {
-        background: rgba(59, 130, 246, 0.15);
-        color: #60a5fa;
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--text-primary);
+    }
+
+    [data-theme="light"] .sset-block.is-expanded .sset-block-chevron-wrap {
+        background: rgba(0, 0, 0, 0.08);
+        color: var(--text-primary);
     }
 
     .dashboard-layout.role-teacher .sset-block.is-expanded .sset-block-chevron-wrap {
@@ -624,7 +629,17 @@ html, body, .dashboard-layout {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #ffffff;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--text-primary, #0f172a);
+    box-shadow: none;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+[data-theme="dark"] .sset-icon-box {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #f8fafc);
 }
 
 .sset-block-hd h3 {

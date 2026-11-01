@@ -641,51 +641,17 @@ html, body, .dashboard-layout {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--text-primary, #0f172a);
+    box-shadow: none;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.settings-card-icon-box.governance {
-    background: rgba(8, 212, 136, 0.12);
-    color: #069F66;
-}
-[data-theme="dark"] .settings-card-icon-box.governance {
-    background: rgba(26, 210, 143, 0.18);
-    color: #1AD28F;
-}
-
-.settings-card-icon-box.ai {
-    background: rgba(139, 92, 246, 0.12);
-    color: #7c3aed;
-}
-[data-theme="dark"] .settings-card-icon-box.ai {
-    background: rgba(139, 92, 246, 0.2);
-    color: #a78bfa;
-}
-
-.settings-card-icon-box.security {
-    background: rgba(59, 130, 246, 0.12);
-    color: #2563eb;
-}
-[data-theme="dark"] .settings-card-icon-box.security {
-    background: rgba(59, 130, 246, 0.2);
-    color: #60a5fa;
-}
-
-.settings-card-icon-box.maintenance {
-    background: rgba(245, 158, 11, 0.12);
-    color: #d97706;
-}
-[data-theme="dark"] .settings-card-icon-box.maintenance {
-    background: rgba(245, 158, 11, 0.2);
-    color: #fbbf24;
-}
-
-.settings-card-icon-box.shortcuts {
-    background: rgba(14, 165, 233, 0.12);
-    color: #0284c7;
-}
-[data-theme="dark"] .settings-card-icon-box.shortcuts {
-    background: rgba(14, 165, 233, 0.2);
-    color: #38bdf8;
+[data-theme="dark"] .settings-card-icon-box {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #f8fafc);
 }
 
 .settings-card-header h3 {
