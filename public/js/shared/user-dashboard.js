@@ -279,12 +279,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span class="saved-badge-year">${escapeHtml(year)}</span>
                 </div>
                 <div class="saved-card-body">
-                    <h3 class="saved-card-title">${escapeHtml(project.title)}</h3>
-                    <div class="saved-card-authors">
+                    <h3 class="saved-card-title" data-protected="true">${escapeHtml(project.title)}</h3>
+                    <div class="saved-card-authors" data-allow-copy="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         <span>${escapeHtml(authors)}</span>
                     </div>
-                    <p class="saved-card-abstract">${escapeHtml(abstract)}</p>
+                    <p class="saved-card-abstract" data-protected="true">${escapeHtml(abstract)}</p>
                 </div>
                 <div class="saved-card-actions">
                     <button class="saved-card-view-btn" data-id="${project.id}">View Details &rarr;</button>

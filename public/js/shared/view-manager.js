@@ -890,14 +890,14 @@
                 <div class="project-badge">${program} - ${year} - ${status}</div>
                 ${headerSaveButtonHtml}
             </div>
-            <h1 class="project-title-large">${escapeHtml(project.title || 'Untitled Project')}</h1>
-            <p class="project-authors-line">
+            <h1 class="project-title-large" data-protected="true">${escapeHtml(project.title || 'Untitled Project')}</h1>
+            <p class="project-authors-line" data-allow-copy="true">
                 ${authors} &mdash; Adviser: ${adviser}
             </p>
             
             <div class="project-section">
                 <h3 class="section-title">ABSTRACT</h3>
-                <p class="section-text">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
+                <p class="section-text" data-protected="true">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
             </div>
         `;
 

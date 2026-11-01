@@ -1037,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             card.innerHTML = `
                 <div class="project-header">
-                    <h3 class="project-title">${displayTitle}</h3>
+                    <h3 class="project-title" data-protected="true">${displayTitle}</h3>
                     <div class="project-header-right">
                         <span class="project-year">${year}</span>
                         ${relevanceBadge}
@@ -1045,11 +1045,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="project-meta">
                     <span class="meta-icon" id="user-icon-${projectId}"></span>
-                    <span class="authors">${displayAuthors}</span>
+                    <span class="authors" data-allow-copy="true">${displayAuthors}</span>
                     <span class="meta-icon program-icon" id="program-icon-${projectId}"></span>
                     <span class="program">${displayProgram}</span>
                 </div>
-                <div class="project-abstract">
+                <div class="project-abstract" data-protected="true">
                     ${displayAbstract}
                 </div>
                 <div class="project-actions">

@@ -14,14 +14,53 @@
 (function () {
     "use strict";
 
-    // Selectors that contain protected academic/thesis intellectual property
+    // Whitelisted selectors: Authors are strictly allowed to be selected and copied
+    const AUTHOR_WHITELIST_SELECTORS = [
+        '.authors',
+        '.author',
+        '.saved-card-authors',
+        '.project-authors-line',
+        '.recent-thesis-authors',
+        '.project-author',
+        '.catalog-card-authors',
+        '[data-allow-copy="true"]'
+    ];
+
+    // Selectors that contain protected academic/thesis intellectual property (Titles & Abstracts)
     const PROTECTED_SELECTORS = [
+        // Project Titles across all views & dashboards
         '.project-title',
-        '.project-abstract',
         '.project-title-large',
+        '.saved-card-title',
+        '.recent-thesis-title',
+        '.catalog-card-title',
+        '.ctm-thesis-title',
+        '.offline-card-title',
+        '#ctm-project-title',
+        '#atm-project-title',
+        '#cn-project-title',
+        '.project-title-cell',
+        '.project-title-text',
+        '#pinecone-current-project-title',
+        '#secure-delete-project-title',
+
+        // Project Abstracts across all views & dashboards
+        '.project-abstract',
+        '.saved-card-abstract',
         '.section-text',
+        '.ctm-abstract-text',
+        '#ctm-abstract',
+        '#approval-abstract',
+        '#pe-abstract',
+        '#ppe-abstract',
+        '#um-abstract',
+        '.project-section .section-text',
+
+        // Citation preview text
         '#citation-text',
         '.citation-preview',
+
+        // General protected markers
         '.protected-text',
         '[data-protected="true"]'
     ];
@@ -31,22 +70,39 @@
     const THROTTLE_MS = 300;
 
     /**
+     * Check if a given DOM element is an author or whitelisted copyable element
+     */
+    function isWhitelisted(target) {
+        if (!target || !(target instanceof Element)) return false;
+        for (const selector of AUTHOR_WHITELIST_SELECTORS) {
+            if (target.closest(selector)) return true;
+        }
+        return false;
+    }
+
+    /**
      * Check if a given DOM element or any of its ancestors is protected
      */
     function getProtectedAncestor(target) {
         if (!target || !(target instanceof Element)) return null;
 
+        // Authors are explicitly whitelisted and NEVER blocked
+        if (isWhitelisted(target)) return null;
+
         // Check explicit selectors
         for (const selector of PROTECTED_SELECTORS) {
             const matched = target.closest(selector);
-            if (matched) return matched;
+            if (matched) {
+                if (isWhitelisted(matched)) return null;
+                return matched;
+            }
         }
 
         // Check if explicitly marked with user-select: none on specific project text classes
         const computed = window.getComputedStyle(target);
         if (computed && computed.userSelect === 'none') {
-            const isTextContent = target.closest('.project-card, .project-section, .modal-body, .details-grid');
-            if (isTextContent) return target;
+            const isTextContent = target.closest('.project-card, .project-section, .modal-body, .details-grid, .saved-project-card');
+            if (isTextContent && !isWhitelisted(target)) return target;
         }
 
         return null;
@@ -276,7 +332,59 @@
         }
     }, true);
 
-    // 5. Close callout on Escape key
+    // 5. Context Menu / Right-Click / Mobile Long Press Callout Interception
+    document.addEventListener('contextmenu', function (e) {
+        const protectedTarget = getProtectedAncestor(e.target);
+        if (protectedTarget) {
+            e.preventDefault();
+            const x = e.clientX || window.innerWidth / 2;
+            const y = e.clientY || window.innerHeight / 2;
+            showProtectionCallout(x, y, protectedTarget);
+        }
+    }, true);
+
+    // 6. Mobile Touch Hold (450ms) Protection Trigger
+    let touchTimer = null;
+    let touchTarget = null;
+    let touchStartPos = { x: 0, y: 0 };
+
+    document.addEventListener('touchstart', function (e) {
+        if (!e.touches || e.touches.length !== 1) return;
+        const target = e.target;
+        const protectedTarget = getProtectedAncestor(target);
+        if (protectedTarget) {
+            touchTarget = protectedTarget;
+            touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            if (touchTimer) clearTimeout(touchTimer);
+            touchTimer = setTimeout(() => {
+                if (touchTarget) {
+                    showProtectionCallout(touchStartPos.x, touchStartPos.y, touchTarget);
+                }
+            }, 450);
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+        if (touchTimer && e.touches && e.touches.length === 1) {
+            const dist = Math.hypot(e.touches[0].clientX - touchStartPos.x, e.touches[0].clientY - touchStartPos.y);
+            // If dragging/scrolling, cancel hold trigger
+            if (dist > 10) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+                touchTarget = null;
+            }
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', function () {
+        if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+            touchTarget = null;
+        }
+    }, { passive: true });
+
+    // 7. Close callout on Escape key
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             hideProtectionCallout();

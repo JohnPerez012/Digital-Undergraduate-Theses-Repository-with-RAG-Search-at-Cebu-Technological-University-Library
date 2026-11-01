@@ -301,8 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="recent-thesis-meta">
                         <span class="recent-program-badge">${escapeHtml(program)}</span>
                     </div>
-                    <h4 class="recent-thesis-title" title="${escapeHtml(title)}">${escapeHtml(title)}</h4>
-                    ${authors ? `<p class="recent-thesis-authors">${escapeHtml(authors)}</p>` : ''}
+                    <h4 class="recent-thesis-title" data-protected="true" title="${escapeHtml(title)}">${escapeHtml(title)}</h4>
+                    ${authors ? `<p class="recent-thesis-authors" data-allow-copy="true">${escapeHtml(authors)}</p>` : ''}
                 </div>
                 <button type="button" class="recent-thesis-action-btn" data-project-id="${projectId}" data-title="${escapeHtml(title)}">
                     <span>View</span>

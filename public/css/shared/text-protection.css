@@ -4,10 +4,29 @@
    cannot be highlighted or copied (Data Privacy Act & Anti-Plagiarism Policy)
    ========================================================================== */
 
-/* Protected elements baseline */
+/* Protected elements baseline: Titles and Abstracts across all views and dashboards */
 .project-title,
 .project-abstract,
 .project-title-large,
+.saved-card-title,
+.saved-card-abstract,
+.recent-thesis-title,
+.catalog-card-title,
+.ctm-thesis-title,
+.ctm-abstract-text,
+#ctm-abstract,
+#ctm-project-title,
+#atm-project-title,
+#cn-project-title,
+.project-title-cell,
+.project-title-text,
+#approval-abstract,
+#pe-abstract,
+#ppe-abstract,
+#um-abstract,
+#pinecone-current-project-title,
+#secure-delete-project-title,
+.offline-card-title,
 .section-text,
 #citation-text,
 .protected-text,
@@ -16,6 +35,26 @@
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
+    -webkit-touch-callout: none !important;
+    cursor: default;
+}
+
+/* Explicitly copyable authors per CTU Academic Attribution Policy */
+.authors,
+.author,
+.saved-card-authors,
+.saved-card-authors *,
+.project-authors-line,
+.recent-thesis-authors,
+.project-author,
+.catalog-card-authors,
+[data-allow-copy="true"] {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    -webkit-touch-callout: default !important;
+    cursor: text;
 }
 
 /* Subtle protection indicator on hover for users who hover over protected research content */
