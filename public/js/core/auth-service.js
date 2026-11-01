@@ -46,6 +46,7 @@
             USER_EMAIL: 'userEmail',
             USER_NAME: 'userName',
             USER_TYPE: 'userType',
+            STUDENT_ID: 'studentId',
             OPEN_LOGIN_MODAL: 'openLoginModal',
             JUST_REGISTERED: 'justRegistered',
             AUTO_LOGGED_IN: 'autoLoggedIn',
@@ -134,6 +135,9 @@
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_EMAIL, userData.email || '');
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_NAME, userData.displayName || userData.fullName || '');
             sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER_TYPE, userData.userType || '');
+            if (userData.userType === 'student' && (userData.studentId || userData.idNumber)) {
+                sessionStorage.setItem('studentId', userData.studentId || userData.idNumber || '');
+            }
             if (userData.userType) {
                 localStorage.setItem(CONFIG.STORAGE_KEYS.USER_TYPE, userData.userType);
                 if (typeof document !== 'undefined' && document.documentElement) {

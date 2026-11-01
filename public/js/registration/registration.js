@@ -4498,6 +4498,9 @@
                     sessionStorage.setItem('userEmail', currentUser.email);
                     sessionStorage.setItem('userName', currentUser.displayName);
                     sessionStorage.setItem('userType', userData.userType);
+                    if (userData.userType === 'student' && (userData.studentId || userData.idNumber)) {
+                        sessionStorage.setItem('studentId', userData.studentId || userData.idNumber);
+                    }
 
                     // Redirect directly to user's dashboard
                     AuthService.navigateToDashboard(userData.userType);

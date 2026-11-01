@@ -117,6 +117,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 citationStatsEl.textContent = '0';
             }
         }
+
+        // Strictly student role check & ID hydration
+        const studentIdEl = document.getElementById('settings-student-id-card');
+        const studentIdWrap = document.getElementById('sset-student-id-wrap');
+        const role = sessionStorage.getItem('userType') || localStorage.getItem('userType');
+        const isStudent = !role || role === 'student';
+
+        if (isStudent && studentIdWrap && studentIdEl) {
+            const cachedId = sessionStorage.getItem('studentId');
+            if (cachedId) {
+                studentIdEl.textContent = cachedId;
+                studentIdWrap.style.display = 'inline-flex';
+            } else if (user && typeof db !== 'undefined') {
+                db.collection('users').doc(user.uid).get().then(doc => {
+                    if (doc.exists) {
+                        const data = doc.data() || {};
+                        const sid = data.studentId || data.idNumber;
+                        const uType = data.userType || role;
+                        if (uType === 'student' && sid) {
+                            sessionStorage.setItem('studentId', sid);
+                            studentIdEl.textContent = sid;
+                            studentIdWrap.style.display = 'inline-flex';
+                        } else {
+                            studentIdWrap.style.display = 'none';
+                        }
+                    }
+                }).catch(err => console.debug('[Settings] ID retrieval deferred:', err));
+            }
+        } else if (studentIdWrap) {
+            studentIdWrap.style.display = 'none';
+        }
     }
 
     if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -173,15 +204,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Helper: Copy with SVG Checkmark Morph (2.5s duration)
-    function setupEmailCopyBtn(buttonId, emailElementId) {
+    function setupCopyActionBtn(buttonId, textElementId, successToastMsg, defaultTitle) {
         const btn = document.getElementById(buttonId);
         if (!btn) return;
 
         btn.addEventListener('click', (e) => {
             const currentBtn = e.currentTarget;
-            const emailEl = document.getElementById(emailElementId) || document.getElementById('settings-user-email');
-            const email = emailEl?.textContent?.trim() || '';
-            if (!email || email === 'Loading...') return;
+            const textEl = document.getElementById(textElementId) || document.getElementById('settings-user-email');
+            const text = textEl?.textContent?.trim() || '';
+            if (!text || text === 'Loading...' || text === '--') return;
 
             const copySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
             const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
@@ -191,25 +222,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentBtn.innerHTML = checkSvg;
                 currentBtn.setAttribute('title', 'Copied to clipboard!');
                 if (typeof showToast === 'function') {
-                    showToast('Email address copied to clipboard', 'success');
+                    showToast(successToastMsg || 'Copied to clipboard', 'success');
                 }
                 if (currentBtn._copyTimeout) clearTimeout(currentBtn._copyTimeout);
                 currentBtn._copyTimeout = setTimeout(() => {
                     currentBtn.classList.remove('is-copied');
                     currentBtn.innerHTML = copySvg;
-                    currentBtn.setAttribute('title', 'Copy email address');
+                    currentBtn.setAttribute('title', defaultTitle || 'Copy');
                     currentBtn._copyTimeout = null;
                 }, 2500); // Revert after 2.5 seconds
             };
 
             // Clipboard API with LAN HTTP fallback
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(email).then(triggerCheckFeedback).catch(err => {
+                navigator.clipboard.writeText(text).then(triggerCheckFeedback).catch(err => {
                     console.warn('[Settings] navigator.clipboard failed, attempting execCommand fallback:', err);
-                    executeFallbackCopy(email, triggerCheckFeedback);
+                    executeFallbackCopy(text, triggerCheckFeedback);
                 });
             } else {
-                executeFallbackCopy(email, triggerCheckFeedback);
+                executeFallbackCopy(text, triggerCheckFeedback);
             }
         });
     }
@@ -235,8 +266,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize Copy Buttons for Student and Teacher
-    setupEmailCopyBtn('sset-card-copy-email-btn', 'settings-user-email-card');
-    setupEmailCopyBtn('tset-card-copy-email-btn', 'settings-user-email');
+    setupCopyActionBtn('sset-card-copy-email-btn', 'settings-user-email-card', 'Email address copied to clipboard', 'Copy email address');
+    setupCopyActionBtn('tset-card-copy-email-btn', 'settings-user-email', 'Email address copied to clipboard', 'Copy email address');
+    setupCopyActionBtn('sset-card-copy-id-btn', 'settings-student-id-card', 'Student ID copied to clipboard', 'Copy Student ID');
 
     // Student Contributions Action Buttons
     document.getElementById('sset-btn-saved')?.addEventListener('click', () => {

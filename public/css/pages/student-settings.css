@@ -83,6 +83,11 @@ html, body, .dashboard-layout {
         max-width: calc(100% - 2.3rem);
     }
 
+    .sset-id-wrap {
+        margin: -0.25rem 1.15rem 0.65rem;
+        max-width: calc(100% - 2.3rem);
+    }
+
     .sset-contrib {
         margin: 0 1.15rem 0.75rem;
     }
@@ -317,6 +322,54 @@ html, body, .dashboard-layout {
     gap: 0.45rem;
     margin: 0 1.4rem 0.85rem;
     max-width: calc(100% - 2.8rem);
+}
+
+.sset-id-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: -0.35rem 1.4rem 0.85rem;
+    max-width: calc(100% - 2.8rem);
+}
+
+.sset-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 0.78rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    user-select: all;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+[data-theme="dark"] .sset-id-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+}
+
+.sset-id-badge svg {
+    opacity: 0.75;
+    flex-shrink: 0;
+}
+
+.sset-id-prefix {
+    font-weight: 600;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary, #94a3b8);
+}
+
+.sset-profile-id {
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .sset-profile-email {
