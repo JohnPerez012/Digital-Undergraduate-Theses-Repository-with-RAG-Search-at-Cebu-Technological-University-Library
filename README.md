@@ -240,6 +240,18 @@ node scripts/preflight.js
 
 ## 📝 8. Recent Changelog & Visual Enhancements
 
+- **Brand Palette Hardening, Saved Collection Export Modal, and 4-Step Account Deletion Lifecycle:** Comprehensive institutional alignment and security enhancements across student settings (`student-settings.css`, `settings-handler.js`, `password-change.css`, `auth-modal.js`):
+  - *Institutional Color Alignment (Zero Lingering Blue):* Strictly purged unauthorized blue hues (`#3b82f6`, `#2563eb`, `#1d4ed8`, `#60a5fa`) across toggles, chips, status pills, and focus states in settings. Replaced colorful purple/blue linear gradients on `.password-change-icon` with institutional brand green accents (`rgba(8, 212, 136, 0.1)`, `border: 2px solid rgba(8, 212, 136, 0.25)`, `color: var(--brand-green, #08D488)`), locking all visuals to the core brand palette (`#2a2f35`, `#F7F7F8`, `#08D488`, `#FCCC56`).
+  - *Progressive 4-Step Account Deletion Wizard:* Replaced the abrupt single-click deletion modal with an audited 4-step progressive lifecycle:
+    1. *Security Confirmation:* Requires user to type exact uppercase `DELETE` before unlocking navigation.
+    2. *Grace Period Selection:* User selects **15 Days** (Standard) or **30 Days** (Extended) inactivity grace period.
+    3. *Departure Reason:* Dropdown menu selection with conditional "Other" custom explanation textarea.
+    4. *Password Verification & Immediate Sign-Out:* Verifies account credentials with Firebase reauthentication, stores scheduled countdown metadata in Firestore (`deletionScheduled: true`, `scheduledDeletionTimestamp`, `deletionGraceDays`, `deletionReason`, `accountStatus: 'pending_deletion'`), and immediately logs out the user without blocking prompts or conditions.
+    5. *Automatic Login Cancellation Guard:* The sole condition to cancel the timer is logging back in. Logging into an active pending-deletion account instantly removes the timer and restores the account to active status.
+  - *Decoupled Account Data Clearing from Search History:* Separated "Clear Account Data" from search query storage. Clearing account data purges bookmarks, chat conversations, and local activity logs while strictly preserving user search history (`recap_search_history`, `recap_recent_searches`).
+  - *Interactive Saved Projects Export Modal:* Replaced direct JSON downloads with an interactive `.export-modal-modern` dialog featuring live collection metrics (Saved Projects count, estimated payload size, export date, format), custom filename input with dynamic extension badge, and one-click export to JSON, CSV, or BibTeX format.
+  - *Theme Toggle Toast Suppression:* Removed noisy toast notifications when switching between Light Mode and Dark Mode.
+
 - **Mobile UI Responsiveness & UX Suite for Settings Blocks (.sset-block):** Comprehensive ergonomic overhaul across all Student and Teacher settings workstations (student-settings.css, student_page.html, settings-handler.js):
   - *Uncramped Vertical Stacking for Action Rows:* Replaced cramped horizontal flex wrapping on action rows (e.g. Password & Security) with a dedicated vertical stack (.sset-row-stacked, .sset-row:has(.sset-row-actions)). Titles and password masking dots now have full breathing room, helper notes display without truncation, and action buttons span full width with 44px thumb-friendly touch targets.
   - *Mobile Toggle Alignment:* Streamlined toggle switch rows (Dark Mode Theme, Toast Notifications) with high-priority flex alignment, keeping switches locked to the right while labels and descriptions wrap naturally without clipping.

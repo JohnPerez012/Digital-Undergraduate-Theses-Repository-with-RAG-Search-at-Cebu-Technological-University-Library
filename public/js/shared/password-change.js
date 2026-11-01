@@ -164,10 +164,10 @@
                 <div class="password-change-step" id="verification-step">
                     <div class="verification-tabs">
                         <button type="button" class="verification-tab active" data-tab="security">
-                            ❓ Security Question
+                            Security Question
                         </button>
                         <button type="button" class="verification-tab" data-tab="password">
-                            🔑 Current Password
+                            Current Password
                         </button>
                     </div>
 

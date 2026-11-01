@@ -247,6 +247,37 @@ document.addEventListener('DOMContentLoaded', function() {
                             alert(`⚠️ Account Quarantined\n\nThis account has been scheduled for deletion.\nReason: ${reason}\n\nIf you believe this was done in error, please contact Library Administration within the 14-day grace period to restore your account.`);
                             return;
                         }
+                        if (userData.deletionScheduled || userData.accountStatus === 'pending_deletion') {
+                            const now = Date.now();
+                            const scheduledTime = userData.scheduledDeletionTimestamp || 0;
+                            if (scheduledTime > 0 && now >= scheduledTime) {
+                                await auth.signOut();
+                                sessionStorage.clear();
+                                loginBtn.disabled = false;
+                                loginBtn.textContent = 'Login';
+                                const days = userData.deletionGraceDays || 15;
+                                alert(`⚠️ Account Expired\n\nThe ${days}-day grace period for this account has expired, and the account has been permanently marked for deletion.\n\nFor inquiries, please contact Library Administration.`);
+                                return;
+                            } else {
+                                // Logging in cancels and clears the deletion timer
+                                try {
+                                    await db.collection('users').doc(user.uid).update({
+                                        deletionScheduled: firebase.firestore.FieldValue.delete(),
+                                        scheduledDeletionTimestamp: firebase.firestore.FieldValue.delete(),
+                                        deletionGraceDays: firebase.firestore.FieldValue.delete(),
+                                        deletionReason: firebase.firestore.FieldValue.delete(),
+                                        deletionRequestedAt: firebase.firestore.FieldValue.delete(),
+                                        accountStatus: 'active'
+                                    });
+                                    localStorage.removeItem('recaps_account_pending_deletion_' + user.uid);
+                                    userData.deletionScheduled = false;
+                                    userData.accountStatus = 'active';
+                                    console.log('[Auth] Deletion timer removed upon user login.');
+                                } catch (delErr) {
+                                    console.warn('[Auth] Failed to reset deletion fields on login:', delErr);
+                                }
+                            }
+                        }
                     }
                     
                     sessionStorage.setItem('userId', user.uid);
@@ -350,6 +381,37 @@ document.addEventListener('DOMContentLoaded', function() {
                             const reason = userData.deletionReason || 'Administrative request';
                             alert(`⚠️ Account Quarantined\n\nThis account has been scheduled for deletion.\nReason: ${reason}\n\nIf you believe this was done in error, please contact Library Administration within the 14-day grace period to restore your account.`);
                             return;
+                        }
+                        if (userData.deletionScheduled || userData.accountStatus === 'pending_deletion') {
+                            const now = Date.now();
+                            const scheduledTime = userData.scheduledDeletionTimestamp || 0;
+                            if (scheduledTime > 0 && now >= scheduledTime) {
+                                await auth.signOut();
+                                sessionStorage.clear();
+                                googleLoginBtn.disabled = false;
+                                googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+                                const days = userData.deletionGraceDays || 15;
+                                alert(`⚠️ Account Expired\n\nThe ${days}-day grace period for this account has expired, and the account has been permanently marked for deletion.\n\nFor inquiries, please contact Library Administration.`);
+                                return;
+                            } else {
+                                // Logging in cancels and clears the deletion timer
+                                try {
+                                    await db.collection('users').doc(user.uid).update({
+                                        deletionScheduled: firebase.firestore.FieldValue.delete(),
+                                        scheduledDeletionTimestamp: firebase.firestore.FieldValue.delete(),
+                                        deletionGraceDays: firebase.firestore.FieldValue.delete(),
+                                        deletionReason: firebase.firestore.FieldValue.delete(),
+                                        deletionRequestedAt: firebase.firestore.FieldValue.delete(),
+                                        accountStatus: 'active'
+                                    });
+                                    localStorage.removeItem('recaps_account_pending_deletion_' + user.uid);
+                                    userData.deletionScheduled = false;
+                                    userData.accountStatus = 'active';
+                                    console.log('[Auth] Deletion timer removed upon Google user login.');
+                                } catch (delErr) {
+                                    console.warn('[Auth] Failed to reset deletion fields on Google login:', delErr);
+                                }
+                            }
                         }
                     }
                     
