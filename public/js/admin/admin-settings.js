@@ -768,8 +768,7 @@
             });
         }
 
-        // Jump Nav Anchor Links
-        initJumpNav();
+
 
         // Listen for section visibility / hash change to update stats
         window.addEventListener('hashchange', () => {
@@ -846,56 +845,7 @@
         document.addEventListener('keydown', handleKeyboardShortcuts);
     }
 
-    /**
-     * Initialize In-Page Jump Navigation
-     */
-    function initJumpNav() {
-        const jumpLinks = document.querySelectorAll('.aset-jump-link[data-aset-target]');
-        if (!jumpLinks.length) return;
-
-        jumpLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.getAttribute('data-aset-target');
-                const targetEl = document.getElementById(targetId);
-                if (!targetEl) return;
-
-                jumpLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                targetEl.classList.remove('aset-flash');
-                void targetEl.offsetWidth; // trigger reflow
-                targetEl.classList.add('aset-flash');
-            });
-        });
-
-        // Intersection Observer to highlight active section on scroll
-        if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const id = entry.target.id;
-                        jumpLinks.forEach(link => {
-                            if (link.getAttribute('data-aset-target') === id) {
-                                link.classList.add('active');
-                            } else {
-                                link.classList.remove('active');
-                            }
-                        });
-                    }
-                });
-            }, {
-                root: null,
-                rootMargin: '-15% 0px -65% 0px',
-                threshold: 0
-            });
-
-            const cards = document.querySelectorAll('.settings-card[id]');
-            cards.forEach(card => observer.observe(card));
-        }
-    }
+    
 
     /**
      * Keyboard Shortcuts Handler

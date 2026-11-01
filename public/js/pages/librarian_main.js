@@ -4331,20 +4331,6 @@
         });
     }
 
-    function initSettingsJumpNav() {
-        const links = document.querySelectorAll('.lset-jump-link[data-lset-target]');
-        links.forEach(link => link.addEventListener('click', () => {
-            const target = document.getElementById(link.dataset.lsetTarget);
-            if (!target) return;
-            links.forEach(l => l.classList.toggle('active', l === link));
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // Expand the Danger Zone when jumping to it
-            if (target.id === 'danger-zone-container') {
-                const toggle = document.getElementById('danger-zone-toggle');
-                if (toggle && toggle.getAttribute('aria-expanded') !== 'true') toggle.click();
-            }
-        }));
-    }
 
     function initSettingsPanel() {
         if (!document.getElementById('section-settings')) return;
@@ -4352,7 +4338,6 @@
         initSettingsNameEditor();
         initSettingsThemeControl();
         initSettingsLandingPref();
-        initSettingsJumpNav();
 
         document.getElementById('lset-card-copy-email-btn')?.addEventListener('click', (e) => {
             const emailEl = document.getElementById('lset-profile-email');

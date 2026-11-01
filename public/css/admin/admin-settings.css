@@ -111,47 +111,7 @@ html, body, .dashboard-layout {
         font-size: 0.65rem;
     }
 
-    /* ── Mobile Horizontal Pill Jump Navigation Bar ── */
-    .aset-jump-nav {
-        margin: 0 1.15rem;
-        padding: 0.65rem 0 0.25rem;
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        gap: 0.45rem;
-        scrollbar-width: none;
-        border-top: 1px solid var(--border);
     }
-
-    .aset-jump-nav::-webkit-scrollbar {
-        display: none;
-    }
-
-    .aset-jump-link {
-        flex: 0 0 auto;
-        width: auto;
-        white-space: nowrap;
-        padding: 0.45rem 0.8rem;
-        border-radius: 9999px;
-        font-size: 0.78rem;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid var(--border);
-        gap: 0.45rem;
-    }
-
-    .aset-jump-link svg {
-        width: 13px;
-        height: 13px;
-    }
-
-    .aset-jump-link.active {
-        background: rgba(8, 212, 136, 0.18);
-        border-color: rgba(8, 212, 136, 0.45);
-        color: #08D488;
-        font-weight: 600;
-    }
-}
 
 /* --- Left Aside: Sticky Profile Card --- */
 .aset-profile-card {
@@ -437,67 +397,6 @@ html, body, .dashboard-layout {
     color: var(--text-secondary);
     font-weight: 600;
     margin-top: 0.25rem;
-}
-
-/* --- Jump Nav Dock --- */
-.aset-jump-nav {
-    margin: 0 1.4rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    border-top: 1px solid var(--border);
-    padding-top: 0.9rem;
-}
-
-[data-theme="dark"] .aset-jump-nav {
-    border-color: rgba(255, 255, 255, 0.07);
-}
-
-.aset-jump-link {
-    appearance: none;
-    -webkit-appearance: none;
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.65rem 0.85rem;
-    border-radius: 10px;
-    font-size: 0.835rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: transparent;
-    border: 1px solid transparent;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    transition: all 0.15s ease;
-    font-family: inherit;
-    box-sizing: border-box;
-}
-
-.aset-jump-link:hover {
-    background: var(--background);
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] .aset-jump-link:hover {
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.aset-jump-link.active {
-    background: rgba(8, 212, 136, 0.12);
-    color: #08D488;
-    border-color: rgba(8, 212, 136, 0.25);
-    font-weight: 600;
-}
-
-[data-theme="dark"] .aset-jump-link.active {
-    background: rgba(26, 210, 143, 0.15);
-    color: #1AD28F;
-    border-color: rgba(26, 210, 143, 0.3);
-}
-
-.aset-jump-link svg {
-    flex-shrink: 0;
 }
 
 /* --- Right Column: Settings Main Stack --- */
