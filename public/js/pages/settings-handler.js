@@ -139,6 +139,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetEl = document.getElementById(targetId);
                 if (!targetEl) return;
 
+                // Expand parent or targeted sset-block on mobile
+                const parentBlock = targetEl.closest('.sset-block');
+                if (parentBlock && !parentBlock.classList.contains('is-expanded')) {
+                    parentBlock.classList.add('is-expanded');
+                    const hd = parentBlock.querySelector('.sset-block-hd');
+                    if (hd) hd.setAttribute('aria-expanded', 'true');
+                }
+
+                if (targetEl.classList.contains('sset-block') && !targetEl.classList.contains('is-expanded')) {
+                    targetEl.classList.add('is-expanded');
+                    const hd = targetEl.querySelector('.sset-block-hd');
+                    if (hd) hd.setAttribute('aria-expanded', 'true');
+                }
+
+                // If target is danger zone, open its dropdown
+                if (targetId === 'danger-zone-container') {
+                    const dzContent = document.getElementById('danger-zone-content');
+                    const dzToggle = document.getElementById('danger-zone-toggle');
+                    if (dzContent && dzContent.style.display === 'none') {
+                        dzContent.style.display = 'block';
+                        if (dzToggle) dzToggle.setAttribute('aria-expanded', 'true');
+                    }
+                }
+
                 jumpLinks.forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
 
@@ -177,6 +201,49 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initStudentJumpNav();
+
+    // ── Collapsible Settings Cards on Mobile (Student & Teacher) ──
+    function initCollapsibleSettingsCards() {
+        const blocks = document.querySelectorAll('.sset-block');
+        if (!blocks.length) return;
+
+        blocks.forEach(block => {
+            const hd = block.querySelector('.sset-block-hd');
+            if (!hd) return;
+
+            hd.setAttribute('role', 'button');
+            hd.setAttribute('tabindex', '0');
+            hd.setAttribute('aria-expanded', block.classList.contains('is-expanded') ? 'true' : 'false');
+
+            const toggleCard = (e) => {
+                // Strictly mobile behavior (<= 1024px)
+                if (window.innerWidth > 1024) return;
+
+                // Don't toggle when tapping interactive inputs or buttons inside header
+                if (e.target.closest('button, input, select, a, label')) return;
+
+                const isExpanded = block.classList.contains('is-expanded');
+                if (isExpanded) {
+                    block.classList.remove('is-expanded');
+                    hd.setAttribute('aria-expanded', 'false');
+                } else {
+                    block.classList.add('is-expanded');
+                    hd.setAttribute('aria-expanded', 'true');
+                }
+            };
+
+            hd.addEventListener('click', toggleCard);
+            hd.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleCard(e);
+                }
+            });
+        });
+    }
+
+    initCollapsibleSettingsCards();
+
 
     // Student Email Copy Button
     document.getElementById('sset-card-copy-email-btn')?.addEventListener('click', () => {
