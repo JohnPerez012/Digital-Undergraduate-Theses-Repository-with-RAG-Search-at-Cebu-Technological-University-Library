@@ -32,6 +32,122 @@ html, body, .dashboard-layout {
 @media (max-width: 1024px) {
     .sset-layout {
         grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    /* ── Mobile Ergonomic Non-Sticky Profile Card ── */
+    .sset-profile-card {
+        position: static !important;
+        top: auto !important;
+        align-self: stretch;
+        max-height: none !important;
+        overflow: visible !important;
+        z-index: 1 !important;
+        margin-bottom: 0.75rem;
+        border-radius: 16px;
+        padding-bottom: 0.85rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .sset-profile-cover {
+        height: 60px;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .sset-avatar-wrap {
+        margin: -30px 0 0.4rem 1.15rem;
+        width: 60px;
+        height: 60px;
+    }
+
+    .sset-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.45rem;
+        border-width: 3px;
+    }
+
+    .sset-avatar-status {
+        width: 13px;
+        height: 13px;
+        border-width: 2.5px;
+    }
+
+    .sset-profile-name {
+        font-size: 1.15rem;
+        margin: 0 1.15rem 0.15rem;
+    }
+
+    .sset-email-wrap {
+        margin: 0 1.15rem 0.65rem;
+        max-width: calc(100% - 2.3rem);
+    }
+
+    .sset-contrib {
+        margin: 0 1.15rem 0.75rem;
+    }
+
+    .sset-contrib-title {
+        font-size: 0.65rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .sset-contrib-grid {
+        gap: 0.45rem;
+    }
+
+    .sset-contrib-item {
+        padding: 0.5rem 0.2rem;
+        border-radius: 10px;
+    }
+
+    .sset-contrib-val {
+        font-size: 1.1rem;
+    }
+
+    .sset-contrib-lbl {
+        font-size: 0.65rem;
+    }
+
+    /* ── Mobile Horizontal Pill Jump Navigation Bar ── */
+    .sset-jump-nav {
+        margin: 0 1.15rem;
+        padding: 0.65rem 0 0.25rem;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.45rem;
+        scrollbar-width: none;
+        border-top: 1px solid var(--border);
+    }
+
+    .sset-jump-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .sset-jump-link {
+        flex: 0 0 auto;
+        width: auto;
+        white-space: nowrap;
+        padding: 0.45rem 0.8rem;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        gap: 0.45rem;
+    }
+
+    .sset-jump-link svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .sset-jump-link.active {
+        background: rgba(59, 130, 246, 0.18);
+        border-color: rgba(59, 130, 246, 0.45);
+        color: #60a5fa;
+        font-weight: 600;
     }
 }
 

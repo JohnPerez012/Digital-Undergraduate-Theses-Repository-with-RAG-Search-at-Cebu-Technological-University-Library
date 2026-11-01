@@ -34,6 +34,122 @@ html, body, .dashboard-layout {
 @media (max-width: 1024px) {
     .aset-layout {
         grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    /* ── Mobile Ergonomic Non-Sticky Profile Card ── */
+    .aset-profile-card {
+        position: static !important;
+        top: auto !important;
+        align-self: stretch;
+        max-height: none !important;
+        overflow: visible !important;
+        z-index: 1 !important;
+        margin-bottom: 0.75rem;
+        border-radius: 16px;
+        padding-bottom: 0.85rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .aset-profile-cover {
+        height: 60px;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .aset-avatar-wrap {
+        margin: -30px 0 0.4rem 1.15rem;
+        width: 60px;
+        height: 60px;
+    }
+
+    .aset-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.45rem;
+        border-width: 3px;
+    }
+
+    .aset-avatar-status {
+        width: 13px;
+        height: 13px;
+        border-width: 2.5px;
+    }
+
+    .aset-profile-name {
+        font-size: 1.15rem;
+        margin: 0 1.15rem 0.15rem;
+    }
+
+    .aset-email-wrap {
+        margin: 0 1.15rem 0.65rem;
+        max-width: calc(100% - 2.3rem);
+    }
+
+    .aset-contrib {
+        margin: 0 1.15rem 0.85rem;
+    }
+
+    .aset-contrib-title {
+        font-size: 0.65rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .aset-contrib-grid {
+        gap: 0.45rem;
+    }
+
+    .aset-contrib-item {
+        padding: 0.5rem 0.2rem;
+        border-radius: 10px;
+    }
+
+    .aset-contrib-val {
+        font-size: 1.1rem;
+    }
+
+    .aset-contrib-lbl {
+        font-size: 0.65rem;
+    }
+
+    /* ── Mobile Horizontal Pill Jump Navigation Bar ── */
+    .aset-jump-nav {
+        margin: 0 1.15rem;
+        padding: 0.65rem 0 0.25rem;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0.45rem;
+        scrollbar-width: none;
+        border-top: 1px solid var(--border);
+    }
+
+    .aset-jump-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .aset-jump-link {
+        flex: 0 0 auto;
+        width: auto;
+        white-space: nowrap;
+        padding: 0.45rem 0.8rem;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        gap: 0.45rem;
+    }
+
+    .aset-jump-link svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .aset-jump-link.active {
+        background: rgba(8, 212, 136, 0.18);
+        border-color: rgba(8, 212, 136, 0.45);
+        color: #08D488;
+        font-weight: 600;
     }
 }
 

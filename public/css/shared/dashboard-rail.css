@@ -1807,31 +1807,66 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, rgba(8, 212, 136, 0.22), rgba(6, 159, 102, 0.32));
-        border: 1px solid rgba(8, 212, 136, 0.45);
-        color: #08D488;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text-secondary, #94a3b8);
         transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 4px 12px rgba(8, 212, 136, 0.25);
+        box-shadow: none;
+    }
+
+    [data-theme="light"] .dock-featured-btn {
+        background: rgba(0, 0, 0, 0.05);
+        border-color: rgba(0, 0, 0, 0.1);
+        color: var(--text-secondary, #64748b);
+    }
+
+    .dock-nav-item.dock-item-featured:hover .dock-featured-btn {
+        background: rgba(8, 212, 136, 0.12);
+        border-color: rgba(8, 212, 136, 0.35);
+        color: #08D488;
     }
 
     .dashboard-layout.role-teacher .dock-featured-btn {
-        background: linear-gradient(135deg, rgba(234, 179, 8, 0.22), rgba(202, 138, 4, 0.32));
-        border-color: rgba(234, 179, 8, 0.45);
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.12);
+        color: var(--text-secondary, #94a3b8);
+        box-shadow: none;
+    }
+
+    .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured:hover .dock-featured-btn {
+        background: rgba(234, 179, 8, 0.12);
+        border-color: rgba(234, 179, 8, 0.35);
         color: #eab308;
-        box-shadow: 0 4px 12px rgba(234, 179, 8, 0.25);
+    }
+
+    .dock-nav-item.dock-item-featured.active {
+        background: transparent;
     }
 
     .dock-nav-item.dock-item-featured.active .dock-featured-btn {
         background: linear-gradient(135deg, #08D488, #069F66);
+        border-color: #08D488;
         color: #ffffff;
-        box-shadow: 0 6px 20px rgba(8, 212, 136, 0.5);
-        transform: scale(1.06);
+        box-shadow: 0 6px 18px rgba(8, 212, 136, 0.45);
+        transform: scale(1.08);
+    }
+
+    .dock-nav-item.dock-item-featured.active .dock-label {
+        color: #08D488;
+        font-weight: 700;
     }
 
     .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured.active .dock-featured-btn {
         background: linear-gradient(135deg, #eab308, #ca8a04);
+        border-color: #eab308;
         color: #1a1e23;
-        box-shadow: 0 6px 20px rgba(234, 179, 8, 0.5);
+        box-shadow: 0 6px 18px rgba(234, 179, 8, 0.45);
+        transform: scale(1.08);
+    }
+
+    .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured.active .dock-label {
+        color: #eab308;
+        font-weight: 700;
     }
 
     .dock-featured-btn svg {
