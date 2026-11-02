@@ -443,7 +443,7 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
     transition: all 0.3s ease;
     flex-shrink: 0;
     pointer-events: none;

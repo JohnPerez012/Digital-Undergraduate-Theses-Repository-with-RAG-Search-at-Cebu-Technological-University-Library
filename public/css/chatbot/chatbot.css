@@ -433,7 +433,7 @@
     padding: 0.875rem 1rem;
     font-size: 0.9rem;
     color: var(--text-primary);
-    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
     resize: none;
     max-height: 120px;
     transition: all 0.2s ease;
@@ -837,7 +837,7 @@
     font-size: 0.72rem;
     font-weight: 550;
     letter-spacing: 0.02em;
-    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
     padding: 0.32rem 0.75rem;
     border-radius: 9999px;
     white-space: nowrap;
@@ -992,7 +992,7 @@
 }
 
 .countdown-badge span {
-    font-family: 'Atkinson Hyperlegible', monospace;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', monospace;
 }
 
 @keyframes countdown-pulse {
@@ -1286,7 +1286,7 @@
     gap: 0.3rem;
     transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
     color: var(--text-primary);
     outline: none;
 }
@@ -1413,7 +1413,7 @@
     outline: none;
     padding: 0;
     font-size: 0.95rem;
-    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
     color: var(--text-primary);
     resize: none;
     min-height: 24px;
@@ -1477,7 +1477,7 @@
 
 .chatbot-fullpage .char-counter {
     font-size: 0.72rem;
-    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
     color: var(--text-primary);
     opacity: 0.55;
     user-select: none;

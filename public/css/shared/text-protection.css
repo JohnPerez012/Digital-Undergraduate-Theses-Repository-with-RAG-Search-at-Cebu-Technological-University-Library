@@ -78,7 +78,7 @@
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45),
                 0 0 24px rgba(8, 212, 136, 0.18),
                 inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
     pointer-events: auto;
     transform-origin: center bottom;
     animation: protectionPopIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;

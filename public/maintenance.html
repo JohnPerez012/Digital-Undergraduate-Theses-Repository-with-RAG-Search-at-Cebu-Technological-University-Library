@@ -14,10 +14,23 @@
         href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
+    <!-- Universal Font Preload (Instant First Paint, No FOUT) -->
+    <link rel="preload" href="/fonts/Reinsa.ttf" as="font" type="font/ttf" crossorigin>
+
     <style>
+        @font-face {
+            font-family: 'Reinsa';
+            src: url('/fonts/Reinsa.ttf') format('truetype'),
+                 url('/Reinsa.ttf') format('truetype'),
+                 url('fonts/Reinsa.ttf') format('truetype');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
         :root {
-            --font-primary: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-primary: 'Reinsa', 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-display: 'Reinsa', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
             /* RE-CAPS Brand Colors */
             --brand-green: #08D488;

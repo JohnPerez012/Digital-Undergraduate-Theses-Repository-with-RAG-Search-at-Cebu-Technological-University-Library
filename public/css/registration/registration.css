@@ -1682,7 +1682,7 @@ body.dark-mode .form-input::placeholder {
     border-radius: 0.5rem;
     font-size: 1rem;
     font-weight: 500;
-    font-family: 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

@@ -1,11 +1,22 @@
 /* ============================================================
    ABOUT PAGE — RE-CAPS Design System
-   Consistent with style.css: Inter font, indigo/violet palette,
-   CSS variables, dark mode via [data-theme="dark"], glassmorphism
+   Universal Font: Reinsa
    ============================================================ */
+
+@font-face {
+  font-family: 'Reinsa';
+  src: url('../../fonts/Reinsa.ttf') format('truetype'),
+       url('/fonts/Reinsa.ttf') format('truetype'),
+       url('/Reinsa.ttf') format('truetype'),
+       url('../fonts/Reinsa.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ── Variables (mirrors style.css) ── */
 :root {
+  --font-primary: 'Reinsa', 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --primary-color: #08D488;
   --primary-dark: #069F66;
   --secondary-color: #64748b;
@@ -44,7 +55,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .about-page {
-  font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Reinsa', 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--background);
   color: var(--text-primary);
   line-height: 1.6;
