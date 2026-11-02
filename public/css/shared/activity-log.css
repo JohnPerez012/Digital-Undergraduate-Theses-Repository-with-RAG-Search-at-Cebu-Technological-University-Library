@@ -1204,7 +1204,7 @@ body:not(.light-theme) .activity-formal-badge {
         min-width: 100px;
     }
 
-    /* Single-line horizontal scrollable chip bar */
+    /* ── Mobile Morphing Category Pills: Icon-Only Inactive, Text-Only Active ── */
     .activity-category-pills {
         display: flex;
         flex-wrap: nowrap !important;
@@ -1212,10 +1212,11 @@ body:not(.light-theme) .activity-formal-badge {
         overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        padding: 0.65rem 0.85rem 0.2rem;
+        padding: 0.65rem 0.85rem 0.35rem;
         margin: 0 -0.85rem;
-        gap: 0.4rem;
+        gap: 0.45rem;
         border-top: 1px solid var(--border);
+        align-items: center;
     }
 
     .activity-category-pills::-webkit-scrollbar {
@@ -1225,14 +1226,67 @@ body:not(.light-theme) .activity-formal-badge {
     .activity-pill {
         flex-shrink: 0 !important;
         white-space: nowrap !important;
-        padding: 0.35rem 0.7rem;
-        font-size: 0.75rem;
-        gap: 0.35rem;
+        height: 36px !important;
+        box-sizing: border-box;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        position: relative;
     }
 
-    .activity-pill svg {
-        width: 13px;
-        height: 13px;
+    /* INACTIVE PILL: Show ONLY the category icon, remove/hide the text */
+    .activity-pill:not(.active) {
+        width: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        padding: 0 !important;
+        border-radius: 9999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: var(--surface-secondary, rgba(255, 255, 255, 0.04));
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+    }
+
+    .activity-pill:not(.active) svg {
+        display: block !important;
+        width: 15px !important;
+        height: 15px !important;
+        margin: 0 auto !important;
+        flex-shrink: 0 !important;
+        stroke: currentColor;
+    }
+
+    .activity-pill:not(.active) span {
+        display: none !important;
+    }
+
+    /* ACTIVE PILL: Show ONLY the category text, remove/hide the icon */
+    .activity-pill.active {
+        width: auto !important;
+        min-width: auto !important;
+        max-width: none !important;
+        padding: 0 0.95rem !important;
+        border-radius: 9999px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: var(--text-primary) !important;
+        color: var(--background) !important;
+        border-color: var(--text-primary) !important;
+        font-weight: 700 !important;
+        font-size: 0.8rem !important;
+        letter-spacing: 0.01em;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    .activity-pill.active svg {
+        display: none !important;
+    }
+
+    .activity-pill.active span {
+        display: inline-block !important;
+        line-height: 36px !important;
+        margin: 0 !important;
     }
     
     .activity-timeline-card {
@@ -1330,8 +1384,8 @@ body:not(.light-theme) .activity-formal-badge {
 
     .activity-category-pills {
         margin: 0 -0.65rem;
-        padding: 0.55rem 0.65rem 0.15rem;
-        gap: 0.35rem;
+        padding: 0.55rem 0.65rem 0.25rem;
+        gap: 0.4rem;
     }
 
     .activity-search-input {
@@ -1349,7 +1403,21 @@ body:not(.light-theme) .activity-formal-badge {
     }
 
     .activity-pill {
-        padding: 0.3rem 0.6rem;
-        font-size: 0.72rem;
+        height: 34px !important;
+    }
+
+    .activity-pill:not(.active) {
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
+    }
+
+    .activity-pill.active {
+        padding: 0 0.85rem !important;
+        font-size: 0.76rem !important;
+    }
+
+    .activity-pill.active span {
+        line-height: 34px !important;
     }
 }

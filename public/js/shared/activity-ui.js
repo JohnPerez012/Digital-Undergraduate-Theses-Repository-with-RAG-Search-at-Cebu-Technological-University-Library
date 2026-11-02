@@ -434,16 +434,16 @@
                 </div>
 
                 <!-- Category Filter Pills -->
-                <div class="activity-category-pills">
-                    <button class="activity-pill active" data-category="all">${getActivityIconSvg('all')} <span>All Activities</span></button>
-                    <button class="activity-pill" data-category="search">${getActivityIconSvg('search')} <span>Searches</span></button>
-                    <button class="activity-pill" data-category="project">${getActivityIconSvg('project')} <span>Project Views</span></button>
-                    <button class="activity-pill" data-category="bookmark">${getActivityIconSvg('bookmark')} <span>Bookmarks</span></button>
-                    <button class="activity-pill" data-category="citation">${getActivityIconSvg('citation')} <span>Citations</span></button>
-                    <button class="activity-pill" data-category="auth">${getActivityIconSvg('auth')} <span>Auth & Security</span></button>
-                    <button class="activity-pill" data-category="ai">${getActivityIconSvg('ai')} <span>AI Assistant</span></button>
-                    <button class="activity-pill" data-category="admin">${getActivityIconSvg('admin')} <span>Administrative</span></button>
-                    <button class="activity-pill" data-category="system">${getActivityIconSvg('system')} <span>System</span></button>
+                <div class="activity-category-pills" role="tablist" aria-label="Activity Categories">
+                    <button class="activity-pill active" data-category="all" title="All Activities" aria-label="All Activities">${getActivityIconSvg('all')} <span>All Activities</span></button>
+                    <button class="activity-pill" data-category="search" title="Searches" aria-label="Searches">${getActivityIconSvg('search')} <span>Searches</span></button>
+                    <button class="activity-pill" data-category="project" title="Project Views" aria-label="Project Views">${getActivityIconSvg('project')} <span>Project Views</span></button>
+                    <button class="activity-pill" data-category="bookmark" title="Bookmarks" aria-label="Bookmarks">${getActivityIconSvg('bookmark')} <span>Bookmarks</span></button>
+                    <button class="activity-pill" data-category="citation" title="Citations" aria-label="Citations">${getActivityIconSvg('citation')} <span>Citations</span></button>
+                    <button class="activity-pill" data-category="auth" title="Auth & Security" aria-label="Auth & Security">${getActivityIconSvg('auth')} <span>Auth & Security</span></button>
+                    <button class="activity-pill" data-category="ai" title="AI Assistant" aria-label="AI Assistant">${getActivityIconSvg('ai')} <span>AI Assistant</span></button>
+                    <button class="activity-pill" data-category="admin" title="Administrative" aria-label="Administrative">${getActivityIconSvg('admin')} <span>Administrative</span></button>
+                    <button class="activity-pill" data-category="system" title="System" aria-label="System">${getActivityIconSvg('system')} <span>System</span></button>
                 </div>
             </div>
 
@@ -566,6 +566,9 @@
                 pill.classList.add('active');
                 currentFilters.category = pill.dataset.category;
                 renderFilteredTimeline();
+                if (window.innerWidth <= 768 && typeof pill.scrollIntoView === 'function') {
+                    pill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
             });
         });
 
