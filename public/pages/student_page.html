@@ -902,13 +902,18 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </button>
 
-    <!-- Floating Mobile Bottom Navigation Dock -->
-    <nav class="mobile-bottom-dock" id="mobile-bottom-dock" aria-label="Mobile Navigation">
+    <!-- Floating Mobile Bottom Navigation Dock & Back Home Anchor -->
+    <div class="mobile-bottom-dock-container" id="mobile-bottom-dock-container">
+        <a href="../index.html" class="mobile-back-home-btn" id="mobile-back-home-btn" aria-label="Back to Repository Home" title="Back to Repository Home">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            <span>Back Home</span>
+        </a>
+        <nav class="mobile-bottom-dock" id="mobile-bottom-dock" aria-label="Mobile Navigation">
         <a href="#dashboard" class="dock-nav-item active" data-section="dashboard" title="Dashboard">
             <span class="dock-icon-wrap">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             </span>
-            <span class="dock-label">Home</span>
+            <span class="dock-label">Dashboard</span>
         </a>
         <a href="#saved" class="dock-nav-item" data-section="saved" title="Saved Projects">
             <span class="dock-icon-wrap">
@@ -936,6 +941,7 @@
             <span class="dock-label">Settings</span>
         </a>
     </nav>
+    </div>
 
 
     <!-- Firebase SDKs -->

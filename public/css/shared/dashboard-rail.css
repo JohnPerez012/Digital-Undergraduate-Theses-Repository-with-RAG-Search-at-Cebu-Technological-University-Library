@@ -1668,7 +1668,9 @@ body {
    ===================================== */
 
 /* Desktop & Tablet: Hidden by default */
-.mobile-bottom-dock {
+.mobile-bottom-dock-container,
+.mobile-bottom-dock,
+.mobile-back-home-btn {
     display: none !important;
 }
 
@@ -1687,32 +1689,121 @@ body {
     }
 
     .dashboard-content {
-        padding-bottom: calc(105px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
-    /* The Floating Dock Container */
+    /* Floating Dock & Back Home Outer Container */
+    .mobile-bottom-dock-container {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        position: fixed !important;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: calc(100% - 28px) !important;
+        max-width: 440px !important;
+        z-index: 10000 !important;
+        pointer-events: none !important;
+        gap: 8px !important;
+    }
+
+    /* Floating Back Home Pill Button (Linked to ../index.html) */
+    .mobile-back-home-btn {
+        pointer-events: auto !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        padding: 6px 14px 6px 10px !important;
+        border-radius: 20px !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.35px !important;
+        text-transform: uppercase !important;
+        text-decoration: none !important;
+        background: rgba(18, 22, 30, 0.96) !important;
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: var(--brand-white, #F7F7F8) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        margin-left: 6px !important;
+        -webkit-tap-highlight-color: transparent !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+    }
+
+    .mobile-back-home-btn svg {
+        color: var(--brand-green, #08D488) !important;
+        transition: transform 0.2s ease !important;
+        flex-shrink: 0 !important;
+    }
+
+    .mobile-back-home-btn:hover {
+        color: var(--brand-green, #08D488) !important;
+        border-color: rgba(8, 212, 136, 0.45) !important;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 16px rgba(8, 212, 136, 0.2) !important;
+    }
+
+    .mobile-back-home-btn:hover svg {
+        transform: translateX(-2px) !important;
+    }
+
+    .mobile-back-home-btn:active {
+        transform: scale(0.94) !important;
+        background: rgba(26, 32, 44, 0.98) !important;
+        border-color: rgba(8, 212, 136, 0.5) !important;
+    }
+
+    [data-theme="light"] .mobile-back-home-btn {
+        background: rgba(255, 255, 255, 0.96) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        color: var(--brand-black, #2a2f35) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    [data-theme="light"] .mobile-back-home-btn:hover {
+        color: #059669 !important;
+        border-color: rgba(5, 150, 105, 0.4) !important;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), 0 0 16px rgba(5, 150, 105, 0.15) !important;
+    }
+
+    [data-theme="light"] .mobile-back-home-btn:active {
+        background: #f1f5f9 !important;
+    }
+
+    /* Teacher Role Theme Tint */
+    .dashboard-layout.role-teacher .mobile-back-home-btn svg {
+        color: var(--brand-yellow, #FCCC56) !important;
+    }
+    .dashboard-layout.role-teacher .mobile-back-home-btn:hover {
+        color: var(--brand-yellow, #FCCC56) !important;
+        border-color: rgba(252, 204, 86, 0.5) !important;
+    }
+
+    /* The Floating Dock */
     .mobile-bottom-dock {
         display: flex !important;
-        position: fixed;
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 28px);
-        max-width: 440px;
-        height: 68px;
-        background: rgba(18, 22, 30, 0.97);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 36px;
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-        padding: 6px 10px;
-        align-items: center;
-        justify-content: space-around;
-        user-select: none;
-        -webkit-user-select: none;
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, border-color 0.3s ease;
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 68px !important;
+        background: rgba(18, 22, 30, 0.97) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 36px !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+        padding: 6px 10px !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        pointer-events: auto !important;
+        transition: background-color 0.3s ease, border-color 0.3s ease !important;
     }
 
     [data-theme="light"] .mobile-bottom-dock {
@@ -1791,8 +1882,8 @@ body {
     }
 
     .dock-label {
-        font-size: 0.6875rem;
-        letter-spacing: 0.2px;
+        font-size: clamp(0.575rem, 2.3vw, 0.6875rem);
+        letter-spacing: 0.15px;
         line-height: 1;
         white-space: nowrap;
         transition: color 0.2s ease;
