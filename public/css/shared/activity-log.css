@@ -393,6 +393,18 @@
     border-color: var(--text-secondary);
 }
 
+.btn-formal-primary {
+    background: var(--brand-green, #08D488);
+    color: #0b1511;
+    border: 1px solid var(--brand-green, #08D488);
+    font-weight: 700;
+}
+
+.btn-formal-primary:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 2px 8px rgba(8, 212, 136, 0.25);
+}
+
 .btn-formal-action-danger {
     background: rgba(239, 68, 68, 0.1);
     color: #ef4444;
@@ -689,18 +701,30 @@ body:not(.light-theme) .activity-formal-badge {
 .activity-item-action-link {
     font-size: 0.825rem;
     font-weight: 600;
-    color: var(--primary-color);
+    color: var(--brand-green, #08D488);
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    margin-top: 0.5rem;
+    margin-top: 0.4rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
     text-decoration: none;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, text-decoration 0.2s ease;
+    text-align: left;
 }
 
 .activity-item-action-link:hover {
     text-decoration: underline;
     opacity: 0.85;
+}
+
+.activity-item-action-link:focus-visible {
+    outline: 2px solid var(--brand-green, #08D488);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 /* Empty State */

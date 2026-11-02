@@ -546,7 +546,17 @@
                     const projectDataJson = sessionStorage.getItem('selectedProjectForViewDetails');
                     if (projectDataJson && typeof renderProjectDetails === 'function') {
                         try {
-                            const project = JSON.parse(projectDataJson);
+                            let project = JSON.parse(projectDataJson);
+                            // Merge full metadata from cached catalog if partial
+                            if (!project.abstract || project.abstract === 'No abstract provided.' || !project.keywords) {
+                                try {
+                                    const cachedList = JSON.parse(localStorage.getItem('projectsData') || '[]');
+                                    const matched = cachedList.find(p => p && (p.id === project.id || (p.title && project.title && p.title.toLowerCase().trim() === project.title.toLowerCase().trim())));
+                                    if (matched) {
+                                        project = { ...matched, ...project };
+                                    }
+                                } catch (e) {}
+                            }
                             renderProjectDetails(project);
                         } catch (error) {
                             console.error('Invalid project data:', error);

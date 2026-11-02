@@ -508,6 +508,9 @@
                             ${getActivityIconSvg('trash')}
                             <span>Delete Record</span>
                         </button>
+                        <button type="button" class="btn-formal-action btn-formal-primary" id="modal-view-project-btn" style="display: none;" title="Open and read full thesis manuscript">
+                            <span>View Manuscript &rarr;</span>
+                        </button>
                         <button class="btn-formal-action btn-formal-neutral" id="modal-done-btn">Close</button>
                     </div>
                 </div>
@@ -674,16 +677,11 @@
         const modalDoneBtn = section.querySelector('#modal-done-btn');
         const modalDeleteBtn = section.querySelector('#modal-delete-btn');
 
-        const closeModal = () => {
-            if (modal) modal.classList.remove('active');
-            activeModalActivity = null;
-        };
-
-        if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
-        if (modalDoneBtn) modalDoneBtn.addEventListener('click', closeModal);
+        if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeActivityModal);
+        if (modalDoneBtn) modalDoneBtn.addEventListener('click', closeActivityModal);
         if (modal) {
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
+                if (e.target === modal) closeActivityModal();
             });
         }
 
@@ -704,7 +702,7 @@
                     });
 
                 if (confirmed) {
-                    closeModal();
+                    closeActivityModal();
                     await window.ActivityService.deleteActivity(currentUserId, actId);
                     currentActivities = currentActivities.filter(a => a.id !== actId);
                     renderFilteredTimeline();
@@ -933,8 +931,15 @@
                 const categoryLabel = getFormalCategoryLabel(item.category);
 
                 let actionLink = '';
-                if (item.category === 'project' && item.metadata && item.metadata.projectId) {
-                    actionLink = `<a href="../index.html" class="activity-item-action-link" data-project-id="${escapeHtml(item.metadata.projectId)}">View Manuscript →</a>`;
+                const isProjectActivity = (item.category === 'project' || item.category === 'bookmark' || /^(viewed project|saved project|removed from saved)/i.test(item.title || ''));
+                const meta = item.metadata || {};
+                const projId = meta.projectId || meta.id || '';
+                const projTitle = meta.projectTitle || meta.title || item.title || '';
+                const projProgram = meta.program || meta.department || '';
+                const projAuthors = meta.authors || '';
+
+                if (isProjectActivity && (projId || projTitle)) {
+                    actionLink = `<button type="button" class="activity-item-action-link" data-project-id="${escapeHtml(projId)}" data-project-title="${escapeHtml(projTitle)}" data-program="${escapeHtml(projProgram)}" data-authors="${escapeHtml(projAuthors)}" title="Open and read full thesis manuscript">View Manuscript &rarr;</button>`;
                 }
 
                 html += `
@@ -1011,10 +1016,29 @@
             });
         });
 
-        // Row Click: Opens Formal Inspection Modal (except when clicking checkbox or link)
+        // Action Link buttons: Open specific project details
+        container.querySelectorAll('.activity-item-action-link').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const pId = btn.getAttribute('data-project-id') || '';
+                const pTitle = btn.getAttribute('data-project-title') || '';
+                const pProg = btn.getAttribute('data-program') || '';
+                const pAuth = btn.getAttribute('data-authors') || '';
+                navigateToProjectDetails(pId, pTitle, pProg, pAuth);
+            });
+        });
+
+        // Row Click: Opens Formal Inspection Modal (except when clicking checkbox, action button, or inputs)
         container.querySelectorAll('.activity-formal-row').forEach(row => {
             row.addEventListener('click', (e) => {
-                if (e.target.closest('.activity-formal-col.col-select') || e.target.closest('.activity-portion-link') || e.target.closest('input')) {
+                if (
+                    e.target.closest('.activity-formal-col.col-select') ||
+                    e.target.closest('.activity-item-action-link') ||
+                    e.target.closest('.activity-portion-link') ||
+                    e.target.closest('input') ||
+                    e.target.closest('button')
+                ) {
                     return;
                 }
 
@@ -1028,6 +1052,101 @@
 
         // Synchronize selection toolbar state
         updateSelectionUI();
+    }
+
+    /**
+     * Close inspection modal
+     */
+    function closeActivityModal() {
+        const modal = document.getElementById('activity-details-modal');
+        if (modal) modal.classList.remove('active');
+        activeModalActivity = null;
+    }
+
+    /**
+     * Resolve comprehensive project data from memory or browser cache
+     */
+    function resolveProjectData(projectId, title, program = '', authors = '') {
+        const cleanTitle = (title || '')
+            .replace(/^(Viewed Project:\s*|Saved Project:\s*|Removed from Saved:\s*|Downloaded Thesis:\s*|Printed Thesis:\s*)/i, '')
+            .replace(/^["'“”]/, '')
+            .replace(/["'“”]$/, '')
+            .trim();
+
+        let matched = null;
+
+        // 1. Search in cached collections in localStorage
+        const cacheKeys = ['projectsData', 'libCatalogProjectsData', 'libProjectsData'];
+        for (const key of cacheKeys) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        if (projectId) {
+                            matched = parsed.find(p => p && (p.id === projectId || p.UIDproject === projectId));
+                        }
+                        if (!matched && cleanTitle) {
+                            const targetLower = cleanTitle.toLowerCase();
+                            matched = parsed.find(p => p && p.title && p.title.toLowerCase().trim() === targetLower);
+                        }
+                        if (matched) break;
+                    }
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+        }
+
+        // 2. Search in window.__allProjectsData if available
+        if (!matched && Array.isArray(window.__allProjectsData) && window.__allProjectsData.length > 0) {
+            if (projectId) {
+                matched = window.__allProjectsData.find(p => p && (p.id === projectId || p.UIDproject === projectId));
+            }
+            if (!matched && cleanTitle) {
+                const targetLower = cleanTitle.toLowerCase();
+                matched = window.__allProjectsData.find(p => p && p.title && p.title.toLowerCase().trim() === targetLower);
+            }
+        }
+
+        // 3. Fallback lightweight project object if not in client cache
+        if (!matched) {
+            matched = {
+                id: projectId || ('proj_' + Date.now()),
+                title: cleanTitle || 'Capstone Project',
+                program: program || '',
+                department: program || '',
+                authors: authors || '',
+                year: 'N/A',
+                abstract: ''
+            };
+        }
+
+        return matched;
+    }
+
+    /**
+     * Navigate directly to specific project details on index.html
+     */
+    function navigateToProjectDetails(projectId, title, program = '', authors = '') {
+        const projectData = resolveProjectData(projectId, title, program, authors);
+        if (!projectData) return;
+
+        try {
+            sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(projectData));
+            sessionStorage.setItem('showProjectDetails', 'true');
+        } catch (e) {
+            console.warn('[ActivityUI] Could not set sessionStorage for project view:', e);
+        }
+
+        const isInPagesFolder = window.location.pathname.includes('/pages/');
+        if (isInPagesFolder) {
+            window.location.href = '../index.html';
+        } else if (window.ViewManager && typeof window.ViewManager.switchView === 'function') {
+            window.ViewManager.switchView('project-detail');
+        } else {
+            window.location.href = 'index.html';
+        }
     }
 
     /**
@@ -1055,6 +1174,29 @@
         if (titleEl) {
             titleEl.textContent = activity.title || 'Activity Record';
             titleEl.title = activity.title || '';
+        }
+
+        // Configure View Manuscript button inside modal footer
+        const viewProjectBtn = modal.querySelector('#modal-view-project-btn');
+        if (viewProjectBtn) {
+            const isProjectActivity = (activity.category === 'project' || activity.category === 'bookmark' || /^(viewed project|saved project|removed from saved)/i.test(activity.title || ''));
+            const meta = activity.metadata || {};
+            const projId = meta.projectId || meta.id || '';
+            const projTitle = meta.projectTitle || meta.title || activity.title || '';
+            const projProg = meta.program || meta.department || '';
+            const projAuth = meta.authors || '';
+
+            if (isProjectActivity && (projId || projTitle)) {
+                viewProjectBtn.style.display = 'inline-flex';
+                viewProjectBtn.onclick = (e) => {
+                    e.preventDefault();
+                    closeActivityModal();
+                    navigateToProjectDetails(projId, projTitle, projProg, projAuth);
+                };
+            } else {
+                viewProjectBtn.style.display = 'none';
+                viewProjectBtn.onclick = null;
+            }
         }
 
         const exactTime = activity.timestamp ? new Date(activity.timestamp).toLocaleString(undefined, {
