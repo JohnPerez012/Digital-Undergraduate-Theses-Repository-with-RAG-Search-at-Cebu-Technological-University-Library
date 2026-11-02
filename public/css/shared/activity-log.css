@@ -758,17 +758,18 @@ body:not(.light-theme) .activity-formal-badge {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.25s ease, visibility 0.25s ease;
     padding: 1.5rem;
+    box-sizing: border-box;
 }
 
 .activity-modal.active {
@@ -779,13 +780,16 @@ body:not(.light-theme) .activity-formal-badge {
 .activity-modal-box {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 24px;
+    border-radius: 16px;
     width: 100%;
-    max-width: 580px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    max-width: 600px;
+    max-height: 86vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
     overflow: hidden;
-    transform: scale(0.92);
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: scale(0.96);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .activity-modal.active .activity-modal-box {
@@ -793,57 +797,110 @@ body:not(.light-theme) .activity-formal-badge {
 }
 
 .activity-modal-header {
-    padding: 1.75rem 2rem;
+    padding: 1.25rem 1.75rem;
     border-bottom: 1px solid var(--border);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    gap: 1rem;
+    background: var(--surface);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 5;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.activity-modal-header h3 {
-    font-size: 1.35rem;
+.activity-modal-header-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-modal-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.activity-modal-action-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+}
+
+.activity-modal-title {
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.4;
+    margin: 0;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .activity-modal-close {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: var(--text-secondary);
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.4rem;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-top: -0.15rem;
+    margin-right: -0.25rem;
 }
 
 .activity-modal-close:hover {
-    background: var(--background);
+    background: var(--surface-hover, rgba(255, 255, 255, 0.06));
     color: var(--text-primary);
+    border-color: var(--border);
 }
 
 .activity-modal-body {
-    padding: 2rem;
-    max-height: 60vh;
+    padding: 1.5rem 1.75rem;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
 }
 
 .activity-modal-grid {
     display: grid;
-    gap: 1.25rem;
+    gap: 1rem;
 }
 
 .activity-modal-field {
     background: var(--background);
-    padding: 1rem 1.25rem;
-    border-radius: 12px;
+    padding: 0.95rem 1.15rem;
+    border-radius: 10px;
     border: 1px solid var(--border);
 }
 
+.activity-modal-title-field {
+    border-left: 3px solid var(--brand-green, #08D488);
+}
+
+.activity-modal-full-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.45;
+    word-break: break-word;
+}
+
 .activity-modal-field-label {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
@@ -852,20 +909,22 @@ body:not(.light-theme) .activity-formal-badge {
 }
 
 .activity-modal-field-val {
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 500;
     color: var(--text-primary);
     word-break: break-word;
+    line-height: 1.45;
 }
 
 .activity-modal-footer {
-    padding: 1.25rem 2rem;
+    padding: 1rem 1.75rem;
     border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
     background: var(--surface);
+    flex-shrink: 0;
 }
 
 /* Buttons */

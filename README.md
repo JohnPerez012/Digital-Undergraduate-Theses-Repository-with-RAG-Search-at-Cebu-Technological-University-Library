@@ -370,6 +370,7 @@ node scripts/preflight.js
     - **Col 1 (Activity Record Portion):** Concise academic presentation displaying strictly the title and detail description portion without bulky cartoon avatars or vertical connector lines.
     - **Col 2 (Category Badge):** Formal neutral monochrome badges (`.activity-formal-badge`) stripped of all rainbow colors, utilizing subtle dark and light mode tone-on-tone contrast.
     - **Col 3 (Date & Time):** Tabular numeric date and time formatting (`Nov 2, 2026` / `05:43 PM`) with chronological date grouping sections.
+    - **Uniform Modal Header & Scroll Height Hardening:** Fixed vertical crowding and collapsed gaps in `#activity-details-modal` when inspecting capstones with long thesis titles. Implemented a uniform 2-line title clamp (`-webkit-line-clamp: 2`) in the modal header with dedicated full-title representation inside the body, pinned the close button to the top-right corner (`align-self: flex-start`), and enforced an automated scroll-top reset (`modalBody.scrollTop = 0`) on modal open to ensure guaranteed visual padding and formal separation between the header and activity cards regardless of manuscript title length.
 - **Continuous Knowledge Graph (graphify):** Real-time AST dependency graph indexing tracking over 1,100 nodes across all frontend and backend services.
 - **Cascading LLM Resilience:** Quadruple failover engine guaranteeing constant availability for student and faculty queries.
 

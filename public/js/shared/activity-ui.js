@@ -483,13 +483,19 @@
                 </div>
             </div>
 
-            <!-- Details Modal -->
+            <!-- Details Modal (Formal Institutional Layout) -->
             <div class="activity-modal" id="activity-details-modal">
                 <div class="activity-modal-box">
                     <div class="activity-modal-header">
-                        <h3 id="modal-activity-title">Activity Details</h3>
+                        <div class="activity-modal-header-main">
+                            <div class="activity-modal-eyebrow" id="modal-activity-eyebrow">
+                                <span class="activity-formal-badge" id="modal-category-badge">GENERAL</span>
+                                <span class="activity-modal-action-tag" id="modal-action-tag">Activity Record</span>
+                            </div>
+                            <h3 id="modal-activity-title" class="activity-modal-title">Activity Details</h3>
+                        </div>
                         <button class="activity-modal-close" id="modal-close-btn" aria-label="Close">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
                     <div class="activity-modal-body">
@@ -498,11 +504,11 @@
                         </div>
                     </div>
                     <div class="activity-modal-footer">
-                        <button type="button" class="btn-activity-danger" id="modal-delete-btn" style="margin-right: auto;" title="Delete this specific activity record from storage">
+                        <button type="button" class="btn-formal-action btn-formal-danger" id="modal-delete-btn" style="margin-right: auto;" title="Delete this specific activity record from storage">
                             ${getActivityIconSvg('trash')}
                             <span>Delete Record</span>
                         </button>
-                        <button class="btn-activity-secondary" id="modal-done-btn">Close</button>
+                        <button class="btn-formal-action btn-formal-neutral" id="modal-done-btn">Close</button>
                     </div>
                 </div>
             </div>
@@ -1031,10 +1037,25 @@
         activeModalActivity = activity;
         const modal = document.getElementById('activity-details-modal');
         const titleEl = document.getElementById('modal-activity-title');
+        const badgeEl = document.getElementById('modal-category-badge');
+        const actionEl = document.getElementById('modal-action-tag');
         const grid = document.getElementById('modal-activity-details-grid');
+        const modalBody = modal ? modal.querySelector('.activity-modal-body') : null;
         if (!modal || !grid) return;
 
-        titleEl.textContent = activity.title || 'Activity Record';
+        // Reset scroll position to top whenever modal opens to guarantee uniform gap
+        if (modalBody) {
+            modalBody.scrollTop = 0;
+        }
+
+        const categoryLabel = getFormalCategoryLabel(activity.category);
+        if (badgeEl) badgeEl.textContent = categoryLabel;
+        if (actionEl) actionEl.textContent = activity.action ? activity.action.replace(/_/g, ' ') : 'Record';
+
+        if (titleEl) {
+            titleEl.textContent = activity.title || 'Activity Record';
+            titleEl.title = activity.title || '';
+        }
 
         const exactTime = activity.timestamp ? new Date(activity.timestamp).toLocaleString(undefined, {
             dateStyle: 'full',
@@ -1049,8 +1070,13 @@
         } catch (e) {}
 
         grid.innerHTML = `
+            <div class="activity-modal-field activity-modal-title-field">
+                <div class="activity-modal-field-label">Full Activity Title &amp; Record</div>
+                <div class="activity-modal-field-val activity-modal-full-title">${escapeHtml(activity.title || 'Activity Record')}</div>
+            </div>
+
             <div class="activity-modal-field">
-                <div class="activity-modal-field-label">Action & Event Type</div>
+                <div class="activity-modal-field-label">Action &amp; Event Type</div>
                 <div class="activity-modal-field-val">${escapeHtml(activity.action || 'activity')} (${escapeHtml(activity.category || 'system')})</div>
             </div>
 
