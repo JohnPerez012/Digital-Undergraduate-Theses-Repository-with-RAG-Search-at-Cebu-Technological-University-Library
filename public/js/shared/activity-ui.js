@@ -925,10 +925,12 @@
                 </div>
             `;
 
-            items.forEach(item => {
+            items.forEach((item, itemIdx) => {
                 const isSelected = selectedActivityIds.has(item.id);
                 const dateTimeInfo = formatFormalDateTime(item.timestamp);
                 const categoryLabel = getFormalCategoryLabel(item.category);
+                const isOddRow = (itemIdx % 2 === 0);
+                const zebraClass = isOddRow ? 'activity-row-odd is-odd-row' : 'activity-row-even is-even-row';
 
                 let actionLink = '';
                 const isProjectActivity = (item.category === 'project' || item.category === 'bookmark' || /^(viewed project|saved project|removed from saved)/i.test(item.title || ''));
@@ -943,7 +945,7 @@
                 }
 
                 html += `
-                    <div class="activity-formal-row ${isSelected ? 'is-selected' : ''}" data-activity-id="${escapeHtml(item.id)}">
+                    <div class="activity-formal-row ${zebraClass} ${isSelected ? 'is-selected' : ''}" data-activity-id="${escapeHtml(item.id)}">
                         <!-- Col 0: Checkbox for selection -->
                         <div class="activity-formal-col col-select">
                             <label class="activity-checkbox-container" title="Select record">
