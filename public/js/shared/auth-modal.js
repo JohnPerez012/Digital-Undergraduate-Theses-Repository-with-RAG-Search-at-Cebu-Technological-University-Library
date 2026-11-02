@@ -746,7 +746,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <h2 class="welcome-modal-title">Welcome back, <span>${safeName}</span>!</h2>
                 <p class="welcome-modal-text">We're glad to see you again. Ready to dive into your capstone research?</p>
-                <button class="welcome-modal-btn" id="welcome-lets-go-btn">Let's Go!</button>
+                <button class="welcome-modal-btn" id="welcome-lets-go-btn">Continue</button>
             </div>
         `;
         

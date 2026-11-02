@@ -1,10 +1,10 @@
 # 📚 RE-CAPS — Research Capstone Archiving and Retrieval System
 
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%26%20Auth-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Pinecone](https://img.shields.io/badge/Pinecone-Vector%20Database-000000?logo=pinecone&logoColor=white)](https://www.pinecone.io/)
+[![Firebase](<https://img.shields.io/badge/Firebase-Firestore%20%26%20Auth-FFCA28?logo=firebase&logoColor=black>)](https://firebase.google.com/)
+[![Pinecone](<https://img.shields.io/badge/Pinecone-Vector%20Database-000000?logo=pinecone&logoColor=white>)](https://www.pinecone.io/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![License: Institutional](https://img.shields.io/badge/License-CTU%20Academic-blue.svg)](LICENSE)
+[![License: Institutional](<https://img.shields.io/badge/License-CTU%20Academic-blue.svg>)](LICENSE)
 
 > **RE-CAPS** is an AI-powered academic discovery platform and digital undergraduate theses repository engineered for institutional research management, semantic vector search, and Retrieval-Augmented Generation (RAG) at **Cebu Technological University (CTU) — Daanbantayan Campus**.
 
@@ -13,6 +13,7 @@
 ## 🎯 1. Overview & Institutional Purpose
 
 Traditional university thesis archiving relies on rigid keyword matching and manual shelves, making related research difficult to locate. RE-CAPS bridges this gap through high-dimensional vector embeddings and multi-provider AI assistance across diverse academic degree programs:
+
 - **BSIT** (Information Technology)
 - **BIT** (Industrial Technology - Computer, Electronics, Automotive, Drafting)
 - **BSFi** (Fisheries)
@@ -73,32 +74,39 @@ flowchart TD
 ## ✨ 3. Core Capabilities
 
 ### 🧠 A. Semantic Vector RAG Search
+
 - **Pinecone Vector Database:** High-dimensional vector indexing using the Pinecone Inference API (`multilingual-e5-large`, 1024 dimensions, cosine distance metric).
 - **Dual Indexes:**
   - `recaps-capstone`: Indexes research abstracts, methodology, problem statements, and academic degree programs.
   - `recaps-staff-copilot`: Dedicated knowledge index for librarian operations, call numbers, and institutional repository rules.
 
 ### 🤖 B. Resilient Cascading LLM Fallback
+
 The RAG chatbot leverages multi-provider cascading failover to maintain 99.9% uptime:
+
 1. **Mistral AI** (`open-mistral-nemo`) — Primary grounded synthesizer.
 2. **Groq** (`llama-3.3-70b-versatile`) — Ultra-low latency fallback.
 3. **Google Gemini** (`gemini-2.5-flash`) — Context-rich secondary fallback.
 4. **OpenRouter** (`Ling-3.0-Flash`) — Autonomous tertiary safety net.
 
 ### 📱 C. Glassmorphic Mobile Navigation Dock
+
 - **Responsive Dock:** Automatically transforms from the desktop sidebar rail into a floating glassmorphic pill bar on mobile viewports (`<= 768px`).
 - **Center Action Focus:** Elevated circular button for instant access to the **Citation Generator**.
 - **Role-Accented Glow:** Emerald accent for Student profiles, warm amber/gold for Teacher profiles.
 - **Dynamic Content Clearance:** Viewport-aware padding prevents floating dock occlusion.
 
 ### 🛡️ D. Role-Based Access Control (RBAC)
+
 - **Student (`student`):** Semantic search, public capstone exploration, interactive RAG chatbot, and project bookmarking.
 - **Teacher / Adviser (`teacher`):** Title originality analysis, research tracking, OCR paper parsing, and student advising tools.
 - **Librarian (`librarian`):** Physical library cataloging (`callNumber`, `accessionNo`, `location`), thesis ingestion, and Staff Copilot access.
 - **Administrator (`admin`):** Account provisioning, catalog vector synchronization, storage pruning, and audit inspection.
 
 ### 📜 E. Automated Citation Generator
+
 Generates instant, academic-grade bibliography citations across 5 standard formats:
+
 - **APA (7th Edition)**
 - **MLA (9th Edition)**
 - **Chicago (17th Edition)**
@@ -106,6 +114,7 @@ Generates instant, academic-grade bibliography citations across 5 standard forma
 - **Harvard**
 
 ### ⚡ F. Spark Free-Tier Quota Guard
+
 - Activity tracking strictly resides in device-local storage (`localStorage`) rather than Firestore, safeguarding against daily Spark write limit exhaustion.
 
 ---
@@ -148,17 +157,20 @@ RE-CAPS/
 ## 🚀 5. Getting Started & Local Setup
 
 ### Prerequisites
+
 - [Node.js](https://nodejs.org/) v18.0.0 or higher
 - Modern Web Browser (Chrome, Edge, Firefox, Safari)
 - Git
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/JohnPerez012/Digital-Undergraduate-Theses-Repository-with-RAG-Search-at-Cebu-Technological-University-Library.git
 cd RE-CAPS
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 # Install root preflight dependencies
 npm install
@@ -170,6 +182,7 @@ cd ..
 ```
 
 ### 3. Configure Environment Variables
+
 Create a `.env` file inside `recap-backend/` following this template:
 
 ```env
@@ -200,6 +213,7 @@ RESEND_API_KEY=your_resend_api_key_here
 > Never commit your live `.env` file. It is ignored by default in `.gitignore`.
 
 ### 4. Run the Application
+
 ```bash
 # Start backend server
 node recap-backend/server.js
@@ -213,6 +227,7 @@ node recap-backend/server.js
 ## 🔒 6. Security, Privacy & Secret Protection
 
 RE-CAPS maintains a strict **Public vs. Private Information Boundary**:
+
 - 🚫 **Strictly Private:** Live API keys, service account JSON certificates, database connection strings, bot tokens, and user credentials are **never exposed** in source code, commit history, or public documentation.
 - 📢 **Public Transparency:** Architecture workflows, public endpoints, UI guidelines, and mock configuration schemas are openly documented to support academic peer review and open science.
 - **Client Security:** All client inputs pass through sanitizers before DOM insertion to mitigate Cross-Site Scripting (XSS).
@@ -222,17 +237,18 @@ RE-CAPS maintains a strict **Public vs. Private Information Boundary**:
 ## 🧪 7. Automated Quality & Pre-Flight Suite
 
 The repository includes a comprehensive 5-stage preflight guard script (`scripts/preflight.js`):
+
 ```bash
 node scripts/preflight.js
 ```
 
-| Guard Stage | Tool / Method | Purpose |
-| :--- | :--- | :--- |
-| **1. Syntax Check** | `node -c` | Verifies zero syntax typos across all server & client scripts |
-| **2. Static Bug Scan** | `oxlint` (Rust) | Sub-millisecond linting for dead code and undefined references |
-| **3. Route Contract** | Custom Scanner | Cross-checks frontend `fetch()` routes against Express endpoints |
-| **4. Secrets Hygiene** | Regex Audit | Ensures no private keys or bot tokens leak into public directories |
-| **5. Graph Status** | `graphify-out` | Verifies AST call-graph indexing freshness |
+| Guard Stage                  | Tool / Method     | Purpose                                                            |
+| :--------------------------- | :---------------- | :----------------------------------------------------------------- |
+| **1. Syntax Check**    | `node -c`       | Verifies zero syntax typos across all server & client scripts      |
+| **2. Static Bug Scan** | `oxlint` (Rust) | Sub-millisecond linting for dead code and undefined references     |
+| **3. Route Contract**  | Custom Scanner    | Cross-checks frontend `fetch()` routes against Express endpoints |
+| **4. Secrets Hygiene** | Regex Audit       | Ensures no private keys or bot tokens leak into public directories |
+| **5. Graph Status**    | `graphify-out`  | Verifies AST call-graph indexing freshness                         |
 
 *Integrated Git Hooks (`.git/hooks/pre-commit` and `post-commit`) run these health checks automatically on every commit.*
 
@@ -241,6 +257,7 @@ node scripts/preflight.js
 ## 📝 8. Recent Changelog & Visual Enhancements
 
 - **Tablet & Mobile Navigation Alignment: Eradication of .mobile-rail-toggle & Tablet Bottom Dock Expansion:** Addressed tablet breakpoint (`768px < width <= 1024px`) inconsistencies where the deprecated floating hamburger button was erroneously reappearing on tablet viewports (e.g. `776px`):
+
   - *Complete Eradication of `.mobile-rail-toggle`:* Removed `<button class="mobile-rail-toggle">` from DOM in `student_page.html` and `teacher_page.html`, and permanently disabled `.mobile-rail-toggle` in `dashboard-rail.css` (`display: none !important; visibility: hidden !important; pointer-events: none !important;`) across all viewports and media queries.
   - *Unified Tablet & Mobile Floating Dock (`<= 1024px`):* Extended the floating bottom navigation dock (`.mobile-bottom-dock-container`, `.mobile-bottom-dock`, `.mobile-back-home-btn`) from `768px` to `1024px`. On tablets (such as iPads and `776px` screens), provides a centered, ergonomic 480px dock with thumb-friendly access to all 5 sections and the Back Home button, while granting the dashboard content area 100% unobstructed full width.
   - *Accurate "Dashboard" Dock Tab Identification:* Corrected the first tab item in the mobile bottom floating dock from "Home" to "Dashboard", accurately reflecting that tapping it switches views to the active workstation dashboard (`#section-dashboard`).
@@ -248,8 +265,8 @@ node scripts/preflight.js
   - *Responsive Label Typography Clamping:* Implemented CSS `clamp(0.575rem, 2.3vw, 0.6875rem)` on `.dock-label` to guarantee the 9-character "Dashboard" text never wraps or clips, even on compact smartphone screens (320px–360px).
   - *Content Area Bottom Clearance:* Set `.dashboard-content` padding bottom to `calc(130px + env(safe-area-inset-bottom, 0px))` across mobile and tablet (`<= 1024px`), ensuring cards never get obscured behind floating navigation elements.
   - *Uniform Borderless Citation Dock Icon:* Removed the circular/oval container (`.dock-featured-btn`) around the Citations generator icon in the bottom floating dock across Student and Teacher workstations, unifying all five navigation tabs to use the identical, clean, borderless `.dock-icon-wrap` presentation.
-
 - **Citation Generator Workspace De-clutter & Stress-Free Guided UX:** Overhauled the Academic Citation & Bibliography Studio across Student and Teacher dashboards (`citation-generator.js`, `citation-generator.css`, `student_page.html`, `teacher_page.html`):
+
   - *Mobile Studio Header Vertical Stacking (Zero Text Squishing / Zero Button Collisions):* Completely resolved mobile header compression on devices (`<= 768px`) where `.citation-studio-header` was erroneously attempting to fit title text and action buttons (`Import Saved Project` + `Reset`) on the same horizontal row, squishing the title and paragraph into a 90px vertical strip (1 word per line) and overlapping the badge. Enforced `flex-direction: column !important; align-items: stretch !important;` with 100% full-width text flow and a dedicated action button row underneath.
   - *Eradication of Bottom Horizontal Scrollbar & Mobile Width Blowouts:* Eliminated the unnecessary horizontal scroll pane at the bottom of mobile viewports by enforcing `overflow-x: hidden !important; width: 100% !important;` across `#section-citations`, `.citation-workstation-grid`, and `.dashboard-content`. Rescaled mobile card padding to `16px` (from `28px`) and stacked `.citation-fields-row` into a single vertical column (`grid-template-columns: 1fr !important;`), preventing `minmax(200px, 1fr)` two-column blowout from pushing inputs outside the screen.
   - *Vertical-Only Smooth Auto-Scroll on Generate (Zero Lost Width / Zero Horizontal Shift):* Replaced `scrollIntoView()` on mobile with strict vertical-only scrolling `window.scrollTo({ top: targetY, left: 0, behavior: 'smooth' })`. This permanently locks horizontal scroll to 0, ensuring `#generate-citation-btn` and the formatted output cards never lose their width, clip off-screen, or jump horizontally when clicked.
@@ -263,8 +280,8 @@ node scripts/preflight.js
   - *Contextual In-Text Writing Guides:* In-text citation cards now feature concise usage micro-guides explaining exactly when to use *Parenthetical* (end-of-sentence citations) versus *Narrative* (in-sentence subject citations) to eliminate student writing stress.
   - *Intelligent Copy & Export Guards:* Copy and download buttons are cleanly guarded when fields are empty, preventing accidental clipboard pollution or empty file downloads while providing helpful toast feedback.
   - *Sanitized Form Reset:* Replaced the legacy reset function that was re-injecting templated values with a clean reset mechanism that returns all fields to a pristine state.
-
 - **Brand Palette Hardening, Saved Collection Export Modal, and 4-Step Account Deletion Lifecycle:** Comprehensive institutional alignment and security enhancements across student settings (`student-settings.css`, `settings-handler.js`, `password-change.css`, `auth-modal.js`):
+
   - *Institutional Color Alignment (Zero Lingering Blue):* Strictly purged unauthorized blue hues (`#3b82f6`, `#2563eb`, `#1d4ed8`, `#60a5fa`) across toggles, chips, status pills, and focus states in settings. Replaced colorful purple/blue linear gradients on `.password-change-icon` with institutional brand green accents (`rgba(8, 212, 136, 0.1)`, `border: 2px solid rgba(8, 212, 136, 0.25)`, `color: var(--brand-green, #08D488)`), locking all visuals to the core brand palette (`#2a2f35`, `#F7F7F8`, `#08D488`, `#FCCC56`).
   - *Progressive 4-Step Account Deletion Wizard:* Replaced the abrupt single-click deletion modal with an audited 4-step progressive lifecycle:
     1. *Security Confirmation:* Requires user to type exact uppercase `DELETE` before unlocking navigation.
@@ -275,34 +292,39 @@ node scripts/preflight.js
   - *Decoupled Account Data Clearing from Search History:* Separated "Clear Account Data" from search query storage. Clearing account data purges bookmarks, chat conversations, and local activity logs while strictly preserving user search history (`recap_search_history`, `recap_recent_searches`).
   - *Interactive Saved Projects Export Modal:* Replaced direct JSON downloads with an interactive `.export-modal-modern` dialog featuring live collection metrics (Saved Projects count, estimated payload size, export date, format), custom filename input with dynamic extension badge, and one-click export to JSON, CSV, or BibTeX format.
   - *Theme Toggle Toast Suppression:* Removed noisy toast notifications when switching between Light Mode and Dark Mode.
-
 - **Mobile UI Responsiveness & UX Suite for Settings Blocks (.sset-block):** Comprehensive ergonomic overhaul across all Student and Teacher settings workstations (student-settings.css, student_page.html, settings-handler.js):
+
   - *Uncramped Vertical Stacking for Action Rows:* Replaced cramped horizontal flex wrapping on action rows (e.g. Password & Security) with a dedicated vertical stack (.sset-row-stacked, .sset-row:has(.sset-row-actions)). Titles and password masking dots now have full breathing room, helper notes display without truncation, and action buttons span full width with 44px thumb-friendly touch targets.
   - *Mobile Toggle Alignment:* Streamlined toggle switch rows (Dark Mode Theme, Toast Notifications) with high-priority flex alignment, keeping switches locked to the right while labels and descriptions wrap naturally without clipping.
   - *Mobile Danger Zone Optimization:* Refactored collapsible Danger Zone toggle and item actions with clean vertical stacking, clear hazard descriptions, and full-width touch buttons on screens <= 768px and <= 480px.
   - *Data Management & Cinematic Background Grids:* Converted multi-column action grids (.sset-actions-grid) and background mode options (.sset-bg-mode-grid) into clean single-column cards on mobile, with a balanced 2-column image gallery (
-epeat(2, 1fr)) for campus ambiance selection.
+    epeat(2, 1fr)) for campus ambiance selection.
   - *Intelligent UX Auto-Scroll on Expansion:* Integrated subtle viewport auto-scrolling on mobile when expanding settings blocks or opening the Danger Zone, smoothly bringing expanded content into view.
 - **Institutional Anti-Plagiarism & Intellectual Property Protection System (R.A. 10173):** Comprehensive codebase-wide hardening safeguarding capstone research assets against unauthorized reproduction across all surfaces:
+
   - *Universal Title & Abstract Shield:* Closed loopholes across Saved Projects cards (`.saved-card-title`, `.saved-card-abstract`), search catalogs (`.project-title`, `.project-abstract`), detail modals (`.project-title-large`, `.section-text`), recent theses spotlights (`.recent-thesis-title`), and catalog cells (`.project-title-cell`, `.catalog-card-title`), enforcing strict uncopyable attributes (`user-select: none !important; -webkit-touch-callout: none !important; data-protected="true"`).
   - *Author Citation Whitelist Guarantee:* Explicitly whitelisted research authors across all views (`.authors`, `.saved-card-authors`, `.project-authors-line`, `.recent-thesis-authors`, `[data-allow-copy="true"]`), guaranteeing that scholars can seamlessly highlight, select, and copy author names for bibliography and literature citations without false-positive protection alerts.
   - *Multi-Event Callout Interception:* Intercepts text selection, copy key combinations (`Ctrl+C` / `Cmd+C`), drag attempts, right-click/context menus, and mobile 450ms touch-holds (`touchstart` with scroll displacement cancellation) on protected titles and abstracts, displaying the institutional Data Privacy Act (R.A. 10173) and Anti-Plagiarism callout modal.
 - **Mobile Activity Controls Overhaul & Horizontal Chip Track:** Completely decluttered the search and filter panel (`.activity-controls-card`) in `public/css/shared/activity-log.css`:
+
   - *Unified Single-Row Search & Date Filter:* Paired the search input and "All Time" select dropdown side-by-side in one compact 38px row (`.activity-controls-top`), eliminating the tall stacked dropdown box.
   - *Horizontal Swipeable Chip Bar:* Replaced the 5-row wrapped cluster of 9 filter buttons (`.activity-category-pills`) with a single-line, momentum-scrollable chip track (`overflow-x: auto; flex-wrap: nowrap !important; scrollbar-width: none;`). Users can now smoothly flick between categories horizontally without screen clutter or visual fatigue.
   - *Vertical Height Savings:* Reduced the mobile controls card footprint by over 70% (~108px down from ~350px), bringing the actual Activity Timeline directly into immediate view upon opening the tab.
 - **Ergonomic 2 \| 2 \| 1 Activity Stats Grid on Mobile:** Overhauled the activity metrics summary cards (`.activity-stats-grid`, `.activity-stat-card`) in `public/css/shared/activity-log.css`: on mobile screens (`<= 768px` and `<= 480px`), converted the layout into a balanced, symmetrical **2 \| 2 \| 1 configuration** (`grid-template-columns: repeat(2, 1fr) !important;`). The first four cards (Total Activities, Actions Today, Storage Used, Top Category) form two compact 2-column rows, while the fifth card (Last Active) spans full width across both columns (`grid-column: 1 / -1;`), providing abundant horizontal space for full timestamp dates without awkward wrapping or vertical overflow.
 - **Compact 2x2 Workstation Stat Cards on Mobile Viewports:** Re-architected the interactive workstation KPI cards (`.student-stats-grid`, `.student-stat-card`) on mobile devices (`<= 768px` and `<= 480px`) in `public/css/pages/student_page.css`: replaced the vertical single-column stack with an ergonomic 2-column by 2-row compact grid (`grid-template-columns: repeat(2, 1fr) !important;`). Optimized card paddings (`0.85rem 0.8rem`), typography, status badges, and action link spacing while applying 2-line vertical truncation (`-webkit-line-clamp: 2`) to descriptions, ensuring uniform card row heights and eliminating endless vertical scrolling on smartphones.
 - **Student-Exclusive ID Badge Display & Interactive Copy Action:** Added a dedicated, strictly role-guarded Student ID badge to the Student profile card (`student_page.html`, `student-settings.css`, `settings-handler.js`, `auth-service.js`, `registration.js`):
+
   - *Strict Role & Privacy Boundary:* The Student ID badge is strictly restricted to authenticated students viewing their own profile card; it remains completely hidden from all other user roles (Teachers, Administrators, Librarians) and unauthenticated contexts.
   - *Morphing Checkmark Clipboard Feedback:* Outfitted with a dedicated copy button (`#sset-card-copy-id-btn`) that mirrors the email copy behavior—morphing into an emerald checkmark (`#10b981`), triggering a "Student ID copied to clipboard" toast notification, and falling back gracefully on insecure local LAN/HTTP mobile origins before resetting after 2.5 seconds.
   - *Dual-Layer Cache & Hydration:* Cached directly via `sessionStorage` upon login/registration with automatic Firestore `users/{uid}` fallback hydration on session restore.
 - **Monochrome Dynamic Icon Badges Across Settings Workstations:** Replaced colorful rainbow gradients and static pastel icon backgrounds with clean, dynamic monochrome black & white badges across Admin, Student, Teacher, and Librarian settings cards (`admin-settings.css`, `student-settings.css`, `librarian_renovated.css`, `admin_page.html`, `student_page.html`, `teacher_page.html`, `librarian_page.html`). In light mode, badges adopt subtle neutral slate tones (`rgba(0, 0, 0, 0.04)`); in dark mode, they adapt automatically to translucent white (`rgba(255, 255, 255, 0.06)`), removing generic AI-styled gradient signatures in favor of a clean, minimalist institutional theme.
 - **Jump Navigation Deprecation & Profile Card Simplification:** Completely removed in-page jump navigation bars (`*-jump-nav`, `*-jump-link`) and their associated scroll-spy IntersectionObservers across all roles (Admin, Student, Librarian, Teacher) and all device viewports (`admin_page.html`, `student_page.html`, `librarian_page.html`, `admin-settings.js`, `settings-handler.js`, `librarian_main.js`, and associated CSS stylesheets). This declutters user profile cards across desktop and mobile, removing redundant anchor buttons and allowing users to navigate directly via the collapsible settings cards.
 - **Interactive Email Copy SVG Checkmark Feedback:** Enhanced the email copy action button across Student (`student_page.html`), Teacher (`teacher_page.html`), Admin (`admin_page.html`), and Librarian (`librarian_page.html`) profile cards (`settings-handler.js`, `admin-settings.js`, `librarian_main.js`):
+
   - *Dynamic Icon Morphing:* Clicking the copy icon immediately transforms the copy SVG into an emerald checkmark (`#10b981`), scales subtly with active feedback styling (`.is-copied`), and reverts cleanly back to the copy SVG icon after 2.5 seconds.
   - *Resilient Insecure LAN / HTTP Clipboard Fallback:* Wrapped standard `navigator.clipboard.writeText` with an automatic `document.execCommand('copy')` textarea fallback, guaranteeing smooth copy execution and icon morphing on mobile phones accessing local LAN IP addresses (e.g., `pcg-2.local:3000`).
 - **Mobile Collapsible Settings Cards (Student & Teacher Dashboards):** Implemented an ergonomic collapsible accordion card system across student and teacher workstation settings (`student_page.html`, `teacher_page.html`, `student-settings.css`, `settings-handler.js`):
+
   - *Mobile Information Overload Shield:* On mobile viewports (`<= 1024px`), settings category cards start collapsed into sleek, compact headers (~60px tall) with rotating chevron indicators, preventing cognitive fatigue and endless scrolling across dense account, appearance, notification, telemetry, and background preference panels.
   - *Independent Interactive Toggles:* Tapping any card header smoothly expands or collapses its contents independently with hardware-accelerated slide-down transitions (`@keyframes ssetSlideDown`).
   - *Smart Jump Nav Integration:* Tapping any category in the horizontal jump chip bar automatically expands the targeted section (and uncollapses nested containers such as Danger Zone) before smoothly scrolling to it with highlight flashing (`.sset-flash`).
@@ -313,11 +335,13 @@ epeat(2, 1fr)) for campus ambiance selection.
 - **Collapsible OCR Error Notice & Spinner Geometry Hardening:** Upgraded OCR scanning feedback in `public/pages/account_registration.html`, `public/js/registration/registration.js`, and `public/css/registration/registration.css`: fixed squished spinner geometry by enforcing `flex-shrink: 0; min-width: 20px;` and automatically hiding the spinner on verification failures. Replaced multi-line error dumps with a streamlined collapsible warning banner (`.ocr-error-banner`) that defaults to collapsed to maintain mobile viewport headroom while allowing one-tap expansion for detailed error explanations.
 - **Registration Script Integrity & Gatekeeper Pre-Flight Guard:** Fixed a syntax termination token in `public/js/registration/registration.js` that halted the gatekeeper slider captcha execution. Added `registration.js` and `slider-captcha.js` to `scripts/preflight.js` (`CRITICAL_JS_FILES`) to ensure automated syntax testing across all future commits.
 - **Registration State Synchronization, Insecure LAN Camera Fallback & Viewport Fit:** Resolved registration flow and device compatibility issues in `public/pages/account_registration.html`, `public/js/registration/registration.js`, and `public/css/registration/registration.css`:
+
   - *Dynamic Step 1 ↔ Step 2 Name Synchronization:* Implemented live state sync (`syncSummaryCardName()`) ensuring name corrections made on Step 1 immediately update the Step 2 verification summary card and registration state, resolving stale name persistence after ID scanning.
   - *LAN / Local Network Device Camera Shutter Fallback & Desktop Webcam Resilience:* Introduced an automatic camera shutter fallback (`<input type="file" capture="environment">`) and adaptive constraints for desktop/mobile. On desktop, relaxes mobile-specific `facingMode: 'environment'` constraints and falls back gracefully to `{ video: true }`, with contextual diagnostic badges explaining origin security (prompting `localhost:3000` or HTTPS) or missing webcam hardware.
   - *Zero-Scroll Mobile Viewport Ergonomics:* Refactored Step 1 container padding, step indicator dimensions, and form group spacing on mobile devices (`<= 640px` and `<= 480px`) to fit cleanly within dynamic viewport height (`100dvh`), eliminating unnecessary vertical scrollbars on smartphones while preserving vertical scrollability for taller content steps.
 - **Modernized Authentication Notice Modals:** Overhauled "No Account Found" dialog on both desktop and mobile viewports (`public/js/shared/auth-modal.js`, `public/css/shared/style.css`): replaced emoji icons with a custom vector user-search SVG, switched from jarring multi-color gradients to an elegant tone-on-tone emerald palette, balanced button hierarchy, and enhanced light/dark mode presentation.
 - **Mobile Smoothness & Touch Lag Optimization Suite:** Dedicated mobile-only performance overhaul preserving 100% desktop fidelity while eliminating mobile bottlenecks:
+
   - *Native Touch Scrolling:* Bypasses `smooth-scroll.js` on mobile devices (`<= 768px`), restoring native 120Hz compositor-threaded inertial touch momentum.
   - *Glassmorphic GPU Shield:* Replaced heavy `backdrop-filter: blur(24px)` with high-opacity 98% solids on mobile headers, docks, and secondary navigations, eliminating multi-pass GPU framebuffer capture overhead.
   - *Canvas Particle Sleep:* Bypasses the 200-particle 2D canvas animation loop in `ai-particles.js` on mobile devices to preserve battery and CPU cycles.
@@ -327,7 +351,8 @@ epeat(2, 1fr)) for campus ambiance selection.
 - **Mobile Viewport Optimization & Modal Ergonomics:** Upgraded modern authentication modal (`public/css/shared/modern-login.css`) with dynamic viewport height (`100dvh`), compact mobile header branding, unclipped vertical scrolling, and safe-area padding (`env(safe-area-inset-bottom)`) ensuring registration links and OAuth action buttons are never obscured by mobile browser chrome or system gesture navigation bars.
 - **Mobile Floating Bottom Dock:** Replaced drawer navigation on mobile viewports with an ergonomic glassmorphic tab dock featuring an elevated center Citation tool and real-time saved badge counter.
 - **Comprehensive Workstation, Citation, and Responsive Alignment Suite:**
-  - *Welcome Modal Brand Palette & Icon Modernization:* Replaced the corny waving-hand emoji and circular green-to-yellow gradient bubble in the welcome-back dialog (`auth-modal.js`, `style.css`) with a clean institutional academic cap vector SVG. Stripped all colorful gradients from the icon wrapper and primary action button ("Let's Go!"), aligning the modal strictly with core brand tokens (`--brand-green: #08D488` and `--brand-black: #2a2f35`).
+
+  - *Welcome Modal Brand Palette & Icon Modernization:* Replaced the corny waving-hand emoji and circular green-to-yellow gradient bubble in the welcome-back dialog (`auth-modal.js`, `style.css`) with a clean institutional academic cap vector SVG. Stripped all colorful gradients from the icon wrapper and primary action button ("Continue"), aligning the modal strictly with core brand tokens (`--brand-green: #08D488` and `--brand-black: #2a2f35`).
   - *Balanced 2-Top, 1-Bottom Activity Header Actions:* Redesigned `.activity-header-actions` on mobile viewports (`<= 768px`) into a clean CSS grid layout where "Refresh" and "Export Log" share the top row equally (`1fr 1fr`) and "Clear History" spans full width below them (`grid-column: 1 / -1`), eliminating asymmetrical gaps and awkward wrapping.
   - *Institutional Account Sign-Out / Log Out Button:* Integrated prominent Log Out buttons in the Settings section across Student and Teacher workstations (`student_page.html`, `teacher_page.html`, `dashboard-rail.js`) inside Account Management (`#student-settings-logout-btn`) and at the base of the profile card (`#student-card-logout-btn`), connecting to centralized confirmation dialogs, activity logging, and Firebase sign-out.
   - *Citation Generator Precautionary Reset Modal:* Added an intelligent confirmation precaution to `#btn-citation-reset` (`citation-generator.js`). Automatically verifies if user-entered manuscript details (Title, Authors, Year, Program) exist; if data is present, triggers `ModalDialog.confirm` to prevent accidental loss, while clearing immediately if all custom fields are empty (ignoring institutional defaults).
@@ -336,6 +361,7 @@ epeat(2, 1fr)) for campus ambiance selection.
   - *Project Detail Abstract Text Alignment Customizer:* Introduced a sleek, non-intrusive segmented toolbar (`.abstract-align-toolbar`) directly in the Abstract header on the Project Detail page (`view-manager.js`, `view_project_details.css`). Allows readers to toggle text alignment between Justify, Left, Center, and Right with instant CSS application and `localStorage` persistence, while strictly preserving R.A. 10173 anti-plagiarism protection (`data-protected="true"`).
   - *Unified Saved Projects Counter Across Desktop & Mobile Dropdowns:* Upgraded `updateSecondaryNavSavedCount` in `view-manager.js` and dropdown triggers in `auth-modal.js` and `project-list.js` using `querySelectorAll`, ensuring the emerald saved count badge (`#pd-saved-count`) displays reactively and identically on both desktop profile menus and mobile devices.
   - *Core Brand Palette Enforcement for Projects Scope Filter:* Purged unauthorized blue hues (`#2563eb`, `#38bdf8`) from `.projects-scope-filter` and `.scope-filter-btn` in `public/css/home/project-list.css`, strictly aligning all active, hover, and badge styles with official brand tokens: `--brand-black: #2a2f35`, `--brand-white: #F7F7F8`, `--brand-green: #08D488`, and `--brand-yellow: #FCCC56`.
+  - *Project Detail Bookmark Toggle Inversion Fix:* Fixed a race condition in `view-manager.js` where clicking the save buttons (`#header-save-btn`, `#detail-save-btn`) inside the Project Detail view dispatched an optimistic bookmark event before `ProjectBookmarkService.toggleSave` executed. This had caused premature state pollution in `window.savedProjectIds` and `localStorage`, inverting subsequent save operations into unexpected removals and rollback toasts. The service now accepts an explicit target state (`desiredState = nextSaved`), eliminates premature event emissions, and ensures reliable single-click bookmarking.
 - **Pre-Flight Quality Suite:** Automated sub-second syntax checks, route contract validation, and secret hygiene verification prior to commits.
 - **Continuous Knowledge Graph (graphify):** Real-time AST dependency graph indexing tracking over 1,100 nodes across all frontend and backend services.
 - **Cascading LLM Resilience:** Quadruple failover engine guaranteeing constant availability for student and faculty queries.

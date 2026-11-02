@@ -42,7 +42,7 @@
             return false;
         },
 
-        async toggleSave(project) {
+        async toggleSave(project, desiredState = null) {
             if (!project) return false;
             if (this.isRestrictedRole()) {
                 if (typeof showToast === 'function') {
@@ -56,7 +56,11 @@
             const projectId = project.id || project.UIDproject;
             if (!projectId) return false;
 
-            const isCurrentlySaved = this.isSaved(projectId);
+            const originalSavedState = this.isSaved(projectId);
+            const shouldSave = (typeof desiredState === 'boolean')
+                ? desiredState
+                : !originalSavedState;
+            const isCurrentlySaved = !shouldSave;
             const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
 
             // 1. Guest mode (device-only storage + community counter update)
@@ -233,7 +237,7 @@
                 if (typeof showToast === 'function') {
                     showToast('Unable to update saved project. Please try again.', 'error');
                 }
-                return isCurrentlySaved;
+                return originalSavedState;
             }
         }
     };
@@ -1121,17 +1125,12 @@
                 sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
             } catch (err) {}
 
-            // Broadcast optimistic state to all other views (cards, dashboard)
-            window.dispatchEvent(new CustomEvent('projectSavedStateChanged', {
-                detail: { projectId, isSaved: nextSaved, saveCount: nextCount }
-            }));
-
-            // 2. Perform background persistence
+            // 2. Perform background persistence (toggleSave will dispatch projectSavedStateChanged upon completion)
             sidebarSaveBtn?.classList.add('saving');
             headerSaveBtn?.classList.add('saving');
 
             try {
-                const confirmedSavedState = await ProjectBookmarkService.toggleSave(project);
+                const confirmedSavedState = await ProjectBookmarkService.toggleSave(project, nextSaved);
                 if (confirmedSavedState !== nextSaved) {
                     // Reconcile if server returned unexpected state
                     updateButtonsVisuals(confirmedSavedState, prevCount, false);
