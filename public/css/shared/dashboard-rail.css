@@ -334,7 +334,8 @@ body {
 .dashboard-main {
     flex: 1;
     min-width: 0;
-    max-width: 100%;
+    width: calc(100% - var(--content-shift));
+    max-width: calc(100% - var(--content-shift));
     margin-left: var(--content-shift);
     min-height: 100vh;
     display: flex;
@@ -342,6 +343,16 @@ body {
     transition: var(--rail-transition);
     margin-top: 0;
     padding-top: 0;
+    box-sizing: border-box;
+}
+
+.dashboard-layout.role-student .dashboard-main,
+.dashboard-layout.role-teacher .dashboard-main,
+.dashboard-layout.role-admin .dashboard-main,
+.dashboard-layout.role-librarian .dashboard-main {
+    width: calc(100% - var(--rail-width));
+    max-width: calc(100% - var(--rail-width));
+    margin-left: var(--rail-width);
 }
 
 /* ===== TOP BAR (Minimal) ===== */
@@ -425,9 +436,11 @@ body {
 .dashboard-content {
     flex: 1;
     min-width: 0;
+    width: 100%;
     max-width: 100%;
     padding: 2rem;
     background: var(--background);
+    box-sizing: border-box;
 }
 
 .content-section {
