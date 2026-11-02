@@ -1859,84 +1859,15 @@ body {
         transition: color 0.2s ease;
     }
 
-    /* Center Featured Action (Citations Tool) */
-    .dock-item-featured {
-        position: relative;
-    }
-
+    /* Neutralized legacy featured button class to ensure clean, borderless rendering */
+    .dock-item-featured,
     .dock-featured-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--text-secondary, #94a3b8);
-        transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: none;
-    }
-
-    [data-theme="light"] .dock-featured-btn {
-        background: rgba(0, 0, 0, 0.05);
-        border-color: rgba(0, 0, 0, 0.1);
-        color: var(--text-secondary, #64748b);
-    }
-
-    .dock-nav-item.dock-item-featured:hover .dock-featured-btn {
-        background: rgba(8, 212, 136, 0.12);
-        border-color: rgba(8, 212, 136, 0.35);
-        color: #08D488;
-    }
-
-    .dashboard-layout.role-teacher .dock-featured-btn {
-        background: rgba(255, 255, 255, 0.06);
-        border-color: rgba(255, 255, 255, 0.12);
-        color: var(--text-secondary, #94a3b8);
-        box-shadow: none;
-    }
-
-    .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured:hover .dock-featured-btn {
-        background: rgba(234, 179, 8, 0.12);
-        border-color: rgba(234, 179, 8, 0.35);
-        color: #eab308;
-    }
-
-    .dock-nav-item.dock-item-featured.active {
-        background: transparent;
-    }
-
-    .dock-nav-item.dock-item-featured.active .dock-featured-btn {
-        background: linear-gradient(135deg, #08D488, #069F66);
-        border-color: #08D488;
-        color: #ffffff;
-        box-shadow: 0 6px 18px rgba(8, 212, 136, 0.45);
-        transform: scale(1.08);
-    }
-
-    .dock-nav-item.dock-item-featured.active .dock-label {
-        color: #08D488;
-        font-weight: 700;
-    }
-
-    .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured.active .dock-featured-btn {
-        background: linear-gradient(135deg, #eab308, #ca8a04);
-        border-color: #eab308;
-        color: #1a1e23;
-        box-shadow: 0 6px 18px rgba(234, 179, 8, 0.45);
-        transform: scale(1.08);
-    }
-
-    .dashboard-layout.role-teacher .dock-nav-item.dock-item-featured.active .dock-label {
-        color: #eab308;
-        font-weight: 700;
-    }
-
-    .dock-featured-btn svg {
-        width: 20px;
-        height: 20px;
-        stroke: currentColor;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        width: auto !important;
+        height: auto !important;
     }
 
     /* Saved Count Live Badge */
