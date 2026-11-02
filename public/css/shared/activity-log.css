@@ -281,13 +281,17 @@
     transform: scale(1.1);
 }
 
-/* Timeline Container */
+/* ==========================================================================
+   FORMAL ACTIVITY REGISTER / AUDIT LOG TABLE (Formal Institutional Layout)
+   Clean, structured, dignified academic registry table with multi-select
+   ========================================================================== */
+
 .activity-timeline-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     min-height: 350px;
 }
 
@@ -295,227 +299,319 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-.activity-timeline-header h3 {
-    font-size: 1.25rem;
+.activity-timeline-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.activity-timeline-header-left h3 {
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
 }
 
-.activity-live-badge {
+.activity-formal-count-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+}
+
+/* Universal Action Toolbar (Appears when 1 or more checkboxes are checked) */
+.activity-universal-toolbar {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
+    gap: 0.85rem;
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--border);
     padding: 0.35rem 0.75rem;
-    border-radius: 9999px;
+    border-radius: 8px;
+    animation: formalFadeIn 0.15s ease-out;
 }
 
-.activity-pulse-dot {
-    width: 8px;
-    height: 8px;
-    background-color: #10b981;
-    border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    animation: activityPulse 2s infinite cubic-bezier(0.66, 0, 0, 1);
+@keyframes formalFadeIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes activityPulse {
-    to {
-        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
-    }
+.activity-selection-indicator {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding-right: 0.5rem;
+    border-right: 1px solid var(--border);
 }
 
-/* Timeline Date Group */
-.activity-date-group {
-    position: relative;
-    margin-bottom: 2rem;
-}
-
-.activity-date-group:last-child {
-    margin-bottom: 0;
-}
-
-.activity-date-label {
+.activity-universal-actions {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1.25rem;
-    padding-left: 0.5rem;
 }
 
-.activity-date-label::after {
-    content: '';
-    display: block;
-    height: 1px;
-    width: 60px;
-    background: var(--border);
-}
-
-/* Activity Items List */
-.activity-items-list {
-    position: relative;
-    padding-left: 54px;
-}
-
-.activity-items-list::before {
-    content: '';
-    position: absolute;
-    left: 18px;
-    top: 14px;
-    bottom: 14px;
-    width: 2px;
-    background: var(--border);
-    transform: translateX(-50%);
-}
-
-/* Timeline Entry (Separates static node icon and hoverable card) */
-.activity-timeline-entry {
-    position: relative;
-    margin-bottom: 1rem;
-    width: 100%;
-}
-
-.activity-timeline-entry:last-child {
-    margin-bottom: 0;
-}
-
-/* Smooth deletion animation for single record removal */
-.activity-timeline-entry.deleting {
-    opacity: 0;
-    transform: translateX(35px);
-    max-height: 0;
-    margin-bottom: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    overflow: hidden;
-    pointer-events: none;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Timeline Node Icon (Static on timeline axis; does NOT move on card hover) */
-.activity-node-icon {
-    position: absolute;
-    left: -54px;
-    top: 1.15rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
+.btn-formal-action {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    box-shadow: 0 0 0 4px var(--surface);
-    z-index: 2;
-    font-size: 0.9rem;
-    pointer-events: none;
-    transition: box-shadow 0.25s ease;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    line-height: 1.2;
 }
 
-.activity-timeline-entry:hover .activity-node-icon {
-    box-shadow: 0 0 0 5px var(--surface), 0 4px 14px rgba(0, 0, 0, 0.15);
-}
-
-.activity-node-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke: #ffffff;
-    fill: none;
+.btn-formal-action svg {
+    width: 13px;
+    height: 13px;
     flex-shrink: 0;
 }
 
-/* Individual Activity Item (Exclusively receives the hover animation) */
-.activity-item {
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 1.25rem;
-    padding: 1.15rem 1.25rem;
-    background: var(--background);
+.btn-formal-action-neutral {
+    background: var(--surface);
+    color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    margin-bottom: 0;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.25s ease,
-                box-shadow 0.25s ease;
+}
+
+.btn-formal-action-neutral:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+    border-color: var(--text-secondary);
+}
+
+.btn-formal-action-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.btn-formal-action-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+}
+
+.btn-formal-action-link {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
     cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
+    padding: 0.2rem 0.4rem;
+    text-decoration: underline;
+    font-family: inherit;
 }
 
-.activity-item:hover {
-    transform: translateX(6px);
-    border-color: rgba(99, 102, 241, 0.45);
-    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08);
-}
-
-/* Activity Content */
-.activity-item-main {
-    flex: 1;
-    min-width: 0;
-}
-
-.activity-item-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.35rem;
-}
-
-.activity-item-title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-}
-
-.activity-item-title {
-    font-size: 0.95rem;
-    font-weight: 600;
+.btn-formal-action-link:hover {
     color: var(--text-primary);
 }
 
-.activity-badge {
-    padding: 0.2rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.725rem;
+/* Formal Table Layout */
+.activity-formal-table {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.activity-formal-thead {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 130px 160px;
+    align-items: center;
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.02));
+    border-bottom: 1px solid var(--border);
+    padding: 0.65rem 0.75rem;
+}
+
+.activity-formal-th {
+    font-size: 0.74rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
 }
 
-/* Badge Color Themes */
-.badge-search { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-.badge-project { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
-.badge-bookmark { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-.badge-citation { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.badge-auth { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
-.badge-ai { background: rgba(236, 72, 153, 0.12); color: #ec4899; }
-.badge-admin { background: rgba(99, 102, 241, 0.12); color: #6366f1; }
-.badge-system { background: rgba(107, 114, 128, 0.12); color: #6b7280; }
+.activity-formal-th.col-select,
+.activity-formal-col.col-select {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-.activity-item-meta-group {
+.activity-formal-th.col-datetime,
+.activity-formal-col.col-datetime {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.activity-formal-th.col-badge,
+.activity-formal-col.col-badge {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Date Divider */
+.activity-formal-date-divider {
+    padding: 0.5rem 1rem;
+    background: var(--surface-secondary, rgba(255, 255, 255, 0.015));
+    border-bottom: 1px solid var(--border);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+
+/* Formal Row */
+.activity-formal-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 130px 160px;
+    align-items: center;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.12s ease;
+    cursor: pointer;
+}
+
+.activity-formal-row:last-child {
+    border-bottom: none;
+}
+
+.activity-formal-row:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.03));
+}
+
+.activity-formal-row.is-selected {
+    background: rgba(8, 212, 136, 0.06);
+}
+
+/* Col 0: Checkbox */
+.activity-checkbox-container {
     display: inline-flex;
     align-items: center;
-    gap: 0.65rem;
+    justify-content: center;
+    cursor: pointer;
+    margin: 0;
 }
 
-.activity-item-time {
-    font-size: 0.8rem;
+.activity-formal-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--brand-green, #08D488);
+    cursor: pointer;
+    border-radius: 3px;
+    margin: 0;
+}
+
+/* Col 1: Activity Item Portion */
+.activity-formal-col.col-portion {
+    padding: 0 0.75rem;
+    min-width: 0;
+}
+
+.activity-portion-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.activity-portion-desc {
+    font-size: 0.79rem;
     color: var(--text-secondary);
-    font-weight: 500;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+    word-break: break-word;
+}
+
+.activity-portion-link {
+    margin-top: 0.35rem;
+}
+
+.activity-portion-link a {
+    font-size: 0.77rem;
+    font-weight: 600;
+    color: var(--brand-green, #08D488);
+    text-decoration: none;
+}
+
+.activity-portion-link a:hover {
+    text-decoration: underline;
+}
+
+/* Col 2: Activity Badge (STRICTLY NO COLOR: Monochrome Light & Dark) */
+.activity-formal-badge {
+    display: inline-block;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    line-height: 1.2;
+    white-space: nowrap;
+    border: 1px solid var(--border);
+    background: var(--surface-secondary, #22262c);
+    color: var(--text-primary);
+}
+
+/* Light Theme Badge */
+[data-theme="light"] .activity-formal-badge,
+body.light-theme .activity-formal-badge {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+/* Dark Theme Badge */
+[data-theme="dark"] .activity-formal-badge,
+body.dark-theme .activity-formal-badge,
+body:not(.light-theme) .activity-formal-badge {
+    background: #1e2329;
+    color: #e2e8f0;
+    border-color: #374151;
+}
+
+/* Col 3: Date & Time */
+.activity-formal-col.col-datetime {
+    padding-left: 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.activity-datetime-date {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.activity-datetime-time {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+    line-height: 1.2;
+    margin-top: 0.15rem;
     white-space: nowrap;
 }
 
@@ -1012,28 +1108,59 @@
         height: 13px;
     }
     
-    .activity-items-list {
-        padding-left: 42px;
-    }
-
-    .activity-items-list::before {
-        left: 15px;
-    }
-    
-    .activity-node-icon {
-        left: -42px;
-        width: 30px;
-        height: 30px;
-        top: 1rem;
-    }
-
-    .activity-node-icon svg {
-        width: 15px;
-        height: 15px;
-    }
-    
     .activity-timeline-card {
-        padding: 1.25rem;
+        padding: 1.15rem 1rem;
+    }
+
+    .activity-timeline-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .activity-universal-toolbar {
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: space-between;
+    }
+
+    .activity-formal-thead {
+        display: none;
+    }
+
+    .activity-formal-row {
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 0.5rem;
+        padding: 0.85rem 0.5rem;
+    }
+
+    .activity-formal-col.col-select {
+        align-items: flex-start;
+        padding-top: 2px;
+    }
+
+    .activity-formal-col.col-portion {
+        padding: 0;
+    }
+
+    .activity-formal-col.col-badge {
+        grid-column: 2;
+        justify-content: flex-start;
+        margin-top: 0.45rem;
+    }
+
+    .activity-formal-col.col-datetime {
+        grid-column: 2;
+        align-items: flex-start;
+        text-align: left;
+        margin-top: 0.3rem;
+        flex-direction: row;
+        gap: 0.5rem;
+        padding-left: 0;
+    }
+
+    .activity-datetime-time {
+        margin-top: 0;
     }
 }
 

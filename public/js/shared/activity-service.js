@@ -784,6 +784,37 @@
         },
 
         /**
+         * Delete multiple activity entries by IDs in a single atomic storage write
+         * @param {string} userId - User UID
+         * @param {Array<string>} activityIds - Array of activity IDs to delete
+         * @returns {Promise<boolean>}
+         */
+        async deleteActivities(userId, activityIds) {
+            if (!userId || !Array.isArray(activityIds) || activityIds.length === 0) return false;
+
+            try {
+                const storageKey = `recaps_activities_${userId}`;
+                const raw = localStorage.getItem(storageKey);
+                if (raw) {
+                    let activities = JSON.parse(raw);
+                    if (Array.isArray(activities)) {
+                        const idSet = new Set(activityIds);
+                        activities = activities.filter(a => !idSet.has(a.id));
+                        localStorage.setItem(storageKey, JSON.stringify(activities));
+                    }
+                }
+            } catch (e) {
+                console.warn('[ActivityService] Error batch removing items from local storage:', e);
+            }
+
+            window.dispatchEvent(new CustomEvent('userActivitiesBatchDeleted', {
+                detail: { userId, activityIds }
+            }));
+
+            return true;
+        },
+
+        /**
          * Clear activities for current user strictly on this local device
          */
         async clearUserActivities(userId) {

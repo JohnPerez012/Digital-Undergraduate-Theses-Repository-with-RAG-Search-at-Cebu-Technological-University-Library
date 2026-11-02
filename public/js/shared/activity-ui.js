@@ -18,6 +18,8 @@
     let currentUserId = null;
     let currentActivities = [];
     let activeModalActivity = null; // Currently inspected activity in modal
+    let selectedActivityIds = new Set(); // Multi-selection for bulk actions
+    let currentFilteredActivities = []; // Visible filtered items
     let currentFilters = {
         category: 'all',
         dateRange: 'all',
@@ -25,6 +27,39 @@
         userId: 'all',
         search: ''
     };
+
+    /**
+     * Format formal date & time object
+     */
+    function formatFormalDateTime(timestamp) {
+        if (!timestamp) return { date: '—', time: '—' };
+        try {
+            const d = new Date(timestamp);
+            if (isNaN(d.getTime())) return { date: '—', time: '—' };
+            const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            return { date: dateStr, time: timeStr };
+        } catch (e) {
+            return { date: '—', time: '—' };
+        }
+    }
+
+    /**
+     * Get formal category label
+     */
+    function getFormalCategoryLabel(category) {
+        const map = {
+            'search': 'Search',
+            'project': 'Project View',
+            'bookmark': 'Bookmark',
+            'citation': 'Citation',
+            'auth': 'Auth & Security',
+            'ai': 'AI Assistant',
+            'admin': 'Administrative',
+            'system': 'System'
+        };
+        return map[category] || (category ? String(category).toUpperCase() : 'GENERAL');
+    }
 
     /**
      * Mapping of legacy emoji icons to clean vector SVG keys
@@ -412,17 +447,31 @@
                 </div>
             </div>
 
-            <!-- Main Timeline Card -->
+            <!-- Main Timeline Card (Formal Institutional Audit Register) -->
             <div class="activity-timeline-card">
                 <div class="activity-timeline-header">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <h3 id="activity-feed-title">Activity Timeline</h3>
-                        <div class="activity-live-badge">
-                            <span class="activity-pulse-dot"></span>
-                            <span>Live Sync</span>
+                    <div class="activity-timeline-header-left">
+                        <h3 id="activity-feed-title">Activity Register</h3>
+                        <span id="activity-count-badge" class="activity-formal-count-badge">0 records</span>
+                    </div>
+
+                    <!-- Universal Action Toolbar (Active when 1 or more checkboxes are checked) -->
+                    <div class="activity-universal-toolbar" id="activity-universal-toolbar" style="display: none;">
+                        <span class="activity-selection-indicator" id="activity-selection-indicator">0 selected</span>
+                        <div class="activity-universal-actions">
+                            <button type="button" class="btn-formal-action btn-formal-danger" id="activity-bulk-remove-btn" title="Remove selected activities from storage">
+                                ${getActivityIconSvg('trash')}
+                                <span>Remove Selected</span>
+                            </button>
+                            <button type="button" class="btn-formal-action btn-formal-neutral" id="activity-bulk-export-btn" title="Export selected activities">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                <span>Export Selected</span>
+                            </button>
+                            <button type="button" class="btn-formal-action-link" id="activity-deselect-all-btn">
+                                Deselect
+                            </button>
                         </div>
                     </div>
-                    <span id="activity-count-badge" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">0 events</span>
                 </div>
 
                 <div id="activity-timeline-content">
@@ -525,6 +574,91 @@
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 handleClearHistory();
+            });
+        }
+
+        // Universal Bulk Remove Button
+        const bulkRemoveBtn = section.querySelector('#activity-bulk-remove-btn');
+        if (bulkRemoveBtn) {
+            bulkRemoveBtn.addEventListener('click', async () => {
+                const count = selectedActivityIds.size;
+                if (count === 0) return;
+
+                let confirmed = false;
+                if (window.ModalDialog && typeof window.ModalDialog.confirm === 'function') {
+                    confirmed = await ModalDialog.confirm({
+                        title: `Remove ${count} Activity ${count === 1 ? 'Record' : 'Records'}?`,
+                        message: `Permanently delete ${count} selected activity ${count === 1 ? 'record' : 'records'} from your browser's local storage? This action cannot be undone.`,
+                        confirmText: `Remove (${count})`,
+                        cancelText: 'Cancel',
+                        isDanger: true,
+                        icon: 'trash'
+                    });
+                } else {
+                    confirmed = window.confirm(`Permanently remove ${count} selected activity record(s) from storage?`);
+                }
+
+                if (!confirmed) return;
+
+                const ids = Array.from(selectedActivityIds);
+                if (window.ActivityService && typeof window.ActivityService.deleteActivities === 'function') {
+                    await window.ActivityService.deleteActivities(currentUserId, ids);
+                } else if (window.ActivityService) {
+                    for (const id of ids) {
+                        await window.ActivityService.deleteActivity(currentUserId, id);
+                    }
+                }
+
+                currentActivities = currentActivities.filter(a => !selectedActivityIds.has(a.id));
+                selectedActivityIds.clear();
+                renderFilteredTimeline();
+
+                if (typeof showToast === 'function') {
+                    showToast(`Removed ${count} activity ${count === 1 ? 'record' : 'records'} from storage`, 'success');
+                }
+            });
+        }
+
+        // Universal Bulk Export Button
+        const bulkExportBtn = section.querySelector('#activity-bulk-export-btn');
+        if (bulkExportBtn) {
+            bulkExportBtn.addEventListener('click', async () => {
+                const count = selectedActivityIds.size;
+                if (count === 0) return;
+
+                const selectedItems = currentActivities.filter(a => selectedActivityIds.has(a.id));
+                if (selectedItems.length === 0) return;
+
+                let format = null;
+                if (window.ModalDialog && typeof window.ModalDialog.choice === 'function') {
+                    format = await ModalDialog.choice({
+                        title: 'Export Selected Activities',
+                        message: `Exporting ${count} selected records. Select your preferred file format:`,
+                        options: [
+                            { id: 'csv', label: 'CSV Spreadsheet (.csv)', icon: 'file', desc: 'Compatible with Microsoft Excel, Google Sheets & data analysis' },
+                            { id: 'json', label: 'JSON Data Document (.json)', icon: 'code', desc: 'Structured raw data format for archiving or developer backup' }
+                        ],
+                        cancelText: 'Cancel'
+                    });
+                } else {
+                    format = 'csv';
+                }
+
+                if (!format) return;
+
+                const success = window.ActivityService.exportActivities(selectedItems, format);
+                if (success && typeof showToast === 'function') {
+                    showToast(`Exported ${count} selected activities as ${format.toUpperCase()}`, 'success');
+                }
+            });
+        }
+
+        // Universal Deselect All Button
+        const deselectBtn = section.querySelector('#activity-deselect-all-btn');
+        if (deselectBtn) {
+            deselectBtn.addEventListener('click', () => {
+                selectedActivityIds.clear();
+                updateSelectionUI();
             });
         }
 
@@ -671,7 +805,48 @@
     }
 
     /**
-     * Render the timeline according to current filters
+     * Update Universal Action Toolbar and selection visual states
+     */
+    function updateSelectionUI() {
+        const toolbar = document.getElementById('activity-universal-toolbar');
+        const indicator = document.getElementById('activity-selection-indicator');
+        const selectAllBox = document.getElementById('activity-select-all');
+
+        const count = selectedActivityIds.size;
+        const visibleCount = currentFilteredActivities.length;
+
+        if (toolbar) {
+            toolbar.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+
+        if (indicator) {
+            indicator.textContent = `${count} selected`;
+        }
+
+        if (selectAllBox) {
+            if (visibleCount > 0 && count === visibleCount) {
+                selectAllBox.checked = true;
+                selectAllBox.indeterminate = false;
+            } else if (count > 0 && count < visibleCount) {
+                selectAllBox.checked = false;
+                selectAllBox.indeterminate = true;
+            } else {
+                selectAllBox.checked = false;
+                selectAllBox.indeterminate = false;
+            }
+        }
+
+        document.querySelectorAll('.activity-formal-row').forEach(row => {
+            const id = row.getAttribute('data-activity-id');
+            const isChecked = selectedActivityIds.has(id);
+            row.classList.toggle('is-selected', isChecked);
+            const cb = row.querySelector('.activity-row-checkbox');
+            if (cb) cb.checked = isChecked;
+        });
+    }
+
+    /**
+     * Render the formal activity register table according to current filters
      */
     function renderFilteredTimeline() {
         const container = document.getElementById('activity-timeline-content');
@@ -689,6 +864,11 @@
 
         // Apply filters
         const filtered = window.ActivityService.filterActivities(currentActivities, currentFilters);
+        currentFilteredActivities = filtered;
+
+        // Prune any selected IDs that no longer exist
+        const validIds = new Set(currentActivities.map(a => a.id));
+        selectedActivityIds = new Set(Array.from(selectedActivityIds).filter(id => validIds.has(id)));
 
         // Update stats
         const metrics = calculateMetrics(currentActivities);
@@ -703,7 +883,7 @@
         if (storageEl) storageEl.textContent = metrics.storageFormatted;
         if (topEl) topEl.textContent = metrics.topCategory;
         if (lastEl) lastEl.textContent = metrics.lastActive;
-        if (countBadge) countBadge.textContent = `${filtered.length} ${filtered.length === 1 ? 'event' : 'events'}`;
+        if (countBadge) countBadge.textContent = `${filtered.length} ${filtered.length === 1 ? 'record' : 'records'}`;
 
         if (filtered.length === 0) {
             container.innerHTML = `
@@ -713,132 +893,135 @@
                     <p>No activity records match your active filters. Try searching for something else or performing an action in the portal.</p>
                 </div>
             `;
+            updateSelectionUI();
             return;
         }
 
-        // Group by Date
+        // Group by Date for formal section divisions
         const grouped = groupActivitiesByDate(filtered);
-        let html = '';
+        let html = `
+            <div class="activity-formal-table">
+                <div class="activity-formal-thead">
+                    <div class="activity-formal-th col-select">
+                        <label class="activity-checkbox-container" title="Select all filtered records">
+                            <input type="checkbox" id="activity-select-all" class="activity-formal-checkbox" aria-label="Select all activities">
+                        </label>
+                    </div>
+                    <div class="activity-formal-th col-portion">Activity Record</div>
+                    <div class="activity-formal-th col-badge">Category</div>
+                    <div class="activity-formal-th col-datetime">Date &amp; Time</div>
+                </div>
+                <div class="activity-formal-tbody">
+        `;
 
         Object.entries(grouped).forEach(([dateGroup, items]) => {
             html += `
-                <div class="activity-date-group">
-                    <div class="activity-date-label">${dateGroup}</div>
-                    <div class="activity-items-list">
+                <div class="activity-formal-date-divider">
+                    <span>${escapeHtml(dateGroup)}</span>
+                </div>
             `;
 
             items.forEach(item => {
-                const categoryClass = `badge-${item.category || 'system'}`;
-                const nodeSvg = getActivityIconSvg(item);
-                const timeAgo = formatRelativeTime(item.timestamp);
-                const categoryColor = window.ActivityService.CATEGORY_COLORS[item.category] || '#6366f1';
+                const isSelected = selectedActivityIds.has(item.id);
+                const dateTimeInfo = formatFormalDateTime(item.timestamp);
+                const categoryLabel = getFormalCategoryLabel(item.category);
 
-                // Check if project view link is possible
                 let actionLink = '';
                 if (item.category === 'project' && item.metadata && item.metadata.projectId) {
-                    actionLink = `<a href="../index.html" class="activity-item-action-link" data-project-id="${escapeHtml(item.metadata.projectId)}">View Project Details →</a>`;
+                    actionLink = `<a href="../index.html" class="activity-item-action-link" data-project-id="${escapeHtml(item.metadata.projectId)}">View Manuscript →</a>`;
                 }
 
                 html += `
-                    <div class="activity-timeline-entry">
-                        <div class="activity-node-icon" style="background: ${categoryColor};">
-                            ${nodeSvg}
+                    <div class="activity-formal-row ${isSelected ? 'is-selected' : ''}" data-activity-id="${escapeHtml(item.id)}">
+                        <!-- Col 0: Checkbox for selection -->
+                        <div class="activity-formal-col col-select">
+                            <label class="activity-checkbox-container" title="Select record">
+                                <input type="checkbox" class="activity-formal-checkbox activity-row-checkbox" data-id="${escapeHtml(item.id)}" ${isSelected ? 'checked' : ''} aria-label="Select ${escapeHtml(item.title)}">
+                            </label>
                         </div>
-                        <div class="activity-item" data-activity-id="${escapeHtml(item.id)}">
-                            <div class="activity-item-main">
-                                <div class="activity-item-top">
-                                    <div class="activity-item-title-row">
-                                        <span class="activity-item-title">${escapeHtml(item.title)}</span>
-                                        <span class="activity-badge ${categoryClass}">${escapeHtml(item.category || 'general')}</span>
-                                        ${(item.metadata && item.metadata.isAdminAction) ? `
-                                            <span class="activity-badge badge-admin" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); font-weight: 600;">Admin Action</span>
-                                        ` : ''}
-                                    </div>
-                                    <div class="activity-item-meta-group">
-                                        <span class="activity-item-time">${timeAgo}</span>
-                                        <button type="button" class="activity-item-delete-btn" data-delete-id="${escapeHtml(item.id)}" title="Delete this activity record from storage" aria-label="Delete this activity record">
-                                            ${getActivityIconSvg('trash')}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="activity-item-desc">${escapeHtml(item.details)}</div>
-                                
-                                ${((item.metadata && item.metadata.isAdminAction) ? `
-                                    <div class="activity-item-user-info" style="color: #6366f1; margin-top: 0.35rem;">
-                                        <span class="activity-user-badge" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.25); color: #6366f1;">
-                                            ${getActivityIconSvg('admin')} Administrator: ${escapeHtml(item.metadata.adminActorName || 'Administrator')}
-                                        </span>
-                                    </div>
-                                ` : '')}
 
-                                ${actionLink}
-                            </div>
+                        <!-- Col 1: Activity item, JUST THE PORTION -->
+                        <div class="activity-formal-col col-portion">
+                            <div class="activity-portion-title">${escapeHtml(item.title)}</div>
+                            ${item.details ? `<div class="activity-portion-desc">${escapeHtml(item.details)}</div>` : ''}
+                            ${actionLink ? `<div class="activity-portion-link">${actionLink}</div>` : ''}
+                        </div>
+
+                        <!-- Col 2: Activity badge (Monochrome: NO COLOR, just normal light & dark) -->
+                        <div class="activity-formal-col col-badge">
+                            <span class="activity-formal-badge">${escapeHtml(categoryLabel)}</span>
+                        </div>
+
+                        <!-- Col 3: Date and time -->
+                        <div class="activity-formal-col col-datetime">
+                            <span class="activity-datetime-date">${escapeHtml(dateTimeInfo.date)}</span>
+                            <span class="activity-datetime-time">${escapeHtml(dateTimeInfo.time)}</span>
                         </div>
                     </div>
                 `;
             });
-
-            html += `
-                    </div>
-                </div>
-            `;
         });
+
+        html += `
+                </div>
+            </div>
+        `;
 
         container.innerHTML = html;
 
-        // Bind individual delete button clicks
-        container.querySelectorAll('.activity-item-delete-btn').forEach(delBtn => {
-            delBtn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                const actId = delBtn.getAttribute('data-delete-id');
-                if (!actId) return;
-
-                const targetEntry = delBtn.closest('.activity-timeline-entry');
-                const activity = currentActivities.find(a => a.id === actId);
-                const titleSnippet = activity ? `"${activity.title}"` : 'this activity record';
-
-                const confirmed = await ModalDialog.confirm({
-                        title: 'Delete Activity Record',
-                        message: `Permanently delete ${titleSnippet} from your browser storage? This action cannot be undone.`,
-                        confirmText: 'Delete Record',
-                        cancelText: 'Keep',
-                        isDanger: true,
-                        icon: 'trash'
-                    });
-
-                if (!confirmed) {
-                    return;
-                }
-
-                if (targetEntry) {
-                    targetEntry.classList.add('deleting');
-                }
-
-                setTimeout(async () => {
-                    await window.ActivityService.deleteActivity(currentUserId, actId);
-                    currentActivities = currentActivities.filter(a => a.id !== actId);
-                    renderFilteredTimeline();
-                    if (typeof showToast === 'function') {
-                        showToast('Activity record deleted from storage', 'success');
+        // Select All Checkbox Listener
+        const selectAllBox = container.querySelector('#activity-select-all');
+        if (selectAllBox) {
+            selectAllBox.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                filtered.forEach(item => {
+                    if (item && item.id) {
+                        if (checked) {
+                            selectedActivityIds.add(item.id);
+                        } else {
+                            selectedActivityIds.delete(item.id);
+                        }
                     }
-                }, 220);
+                });
+                updateSelectionUI();
+            });
+        }
+
+        // Row Checkboxes
+        container.querySelectorAll('.activity-row-checkbox').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                e.stopPropagation();
+                const id = cb.getAttribute('data-id');
+                if (!id) return;
+                if (cb.checked) {
+                    selectedActivityIds.add(id);
+                } else {
+                    selectedActivityIds.delete(id);
+                }
+                updateSelectionUI();
+            });
+            cb.addEventListener('click', (e) => {
+                e.stopPropagation();
             });
         });
 
-        // Bind item click for inspection modal
-        container.querySelectorAll('.activity-item').forEach(itemEl => {
-            itemEl.addEventListener('click', (e) => {
-                // If clicked action link or delete button, let it handle
-                if (e.target.closest('.activity-item-action-link') || e.target.closest('.activity-item-delete-btn')) return;
+        // Row Click: Opens Formal Inspection Modal (except when clicking checkbox or link)
+        container.querySelectorAll('.activity-formal-row').forEach(row => {
+            row.addEventListener('click', (e) => {
+                if (e.target.closest('.activity-formal-col.col-select') || e.target.closest('.activity-portion-link') || e.target.closest('input')) {
+                    return;
+                }
 
-                const actId = itemEl.getAttribute('data-activity-id');
+                const actId = row.getAttribute('data-activity-id');
                 const activity = currentActivities.find(a => a.id === actId);
                 if (activity) {
                     openActivityDetailsModal(activity);
                 }
             });
         });
+
+        // Synchronize selection toolbar state
+        updateSelectionUI();
     }
 
     /**
