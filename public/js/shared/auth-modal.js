@@ -739,7 +739,10 @@ document.addEventListener('DOMContentLoaded', function() {
         overlay.innerHTML = `
             <div class="welcome-modal-content">
                 <div class="welcome-icon-wrapper">
-                    <span class="wave-emoji">👋</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="welcome-modal-svg">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                    </svg>
                 </div>
                 <h2 class="welcome-modal-title">Welcome back, <span>${safeName}</span>!</h2>
                 <p class="welcome-modal-text">We're glad to see you again. Ready to dive into your capstone research?</p>
