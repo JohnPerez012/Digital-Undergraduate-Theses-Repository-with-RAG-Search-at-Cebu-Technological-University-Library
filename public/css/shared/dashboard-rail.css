@@ -452,32 +452,11 @@ body {
     }
 }
 
-/* ===== MOBILE TOGGLE ===== */
+/* ===== MOBILE TOGGLE (DEPRECATED & ERADICATED) ===== */
 .mobile-rail-toggle {
-    display: none;
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 56px;
-    height: 56px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
-    cursor: pointer;
-    z-index: 999;
-    transition: var(--rail-transition);
-}
-
-.mobile-rail-toggle:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-}
-
-.mobile-rail-toggle svg {
-    width: 24px;
-    height: 24px;
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 /* ===== ROLE-SPECIFIC COLORS ===== */
@@ -503,46 +482,37 @@ body {
 
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1024px) {
-    .sidebar-rail {
-        transform: translateX(-100%);
+    /* Student and Teacher dashboards use the bottom dock on tablet & mobile */
+    .dashboard-layout.role-student .sidebar-rail,
+    .dashboard-layout.role-teacher .sidebar-rail {
+        display: none !important;
+    }
+
+    /* Admin and Librarian retain the permanent slim rail on tablet */
+    .dashboard-layout.role-admin .sidebar-rail,
+    .dashboard-layout.role-librarian .sidebar-rail {
+        transform: translateX(0) !important;
+        width: var(--rail-width) !important;
     }
     
-    .sidebar-rail.mobile-open {
-        transform: translateX(0);
-        width: var(--rail-expanded-width);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    .dashboard-layout.role-student .dashboard-main,
+    .dashboard-layout.role-teacher .dashboard-main {
+        margin-left: 0 !important;
+        width: 100% !important;
     }
-    
-    .sidebar-rail.mobile-open .rail-brand,
-    .sidebar-rail.mobile-open .rail-nav-text,
-    .sidebar-rail.mobile-open .rail-nav-label,
-    .sidebar-rail.mobile-open .rail-profile-info,
-    .sidebar-rail.mobile-open .rail-nav-badge {
-        opacity: 1;
-    }
-    
-    .dashboard-main {
-        margin-left: 0;
+
+    .dashboard-layout.role-admin .dashboard-main,
+    .dashboard-layout.role-librarian .dashboard-main {
+        margin-left: var(--rail-width) !important;
+        width: calc(100% - var(--rail-width)) !important;
     }
     
     .mobile-rail-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: none !important;
     }
     
-    /* Overlay when mobile menu is open */
     .rail-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(2px);
-        z-index: 999;
-    }
-    
-    .rail-overlay.active {
-        display: block;
+        display: none !important;
     }
 }
 
@@ -1674,8 +1644,8 @@ body {
     display: none !important;
 }
 
-@media (max-width: 768px) {
-    /* Hide the old hamburger button, overlay, and sidebar on mobile */
+@media (max-width: 1024px) {
+    /* Hide the old hamburger button, overlay, and sidebar on mobile & tablet */
     .mobile-rail-toggle,
     .rail-overlay,
     .sidebar-rail {
@@ -1692,17 +1662,17 @@ body {
         padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
-    /* Floating Dock & Back Home Outer Container */
+    /* Floating Dock & Back Home Outer Container (Mobile & Tablet) */
     .mobile-bottom-dock-container {
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
         position: fixed !important;
-        bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        width: calc(100% - 28px) !important;
-        max-width: 440px !important;
+        width: calc(100% - 32px) !important;
+        max-width: 480px !important;
         z-index: 10000 !important;
         pointer-events: none !important;
         gap: 8px !important;
