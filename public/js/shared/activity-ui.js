@@ -331,7 +331,11 @@
      * Render the base container skeleton
      */
     function renderActivitySkeleton(section) {
-        const isAdmin = currentRole === 'admin';
+        const docRole = (document.documentElement.getAttribute('data-required-role') || '').toLowerCase();
+        const sessionRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+        const effectiveRole = docRole || sessionRole || currentRole || 'student';
+        const isStudentOrTeacher = effectiveRole === 'student' || effectiveRole === 'teacher';
+        const showAdminPill = !isStudentOrTeacher && (effectiveRole === 'admin' || effectiveRole === 'librarian');
 
         section.innerHTML = `
             <!-- Header -->
@@ -442,7 +446,7 @@
                     <button class="activity-pill" data-category="citation" title="Citations" aria-label="Citations">${getActivityIconSvg('citation')} <span>Citations</span></button>
                     <button class="activity-pill" data-category="auth" title="Auth & Security" aria-label="Auth & Security">${getActivityIconSvg('auth')} <span>Auth & Security</span></button>
                     <button class="activity-pill" data-category="ai" title="AI Assistant" aria-label="AI Assistant">${getActivityIconSvg('ai')} <span>AI Assistant</span></button>
-                    <button class="activity-pill" data-category="admin" title="Administrative" aria-label="Administrative">${getActivityIconSvg('admin')} <span>Administrative</span></button>
+                    ${showAdminPill ? `<button class="activity-pill" data-category="admin" title="Administrative" aria-label="Administrative">${getActivityIconSvg('admin')} <span>Administrative</span></button>` : ''}
                     <button class="activity-pill" data-category="system" title="System" aria-label="System">${getActivityIconSvg('system')} <span>System</span></button>
                 </div>
             </div>
