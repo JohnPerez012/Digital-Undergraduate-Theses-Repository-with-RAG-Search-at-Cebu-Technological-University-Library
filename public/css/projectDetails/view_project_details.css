@@ -913,3 +913,65 @@ body::before {
 #citation-modal .modal-backdrop {
     cursor: pointer;
 }
+
+/* Abstract Alignment Toolbar */
+.abstract-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.abstract-section-header .section-title {
+    margin: 0;
+}
+
+.abstract-align-toolbar {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.abstract-align-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.abstract-align-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .abstract-align-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.abstract-align-btn.active {
+    background: var(--brand-green, #08D488) !important;
+    color: #12161e !important;
+    box-shadow: 0 1px 4px rgba(8, 212, 136, 0.35);
+}
+
+[data-theme="dark"] .abstract-align-btn.active {
+    background: var(--brand-green, #08D488) !important;
+    color: #12161e !important;
+}
+
+.project-abstract-text {
+    transition: text-align 0.2s ease;
+}

@@ -1893,3 +1893,12 @@ body {
         display: inline-block;
     }
 }
+
+/* Strict Viewport Width Locking across Mobile & Tablet */
+@media (max-width: 1024px) {
+    html, body, .dashboard-layout, .dashboard-main, .dashboard-content, .content-section {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+}

@@ -124,10 +124,10 @@
         }
 
         // Logout button functionality
-        const logoutBtn = document.querySelector('[id$="-logout-btn"]');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', handleLogout);
-        }
+        const logoutButtons = document.querySelectorAll('[id$="-logout-btn"], .sset-logout-btn, .sset-profile-logout-btn');
+        logoutButtons.forEach(btn => {
+            btn.addEventListener('click', handleLogout);
+        });
 
         // Handle keyboard shortcuts
         document.addEventListener('keydown', function(e) {

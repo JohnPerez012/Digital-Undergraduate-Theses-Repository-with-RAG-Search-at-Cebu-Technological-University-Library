@@ -679,9 +679,9 @@
                 }
             }
 
-            // Profile dropdown badge (shown when logged in)
-            const pdBadge = document.getElementById('pd-saved-count');
-            if (pdBadge) {
+            // Profile dropdown badge (shown on both desktop and mobile when logged in)
+            const pdBadges = document.querySelectorAll('.pd-saved-badge, #pd-saved-count');
+            pdBadges.forEach(pdBadge => {
                 if (count > 0) {
                     pdBadge.textContent = count;
                     pdBadge.style.display = 'inline-flex';
@@ -692,7 +692,7 @@
                     pdBadge.style.display = 'none';
                     pdBadge.textContent = '0';
                 }
-            }
+            });
 
             // Scope filter badge on home page
             const scopeBadge = document.getElementById('scope-saved-count');
@@ -896,12 +896,48 @@
             </p>
             
             <div class="project-section">
-                <h3 class="section-title">ABSTRACT</h3>
-                <p class="section-text" data-protected="true">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
+                <div class="abstract-section-header">
+                    <h3 class="section-title">ABSTRACT</h3>
+                    <div class="abstract-align-toolbar" role="toolbar" aria-label="Abstract text alignment">
+                        <button type="button" class="abstract-align-btn" data-align="left" title="Align Left" aria-label="Align Left">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="15" y1="12" x2="3" y2="12"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg>
+                        </button>
+                        <button type="button" class="abstract-align-btn" data-align="center" title="Align Center" aria-label="Align Center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="17" y1="12" x2="7" y2="12"></line><line x1="19" y1="18" x2="5" y2="18"></line></svg>
+                        </button>
+                        <button type="button" class="abstract-align-btn" data-align="right" title="Align Right" aria-label="Align Right">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="12" x2="9" y2="12"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg>
+                        </button>
+                        <button type="button" class="abstract-align-btn active" data-align="justify" title="Justify" aria-label="Justify">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="12" x2="3" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>
+                <p class="section-text project-abstract-text" id="project-detail-abstract" data-protected="true">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
             </div>
         `;
 
-        const sidebarSaveButtonHtml = isRestricted ? '' : `
+        // Setup Abstract Alignment Toolbar
+        const currentAlign = localStorage.getItem('abstractTextAlign') || 'justify';
+        const abstractEl = detailsLeft.querySelector('#project-detail-abstract');
+        if (abstractEl) {
+            abstractEl.style.textAlign = currentAlign;
+        }
+        const alignButtons = detailsLeft.querySelectorAll('.abstract-align-btn');
+        alignButtons.forEach(btn => {
+            const align = btn.dataset.align;
+            btn.classList.toggle('active', align === currentAlign);
+            btn.addEventListener('click', () => {
+                alignButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                if (abstractEl) {
+                    abstractEl.style.textAlign = align;
+                }
+                localStorage.setItem('abstractTextAlign', align);
+            });
+        });
+
+                const sidebarSaveButtonHtml = isRestricted ? '' : `
             <button class="detail-save-btn ${isSaved ? 'saved' : ''}" id="detail-save-btn" type="button" aria-label="${isSaved ? 'Remove from saved' : 'Save project'}">
                 <span class="detail-save-icon">${getBookmarkSvg(isSaved)}</span>
                 <span class="detail-save-text">${isSaved ? 'Saved to Bookmarks' : 'Save Project'}</span>

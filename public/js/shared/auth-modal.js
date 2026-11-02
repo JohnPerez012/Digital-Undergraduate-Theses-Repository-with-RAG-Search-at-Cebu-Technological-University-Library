@@ -475,6 +475,9 @@ document.addEventListener('DOMContentLoaded', function() {
         function openDropdown() {
             dropPanel.classList.add('open');
             trigger.setAttribute('aria-expanded', 'true');
+            if (window.ViewManager && typeof window.ViewManager.updateSecondaryNavSavedCount === 'function') {
+                window.ViewManager.updateSecondaryNavSavedCount();
+            }
         }
 
         function closeDropdown() {

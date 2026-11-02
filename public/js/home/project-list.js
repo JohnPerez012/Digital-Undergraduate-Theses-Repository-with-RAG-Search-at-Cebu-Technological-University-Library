@@ -283,6 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Re-render current page to update button states
             renderPage(currentPage);
+            if (window.ViewManager && typeof window.ViewManager.updateSecondaryNavSavedCount === 'function') {
+                window.ViewManager.updateSecondaryNavSavedCount();
+            }
         } catch (error) {
             console.error('Error loading saved projects from Firestore:', error);
         }

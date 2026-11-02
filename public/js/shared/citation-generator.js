@@ -400,10 +400,35 @@
                 });
             }
 
-            // Reset Form Button
+            // Reset Form Button with Precaution Confirmation Modal
             if (this.resetBtn) {
-                this.resetBtn.addEventListener('click', () => {
-                    this.clearForm();
+                this.resetBtn.addEventListener('click', async () => {
+                    const hasTitle = Boolean(this.titleInput && this.titleInput.value.trim().length > 0);
+                    const authorEntries = this.getAuthorEntries();
+                    const hasAuthors = Array.isArray(authorEntries) && authorEntries.some(a => a && a.trim().length > 0);
+                    const hasYear = Boolean(this.yearInput && this.yearInput.value.trim().length > 0);
+                    const hasProgram = Boolean(this.programInput && this.programInput.value.trim().length > 0);
+                    
+                    const hasUserInput = hasTitle || hasAuthors || hasYear || hasProgram;
+
+                    if (hasUserInput) {
+                        if (window.ModalDialog && typeof window.ModalDialog.confirm === 'function') {
+                            const confirmed = await window.ModalDialog.confirm({
+                                title: 'Reset Manuscript Details?',
+                                message: 'Are you sure you want to discard your entered manuscript details? This action cannot be undone.',
+                                confirmText: 'Reset Form',
+                                cancelText: 'Keep Editing',
+                                isDanger: true
+                            });
+                            if (confirmed) {
+                                this.clearForm();
+                            }
+                        } else if (confirm('Are you sure you want to discard your entered manuscript details?')) {
+                            this.clearForm();
+                        }
+                    } else {
+                        this.clearForm();
+                    }
                 });
             }
 
