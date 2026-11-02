@@ -66,9 +66,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Saved projects state (Admins & Librarians cannot save or bookmark projects)
-    let savedProjectIds = (!isSaveRestrictedRole() && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds)
-        ? window.GuestSavedProjects.getIds()
-        : [];
+    // Instant 0ms recovery from localStorage to ensure immediate bookmark badge rendering
+    let savedProjectIds = [];
+    if (!isSaveRestrictedRole()) {
+        try {
+            const cachedSaved = JSON.parse(localStorage.getItem('savedProjects')) || [];
+            if (Array.isArray(cachedSaved) && cachedSaved.length > 0) {
+                savedProjectIds = cachedSaved.map(p => (typeof p === 'string' ? p : (p.id || p.UIDproject))).filter(Boolean);
+            }
+        } catch (e) {}
+        if (savedProjectIds.length === 0 && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.getIds) {
+            savedProjectIds = window.GuestSavedProjects.getIds();
+        }
+    }
     window.savedProjectIds = savedProjectIds;
     let savedProjectsFull = []; // Store full project data for localStorage
     
@@ -668,10 +678,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /**
-     * Save projects to localStorage cache with metadata
+     * Save projects to localStorage cache with metadata (Instant Local Persist + Lazy Background Meta)
      */
     async function saveToCache(projects) {
         try {
+            // 1. Instant local persistence (0ms overhead)
+            localStorage.setItem('projectsData', JSON.stringify(projects));
+            
+            // Ensure UI counter updates immediately
+            const countElement = document.getElementById('total-projects-count');
+            if (countElement) {
+                countElement.textContent = projects.length;
+            }
+
+            // 2. Fetch RTDB version metadata asynchronously in the background
             let rtdbData = {};
             try {
                 const controller = new AbortController();
@@ -693,111 +713,161 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastCached: new Date().toISOString()
             };
             
-            // Save projects data
-            localStorage.setItem('projectsData', JSON.stringify(projects));
-            
-            // Save metadata
             localStorage.setItem('projectsMetadata', JSON.stringify(metadata));
-            
-            console.log(`Cached ${projects.length} projects with metadata:`, metadata);
-            
-            // Ensure UI counter updates immediately
-            const countElement = document.getElementById('total-projects-count');
-            if (countElement) {
-                countElement.textContent = projects.length;
-            }
+            console.log(`[RE-CAPS] Persisted ${projects.length} projects to local storage with metadata:`, metadata);
             
         } catch (error) {
             console.error('Error saving to cache:', error);
         }
     }
 
-    // Fetch Projects Logic with Smart Caching
-    async function fetchProjects() {
+    /**
+     * Fetch Projects Logic (Instant Local Storage Render + Lazy Background Sync)
+     * "Do it in the back process" Architecture:
+     * 1. Reads localStorage immediately and renders page 1 in 0ms (zero user wait time).
+     * 2. Runs background revalidation (RTDB counters check + Firestore fetch if needed)
+     *    in parallel during the cinematic entrance or background navigation.
+     */
+    async function fetchProjects(forceRefresh = false) {
         if (!projectsContainer) return;
         
+        let renderedFromCache = false;
+
+        // 1. INSTANT LOCAL STORAGE RENDER (0ms perceived latency)
+        if (!forceRefresh) {
+            const cachedProjects = loadFromCache();
+            if (cachedProjects && Array.isArray(cachedProjects) && cachedProjects.length > 0) {
+                masterProjects = [...cachedProjects];
+                allProjects = [...masterProjects];
+                renderedFromCache = true;
+                console.log(`🚀 [RE-CAPS] Instant local render from cache (${cachedProjects.length} projects) - 0ms wait!`);
+
+                // Ensure UI count updates immediately
+                const countElement = document.getElementById('total-projects-count');
+                if (countElement) {
+                    countElement.textContent = cachedProjects.length;
+                }
+
+                // Render scope badges and initial catalog view with zero delay
+                updateScopeBadges();
+                applySorting();
+            }
+        }
+
+        // Only show loading placeholder if there is no cache at all
+        if (!renderedFromCache) {
+            projectsContainer.innerHTML = `
+                <div class="projects-loading-state" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem;">
+                    <p class="loading-text"><span class="loading-pulse-dot"></span> Loading capstone repository...</p>
+                </div>
+            `;
+        }
+
+        // 2. LAZY BACKGROUND REVALIDATION ("in the back process")
+        // Runs asynchronously in the background without blocking the UI
+        revalidateProjectsInBackground(renderedFromCache, forceRefresh);
+    }
+
+    /**
+     * Background revalidation worker (Stale-While-Revalidate)
+     * Verifies cache validity via RTDB counters and fetches fresh Firestore data silently.
+     */
+    async function revalidateProjectsInBackground(renderedFromCache, forceRefresh = false) {
         try {
-            // Check if cache is valid
-            const cacheValid = await isCacheValid();
-            
-            if (cacheValid) {
-                // Load from cache
-                const cachedProjects = loadFromCache();
-                
-                if (cachedProjects && cachedProjects.length > 0) {
-                    masterProjects = [...cachedProjects];
-                    allProjects = [...masterProjects];
-                    console.log('🚀 Using cached data - instant load!');
-                    
-                    // Apply default sort
-                    updateScopeBadges();
-                    applySorting();
+            let needsFreshFetch = !renderedFromCache || forceRefresh;
+
+            // If already rendered from cache, perform a non-blocking background RTDB validation
+            if (renderedFromCache && !forceRefresh) {
+                const cacheValid = await isCacheValid();
+                if (cacheValid) {
+                    console.log('✅ [RE-CAPS] Background check: Cache is fresh and fully synchronized.');
                     return;
                 }
+                console.log('🔄 [RE-CAPS] Background check: Cache mismatch detected. Fetching fresh data in background...');
+                needsFreshFetch = true;
             }
-            
-            // Cache invalid or not found - fetch from Firestore
-            console.log('📡 Fetching fresh data from Firestore...');
-            projectsContainer.innerHTML = '<p class="loading-text">Loading projects...</p>';
-            
+
+            if (!needsFreshFetch) return;
+
             const firestoreDb = (typeof db !== 'undefined' && db) ? db : (typeof window !== 'undefined' ? window.db : null);
             if (!firestoreDb) {
-                console.warn('Firestore db is not initialized.');
-                projectsContainer.innerHTML = '<p class="loading-text">Database configuration missing or offline.</p>';
+                if (!renderedFromCache) {
+                    projectsContainer.innerHTML = '<p class="loading-text">Database configuration missing or offline.</p>';
+                }
                 return;
             }
 
-            // Gentle indicator if Firestore takes longer than 5 seconds
-            const slowTimer = setTimeout(() => {
-                const currentText = projectsContainer.querySelector('.loading-text');
-                if (currentText && !projectsContainer.querySelector('.firestore-offline-card')) {
-                    currentText.innerHTML = '<span class="loading-pulse-dot"></span> Connecting to Cloud Firestore (taking longer than usual)...';
-                }
-            }, 5000);
+            // Gentle indicator if initial fetch takes longer than 5 seconds (only when cache was empty)
+            let slowTimer = null;
+            if (!renderedFromCache) {
+                slowTimer = setTimeout(() => {
+                    const currentText = projectsContainer.querySelector('.loading-text');
+                    if (currentText && !projectsContainer.querySelector('.firestore-offline-card')) {
+                        currentText.innerHTML = '<span class="loading-pulse-dot"></span> Connecting to Cloud Firestore (taking longer than usual)...';
+                    }
+                }, 5000);
+            }
 
             let querySnapshot;
             try {
                 querySnapshot = await firestoreDb.collection('projects').get();
             } finally {
-                clearTimeout(slowTimer);
+                if (slowTimer) clearTimeout(slowTimer);
             }
-            
-            allProjects = [];
+
+            const freshProjects = [];
             querySnapshot.forEach(doc => {
                 const data = doc.data();
                 data.id = doc.id;
-                allProjects.push(data);
+                freshProjects.push(data);
             });
 
-            masterProjects = [...allProjects];
+            if (freshProjects.length === 0) {
+                if (!renderedFromCache) {
+                    const totalProjectsCountElement = document.getElementById('total-projects-count');
+                    const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
+                    const isFromCache = querySnapshot.metadata && querySnapshot.metadata.fromCache;
+                    const isOfflineIssue = isFromCache || window.firestoreConnectionTrouble || (knownCount > 0);
 
-            if (allProjects.length === 0) {
-                const totalProjectsCountElement = document.getElementById('total-projects-count');
-                const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
-                const isFromCache = querySnapshot.metadata && querySnapshot.metadata.fromCache;
-                const isOfflineIssue = isFromCache || window.firestoreConnectionTrouble || (knownCount > 0);
-
-                if (isOfflineIssue) {
-                    renderFirestoreOfflineState(projectsContainer, knownCount);
-                } else {
-                    projectsContainer.innerHTML = '<p class="loading-text">No capstone projects found.</p>';
+                    if (isOfflineIssue) {
+                        renderFirestoreOfflineState(projectsContainer, knownCount);
+                    } else {
+                        projectsContainer.innerHTML = '<p class="loading-text">No capstone projects found.</p>';
+                    }
+                    if (paginationContainer) paginationContainer.innerHTML = '';
                 }
-                if (paginationContainer) paginationContainer.innerHTML = '';
                 return;
             }
-            
-            // Save to cache
-            await saveToCache(allProjects);
 
-            // Apply default sort (Date Created, Descending)
+            // Update in-memory state
+            masterProjects = [...freshProjects];
+            allProjects = [...masterProjects];
+
+            // Persist to local storage in background
+            await saveToCache(freshProjects);
+
+            // Update UI count
+            const countElement = document.getElementById('total-projects-count');
+            if (countElement) {
+                countElement.textContent = freshProjects.length;
+            }
+
+            // Update scope badges
             updateScopeBadges();
-            applySorting();
 
+            // Seamlessly refresh active view if user has not typed a custom search query
+            if (!window.currentSearchQuery) {
+                applySorting();
+            }
+
+            console.log(`✨ [RE-CAPS] Background sync completed: ${freshProjects.length} projects synchronized with zero user wait time.`);
         } catch (error) {
-            console.error("Error fetching projects: ", error);
-            const totalProjectsCountElement = document.getElementById('total-projects-count');
-            const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
-            renderFirestoreOfflineState(projectsContainer, knownCount, error);
+            console.error('Error in background project revalidation:', error);
+            if (!renderedFromCache) {
+                const totalProjectsCountElement = document.getElementById('total-projects-count');
+                const knownCount = totalProjectsCountElement ? parseInt(totalProjectsCountElement.textContent, 10) : 0;
+                renderFirestoreOfflineState(projectsContainer, knownCount, error);
+            }
         }
     }
 
@@ -862,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 setTimeout(() => {
-                    fetchProjects();
+                    fetchProjects(true);
                 }, 600);
             });
         }
@@ -1263,15 +1333,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Fetch Projects Count from RTDB with smart fallback
+    // Fetch Projects Count from RTDB with instant local cache display
     async function fetchProjectsCount() {
         const countElement = document.getElementById('total-projects-count');
+        if (!countElement) return;
         
-        // Immediate fallback if allProjects is already loaded
-        if (allProjects && allProjects.length > 0 && countElement) {
+        // 1. Instant 0ms display from in-memory array or localStorage cache
+        if (allProjects && allProjects.length > 0) {
             countElement.textContent = allProjects.length;
+        } else {
+            const cached = localStorage.getItem('projectsData');
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        countElement.textContent = parsed.length;
+                    }
+                } catch (e) {}
+            } else {
+                const cachedMeta = localStorage.getItem('projectsMetadata');
+                if (cachedMeta) {
+                    try {
+                        const parsedMeta = JSON.parse(cachedMeta);
+                        if (parsedMeta && parsedMeta.projectCount) {
+                            countElement.textContent = parsedMeta.projectCount;
+                        }
+                    } catch (e) {}
+                }
+            }
         }
 
+        // 2. Background RTDB count verification
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2500);
@@ -1292,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Final fallback: use allProjects length or cached count
-        if (countElement) {
+        if (countElement && (!countElement.textContent || countElement.textContent === '0')) {
             if (allProjects && allProjects.length > 0) {
                 countElement.textContent = allProjects.length;
             } else {
@@ -1502,12 +1594,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.resetRealtimeSearchWrapper = resetRealtimeSearch;
     window.getMasterProjectsWrapper = () => masterProjects;
 
-    window.fetchProjectsWrapper = async function() {
+    window.fetchProjectsWrapper = async function(forceRefresh = false) {
         // Ensure search query is cleared before fetching
         window.currentSearchQuery = null;
         isRAGResults = false;
         
-        await fetchProjects();
+        await fetchProjects(forceRefresh);
         await fetchProjectsCount(); // Update the total count display
     };
     

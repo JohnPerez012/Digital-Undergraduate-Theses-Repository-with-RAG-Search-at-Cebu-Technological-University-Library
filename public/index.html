@@ -1849,6 +1849,8 @@
                     onComplete: function () {
                         console.log('RE-CAPS intro animation completed!');
                         sessionStorage.setItem('recaps-intro-shown', 'true');
+                        // Signal all background services that cinematic entrance is complete
+                        window.dispatchEvent(new CustomEvent('recapsIntroCompleted'));
                     }
                 });
             } else {
