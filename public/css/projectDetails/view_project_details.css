@@ -4,7 +4,7 @@ body {
     background-attachment: fixed;
     color: var(--text-primary);
     margin: 0;
-    font-family: 'Reinsa', 'Atkinson Hyperlegible', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     min-height: 100vh;
 }
 
