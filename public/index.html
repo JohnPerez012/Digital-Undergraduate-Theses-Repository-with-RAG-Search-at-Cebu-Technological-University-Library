@@ -690,7 +690,6 @@
                             <div class="prompt-suggestions-grid">
                                 <button type="button" class="prompt-card" data-prompt="Search for recent capstone projects about IoT-based smart agriculture or environmental monitoring systems">
                                     <div class="prompt-card-header">
-                                        <span class="prompt-card-icon">🔍</span>
                                         <span class="prompt-card-tag">Literature</span>
                                     </div>
                                     <div class="prompt-card-title">Explore Capstones</div>
@@ -700,7 +699,6 @@
 
                                 <button type="button" class="prompt-card" data-prompt="Suggest 3 innovative and feasible capstone project ideas for Information Technology students">
                                     <div class="prompt-card-header">
-                                        <span class="prompt-card-icon">💡</span>
                                         <span class="prompt-card-tag">Ideation</span>
                                     </div>
                                     <div class="prompt-card-title">Brainstorm Ideas</div>
@@ -710,7 +708,6 @@
 
                                 <button type="button" class="prompt-card" data-prompt="What are the essential components and best practices for writing a Capstone Methodology chapter?">
                                     <div class="prompt-card-header">
-                                        <span class="prompt-card-icon">📊</span>
                                         <span class="prompt-card-tag">Writing</span>
                                     </div>
                                     <div class="prompt-card-title">Methodology Guide</div>
@@ -720,7 +717,6 @@
 
                                 <button type="button" class="prompt-card" data-prompt="How do I format an APA 7th edition citation for an undergraduate capstone thesis?">
                                     <div class="prompt-card-header">
-                                        <span class="prompt-card-icon">📝</span>
                                         <span class="prompt-card-tag">Citing</span>
                                     </div>
                                     <div class="prompt-card-title">Citation Helper</div>
@@ -733,7 +729,7 @@
 
                         <!-- Typing Indicator -->
                         <div class="typing-indicator" id="typing-indicator">
-                            <div class="message-avatar">🤖</div>
+                            <div class="message-avatar bot-avatar"><img src="assets/logo.png" alt="Assistant" style="width: 100%; height: 100%; object-fit: contain;"></div>
                             <div class="typing-bubble">
                                 <div class="typing-provider-status">
                                     <span class="typing-provider-name" id="typing-provider-name">Mistral</span>
@@ -1650,7 +1646,7 @@
                             if (bubble) {
                                 const text = (bubble.textContent || bubble.innerText || '').trim();
                                 const timeText = time ? time.textContent.trim() : '';
-                                exportContent += `### ${isUser ? '👤 User' : '🤖 RE-CAPS AI'} *(${timeText})*\n\n${text}\n\n---\n\n`;
+                                exportContent += `### ${isUser ? 'User' : 'RE-CAPS Assistant'} *(${timeText})*\n\n${text}\n\n---\n\n`;
                             }
                         });
                     } else {

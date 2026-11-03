@@ -908,7 +908,7 @@ const Chatbot = {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot';
     messageDiv.innerHTML = `
-      <div class="message-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">⚠️</div>
+      <div class="message-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;color:#fff;">${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : '!'}</div>
       <div class="message-content">
         <div class="error-message">
           ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : ''}
@@ -1143,7 +1143,7 @@ const Chatbot = {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message bot';
     messageDiv.innerHTML = `
-      <div class="message-avatar">🤖</div>
+      <div class="message-avatar bot-avatar"><img src="assets/logo.png" alt="Assistant" style="width: 100%; height: 100%; object-fit: contain;"></div>
       <div class="message-content">
         <div class="error-message">
           ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : ''}

@@ -1313,22 +1313,37 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-bottom: 0.15rem;
 }
 
 .prompt-card-icon {
-    font-size: 1.05rem;
-    line-height: 1;
+    display: none !important;
 }
 
 .prompt-card-tag {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.15rem 0.45rem;
-    border-radius: 6px;
-    background: rgba(8, 212, 136, 0.12);
-    color: #08D488;
+    letter-spacing: 0.08em;
+    padding: 0;
+    border-radius: 0;
+    background: transparent !important;
+    background-color: transparent !important;
+    color: var(--text-secondary, #94a3b8);
+    line-height: 1.2;
+    transition: color 0.2s ease;
+}
+
+[data-theme="light"] .prompt-card-tag {
+    color: #64748b;
+}
+
+.prompt-card:hover .prompt-card-tag {
+    color: var(--text-primary, #f8fafc);
+}
+
+[data-theme="light"] .prompt-card:hover .prompt-card-tag {
+    color: #0f172a;
 }
 
 .prompt-card-title {
