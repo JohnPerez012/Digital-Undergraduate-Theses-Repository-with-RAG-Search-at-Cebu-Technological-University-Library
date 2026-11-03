@@ -23,9 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.documentElement.setAttribute('data-theme', newTheme);
             
             // Show toast notification
-            if (typeof showToast === 'function') {
-                showToast(`Switched to ${newTheme} mode`, 'success');
-            }
+            // Toast on theme switch suppressed per institutional UX directive
             
             // Log setting change
             if (window.ActivityService && typeof window.ActivityService.logSetting === 'function') {
@@ -41,6 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (toastToggle) {
         // Get saved preference
         const toastEnabled = localStorage.getItem('toastNotifications') !== 'false';
+        // Broadcast custom event so active surfaces stay in sync
+        window.dispatchEvent(new CustomEvent('toastNotificationsChanged', { detail: { enabled: toastEnabled } }));
         toastToggle.checked = toastEnabled;
 
         toastToggle.addEventListener('change', (e) => {

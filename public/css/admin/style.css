@@ -3298,16 +3298,10 @@ body {
     overflow: hidden;
 }
 
-/* Decorative top accent line */
+/* Decorative top accent line removed */
 .librarian-modal-content .pmodal-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #08D488 0%, #FCCC56 60%, #08D488 100%);
-    border-radius: 16px 16px 0 0;
+    display: none !important;
+    content: none !important;
 }
 
 /* Subtle glow orb in header bg */

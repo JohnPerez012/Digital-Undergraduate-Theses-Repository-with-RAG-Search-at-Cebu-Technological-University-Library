@@ -209,7 +209,7 @@
         
         // Optional: Show toast notification
         if (window.showToast) {
-            showToast(`Switched to ${newTheme} mode`, 'success', { tag: 'theme-toggle' });
+            // showToast suppressed per institutional UX directive
         }
     }
 

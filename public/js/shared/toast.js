@@ -342,6 +342,15 @@
             }
         }
 
+        // Check if user disabled toast notifications in Settings
+        if (!isImportant) {
+            try {
+                if (localStorage.getItem('toastNotifications') === 'false') {
+                    return null;
+                }
+            } catch (_) {}
+        }
+
         const normalizedType = normalizeType(type);
         const container = isImportant ? getCenterContainer() : getCornerContainer();
 
