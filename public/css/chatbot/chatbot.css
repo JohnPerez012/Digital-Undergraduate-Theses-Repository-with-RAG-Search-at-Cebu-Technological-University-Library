@@ -970,67 +970,15 @@
    CHATBOT FULLPAGE VIEW STYLES
    ===================================== */
 
-/* Countdown Badge for Delete Modal */
-.countdown-badge {
-    position: absolute;
-    top: -12px;
-    right: -12px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    font-weight: 700;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-    animation: countdown-pulse 1s infinite;
-    z-index: 10;
-    border: 3px solid var(--surface);
-}
-
-.countdown-badge span {
-    font-family: 'Roboto Mono', monospace;
-}
-
-@keyframes countdown-pulse {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-    }
-    50% {
-        transform: scale(1.05);
-        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.6);
-    }
-}
-
-/* Enhanced button states for delete confirmation */
-#delete-confirm-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    filter: grayscale(60%);
-}
-
-#delete-confirm-btn:not(:disabled) {
-    opacity: 1;
+/* Clear Conversation Modal Confirmation Button */
+#delete-confirm-btn {
     cursor: pointer;
-    animation: btn-enabled-pulse 2s infinite;
+    transition: all 0.2s ease;
 }
 
-#delete-confirm-btn:not(:disabled):hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-}
-
-@keyframes btn-enabled-pulse {
-    0%, 100% {
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-    }
-    50% {
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
-    }
+#delete-confirm-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
 }
 
 /* Fullpage Chatbot Container */
@@ -2061,10 +2009,12 @@
 }
 
 .export-modal-icon-wrap {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: rgba(16, 185, 129, 0.15);
+    width: auto;
+    height: auto;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     color: #10b981;
     display: flex;
     align-items: center;

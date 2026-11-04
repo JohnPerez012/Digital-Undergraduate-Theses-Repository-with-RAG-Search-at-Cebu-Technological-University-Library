@@ -65,10 +65,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 80px;
-    height: 80px;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
-    border-radius: 50%;
+    width: auto;
+    height: auto;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
     margin-bottom: 1rem;
 }
 
@@ -79,7 +81,9 @@
 }
 
 [data-theme="dark"] .logout-modal-icon {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .logout-modal-title {

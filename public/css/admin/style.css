@@ -5033,15 +5033,17 @@ form #project-id-input {
 }
 
 .delete-modal-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+    width: auto;
+    height: auto;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 1rem;
-    animation: warningPulse 2s infinite;
+    animation: none !important;
 }
 
 .delete-modal-icon svg {

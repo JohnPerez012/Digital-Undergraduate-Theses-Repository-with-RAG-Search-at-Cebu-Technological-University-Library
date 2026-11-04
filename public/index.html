@@ -891,10 +891,6 @@
     <div id="clear-modal" class="modal">
         <div class="modal-backdrop" onclick="closeChatbotModal('clear-modal')"></div>
         <div class="modal-content" style="position: relative;">
-            <!-- Countdown Badge (Top Right Corner) -->
-            <div id="countdown-badge" class="countdown-badge" style="display: none;">
-                <span id="countdown-number">5</span>
-            </div>
 
             <h2 class="modal-title">Clear Conversation</h2>
             <p style="text-align: center; color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 2rem;">
@@ -902,8 +898,7 @@
             </p>
             <div class="login-buttons-row">
                 <button class="btn btn-secondary btn-flex" onclick="closeChatbotModal('clear-modal')">Cancel</button>
-                <button class="btn btn-danger btn-flex" id="delete-confirm-btn" onclick="handleDeleteClick()"
-                    disabled>Yes, Delete</button>
+                <button class="btn btn-danger btn-flex" id="delete-confirm-btn" onclick="handleDeleteClick()">Yes, Delete</button>
             </div>
             <button class="modal-close" onclick="closeChatbotModal('clear-modal')">&times;</button>
         </div>
@@ -1226,21 +1221,11 @@
         function showChatbotModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.add('active');
-
-            // Special handling for clear-modal: start countdown
-            if (modalId === 'clear-modal') {
-                startDeleteCountdown();
-            }
         }
 
         function closeChatbotModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.classList.remove('active');
-
-            // Special handling for clear-modal: stop countdown
-            if (modalId === 'clear-modal') {
-                stopDeleteCountdown();
-            }
 
             if (modalId === 'delete-history-modal') {
                 pendingDeleteConversationId = null;
@@ -1248,76 +1233,12 @@
             }
         }
 
-        // Countdown timer for delete confirmation
-        let deleteCountdownInterval = null;
-        let deleteCountdownValue = 5;
-        let countdownActive = false;
-
         function handleDeleteClick() {
-            const deleteBtn = document.getElementById('delete-confirm-btn');
-
-            // If button is enabled and countdown is between 1-4, execute deletion
-            if (!deleteBtn.disabled && deleteCountdownValue > 0 && deleteCountdownValue < 5) {
-                if (typeof Chatbot !== 'undefined' && typeof Chatbot.executeClearConversation === 'function') {
-                    Chatbot.executeClearConversation();
-                }
+            if (typeof Chatbot !== 'undefined' && typeof Chatbot.executeClearConversation === 'function') {
+                Chatbot.executeClearConversation();
+            } else if (typeof closeChatbotModal === 'function') {
+                closeChatbotModal('clear-modal');
             }
-            // If countdown reached 0, restart it
-            else if (deleteCountdownValue === 0) {
-                startDeleteCountdown();
-            }
-        }
-
-        function startDeleteCountdown() {
-            const badge = document.getElementById('countdown-badge');
-            const numberSpan = document.getElementById('countdown-number');
-            const deleteBtn = document.getElementById('delete-confirm-btn');
-
-            // Reset values
-            deleteCountdownValue = 5;
-            numberSpan.textContent = deleteCountdownValue;
-            badge.style.display = 'flex';
-            deleteBtn.disabled = true;
-            countdownActive = true;
-
-            // Clear any existing interval
-            if (deleteCountdownInterval) {
-                clearInterval(deleteCountdownInterval);
-            }
-
-            // Start countdown
-            deleteCountdownInterval = setInterval(() => {
-                deleteCountdownValue--;
-                numberSpan.textContent = deleteCountdownValue;
-
-                // Enable button when countdown is between 1-4
-                if (deleteCountdownValue > 0 && deleteCountdownValue < 5) {
-                    deleteBtn.disabled = false;
-                }
-
-                if (deleteCountdownValue <= 0) {
-                    // Countdown finished - disable button
-                    clearInterval(deleteCountdownInterval);
-                    deleteCountdownInterval = null;
-                    countdownActive = false;
-                    deleteBtn.disabled = true;
-                }
-            }, 1000);
-        }
-
-        function stopDeleteCountdown() {
-            if (deleteCountdownInterval) {
-                clearInterval(deleteCountdownInterval);
-                deleteCountdownInterval = null;
-            }
-
-            const badge = document.getElementById('countdown-badge');
-            const deleteBtn = document.getElementById('delete-confirm-btn');
-
-            badge.style.display = 'none';
-            deleteBtn.disabled = true;
-            deleteCountdownValue = 5;
-            countdownActive = false;
         }
 
         // Pending delete conversation references

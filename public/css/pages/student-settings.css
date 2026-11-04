@@ -114,40 +114,11 @@ html, body, .dashboard-layout {
         font-size: 0.65rem;
     }
 
-/* --- Student Profile Card Log Out Button --- */
-.sset-profile-logout-wrap {
-    margin: 0.65rem 1.4rem 0;
-    width: auto;
-    box-sizing: border-box;
-}
-
-.sset-profile-logout-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1rem;
-    border-radius: 12px;
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    background: rgba(239, 68, 68, 0.05);
-    font-weight: 600;
-    font-size: 0.88rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
-}
-
-.sset-profile-logout-btn:hover {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.45);
-    color: #ef4444;
-}
-
-.sset-profile-logout-btn:active {
-    transform: scale(0.98);
-}
+    /* --- Student Profile Card Log Out Button (Mobile/Tablet Override) --- */
+    .sset-profile-logout-wrap {
+        margin: 0.65rem 1.15rem 0;
+        width: calc(100% - 2.3rem);
+    }
 
         /* ── Mobile Collapsible Settings Cards ── */
     .sset-block {
@@ -590,6 +561,43 @@ html, body, .dashboard-layout {
     color: var(--text-secondary);
     font-weight: 600;
     margin-top: 0.25rem;
+}
+
+/* --- Student Profile Card Log Out Button (Universal Base & Desktop) --- */
+.sset-profile-logout-wrap {
+    margin: 0.85rem 1.4rem 0;
+    width: calc(100% - 2.8rem);
+    box-sizing: border-box;
+    display: block;
+}
+
+.sset-profile-logout-btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border-radius: 12px;
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.05);
+    font-weight: 600;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.sset-profile-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #ef4444;
+}
+
+.sset-profile-logout-btn:active {
+    transform: scale(0.98);
 }
 
 /* --- Right Column: Settings Main Stack --- */
@@ -1486,11 +1494,13 @@ html, body, .dashboard-layout {
 }
 
 .export-modal-icon-wrap {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: rgba(8, 212, 136, 0.15);
-    color: var(--brand-green, #08D488);
+    width: auto;
+    height: auto;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #10b981;
     display: flex;
     align-items: center;
     justify-content: center;
