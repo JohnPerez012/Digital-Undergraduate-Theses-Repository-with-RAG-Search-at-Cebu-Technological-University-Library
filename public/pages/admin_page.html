@@ -1385,7 +1385,7 @@
                                 <label class="pform-label" for="librarian-name">Full Name <span
                                         class="pform-required">*</span></label>
                                 <input type="text" id="librarian-name" class="pform-input"
-                                    placeholder="e.g., Juan Dela Vina" required autocomplete="name">
+                                    placeholder="Enter Name" required autocomplete="name">
                             </div>
 
                             <div class="pform-field">
@@ -1399,22 +1399,21 @@
                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                             stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M12 5v14M5 12h14" />
-                                        </svg>
+                                        </svg>  
                                         @ctu.edu.ph
                                     </button>
                                 </div>
                                 <input type="email" id="librarian-email" class="pform-input"
-                                    placeholder="e.g., Allandejesus@ctu.edu.ph" required autocomplete="email"
+                                    placeholder="Enter Email" required autocomplete="email"
                                     autocapitalize="none">
-                                <span class="pform-label-hint">Official campus email recommended for institutional
-                                    verification</span>
+
                             </div>
                             <div class="pform-field">
                                 <label class="pform-label" for="librarian-position">Position / Designation <span
                                         class="pform-required">*</span></label>
                                 <div class="pform-input-wrapper">
                                     <input type="text" id="librarian-position" class="pform-input"
-                                        placeholder="e.g., Head Librarian, Cataloging Librarian, Reference Specialist" required list="librarian-position-list">
+                                        placeholder="Librarian Staff, or Job Order" required list="librarian-position-list">
                                     <datalist id="librarian-position-list">
                                         <option value="Head Librarian">
                                         <option value="Assistant Campus Librarian">
@@ -1426,7 +1425,6 @@
                                         <option value="College Library Staff">
                                     </datalist>
                                 </div>
-                                <span class="pform-label-hint">Official staff designation or assigned library role</span>
                             </div>
 
                         </div>
@@ -1531,23 +1529,6 @@
                                     </button>
                                 </div>
                                 <div class="pform-match-feedback" id="librarian-pwd-match-hint"></div>
-                            </div>
-
-                            <div class="pform-field">
-                                <div class="pform-info-box">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                    </svg>
-                                    <div>
-                                        <strong>Permissions Granted:</strong> Full repository management including
-                                        capstone publishing, editing, catalog indexing, and batch import. Librarians
-                                        cannot delete other administrator accounts or modify system settings.
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -2985,30 +2966,45 @@
             <div class="modal-body" style="padding: 1.5rem;">
                 <form id="admin-profile-form" onsubmit="return false;">
                     <div style="display: flex; flex-direction: column; gap: 1.15rem;">
-                        <div>
-                            <label for="admin-profile-name-input"
-                                style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Full
-                                Name / Institutional Title</label>
-                            <input type="text" id="admin-profile-name-input" class="pform-input"
-                                placeholder="e.g. Dr. Maria Santos, Head Librarian" required style="width: 100%;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+                            <div>
+                                <label for="admin-profile-firstname-input"
+                                    style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">First Name</label>
+                                <input type="text" id="admin-profile-firstname-input" class="pform-input"
+                                    placeholder="e.g. Maria" required style="width: 100%;">
+                            </div>
+                            <div>
+                                <label for="admin-profile-lastname-input"
+                                    style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Last Name</label>
+                                <input type="text" id="admin-profile-lastname-input" class="pform-input"
+                                    placeholder="e.g. Santos" required style="width: 100%;">
+                            </div>
                         </div>
                         <div>
                             <label for="admin-profile-email-input"
-                                style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Institutional
-                                Email</label>
+                                style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Institutional Email</label>
                             <input type="email" id="admin-profile-email-input" class="pform-input"
-                                placeholder="admin@ctu.edu.ph" disabled
+                                placeholder="admin@ctu.edu.ph" disabled readonly
                                 style="width: 100%; opacity: 0.75; cursor: not-allowed;">
                             <small
-                                style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Email
-                                is linked to Google Firebase Authentication and cannot be changed here.</small>
+                                style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Email is linked to Google Firebase Authentication and cannot be changed here.</small>
+                        </div>
+                        <div>
+                            <label for="admin-profile-personal-email-input"
+                                style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Personal Email <span style="color: var(--brand-green, #10b981); font-size: 0.75rem;">(Required)</span></label>
+                            <input type="email" id="admin-profile-personal-email-input" class="pform-input"
+                                placeholder="e.g. personal.email@gmail.com" required style="width: 100%;">
+                            <small
+                                style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Personal contact email required for administrative notifications and account recovery.</small>
                         </div>
                         <div>
                             <label for="admin-profile-dept-input"
-                                style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Department
-                                / Office</label>
+                                style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-primary);">Department / Office</label>
                             <input type="text" id="admin-profile-dept-input" class="pform-input"
-                                placeholder="University Library & Learning Resource Center" style="width: 100%;">
+                                value="University Library" disabled readonly
+                                style="width: 100%; opacity: 0.75; cursor: not-allowed;">
+                            <small
+                                style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">Institutional department permanently designated as University Library.</small>
                         </div>
                     </div>
                 </form>

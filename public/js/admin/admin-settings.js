@@ -551,18 +551,58 @@
     /**
      * Open Admin Profile Modal
      */
-    function openProfileModal() {
+    async function openProfileModal() {
         const modal = document.getElementById('admin-profile-modal');
         if (!modal) return;
 
-        const nameInput = document.getElementById('admin-profile-name-input');
+        const firstNameInput = document.getElementById('admin-profile-firstname-input');
+        const lastNameInput = document.getElementById('admin-profile-lastname-input');
         const emailInput = document.getElementById('admin-profile-email-input');
+        const personalEmailInput = document.getElementById('admin-profile-personal-email-input');
         const deptInput = document.getElementById('admin-profile-dept-input');
 
         const currentUser = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
         if (currentUser) {
-            if (nameInput) nameInput.value = currentUser.displayName || 'Administrator';
             if (emailInput) emailInput.value = currentUser.email || 'admin@ctu.edu.ph';
+            if (deptInput) deptInput.value = 'University Library';
+
+            // Fetch stored profile from Firestore users collection
+            if (typeof db !== 'undefined' && db) {
+                try {
+                    const doc = await db.collection('users').doc(currentUser.uid).get();
+                    if (doc.exists) {
+                        const data = doc.data() || {};
+                        if (firstNameInput && data.firstName) firstNameInput.value = data.firstName;
+                        if (lastNameInput && data.lastName) lastNameInput.value = data.lastName;
+                        if (personalEmailInput) personalEmailInput.value = data.personalEmail || '';
+
+                        // If firstName or lastName is missing in Firestore doc, parse from fullName or displayName
+                        if (firstNameInput && !firstNameInput.value) {
+                            const nameSource = data.fullName || currentUser.displayName || '';
+                            const parts = nameSource.trim().split(/\s+/);
+                            if (parts.length > 1) {
+                                if (lastNameInput && !lastNameInput.value) lastNameInput.value = parts.pop() || '';
+                                firstNameInput.value = parts.join(' ');
+                            } else if (parts.length === 1 && parts[0]) {
+                                firstNameInput.value = parts[0];
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.debug('[AdminSettings] Firestore profile read deferred:', err);
+                }
+            }
+
+            // Fallback parsing from currentUser.displayName if still empty
+            if (firstNameInput && !firstNameInput.value && currentUser.displayName) {
+                const parts = currentUser.displayName.trim().split(/\s+/);
+                if (parts.length > 1) {
+                    if (lastNameInput && !lastNameInput.value) lastNameInput.value = parts.pop() || '';
+                    firstNameInput.value = parts.join(' ');
+                } else if (parts.length === 1 && parts[0]) {
+                    firstNameInput.value = parts[0];
+                }
+            }
         }
 
         modal.classList.add('active');
@@ -584,17 +624,44 @@
      * Save Admin Profile Changes
      */
     async function saveAdminProfile() {
-        const nameInput = document.getElementById('admin-profile-name-input');
+        const firstNameInput = document.getElementById('admin-profile-firstname-input');
+        const lastNameInput = document.getElementById('admin-profile-lastname-input');
+        const personalEmailInput = document.getElementById('admin-profile-personal-email-input');
         const deptInput = document.getElementById('admin-profile-dept-input');
         const saveBtn = document.getElementById('admin-profile-save-btn');
 
-        const newName = nameInput ? nameInput.value.trim() : '';
-        const dept = deptInput ? deptInput.value.trim() : '';
+        const firstName = firstNameInput ? firstNameInput.value.trim() : '';
+        const lastName = lastNameInput ? lastNameInput.value.trim() : '';
+        const personalEmail = personalEmailInput ? personalEmailInput.value.trim() : '';
+        const dept = 'University Library'; // Always University Library per institutional specification
 
-        if (!newName) {
-            if (typeof showToast === 'function') showToast('❌ Full name is required', 'error');
+        if (!firstName) {
+            if (typeof showToast === 'function') showToast('First name is required', 'error');
+            firstNameInput?.focus();
             return;
         }
+
+        if (!lastName) {
+            if (typeof showToast === 'function') showToast('Last name is required', 'error');
+            lastNameInput?.focus();
+            return;
+        }
+
+        if (!personalEmail) {
+            if (typeof showToast === 'function') showToast('Personal email is required', 'error');
+            personalEmailInput?.focus();
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(personalEmail)) {
+            if (typeof showToast === 'function') showToast('Please enter a valid personal email address', 'error');
+            personalEmailInput?.focus();
+            return;
+        }
+
+        const fullName = `${firstName} ${lastName}`.trim();
 
         if (saveBtn) {
             saveBtn.disabled = true;
@@ -605,30 +672,38 @@
             const currentUser = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
             if (currentUser) {
                 // Update Firebase Auth Display Name
-                await currentUser.updateProfile({ displayName: newName });
+                await currentUser.updateProfile({ displayName: fullName });
 
                 // Update Firestore user document
                 if (typeof db !== 'undefined' && db) {
-                    await db.collection('users').doc(currentUser.uid).update({
-                        fullName: newName,
+                    await db.collection('users').doc(currentUser.uid).set({
+                        firstName: firstName,
+                        lastName: lastName,
+                        fullName: fullName,
+                        displayName: fullName,
+                        personalEmail: personalEmail,
                         department: dept,
                         updatedAt: new Date().toISOString()
-                    });
+                    }, { merge: true });
                 }
 
                 // Update UI elements across dashboard
                 const railAdminName = document.getElementById('admin-name');
                 const settingsAdminName = document.getElementById('settings-admin-name');
-                if (railAdminName) railAdminName.textContent = newName;
-                if (settingsAdminName) settingsAdminName.textContent = newName;
+                const avatarInitials = document.getElementById('aset-avatar-initials');
+                if (railAdminName) railAdminName.textContent = fullName;
+                if (settingsAdminName) settingsAdminName.textContent = fullName;
+                if (avatarInitials && firstName) {
+                    avatarInitials.textContent = firstName.charAt(0).toUpperCase();
+                }
 
                 closeProfileModal();
 
                 if (typeof ActivityService !== 'undefined' && typeof ActivityService.logAdmin === 'function') {
                     ActivityService.logAdmin(
                         'profile_updated',
-                        newName,
-                        `Updated administrator profile information: ${newName} (${dept || 'Library Administration'}).`
+                        fullName,
+                        `Updated administrator profile: ${fullName} (${dept}) with personal contact ${personalEmail}.`
                     );
                 }
 
@@ -639,7 +714,7 @@
         } catch (err) {
             console.error('[AdminSettings] Failed to update admin profile:', err);
             if (typeof showToast === 'function') {
-                showToast('❌ Failed to update profile: ' + err.message, 'error');
+                showToast('Failed to update profile: ' + err.message, 'error');
             }
         } finally {
             if (saveBtn) {
