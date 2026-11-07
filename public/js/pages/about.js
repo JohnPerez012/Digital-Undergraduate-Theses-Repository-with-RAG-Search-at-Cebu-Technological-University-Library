@@ -220,7 +220,7 @@
       features: [
         'Natural-language semantic search via Pinecone Vector Database',
         'Conversational Q&A with the RAG Assistant grounded in CTU theses',
-        'Instant multi-format citation export (APA 7th, IEEE, MLA, Chicago, BibTeX)',
+        'Instant multi-format citation export (APA 7th, MLA 9th, IEEE)',
         'Personal Cloud Bookmarking synced across devices'
       ],
       ctaText: 'Start Researching',
@@ -235,7 +235,7 @@
       features: [
         'Natural-language semantic search via Pinecone Vector Database',
         'Conversational Q&A with the RAG Assistant grounded in CTU theses',
-        'Instant multi-format citation export (APA 7th, IEEE, MLA, Chicago)',
+        'Instant multi-format citation export (APA 7th, MLA 9th, IEEE)',
         'Personal Cloud Bookmarking and research activity telemetry'
       ],
       ctaText: 'Access Teacher Portal',
@@ -328,9 +328,7 @@
     apa: 'Cadaro, J., Cabardo, C., Conde, C., De Jesus, A., & Ompoy, R. (2025). IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu. Cebu Technological University — Daanbantayan Campus Library.',
     ieee: 'J. Cadaro, C. Cabardo, C. Conde, A. De Jesus, and R. Ompoy, "IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu," Undergraduate Capstone Project, Dept. Information Technology, Cebu Technological Univ., Daanbantayan Campus, 2025.',
     mla: 'Cadaro, John, et al. "IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu." Undergraduate Capstone Project, Cebu Technological University — Daanbantayan Campus, 2025.',
-    chicago: 'Cadaro, John, Carmela Cabardo, Christine Conde, Allan De Jesus, and Rheina Ompoy. "IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu." Undergraduate thesis, Cebu Technological University — Daanbantayan Campus, 2025.',
-    harvard: 'Cadaro, J., Cabardo, C., Conde, C., De Jesus, A. and Ompoy, R., 2025. IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu. Undergraduate thesis. Cebu Technological University — Daanbantayan Campus Library.',
-    bibtex: `@thesis{cadaro2025iot,\n  author = {Cadaro, John and Cabardo, Carmela and Conde, Christine and De Jesus, Allan and Ompoy, Rheina},\n  title  = {IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu},\n  school = {Cebu Technological University -- Daanbantayan Campus},\n  year   = {2025},\n  type   = {Undergraduate Capstone Project}\n}`
+
   };
 
   function initCitationPlayground() {

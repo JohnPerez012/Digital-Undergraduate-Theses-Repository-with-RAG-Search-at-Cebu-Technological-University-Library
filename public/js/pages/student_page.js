@@ -383,8 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     result = `${authors} (${year}). ${title}. Cebu Technological University Library Repository.`;
                 } else if (format === 'mla') {
                     result = `${authors}. "${title}." Cebu Technological University, ${year}.`;
-                } else if (format === 'chicago') {
-                    result = `${authors}. "${title}." Undergraduate thesis, Cebu Technological University, ${year}.`;
                 } else if (format === 'ieee') {
                     result = `${authors}, "${title}," CTU Undergraduate Thesis, Cebu, Philippines, ${year}.`;
                 }

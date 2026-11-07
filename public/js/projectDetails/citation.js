@@ -119,9 +119,7 @@ const Citation = {
       case 'mla':
         citation = this.generateMLA();
         break;
-      case 'chicago':
-        citation = this.generateChicago();
-        break;
+
       case 'ieee':
         citation = this.generateIEEE();
         break;
@@ -155,17 +153,7 @@ const Citation = {
     return `${authors} "${title}." Undergraduate thesis, Cebu Technological University - Daanbantayan Campus, ${year}. CTU RECAP Repository.`;
   },
 
-  /**
-   * Generate Chicago citation
-   */
-  generateChicago() {
-    const project = this.currentProject;
-    const authors = this.formatAuthorsChicago(project.authors);
-    const title = project.title || 'Untitled';
-    const year = project.year || 'n.d.';
-    
-    return `${authors} "${title}." Undergraduate thesis, Cebu Technological University - Daanbantayan Campus, ${year}.`;
-  },
+
 
   /**
    * Generate IEEE citation
@@ -242,24 +230,7 @@ const Citation = {
     return `${otherAuthors}, and ${lastAuthor}.`;
   },
 
-  /**
-   * Format authors for Chicago
-   */
-  formatAuthorsChicago(authors) {
-    if (!authors || authors.length === 0) return 'Author Unknown';
-    
-    const formatted = authors.map(author => {
-      const parsed = this.parseAuthor(author);
-      return parsed ? parsed.mlaAuthor : '';
-    }).filter(Boolean);
 
-    if (formatted.length === 0) return 'Author Unknown.';
-    if (formatted.length === 1) return formatted[0] + '.';
-    if (formatted.length === 2) return `${formatted[0]} and ${formatted[1]}.`;
-    if (formatted.length === 3) return `${formatted[0]}, ${formatted[1]}, and ${formatted[2]}.`;
-    
-    return `${formatted[0]} et al.`;
-  },
 
   /**
    * Format authors for IEEE

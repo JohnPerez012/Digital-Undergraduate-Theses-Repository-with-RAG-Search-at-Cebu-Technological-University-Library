@@ -2,7 +2,7 @@
  * ==========================================================================
  * RE-CAPS CITATION GENERATOR & BIBLIOGRAPHY STUDIO
  * Full-featured academic citation generator supporting APA 7th, MLA 9th,
- * Chicago 17th, IEEE, Harvard, and BibTeX with live preview, in-text
+ * and IEEE with live preview, in-text
  * citation builder, import from saved projects, and one-click copy.
  * ==========================================================================
  */
@@ -48,7 +48,7 @@
             this.intextNarrative = document.getElementById('citation-intext-narrative');
 
             this.copyRefBtn = document.getElementById('btn-copy-reference');
-            this.copyBibtexBtn = document.getElementById('btn-copy-bibtex');
+            
             this.downloadTxtBtn = document.getElementById('btn-download-txt');
             this.copyParenBtn = document.getElementById('btn-copy-parenthetical');
             this.copyNarrBtn = document.getElementById('btn-copy-narrative');
@@ -93,7 +93,7 @@
                 <div class="citation-author-badge">1</div>
                 <div class="citation-author-input-wrap">
                     <input type="text" class="citation-text-input citation-author-item-input" 
-                           placeholder="Author full name (e.g., Juan Dela Cruz or Dela Cruz, Juan)" 
+                           placeholder="Author full name" 
                            value="${this.escapeHtml(value)}">
                 </div>
                 <button type="button" class="btn-remove-citation-author" title="Remove author" aria-label="Remove author">
@@ -317,13 +317,7 @@
                 });
             }
 
-            // Copy BibTeX Button
-            if (this.copyBibtexBtn) {
-                this.copyBibtexBtn.addEventListener('click', () => {
-                    const bibtex = this.buildBibTeX();
-                    this.copyToClipboard(bibtex, this.copyBibtexBtn, 'Copy BibTeX');
-                });
-            }
+
 
             // Download Text Button
             if (this.downloadTxtBtn) {
@@ -521,7 +515,7 @@
         setActionsEnabled(enabled) {
             const btns = [
                 this.copyRefBtn,
-                this.copyBibtexBtn,
+                
                 this.downloadTxtBtn,
                 this.copyParenBtn,
                 this.copyNarrBtn
@@ -643,11 +637,11 @@
                             <p class="citation-empty-text">Enter your thesis title and author on the left, or choose a capstone from <strong>Import Saved Capstone</strong> to format your citation instantly.</p>
                             <div class="citation-empty-hint">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                <span>Supports APA 7th, MLA 9th, Chicago 17th, IEEE, Harvard &amp; BibTeX</span>
+                                <span>Supports APA 7th, MLA 9th &amp; IEEE</span>
                             </div>
                         </div>
                     `;
-                    this.displayBox.classList.remove('bibtex-mode');
+                    
                 }
                 if (this.legacyOutputBox) {
                     this.legacyOutputBox.textContent = '';
@@ -694,13 +688,7 @@
                     parenthetical = this.buildInTextParenMLA(authors);
                     narrative = this.buildInTextNarrativeMLA(authors);
                     break;
-                case 'chicago':
-                    formatTitle = 'Chicago 17th (Author-Date)';
-                    htmlCitation = this.buildChicago(formatData, authors, true);
-                    plainTextCitation = this.buildChicago(formatData, authors, false);
-                    parenthetical = this.buildInTextParenChicago(authors, effectiveYear);
-                    narrative = this.buildInTextNarrativeChicago(authors, effectiveYear);
-                    break;
+
                 case 'ieee':
                     formatTitle = 'IEEE Style';
                     htmlCitation = this.buildIEEE(formatData, authors, true);
@@ -708,31 +696,12 @@
                     parenthetical = '[1]';
                     narrative = `${authors[0].last} et al. [1]`;
                     break;
-                case 'harvard':
-                    formatTitle = 'Harvard (Author-Date)';
-                    htmlCitation = this.buildHarvard(formatData, authors, true);
-                    plainTextCitation = this.buildHarvard(formatData, authors, false);
-                    parenthetical = this.buildInTextParenHarvard(authors, effectiveYear);
-                    narrative = this.buildInTextNarrativeHarvard(authors, effectiveYear);
-                    break;
-                case 'bibtex':
-                    formatTitle = 'BibTeX Entry';
-                    const bib = this.buildBibTeX(formatData, authors);
-                    htmlCitation = `<pre style="margin: 0; font-family: inherit;">${this.escapeHtml(bib)}</pre>`;
-                    plainTextCitation = bib;
-                    parenthetical = `\\cite{${this.makeCitationKey(authors, effectiveYear)}}`;
-                    narrative = `\\citet{${this.makeCitationKey(authors, effectiveYear)}}`;
-                    break;
+
             }
 
             // Update DOM
             if (this.displayBox) {
-                if (this.currentFormat === 'bibtex') {
-                    this.displayBox.innerHTML = htmlCitation;
-                } else {
-                    this.displayBox.innerHTML = `<div class="citation-academic-entry">${htmlCitation}</div>`;
-                }
-                this.displayBox.classList.toggle('bibtex-mode', this.currentFormat === 'bibtex');
+                this.displayBox.innerHTML = `<div class="citation-academic-entry">${htmlCitation}</div>`;
             }
 
             if (this.legacyOutputBox) {
@@ -862,37 +831,6 @@
             return `${authors[0].last} et al.`;
         },
 
-        // Chicago 17th
-        buildChicago(data, authors, isHtml = false) {
-            let authorStr = '';
-            if (authors.length === 1) {
-                const first = authors[0].first || authors[0].initials;
-                authorStr = `${authors[0].last}, ${first}`;
-            } else if (authors.length === 2) {
-                const first1 = authors[0].first || authors[0].initials;
-                const first2 = authors[1].first || authors[1].initials;
-                authorStr = `${authors[0].last}, ${first1}, and ${first2} ${authors[1].last}`;
-            } else {
-                const first = authors[0].first || authors[0].initials;
-                authorStr = `${authors[0].last}, ${first}, et al`;
-            }
-
-            const title = isHtml ? `"${this.escapeHtml(data.title)}"` : `"${data.title}"`;
-            return `${authorStr}. ${data.year}. ${title}. Undergraduate thesis, ${data.institution}.`;
-        },
-
-        buildInTextParenChicago(authors, year) {
-            if (authors.length === 1) return `(${authors[0].last} ${year})`;
-            if (authors.length === 2) return `(${authors[0].last} and ${authors[1].last} ${year})`;
-            return `(${authors[0].last} et al. ${year})`;
-        },
-
-        buildInTextNarrativeChicago(authors, year) {
-            if (authors.length === 1) return `${authors[0].last} (${year})`;
-            if (authors.length === 2) return `${authors[0].last} and ${authors[1].last} (${year})`;
-            return `${authors[0].last} et al. (${year})`;
-        },
-
         // IEEE
         buildIEEE(data, authors, isHtml = false) {
             let authorStr = '';
@@ -908,61 +846,13 @@
             return `${authorStr}, ${title}, Undergraduate thesis, ${data.institution}, ${data.year}.`;
         },
 
-        // Harvard
-        buildHarvard(data, authors, isHtml = false) {
-            let authorStr = '';
-            if (authors.length === 1) {
-                authorStr = `${authors[0].last}, ${authors[0].initials}`;
-            } else if (authors.length === 2) {
-                authorStr = `${authors[0].last}, ${authors[0].initials} and ${authors[1].last}, ${authors[1].initials}`;
-            } else {
-                authorStr = `${authors[0].last}, ${authors[0].initials} et al.`;
-            }
-
-            const title = isHtml ? `<em>${this.escapeHtml(data.title)}</em>` : data.title;
-            return `${authorStr} (${data.year}) ${title}, Undergraduate thesis, ${data.institution}.`;
-        },
-
-        buildInTextParenHarvard(authors, year) {
-            if (authors.length === 1) return `(${authors[0].last}, ${year})`;
-            if (authors.length === 2) return `(${authors[0].last} and ${authors[1].last}, ${year})`;
-            return `(${authors[0].last} et al., ${year})`;
-        },
-
-        buildInTextNarrativeHarvard(authors, year) {
-            if (authors.length === 1) return `${authors[0].last} (${year})`;
-            if (authors.length === 2) return `${authors[0].last} and ${authors[1].last} (${year})`;
-            return `${authors[0].last} et al. (${year})`;
-        },
-
-        // BibTeX
-        buildBibTeX(data = this.getMetadata(), authors = this.parseAuthors(data.authors)) {
-            const key = this.makeCitationKey(authors, data.year);
-            const bibAuthors = authors.map(a => `${a.last}, ${a.first || a.initials}`).join(' and ');
-            return `@mastersthesis{${key},
-  author  = {${bibAuthors}},
-  title   = {{${data.title}}},
-  school  = {${data.institution}},
-  year    = {${data.year}},
-  note    = {${data.program ? data.program + ' Undergraduate Thesis' : 'Undergraduate Thesis'}}
-}`;
-        },
-
-        makeCitationKey(authors, year) {
-            const firstLastName = (authors[0]?.last || 'Author').replace(/[^a-zA-Z]/g, '').toLowerCase();
-            return `${firstLastName}${year}`;
-        },
-
         getPlainTextReference() {
             const data = this.getMetadata();
             const authors = this.parseAuthors(data.authors);
             switch (this.currentFormat) {
                 case 'apa': return this.buildAPA(data, authors, false);
                 case 'mla': return this.buildMLA(data, authors, false);
-                case 'chicago': return this.buildChicago(data, authors, false);
                 case 'ieee': return this.buildIEEE(data, authors, false);
-                case 'harvard': return this.buildHarvard(data, authors, false);
-                case 'bibtex': return this.buildBibTeX(data, authors);
                 default: return this.buildAPA(data, authors, false);
             }
         },
@@ -1007,10 +897,8 @@
                 }
                 return;
             }
-            const isBib = this.currentFormat === 'bibtex';
-            const content = isBib ? this.buildBibTeX() : this.getPlainTextReference();
-            const ext = isBib ? 'bib' : 'txt';
-            const filename = `citation_${Date.now()}.${ext}`;
+            const content = this.getPlainTextReference();
+            const filename = `citation_${Date.now()}.txt`;
 
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const link = document.createElement('a');

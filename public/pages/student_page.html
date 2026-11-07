@@ -199,7 +199,7 @@
                             </div>
                             <div class="stat-card-value" id="activities-count">0</div>
                             <div class="stat-card-label">Citation Generator</div>
-                            <div class="stat-card-subtext">Format citations in APA 7th, MLA, Chicago &amp; IEEE</div>
+                            <div class="stat-card-subtext">Format citations in APA 7th, MLA 9th &amp; IEEE</div>
                             <div class="stat-card-action">
                                 <span>Generate Citation</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
@@ -354,12 +354,9 @@
                     <!-- Studio Header -->
                     <div class="citation-studio-header">
                         <div class="citation-header-text">
-                            <div class="citation-badge">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                                <span>Academic Bibliography Studio</span>
-                            </div>
+
                             <h2 class="citation-main-title">Citation Generator</h2>
-                            <p class="citation-main-desc">Generate authoritative bibliographic references, in-text citations, and BibTeX records for academic capstone manuscripts.</p>
+                            <p class="citation-main-desc">Generate authoritative bibliographic references and in-text citations for academic capstone manuscripts.</p>
                         </div>
 
                         <div class="citation-header-actions">
@@ -407,19 +404,13 @@
                         <div class="citation-format-pills" role="tablist">
                             <button type="button" class="citation-format-pill active" data-format="apa" role="tab" aria-selected="true">APA 7th</button>
                             <button type="button" class="citation-format-pill" data-format="mla" role="tab" aria-selected="false">MLA 9th</button>
-                            <button type="button" class="citation-format-pill" data-format="chicago" role="tab" aria-selected="false">Chicago 17th</button>
                             <button type="button" class="citation-format-pill" data-format="ieee" role="tab" aria-selected="false">IEEE</button>
-                            <button type="button" class="citation-format-pill" data-format="harvard" role="tab" aria-selected="false">Harvard</button>
-                            <button type="button" class="citation-format-pill" data-format="bibtex" role="tab" aria-selected="false">BibTeX</button>
                         </div>
                         <!-- Hidden select for backwards compatibility -->
                         <select id="citation-format" style="display: none;">
                             <option value="apa" selected>APA Style</option>
                             <option value="mla">MLA Style</option>
-                            <option value="chicago">Chicago Style</option>
                             <option value="ieee">IEEE Style</option>
-                            <option value="harvard">Harvard Style</option>
-                            <option value="bibtex">BibTeX</option>
                         </select>
                     </div>
 
@@ -442,7 +433,7 @@
                                         <span>Project / Thesis Title</span>
                                         <span class="citation-required-star">*</span>
                                     </label>
-                                    <input type="text" id="citation-title" class="citation-text-input" placeholder="e.g., Automated IoT Crop Irrigation System Using LoRaWAN">
+                                    <input type="text" id="citation-title" class="citation-text-input" placeholder="Title">
                                 </div>
 
                                 <!-- Authors (Dynamic Add-Field Builder) -->
@@ -452,7 +443,6 @@
                                             <span>Author(s)</span>
                                             <span class="citation-required-star">*</span>
                                         </label>
-                                        <span class="citation-field-hint-pill">No strict formatting required &mdash; add each author</span>
                                     </div>
 
                                     <!-- Dynamic Authors Container -->
@@ -472,7 +462,6 @@
                                                 <span>Clear Authors</span>
                                             </button>
                                         </div>
-                                        <span class="citation-authors-tip">Type or paste any author name (e.g. Juan Dela Cruz, or Dela Cruz, Juan)</span>
                                     </div>
 
                                     <!-- Hidden input for backwards-compatibility -->
@@ -549,10 +538,7 @@
                                 <div id="citation-output" style="display: none;"></div>
 
                                 <div class="citation-output-toolbar">
-                                    <button type="button" class="btn-citation-tool" id="btn-copy-bibtex">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                                        <span>Copy BibTeX</span>
-                                    </button>
+                                    
                                     <button type="button" class="btn-citation-tool" id="btn-download-txt">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                         <span>Download (.txt)</span>
