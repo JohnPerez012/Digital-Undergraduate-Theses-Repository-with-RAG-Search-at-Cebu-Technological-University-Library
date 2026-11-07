@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchStatsEl = document.getElementById('sset-stat-searches');
 
         const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-        const displayName = (user && user.displayName) || sessionStorage.getItem('userName') || document.getElementById('student-name')?.textContent || 'Student Researcher';
-        const email = (user && user.email) || sessionStorage.getItem('userEmail') || 'student@ctu.edu.ph';
+        const displayName = (user && user.displayName) || sessionStorage.getItem('userName') || document.getElementById('student-name')?.textContent || document.getElementById('teacher-name')?.textContent || 'Faculty / Researcher';
+        const email = (user && user.email) || sessionStorage.getItem('userEmail') || 'user@ctu.edu.ph';
 
         if (studentNameEl) studentNameEl.textContent = displayName;
         if (userEmailDisplay) userEmailDisplay.textContent = email;
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             studentAvatar.style.display = 'block';
             if (avatarInitials) avatarInitials.style.display = 'none';
         } else if (avatarInitials) {
-            const initial = (displayName.trim().charAt(0) || 'S').toUpperCase();
+            const initial = (displayName.trim().charAt(0) || 'U').toUpperCase();
             avatarInitials.textContent = initial;
         }
 
@@ -118,14 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Strictly student role check & ID hydration
+        // Institutional ID hydration (Student or Faculty)
         const studentIdEl = document.getElementById('settings-student-id-card');
         const studentIdWrap = document.getElementById('sset-student-id-wrap');
         const role = sessionStorage.getItem('userType') || localStorage.getItem('userType');
-        const isStudent = !role || role === 'student';
 
-        if (isStudent && studentIdWrap && studentIdEl) {
-            const cachedId = sessionStorage.getItem('studentId');
+        if (studentIdWrap && studentIdEl) {
+            const cachedId = sessionStorage.getItem('studentId') || sessionStorage.getItem('teacherId') || sessionStorage.getItem('idNumber') || sessionStorage.getItem('employeeId');
             if (cachedId) {
                 studentIdEl.textContent = cachedId;
                 studentIdWrap.style.display = 'inline-flex';
@@ -133,10 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 db.collection('users').doc(user.uid).get().then(doc => {
                     if (doc.exists) {
                         const data = doc.data() || {};
-                        const sid = data.studentId || data.idNumber;
-                        const uType = data.userType || role;
-                        if (uType === 'student' && sid) {
-                            sessionStorage.setItem('studentId', sid);
+                        const sid = data.studentId || data.teacherId || data.employeeId || data.idNumber;
+                        if (sid) {
+                            sessionStorage.setItem('idNumber', sid);
                             studentIdEl.textContent = sid;
                             studentIdWrap.style.display = 'inline-flex';
                         } else {
@@ -144,9 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 }).catch(err => console.debug('[Settings] ID retrieval deferred:', err));
+            } else {
+                studentIdWrap.style.display = 'none';
             }
-        } else if (studentIdWrap) {
-            studentIdWrap.style.display = 'none';
         }
     }
 
@@ -274,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Copy Buttons for Student and Teacher
     setupCopyActionBtn('sset-card-copy-email-btn', 'settings-user-email-card', 'Email address copied to clipboard', 'Copy email address');
     setupCopyActionBtn('tset-card-copy-email-btn', 'settings-user-email', 'Email address copied to clipboard', 'Copy email address');
-    setupCopyActionBtn('sset-card-copy-id-btn', 'settings-student-id-card', 'Student ID copied to clipboard', 'Copy Student ID');
+    setupCopyActionBtn('sset-card-copy-id-btn', 'settings-student-id-card', 'Institutional ID copied to clipboard', 'Copy Institutional ID');
 
     // Student Contributions Action Buttons
     document.getElementById('sset-btn-saved')?.addEventListener('click', () => {
