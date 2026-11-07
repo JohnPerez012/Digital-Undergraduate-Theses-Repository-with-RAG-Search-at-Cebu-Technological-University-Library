@@ -658,19 +658,6 @@ const Chatbot = {
             bubbleDiv.innerHTML = formattedMessage;
           }
 
-          // Check for RAG project usage
-          const hasProjectUsage = (relevantProjects.length > 0 && this.detectProjectUsage(finalRawText, relevantProjects));
-          if (hasProjectUsage) {
-            const ragBadge = document.createElement('div');
-            ragBadge.style.cssText = 'display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;';
-            ragBadge.innerHTML = `
-              ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
-              ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
-            `;
-            const contentDiv = botMessageDiv ? botMessageDiv.querySelector('.message-content') : null;
-            if (contentDiv) contentDiv.appendChild(ragBadge);
-          }
-
           // Add Copy Action Button
           const actionsDiv = document.createElement('div');
           actionsDiv.className = 'message-actions';
@@ -690,7 +677,7 @@ const Chatbot = {
             text: cleanResponseText,
             time: this.getCurrentTime(),
             provider: finalProvider,
-            projectsUsed: hasProjectUsage ? relevantProjects.length : 0,
+            projectsUsed: relevantProjects.length,
             relevantProjects: relevantProjects
           });
 
@@ -1052,25 +1039,6 @@ const Chatbot = {
       formattedMessage = this.formatMessage(messageText);
     }
     
-    // Build RAG badge ONLY if:
-    // 1. Projects were found (relevantProjects.length > 0)
-    // 2. AND the response actually references projects (contains project titles or numbers)
-    let ragBadge = '';
-    if (relevantProjects.length > 0) {
-      // Check if the AI response actually used the projects
-      // Look for project titles, keywords, or specific data in the response
-      const usedProjects = this.detectProjectUsage(messageText, relevantProjects);
-      
-      if (usedProjects) {
-        ragBadge = `
-          <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;">
-            ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
-            ${relevantProjects.length} project${relevantProjects.length !== 1 ? 's' : ''} referenced
-          </div>
-        `;
-      }
-    }
-    
     messageDiv.innerHTML = `
       <div class="message-avatar bot-avatar">
         <img src="${providerLogo}" 
@@ -1097,43 +1065,6 @@ const Chatbot = {
     
     // Update clear button visibility
     this.updateClearButtonVisibility();
-  },
-  
-  /**
-   * Detect if the AI response actually used project data
-   */
-  detectProjectUsage(responseText, projects) {
-    if (!responseText || !projects || projects.length === 0) return false;
-    
-    const lowerResponse = responseText.toLowerCase();
-    
-    // Check for project-related keywords that indicate actual project discussion
-    const projectKeywords = [
-      'project', 'capstone', 'research', 'thesis',
-      'authors', 'adviser', 'abstract', 'year',
-      'program', 'study', 'paper', 'document'
-    ];
-    
-    // Check for numbers that match project count
-    const hasProjectCount = lowerResponse.includes(`${projects.length} project`);
-    
-    // Check if response mentions specific project titles
-    const mentionsProjects = projects.some(p => {
-      if (!p.title) return false;
-      const titleWords = p.title.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-      return titleWords.some(word => lowerResponse.includes(word));
-    });
-    
-    // Check if response has typical project-related content
-    const hasProjectKeywords = projectKeywords.some(kw => lowerResponse.includes(kw));
-    
-    // Don't show badge for generic greetings
-    const isGenericGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|greetings)/i.test(lowerResponse);
-    
-    if (isGenericGreeting) return false;
-    
-    // Show badge only if response actually discusses projects
-    return hasProjectCount || mentionsProjects || (hasProjectKeywords && responseText.length > 100);
   },
   
   /**
@@ -1355,18 +1286,6 @@ const Chatbot = {
     const providerLogo = this.getProviderLogo(displayProvider);
     const displayTime = time || this.getCurrentTime();
 
-    // RAG badge HTML if projects were used
-    let ragBadgeHtml = '';
-    const numProjects = projectsUsed || (relevantProjects && relevantProjects.length) || 0;
-    if (numProjects > 0) {
-      ragBadgeHtml = `
-        <div style="display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #4CAF50, #45a049); color: white; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 12px; margin-top: 0.5rem;">
-          ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('rag-book') : ''}
-          ${numProjects} project${numProjects !== 1 ? 's' : ''} referenced
-        </div>
-      `;
-    }
-
     messageDiv.innerHTML = `
       <div class="message-avatar bot-avatar">
         <img src="${providerLogo}" 
@@ -1379,7 +1298,6 @@ const Chatbot = {
         <div class="message-time">
           <span class="provider-label" style="opacity: 0.6;">${displayProvider}</span> • ${displayTime}
         </div>
-        ${ragBadgeHtml}
         <div class="message-actions">
           <button class="message-action-btn" onclick="Chatbot.copyMessage(this)">
             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('copy-sm') : ''}
