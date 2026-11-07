@@ -51,7 +51,7 @@ class NetworkMonitor {
                     if (!self._lastFirestoreToast || (Date.now() - self._lastFirestoreToast > 10000)) {
                         self._lastFirestoreToast = Date.now();
                         self.showToast(
-                            '⚠️ Database Notice: Could not reach Cloud Firestore backend within 10 seconds. The app is operating in offline mode.',
+                            'Database Notice: Could not reach Cloud Firestore backend within 10 seconds. The app is operating in offline mode.',
                             'warning',
                             9000
                         );
@@ -88,7 +88,7 @@ class NetworkMonitor {
             this.toastId = null;
         }
         
-        this.showToast('🌐 You\'re back online!', 'success', 3000);
+        this.showToast('You\'re back online!', 'success', 3000);
         
         // If Firestore previously had trouble, attempt auto-reconnect
         if (window.firestoreConnectionTrouble) {
@@ -113,7 +113,7 @@ class NetworkMonitor {
         
         // Show persistent offline toast
         this.toastId = this.showToast(
-            '❌ No internet connection. Some features may not work properly.',
+            'No internet connection. Some features may not work properly.',
             'error',
             null // persistent
         );
@@ -197,15 +197,15 @@ class NetworkMonitor {
         
         switch (type) {
             case 'slow':
-                message = '⚠️ Slow internet connection detected. Loading may take longer than usual.';
+                message = 'Slow internet connection detected. Loading may take longer than usual.';
                 duration = 6000;
                 break;
             case 'moderate':
-                message = '⚠️ Internet connection is slower than normal. Some features may be affected.';
+                message = 'Internet connection is slower than normal. Some features may be affected.';
                 duration = 5000;
                 break;
             case 'poor':
-                message = '⚠️ Poor internet connection. Features may not work properly.';
+                message = 'Poor internet connection. Features may not work properly.';
                 duration = 7000;
                 break;
         }
@@ -261,9 +261,11 @@ class NetworkMonitor {
         toast.dataset.toastId = toastId;
         
         toast.innerHTML = `
-            <div class="toast-message">${message}</div>
-            <button class="toast-close" aria-label="Close notification">&times;</button>
+            <div class="toast-message"></div>
+            <button class="toast-close" aria-label="Close notification">✕</button>
         `;
+        const msgEl = toast.querySelector('.toast-message');
+        if (msgEl) msgEl.textContent = String(message || '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{200D}\u{FE00}-\u{FE0F}\u{20E3}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{25AA}\u{25AB}\u{25B6}\u{25C0}\u{25FB}-\u{25FE}\u{2139}\u{00A9}\u{00AE}]/gu, '').trim();
 
         const closeBtn = toast.querySelector('.toast-close');
         if (closeBtn) {
@@ -343,40 +345,40 @@ if (document.readyState === 'loading') {
 
 // Export for use in other modules
 window.NetworkMonitor = networkMonitor;
-
-
-// ==========================================
-// Global Unhandled Error & Promise Rejection Guard
-// Surfaces silent frontend failures as non-intrusive UI toasts
-// ==========================================
-(function() {
-    let lastToastTime = 0;
-    const TOAST_COOLDOWN = 5000;
-
-    function safeNotify(message, type = 'warning') {
-        const now = Date.now();
-        if (now - lastToastTime < TOAST_COOLDOWN) return;
-        lastToastTime = now;
-
-        if (typeof window.showToast === 'function') {
-            window.showToast(message, type, { duration: 5000 });
-        }
-    }
-
-    window.addEventListener('unhandledrejection', function(event) {
-        const reason = event.reason;
-        const msg = reason ? (reason.message || String(reason)) : '';
-        if (!msg || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
-
-        console.error('[RE-CAPS Unhandled Rejection]', reason);
-        safeNotify('⚠️ Notice: An operation did not complete. Please retry.', 'warning');
-    });
-
-    window.addEventListener('error', function(event) {
-        if (!event.error && !event.message) return;
-        const msg = event.message || '';
-        if (msg.includes('Script error') || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
-
-        console.error('[RE-CAPS Runtime Error]', event.error || msg);
-    });
-})();
+
+
+// ==========================================
+// Global Unhandled Error & Promise Rejection Guard
+// Surfaces silent frontend failures as non-intrusive UI toasts
+// ==========================================
+(function() {
+    let lastToastTime = 0;
+    const TOAST_COOLDOWN = 5000;
+
+    function safeNotify(message, type = 'warning') {
+        const now = Date.now();
+        if (now - lastToastTime < TOAST_COOLDOWN) return;
+        lastToastTime = now;
+
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type, { duration: 5000 });
+        }
+    }
+
+    window.addEventListener('unhandledrejection', function(event) {
+        const reason = event.reason;
+        const msg = reason ? (reason.message || String(reason)) : '';
+        if (!msg || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
+
+        console.error('[RE-CAPS Unhandled Rejection]', reason);
+        safeNotify('Notice: An operation did not complete. Please retry.', 'warning');
+    });
+
+    window.addEventListener('error', function(event) {
+        if (!event.error && !event.message) return;
+        const msg = event.message || '';
+        if (msg.includes('Script error') || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
+
+        console.error('[RE-CAPS Runtime Error]', event.error || msg);
+    });
+})();

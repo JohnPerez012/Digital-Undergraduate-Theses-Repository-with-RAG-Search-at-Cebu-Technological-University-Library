@@ -36,6 +36,22 @@
         return false;
     }
 
+    // ---------- STRIP EMOJIS, IMAGES & ICONS ----------
+    function stripEmojisAndIcons(str) {
+        if (!str) return '';
+        return String(str)
+            // Strip SVGs and images if any were passed in message HTML
+            .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+            .replace(/<img[^>]*>/gi, '')
+            .replace(/<span[^>]*class="[^"]*icon[^"]*"[^>]*>[\s\S]*?<\/span>/gi, '')
+            .replace(/<i\b[^>]*>(.*?)<\/i>/gi, '$1')
+            // Strip unicode emojis, pictographs, symbols, dingbats, and variation selectors
+            .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{200D}\u{FE00}-\u{FE0F}\u{20E3}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{25AA}\u{25AB}\u{25B6}\u{25C0}\u{25FB}-\u{25FE}\u{2139}\u{00A9}\u{00AE}]/gu, '')
+            // Clean any leading punctuation or separator artifacts left after stripping emoji, e.g. " - ", " : ", "• "
+            .replace(/^\s*[-–—•|]\s*/, '')
+            .trim();
+    }
+
     // ---------- SEMANTIC TAG INFERENCE ----------
     function inferTag(message, customTag) {
         if (customTag) return String(customTag).trim().toLowerCase();
@@ -79,7 +95,7 @@
     }
 
     // ---------- CALCULATE OVERLAP FOR CENTER TOASTS ----------
-    function calculateOverlap(totalToasts, positionIndex) {
+    function calculateOverlap(totalToasts, positionIndex, toastHeight = 60) {
         if (positionIndex === 0) {
             return { overlap: 0, scale: 1, opacity: 1 };
         }
@@ -91,7 +107,6 @@
         const positionFactor = 1 + (positionIndex / totalToasts) * 0.2;
         let finalOverlap = currentOverlap * positionFactor;
 
-        const toastHeight = 70;
         const maxPossibleOverlap = toastHeight - CONFIG.minVisibleSliver;
         finalOverlap = Math.min(finalOverlap, maxPossibleOverlap);
 
@@ -124,7 +139,8 @@
                 return;
             }
 
-            const { overlap, scale, opacity } = calculateOverlap(total, index);
+            const toastHeight = toast.offsetHeight || 60;
+            const { overlap, scale, opacity } = calculateOverlap(total, index, toastHeight);
 
             toast.style.transform = `translateY(0) scale(${scale})`;
             toast.style.opacity = opacity;
@@ -351,12 +367,16 @@
             } catch (_) {}
         }
 
+        // Sanitize message: strip all emojis, SVGs, and images across all toasts
+        const cleanMessage = stripEmojisAndIcons(message);
+        if (!cleanMessage) return null;
+
         const normalizedType = normalizeType(type);
         const container = isImportant ? getCenterContainer() : getCornerContainer();
 
         // Active visible toasts in container
         const activeToasts = Array.from(container.querySelectorAll('.toast:not(.removing):not(.blurring-out)'));
-        const normalizedMessage = String(message || '').trim();
+        const normalizedMessage = cleanMessage;
 
         // ── 1. EXACT DUPLICATE DEDUPLICATION ─────────────────────────
         const existingDuplicate = activeToasts.find(t => String(t._rawMessage || '').trim() === normalizedMessage);
@@ -387,7 +407,7 @@
             setTimeout(() => existingDuplicate.classList.remove('toast-pulsing'), 400);
 
             // Reset reading countdown timer
-            const duration = customDuration || existingDuplicate._duration || calculateReadingDuration(message);
+            const duration = customDuration || existingDuplicate._duration || calculateReadingDuration(cleanMessage);
             existingDuplicate._duration = duration;
             existingDuplicate._remainingTime = duration;
             existingDuplicate._startTime = Date.now();
@@ -404,17 +424,17 @@
         }
 
         // ── 2. SEMANTIC TAG / STATE REPLACEMENT (TOGGLES) ────────────
-        const tag = inferTag(message, customTag);
+        const tag = inferTag(cleanMessage, customTag);
         const existingTagged = tag ? activeToasts.find(t => t._tag === tag) : null;
         if (existingTagged) {
-            existingTagged._rawMessage = message;
+            existingTagged._rawMessage = cleanMessage;
 
             // In-place text update with crossfade
             const msgEl = existingTagged.querySelector('.toast-message');
             if (msgEl) {
                 msgEl.classList.add('toast-message-updating');
                 setTimeout(() => {
-                    msgEl.innerHTML = message;
+                    msgEl.textContent = cleanMessage;
                     msgEl.classList.remove('toast-message-updating');
                 }, 90);
             }
@@ -435,7 +455,7 @@
             setTimeout(() => existingTagged.classList.remove('toast-pulsing'), 350);
 
             // Reset countdown timer
-            const duration = customDuration || calculateReadingDuration(message);
+            const duration = customDuration || calculateReadingDuration(cleanMessage);
             existingTagged._duration = duration;
             existingTagged._remainingTime = duration;
             existingTagged._startTime = Date.now();
@@ -472,24 +492,35 @@
         // ── 5. SPAWN NEW TOAST CARD ───────────────────────────────────
         const toast = document.createElement('div');
         toast.className = `toast toast-${normalizedType} ${isImportant ? 'toast-important' : 'toast-unimportant toast-entering'}`;
-        toast._rawMessage = message;
+        toast._rawMessage = cleanMessage;
         toast._tag = tag;
         toast._count = 1;
 
         // Compute reading duration for unimportant toasts
-        const duration = customDuration || calculateReadingDuration(message);
+        const duration = customDuration || calculateReadingDuration(cleanMessage);
         toast._duration = duration;
 
-        // Toast Markup
-        toast.innerHTML = `
-            <div class="toast-message">${message}</div>
-            <button class="toast-close" aria-label="Close toast">✕</button>
-            ${!isImportant ? `
-                <div class="toast-progress">
-                    <div class="toast-progress-bar"></div>
-                </div>
-            ` : ''}
-        `;
+        // Toast Markup - Text only, close button, no emojis, no images, no icons
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'toast-message';
+        messageDiv.textContent = cleanMessage;
+
+        const closeButton = document.createElement('button');
+        closeButton.className = 'toast-close';
+        closeButton.setAttribute('aria-label', 'Close toast');
+        closeButton.textContent = '✕';
+
+        toast.appendChild(messageDiv);
+        toast.appendChild(closeButton);
+
+        if (!isImportant) {
+            const progressWrap = document.createElement('div');
+            progressWrap.className = 'toast-progress';
+            const progressBar = document.createElement('div');
+            progressBar.className = 'toast-progress-bar';
+            progressWrap.appendChild(progressBar);
+            toast.appendChild(progressWrap);
+        }
 
         container.appendChild(toast);
 
@@ -497,7 +528,7 @@
         if (!isImportant) {
             const onEntryDone = () => {
                 toast.classList.remove('toast-entering');
-                toast.dataset.settled = 'true';
+                if (toast.dataset) toast.dataset.settled = 'true';
                 toast.removeEventListener('animationend', onEntryDone);
                 const y = toast.style.getPropertyValue('--stack-y') || '0px';
                 const s = toast.style.getPropertyValue('--stack-scale') || '1';
