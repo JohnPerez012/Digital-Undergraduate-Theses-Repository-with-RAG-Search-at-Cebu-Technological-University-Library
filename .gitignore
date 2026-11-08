@@ -49,3 +49,6 @@ server.js
 Figure*.png
 figure*.png
 BitAut2026.json
+
+# Role seeder manifests (contain seeded UIDs/emails; local rollback records)
+scripts/seed-manifests/
