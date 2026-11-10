@@ -72,7 +72,7 @@
     -webkit-backdrop-filter: blur(18px);
     color: #f1f5f9;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-left: 3.5px solid #08D488;
+    border-left: 3.5px solid #d40808;
     border-radius: 12px;
     padding: 11px 14px;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45),
@@ -90,7 +90,7 @@
     background: rgba(255, 255, 255, 0.96);
     color: #0f172a;
     border-color: rgba(0, 0, 0, 0.1);
-    border-left-color: #069F66;
+    border-left-color: #d40808;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18),
                 0 0 20px rgba(6, 159, 102, 0.15),
                 inset 0 1px 0 rgba(255, 255, 255, 0.8);

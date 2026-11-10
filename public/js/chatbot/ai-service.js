@@ -100,9 +100,61 @@ const AIService = {
               year: match.year || '',
               program: match.program || '',
               adviser: adviser,
-              keywords: keywords
+              keywords: keywords,
+              images: Array.isArray(match.images) ? match.images : []
             };
           });
+
+          // Enrich RAG results with local catalog cache (images, saveCount, physical shelf location)
+          try {
+            const cacheKeys = ['projectsData', 'libCatalogProjectsData', 'libProjectsData'];
+            let localPool = [];
+            for (const key of cacheKeys) {
+              const raw = localStorage.getItem(key);
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  localPool = parsed;
+                  break;
+                }
+              }
+            }
+            if (localPool.length === 0 && typeof window !== 'undefined' && Array.isArray(window.__allProjectsData)) {
+              localPool = window.__allProjectsData;
+            }
+
+            if (localPool.length > 0) {
+              const normStr = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              formattedMatches.forEach(item => {
+                const itemNorm = normStr(item.title);
+                const localMatch = localPool.find(p => p && (
+                  (item.id && (p.id === item.id || p.UIDproject === item.id)) ||
+                  (normStr(p.title) && itemNorm && (normStr(p.title) === itemNorm || normStr(p.title).includes(itemNorm) || itemNorm.includes(normStr(p.title))))
+                ));
+                if (localMatch) {
+                  if (Array.isArray(localMatch.images) && localMatch.images.length > 0) {
+                    item.images = localMatch.images;
+                  }
+                  if (typeof localMatch.saveCount === 'number') {
+                    item.saveCount = localMatch.saveCount;
+                  }
+                  if (localMatch.catalogLocation && !item.catalogLocation) {
+                    item.catalogLocation = localMatch.catalogLocation;
+                  }
+                  if (localMatch.callNumber && !item.callNumber) {
+                    item.callNumber = localMatch.callNumber;
+                  }
+                  if ((localMatch.accessionNumber || localMatch.accessionNo) && !item.accessionNumber) {
+                    item.accessionNumber = localMatch.accessionNumber || localMatch.accessionNo;
+                  }
+                }
+              });
+            }
+          } catch (enrichErr) {
+            console.warn('[AIService] Local catalog enrichment warning:', enrichErr);
+          }
+
+          return formattedMatches;
         }
       }
       

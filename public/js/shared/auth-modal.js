@@ -211,21 +211,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 loginBtn.textContent = 'Logging in...';
                 
                 try {
-                    const persistence = rememberMe 
-                        ? firebase.auth.Auth.Persistence.LOCAL 
-                        : firebase.auth.Auth.Persistence.SESSION;
+                    let persistence = 'local';
+                    try {
+                        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth.Auth && firebase.auth.Auth.Persistence) {
+                            persistence = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+                        } else {
+                            persistence = rememberMe ? 'local' : 'session';
+                        }
+                        if (auth && typeof auth.setPersistence === 'function') {
+                            await auth.setPersistence(persistence);
+                        }
+                    } catch (persistErr) {
+                        console.warn('[Auth] Persistence setup skipped:', persistErr);
+                    }
                     
-                    await auth.setPersistence(persistence);
-                    
+                    if (!auth || typeof auth.signInWithEmailAndPassword !== 'function') {
+                        throw new Error('Authentication service is currently unavailable. Please check your internet connection or reload the page.');
+                    }
+
                     const userCredential = await auth.signInWithEmailAndPassword(email, password);
                     const user = userCredential.user;
                     
-                    await db.collection('users').doc(user.uid).update({
-                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    const serverTimestampVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.serverTimestamp === 'function')
+                        ? firebase.firestore.FieldValue.serverTimestamp()
+                        : new Date().toISOString();
+
+                    if (db && typeof db.collection === 'function') {
+                        try {
+                            await db.collection('users').doc(user.uid).update({
+                                lastLogin: serverTimestampVal
+                            });
+                        } catch (updErr) {
+                            console.warn('[Auth] Failed to update lastLogin:', updErr);
+                        }
+                    }
                     
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    const userData = userDoc.data();
+                    let userData = null;
+                    if (db && typeof db.collection === 'function') {
+                        const userDoc = await db.collection('users').doc(user.uid).get();
+                        userData = (userDoc && typeof userDoc.data === 'function') ? userDoc.data() : null;
+                    }
 
                     if (userData) {
                         if (userData.status === 'suspended') {
@@ -261,12 +286,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else {
                                 // Logging in cancels and clears the deletion timer
                                 try {
+                                    const deleteFieldVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.delete === 'function')
+                                        ? firebase.firestore.FieldValue.delete()
+                                        : null;
                                     await db.collection('users').doc(user.uid).update({
-                                        deletionScheduled: firebase.firestore.FieldValue.delete(),
-                                        scheduledDeletionTimestamp: firebase.firestore.FieldValue.delete(),
-                                        deletionGraceDays: firebase.firestore.FieldValue.delete(),
-                                        deletionReason: firebase.firestore.FieldValue.delete(),
-                                        deletionRequestedAt: firebase.firestore.FieldValue.delete(),
+                                        deletionScheduled: deleteFieldVal,
+                                        scheduledDeletionTimestamp: deleteFieldVal,
+                                        deletionGraceDays: deleteFieldVal,
+                                        deletionReason: deleteFieldVal,
+                                        deletionRequestedAt: deleteFieldVal,
                                         accountStatus: 'active'
                                     });
                                     localStorage.removeItem('recaps_account_pending_deletion_' + user.uid);
@@ -338,17 +366,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 googleLoginBtn.innerHTML = '<span>Signing in...</span>';
                 
                 try {
+                    if (typeof firebase === 'undefined' || !firebase.auth || !firebase.auth.GoogleAuthProvider) {
+                        throw new Error('Google Sign-In is unavailable because Firebase Auth SDK could not be loaded.');
+                    }
                     const provider = new firebase.auth.GoogleAuthProvider();
                     provider.addScope('email');
                     provider.addScope('profile');
                     
+                    if (!auth || typeof auth.signInWithPopup !== 'function') {
+                        throw new Error('Authentication service is currently unavailable.');
+                    }
+
                     const result = await auth.signInWithPopup(provider);
                     const user = result.user;
                     
-                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    let userDoc = null;
+                    if (db && typeof db.collection === 'function') {
+                        userDoc = await db.collection('users').doc(user.uid).get();
+                    }
                     
-                    if (!userDoc.exists) {
-                        await auth.signOut();
+                    if (!userDoc || !userDoc.exists) {
+                        if (auth && typeof auth.signOut === 'function') {
+                            await auth.signOut();
+                        }
                         googleLoginBtn.disabled = false;
                         googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
 
@@ -356,9 +396,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
-                    await db.collection('users').doc(user.uid).update({
-                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    const serverTimestampVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.serverTimestamp === 'function')
+                        ? firebase.firestore.FieldValue.serverTimestamp()
+                        : new Date().toISOString();
+
+                    if (db && typeof db.collection === 'function') {
+                        try {
+                            await db.collection('users').doc(user.uid).update({
+                                lastLogin: serverTimestampVal
+                            });
+                        } catch (updErr) {
+                            console.warn('[Auth] Failed to update lastLogin on Google login:', updErr);
+                        }
+                    }
                     
                     const userData = userDoc.data();
 
@@ -396,12 +446,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             } else {
                                 // Logging in cancels and clears the deletion timer
                                 try {
+                                    const deleteFieldVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.delete === 'function')
+                                        ? firebase.firestore.FieldValue.delete()
+                                        : null;
                                     await db.collection('users').doc(user.uid).update({
-                                        deletionScheduled: firebase.firestore.FieldValue.delete(),
-                                        scheduledDeletionTimestamp: firebase.firestore.FieldValue.delete(),
-                                        deletionGraceDays: firebase.firestore.FieldValue.delete(),
-                                        deletionReason: firebase.firestore.FieldValue.delete(),
-                                        deletionRequestedAt: firebase.firestore.FieldValue.delete(),
+                                        deletionScheduled: deleteFieldVal,
+                                        scheduledDeletionTimestamp: deleteFieldVal,
+                                        deletionGraceDays: deleteFieldVal,
+                                        deletionReason: deleteFieldVal,
+                                        deletionRequestedAt: deleteFieldVal,
                                         accountStatus: 'active'
                                     });
                                     localStorage.removeItem('recaps_account_pending_deletion_' + user.uid);

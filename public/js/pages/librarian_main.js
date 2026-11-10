@@ -1586,7 +1586,10 @@
             } else {
                 row.remove();
             }
+            triggerUmAutoSave();
         });
+
+        input.addEventListener('input', triggerUmAutoSave);
 
         // Enter key quickly adds next field
         input.addEventListener('keydown', (e) => {
@@ -1613,6 +1616,7 @@
                     for (let i = 1; i < parts.length; i++) {
                         createDynamicRow(containerId, placeholder, parts[i]);
                     }
+                    triggerUmAutoSave();
                 }
             }
         });
@@ -1643,6 +1647,42 @@
         else authors.forEach(a => createDynamicRow('um-authors-container', authorPlaceholder, a));
         if (topics.length > 0) topics.forEach(t => createDynamicRow('um-topics-container', 'e.g., Machine Learning', t));
         if (keywords.length > 0) keywords.forEach(k => createDynamicRow('um-keywords-container', 'e.g., Python', k));
+    }
+
+    // Auto-save draft functionality for Add New Project modal
+    let umAutoSaveTimer = null;
+    function triggerUmAutoSave() {
+        const toggle = document.getElementById('um-autosave-toggle');
+        if (!toggle || !toggle.checked) return;
+        clearTimeout(umAutoSaveTimer);
+        umAutoSaveTimer = setTimeout(() => {
+            const title = (document.getElementById('um-title-field')?.value || '').trim();
+            const authors = getDynamicValues('um-authors-container');
+            const adviser = (document.getElementById('um-adviser')?.value || '').trim();
+            const year = document.getElementById('um-year')?.value || '';
+            const program = document.getElementById('um-program')?.value || '';
+            const abstract = (document.getElementById('um-abstract')?.value || '').trim();
+            const topics = getDynamicValues('um-topics-container');
+            const keywords = getDynamicValues('um-keywords-container');
+
+            if (title || abstract || adviser || authors.length > 0 || topics.length > 0 || keywords.length > 0) {
+                const draft = {
+                    title,
+                    authors,
+                    adviser,
+                    year,
+                    program,
+                    abstract,
+                    topics,
+                    keywords,
+                    savedAt: new Date().toISOString()
+                };
+                localStorage.setItem('librarian_project_draft', JSON.stringify(draft));
+                if (typeof showToast === 'function') {
+                    showToast('Draft auto-saved', '💾');
+                }
+            }
+        }, 1500);
     }
 
     // Ripple effect helper
@@ -1725,6 +1765,72 @@
         renderProjectImagesPreview();
     }
 
+    /**
+     * Transform a local File using HTML5 Canvas (Rotate / Mirror)
+     */
+    function transformImageFile(file, angleDelta = 90, toggleFlip = false) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(file);
+                    return;
+                }
+
+                const deg = ((angleDelta % 360) + 360) % 360;
+                const isSwapped = deg === 90 || deg === 270;
+
+                canvas.width = isSwapped ? img.height : img.width;
+                canvas.height = isSwapped ? img.width : img.height;
+
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                if (deg !== 0) {
+                    ctx.rotate((deg * Math.PI) / 180);
+                }
+                if (toggleFlip) {
+                    ctx.scale(-1, 1);
+                }
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                ctx.restore();
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+                    const newFile = new File([blob], file.name, {
+                        type: file.type || 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(newFile);
+                }, file.type || 'image/jpeg', 0.95);
+            };
+            img.onerror = (err) => {
+                URL.revokeObjectURL(objectUrl);
+                reject(err);
+            };
+            img.src = objectUrl;
+        });
+    }
+
+    async function updateLibrarianImageFileOrientation(index, angleDelta, toggleFlip) {
+        if (!umProjectImageFiles || !umProjectImageFiles[index]) return;
+        try {
+            const currentFile = umProjectImageFiles[index];
+            const newFile = await transformImageFile(currentFile, angleDelta, toggleFlip);
+            umProjectImageFiles[index] = newFile;
+            renderProjectImagesPreview();
+        } catch (err) {
+            console.error('Failed to transform local file:', err);
+            showToast('Unable to rotate image file', '⚠️');
+        }
+    }
+
     function renderProjectImagesPreview() {
         const grid = document.getElementById('um-images-preview-grid');
         if (!grid) return;
@@ -1742,6 +1848,29 @@
                 <div class="image-preview-actions">
                     <button type="button" class="remove-img-btn" title="Remove image" data-file-index="${index}">✕</button>
                 </div>
+                <div class="image-preview-toolbar" role="toolbar" aria-label="Image orientation tools">
+                    <button type="button" class="img-tool-btn rotate-left-btn" title="Rotate 90° Left" aria-label="Rotate Left">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="img-tool-btn rotate-right-btn" title="Rotate 90° Right" aria-label="Rotate Right">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 7"></path>
+                            <path d="M21 3v4h-4"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="img-tool-btn mirror-btn" title="Mirror / Flip Horizontal" aria-label="Mirror Horizontal">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"></path>
+                            <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path>
+                            <line x1="12" y1="2" x2="12" y2="22"></line>
+                            <polyline points="7 8 3 12 7 16"></polyline>
+                            <polyline points="17 8 21 12 17 16"></polyline>
+                        </svg>
+                    </button>
+                </div>
             `;
 
             card.querySelector('.remove-img-btn').addEventListener('click', (e) => {
@@ -1749,6 +1878,21 @@
                 URL.revokeObjectURL(previewUrl);
                 umProjectImageFiles.splice(index, 1);
                 renderProjectImagesPreview();
+            });
+
+            card.querySelector('.rotate-left-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateLibrarianImageFileOrientation(index, -90, false);
+            });
+
+            card.querySelector('.rotate-right-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateLibrarianImageFileOrientation(index, 90, false);
+            });
+
+            card.querySelector('.mirror-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateLibrarianImageFileOrientation(index, 0, true);
             });
 
             grid.appendChild(card);
@@ -1817,6 +1961,7 @@
                 if (currentYear < MAX_YEAR) {
                     yearInput.value = currentYear + 1;
                     createRipple(e, yearBtnUp);
+                    triggerUmAutoSave();
                 }
             });
         }
@@ -1827,6 +1972,7 @@
                 if (currentYear > MIN_YEAR) {
                     yearInput.value = currentYear - 1;
                     createRipple(e, yearBtnDown);
+                    triggerUmAutoSave();
                 }
             });
         }
@@ -1835,13 +1981,51 @@
                 if (e.key === 'ArrowUp') {
                     e.preventDefault();
                     let cy = parseInt(yearInput.value) || new Date().getFullYear();
-                    if (cy < MAX_YEAR) yearInput.value = cy + 1;
+                    if (cy < MAX_YEAR) {
+                        yearInput.value = cy + 1;
+                        triggerUmAutoSave();
+                    }
                 } else if (e.key === 'ArrowDown') {
                     e.preventDefault();
                     let cy = parseInt(yearInput.value) || new Date().getFullYear();
-                    if (cy > MIN_YEAR) yearInput.value = cy - 1;
+                    if (cy > MIN_YEAR) {
+                        yearInput.value = cy - 1;
+                        triggerUmAutoSave();
+                    }
                 }
             });
+        }
+
+        // Attach auto-save listeners to all static inputs
+        ['um-title-field', 'um-adviser', 'um-abstract'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', triggerUmAutoSave);
+        });
+        ['um-program', 'um-year'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', triggerUmAutoSave);
+        });
+
+        // Auto-save toggle control
+        const umAutoSaveToggle = document.getElementById('um-autosave-toggle');
+        if (umAutoSaveToggle) {
+            umAutoSaveToggle.addEventListener('change', () => {
+                const track = umAutoSaveToggle.nextElementSibling;
+                const thumb = track && track.querySelector('.pmodal-autosave-thumb');
+                if (umAutoSaveToggle.checked) {
+                    if (track) track.style.background = '#08D488';
+                    if (thumb) thumb.style.transform = 'translateX(18px)';
+                    triggerUmAutoSave();
+                } else {
+                    if (track) track.style.background = 'rgba(255, 255, 255, 0.15)';
+                    if (thumb) thumb.style.transform = 'translateX(0)';
+                }
+            });
+            // Init visual state
+            const track = umAutoSaveToggle.nextElementSibling;
+            const thumb = track && track.querySelector('.pmodal-autosave-thumb');
+            if (umAutoSaveToggle.checked) {
+                if (track) track.style.background = '#08D488';
+                if (thumb) thumb.style.transform = 'translateX(18px)';
+            }
         }
 
         // Initialize images handlers
@@ -1850,7 +2034,25 @@
         // Modal buttons
         document.getElementById('um-close-btn')?.addEventListener('click', closeUploadModal);
         document.getElementById('um-cancel-btn')?.addEventListener('click', closeUploadModal);
-        document.getElementById('um-clear-btn')?.addEventListener('click', resetUploadModalForm);
+        document.getElementById('um-clear-btn')?.addEventListener('click', async () => {
+            let confirmed = true;
+            if (typeof ModalDialog !== 'undefined' && typeof ModalDialog.confirm === 'function') {
+                confirmed = await ModalDialog.confirm({
+                    title: 'Clear Form',
+                    message: 'Are you sure you want to clear all form data? Your auto-saved draft will also be removed.',
+                    confirmText: 'Clear Form',
+                    cancelText: 'Keep Data',
+                    isDanger: true
+                });
+            }
+            if (!confirmed) return;
+            localStorage.removeItem('librarian_project_draft');
+            clearTimeout(umAutoSaveTimer);
+            resetUploadModalForm();
+            if (typeof showToast === 'function') {
+                showToast('Form cleared', '✅');
+            }
+        });
         document.getElementById('upload-metadata-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             await submitMetadata();
@@ -1870,6 +2072,39 @@
 
     function openUploadModal() {
         resetUploadModalForm();
+
+        // Check for autosaved draft
+        const draft = localStorage.getItem('librarian_project_draft');
+        if (draft) {
+            try {
+                const d = JSON.parse(draft);
+                const titleField = document.getElementById('um-title-field');
+                if (titleField && d.title) titleField.value = d.title;
+                const adviserField = document.getElementById('um-adviser');
+                if (adviserField && d.adviser) adviserField.value = d.adviser;
+                const yearField = document.getElementById('um-year');
+                if (yearField && d.year) yearField.value = d.year;
+                const programSelect = document.getElementById('um-program');
+                if (programSelect && d.program) programSelect.value = d.program;
+                const abstractField = document.getElementById('um-abstract');
+                if (abstractField && d.abstract) abstractField.value = d.abstract;
+
+                initDynamicContainers({
+                    authors: d.authors || [],
+                    topics: d.topics || [],
+                    keywords: d.keywords || []
+                });
+                if (typeof showToast === 'function') {
+                    showToast('Draft restored ✨', 'ℹ️');
+                }
+            } catch (err) {
+                console.warn('Error restoring librarian project draft:', err);
+                initDynamicContainers();
+            }
+        } else {
+            initDynamicContainers();
+        }
+
         const modal = document.getElementById('upload-metadata-modal');
         if (modal) {
             modal.style.display = 'flex';
@@ -1882,6 +2117,7 @@
     function closeUploadModal(force = false) {
         const modal = document.getElementById('upload-metadata-modal');
         if (!force && modal && modal.classList.contains('is-saving')) return;
+        clearTimeout(umAutoSaveTimer);
         if (modal) {
             modal.classList.remove('active');
             modal.classList.remove('is-saving');
@@ -2032,7 +2268,8 @@
             // 1. Turn off processing overlay
             setUploadProcessing(false);
 
-            // 2. Clear all form inputs, dynamic fields, and images completely
+            // 2. Clear auto-saved draft and form inputs completely
+            localStorage.removeItem('librarian_project_draft');
             resetUploadModalForm();
 
             // 3. Force close the modal
@@ -3208,8 +3445,13 @@
         if (adviserEl) adviserEl.textContent = project.adviser || project.advisor || 'N/A';
 
         if (shelfPillEl) {
-            shelfPillEl.className = `ctm-shelf-pill ${isShelved ? '' : 'unassigned'}`;
-            shelfPillEl.textContent = isShelved ? '📍 Shelved in Archive' : '⚠️ Awaiting Shelf Assignment';
+            shelfPillEl.className = `ctm-shelf-pill ${isShelved ? 'is-shelved' : 'unassigned'}`;
+            const shelfIcon = (typeof SVGRegistry !== 'undefined' && SVGRegistry.get)
+                ? (isShelved ? SVGRegistry.get('shelf-assigned') : SVGRegistry.get('shelf-unassigned'))
+                : (isShelved
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`);
+            shelfPillEl.innerHTML = `${shelfIcon}<span>${isShelved ? 'Shelved in Archive' : 'Awaiting Shelf Assignment'}</span>`;
         }
 
         if (shelfNoteEl) shelfNoteEl.textContent = note?.note || 'Not yet recorded';

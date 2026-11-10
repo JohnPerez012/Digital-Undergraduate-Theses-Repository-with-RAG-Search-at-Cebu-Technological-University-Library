@@ -200,10 +200,19 @@ const MessageFormatter = {
                             }));
 
       if (isProjectLink) {
+        let matchedId = '';
+        if (relevantProjects && Array.isArray(relevantProjects)) {
+          const match = relevantProjects.find(p => {
+            const pt = (p.title || '').toLowerCase();
+            return pt && (pt.includes(lowerText) || lowerText.includes(pt));
+          });
+          if (match && match.id) matchedId = match.id;
+        }
         const safeTitle = this.escapeHtml(cleanText);
         const attrTitle = this.escapeAttr(cleanText);
         const attrUrl = this.escapeAttr(cleanUrl);
-        return `<a href="javascript:void(0)" class="ai-project-link" data-project-title="${attrTitle}" data-project-url="${attrUrl}" onclick="if(window.Chatbot && window.Chatbot.openProjectDetailsFromChat){ window.Chatbot.openProjectDetailsFromChat(this); } return false;" title="Click to view full project details in repository"><svg class="ai-project-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>${safeTitle}</a>`;
+        const attrId = matchedId ? ` data-project-id="${this.escapeAttr(matchedId)}"` : '';
+        return `<a href="javascript:void(0)" class="ai-project-link" data-project-title="${attrTitle}" data-project-url="${attrUrl}"${attrId} onclick="if(window.Chatbot && window.Chatbot.openProjectDetailsFromChat){ window.Chatbot.openProjectDetailsFromChat(this); } return false;" title="Click to view full project details in repository"><svg class="ai-project-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>${safeTitle}</a>`;
       }
 
       return `<a href="${cleanUrl}" class="ai-link" target="_blank" rel="noopener noreferrer">${this.escapeHtml(cleanText)}</a>`;
@@ -232,7 +241,8 @@ const MessageFormatter = {
       text = text.replace(boldPattern, (m, matchedTitle) => {
         const safeTitle = this.escapeHtml(matchedTitle);
         const attrTitle = this.escapeAttr(matchedTitle);
-        return `<a href="javascript:void(0)" class="ai-project-link" data-project-title="${attrTitle}" onclick="if(window.Chatbot && window.Chatbot.openProjectDetailsFromChat){ window.Chatbot.openProjectDetailsFromChat(this); } return false;" title="Click to view full project details in repository"><svg class="ai-project-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>${safeTitle}</a>`;
+        const attrId = proj.id ? ` data-project-id="${this.escapeAttr(proj.id)}"` : '';
+        return `<a href="javascript:void(0)" class="ai-project-link" data-project-title="${attrTitle}"${attrId} onclick="if(window.Chatbot && window.Chatbot.openProjectDetailsFromChat){ window.Chatbot.openProjectDetailsFromChat(this); } return false;" title="Click to view full project details in repository"><svg class="ai-project-link-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>${safeTitle}</a>`;
       });
     });
 

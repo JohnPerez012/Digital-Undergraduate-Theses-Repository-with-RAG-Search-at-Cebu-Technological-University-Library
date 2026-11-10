@@ -1657,10 +1657,6 @@
                         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
                             <h3 id="approval-modal-title" class="pmodal-title" style="margin:0;">Evaluate Project
                                 Submission</h3>
-                            <span class="librarian-role-pill"
-                                style="background:rgba(245,158,11,0.15);color:#f59e0b;border-color:rgba(245,158,11,0.3);">
-                                Pending Approval
-                            </span>
                         </div>
                         <p class="pmodal-subtitle">Submitted by <strong id="approval-submitter-name">Librarian</strong>
                             (<span id="approval-submitter-email">email</span>) • <span
@@ -1700,11 +1696,12 @@
                                 <input type="text" id="approval-title" class="pform-input" required>
                             </div>
                             <div class="pform-field">
-                                <label class="pform-label" for="approval-authors">Authors <span
-                                        class="pform-required">*</span>
-                                    <span class="pform-label-hint">Comma-separated</span>
+                                <label class="pform-label">
+                                    Authors <span class="pform-required">*</span>
+                                    <span class="pform-label-hint">Add each author separately</span>
                                 </label>
-                                <input type="text" id="approval-authors" class="pform-input" required>
+                                <div id="approval-authors-container" class="dynamic-inputs-container pform-dynamic-list"></div>
+                                <button type="button" class="pform-add-btn" id="approval-add-author-btn">Add Author</button>
                             </div>
                         </div>
                     </div>
@@ -3029,11 +3026,11 @@
         </svg>
     </button>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDKs (Local First with CDN Fallback) -->
+    <script src="../vendor/firebase/firebase-app-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-auth-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-firestore-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-database-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'"></script>
 
     <!-- Chart.js CDN for Advanced Visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

@@ -1197,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (targetInMaster) targetInMaster.saveCount = nextCount;
 
                     // 2. Perform background persistence
-                    const user = firebase.auth().currentUser;
+                    const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
                     if (!user) {
                         // Guest mode: save locally on device
                         if (nextSaved) {
@@ -1667,7 +1667,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Listen for guest storage updates (e.g. after sync or delete)
         window.addEventListener('guestSavedProjectsChanged', () => {
-            const currentUser = firebase.auth().currentUser;
+            const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
             if (!currentUser && window.GuestSavedProjects && !isSaveRestrictedRole()) {
                 savedProjectIds = window.GuestSavedProjects.getIds();
                 window.savedProjectIds = savedProjectIds;

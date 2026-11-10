@@ -46,6 +46,9 @@ if (!auth || !db) {
     if (!auth) {
         auth = {
             currentUser: null,
+            setPersistence: function(mode) {
+                return Promise.resolve();
+            },
             onAuthStateChanged: function(callback) {
                 let cachedUser = null;
                 try {
@@ -59,6 +62,9 @@ if (!auth || !db) {
             },
             signInWithEmailAndPassword: function() {
                 return Promise.reject(new Error('Internet connection required for online authentication.'));
+            },
+            signInWithPopup: function() {
+                return Promise.reject(new Error('Internet connection required for Google Sign-In.'));
             },
             signOut: function() {
                 try {
@@ -125,6 +131,51 @@ if (!auth || !db) {
 
 // Expose globally on window
 if (typeof window !== 'undefined') {
+    if (typeof window.firebase === 'undefined') {
+        window.firebase = {
+            apps: [],
+            initializeApp: function() { return this; },
+            auth: function() { return auth; },
+            firestore: function() { return db; },
+            database: function() { return rtdb; }
+        };
+        window.firebase.auth.Auth = {
+            Persistence: { LOCAL: 'local', SESSION: 'session', NONE: 'none' }
+        };
+        window.firebase.auth.GoogleAuthProvider = function() {
+            return {
+                addScope: function() { return this; }
+            };
+        };
+        window.firebase.firestore.FieldValue = {
+            serverTimestamp: function() { return new Date().toISOString(); },
+            delete: function() { return null; },
+            arrayUnion: function(...elements) { return elements; },
+            arrayRemove: function(...elements) { return []; },
+            increment: function(n) { return n || 0; }
+        };
+    } else {
+        if (!window.firebase.firestore) {
+            window.firebase.firestore = function() { return db; };
+        }
+        if (!window.firebase.firestore.FieldValue) {
+            window.firebase.firestore.FieldValue = {
+                serverTimestamp: function() { return new Date().toISOString(); },
+                delete: function() { return null; },
+                arrayUnion: function(...elements) { return elements; },
+                arrayRemove: function(...elements) { return []; },
+                increment: function(n) { return n || 0; }
+            };
+        }
+        if (!window.firebase.auth) {
+            window.firebase.auth = function() { return auth; };
+        }
+        if (!window.firebase.auth.Auth) {
+            window.firebase.auth.Auth = {
+                Persistence: { LOCAL: 'local', SESSION: 'session', NONE: 'none' }
+            };
+        }
+    }
     window.auth = auth;
     window.db = db;
     window.rtdb = rtdb;

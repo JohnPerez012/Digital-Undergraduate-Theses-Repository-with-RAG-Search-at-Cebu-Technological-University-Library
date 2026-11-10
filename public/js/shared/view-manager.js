@@ -547,17 +547,88 @@
                     if (projectDataJson && typeof renderProjectDetails === 'function') {
                         try {
                             let project = JSON.parse(projectDataJson);
-                            // Merge full metadata from cached catalog if partial
-                            if (!project.abstract || project.abstract === 'No abstract provided.' || !project.keywords) {
+                            // Check if project requires hydration (missing abstract, keywords, images, or saveCount)
+                            const needsHydration = !project.abstract || 
+                                                   project.abstract === 'No abstract provided.' || 
+                                                   !project.keywords || 
+                                                   !project.images || 
+                                                   !Array.isArray(project.images) || 
+                                                   project.images.length === 0 || 
+                                                   project.saveCount === undefined;
+
+                            if (needsHydration) {
                                 try {
-                                    const cachedList = JSON.parse(localStorage.getItem('projectsData') || '[]');
-                                    const matched = cachedList.find(p => p && (p.id === project.id || (p.title && project.title && p.title.toLowerCase().trim() === project.title.toLowerCase().trim())));
-                                    if (matched) {
-                                        project = { ...matched, ...project };
+                                    const cacheKeys = ['projectsData', 'libCatalogProjectsData', 'libProjectsData'];
+                                    let matched = null;
+                                    for (const key of cacheKeys) {
+                                        const raw = localStorage.getItem(key);
+                                        if (raw) {
+                                            const list = JSON.parse(raw);
+                                            if (Array.isArray(list)) {
+                                                matched = list.find(p => p && (
+                                                    (project.id && (p.id === project.id || p.UIDproject === project.id)) ||
+                                                    (p.title && project.title && p.title.toLowerCase().trim() === project.title.toLowerCase().trim())
+                                                ));
+                                                if (matched) break;
+                                            }
+                                        }
                                     }
-                                } catch (e) {}
+                                    if (!matched && Array.isArray(window.__allProjectsData)) {
+                                        matched = window.__allProjectsData.find(p => p && (
+                                            (project.id && (p.id === project.id || p.UIDproject === project.id)) ||
+                                            (p.title && project.title && p.title.toLowerCase().trim() === project.title.toLowerCase().trim())
+                                        ));
+                                    }
+                                    if (matched) {
+                                        project = {
+                                            ...matched,
+                                            ...project,
+                                            images: (Array.isArray(matched.images) && matched.images.length > 0)
+                                                ? matched.images
+                                                : (project.images || []),
+                                            saveCount: typeof matched.saveCount === 'number'
+                                                ? matched.saveCount
+                                                : (typeof project.saveCount === 'number' ? project.saveCount : 0),
+                                            catalogLocation: matched.catalogLocation || project.catalogLocation || '',
+                                            callNumber: matched.callNumber || project.callNumber || '',
+                                            accessionNumber: matched.accessionNumber || matched.accessionNo || project.accessionNumber || ''
+                                        };
+                                        sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
+                                    }
+                                } catch (e) {
+                                    console.warn('Cache hydration error in view-manager:', e);
+                                }
                             }
                             renderProjectDetails(project);
+
+                            // Background Firestore refresh for live images and save count if missing
+                            if (project && project.id && (!project.images || !project.images.length || project.saveCount === undefined)) {
+                                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                                    const db = firebase.firestore();
+                                    db.collection('projects').doc(project.id).get().then(doc => {
+                                        if (doc.exists) {
+                                            const fresh = doc.data();
+                                            let hasUpdates = false;
+                                            if (Array.isArray(fresh.images) && fresh.images.length > 0 && (!project.images || !project.images.length)) {
+                                                project.images = fresh.images;
+                                                hasUpdates = true;
+                                            }
+                                            if (typeof fresh.saveCount === 'number' && project.saveCount !== fresh.saveCount) {
+                                                project.saveCount = fresh.saveCount;
+                                                hasUpdates = true;
+                                            }
+                                            if (fresh.catalogLocation && !project.catalogLocation) {
+                                                project.catalogLocation = fresh.catalogLocation;
+                                                hasUpdates = true;
+                                            }
+                                            if (hasUpdates) {
+                                                sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
+                                                renderProjectDetails(project);
+                                            }
+                                        }
+                                    }).catch(err => console.warn('Background Firestore hydration warning:', err));
+                                }
+                            }
                         } catch (error) {
                             console.error('Invalid project data:', error);
                             this.switchView('index');

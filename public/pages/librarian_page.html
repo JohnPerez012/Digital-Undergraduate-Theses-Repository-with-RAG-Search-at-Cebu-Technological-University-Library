@@ -86,17 +86,18 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                     </div>
                     <div>
-                        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
-                            <h3 id="um-title" class="pmodal-title" style="margin:0;">Add New Project</h3>
-                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;border:1px solid;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                Pending Approval
-                            </span>
-                        </div>
+                        <h3 id="um-title" class="pmodal-title">Add New Project</h3>
                         <p class="pmodal-subtitle">Submitted to admin queue &mdash; requires admin evaluation and approval to become public</p>
                     </div>
                 </div>
                 <div class="pmodal-header-right">
+                    <label class="pmodal-autosave-label" title="Auto-save draft">
+                        <input type="checkbox" id="um-autosave-toggle" checked style="display:none;">
+                        <span class="pmodal-autosave-track">
+                            <span class="pmodal-autosave-thumb"></span>
+                        </span>
+                        <span class="pmodal-autosave-text">Auto-save</span>
+                    </label>
                     <button type="button" class="pmodal-close-btn" id="um-close-btn" aria-label="Close modal">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
@@ -304,10 +305,7 @@
                     <div>
                         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
                             <h3 id="bulk-modal-title" style="margin:0;font-size:1.25rem;font-weight:700;">Bulk Import Projects</h3>
-                            <span class="librarian-role-pill" style="background:rgba(251,191,36,.15);color:#f59e0b;border-color:rgba(251,191,36,.3);display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;border:1px solid;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                All Pending Approval
-                            </span>
+                           
                         </div>
                     </div>
                 </div>
@@ -917,7 +915,10 @@
                             <span class="ctm-chip ctm-chip-program" id="ctm-program">—</span>
                             <span class="ctm-chip ctm-chip-year" id="ctm-year">—</span>
                         </div>
-                        <span class="ctm-shelf-pill" id="ctm-shelf-pill">📍 Unassigned</span>
+                        <span class="ctm-shelf-pill unassigned" id="ctm-shelf-pill">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span>Awaiting Shelf Assignment</span>
+                        </span>
                     </div>
 
                     <h3 class="ctm-thesis-title" id="ctm-project-title">Loading project title...</h3>
@@ -1452,9 +1453,7 @@
                     <div class="section-header">
                         <h2>
                             All Projects
-                            <span class="lib-pending-legend" title="New submissions are sent for admin approval">
-                                <span class="lib-pending-dot"></span> Pending Approval
-                            </span>
+
                         </h2>
                         <div class="section-actions">
                             <div class="search-box">
@@ -1545,10 +1544,7 @@
                             <div>
                                 <div class="catalog-studio-title-row">
                                     <h1 class="section-title">Physical Shelf Cataloging &amp; Archival Studio</h1>
-                                    <span class="catalog-access-badge">
-                                        <span class="catalog-pulse-dot"></span>
-                                        Librarian Direct Access · No Admin Bottleneck
-                                    </span>
+
                                 </div>
                                 <p class="section-desc">Manage physical shelf locations, Dewey/LC call numbers, accession codes, and subject headings for <strong>Completed</strong> capstone theses.</p>
                             </div>
@@ -1887,10 +1883,11 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDKs (Local First with CDN Fallback) -->
+    <script src="../vendor/firebase/firebase-app-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-auth-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-firestore-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-database-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'"></script>
 
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>

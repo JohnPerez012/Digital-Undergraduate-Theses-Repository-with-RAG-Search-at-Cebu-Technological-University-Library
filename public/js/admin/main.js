@@ -680,6 +680,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Error saving to cache:', error);
         }
     }
+    const saveProjectsToCache = saveToCache;
     
     /**
      * Save users to localStorage cache
@@ -3355,17 +3356,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const editAuthors = Array.isArray(data.authors) ? data.authors : (data.authors ? data.authors.split(',').map(a => a.trim()) : []);
             const editTopics = Array.isArray(data.topics) ? data.topics : [];
             const editKeywords = Array.isArray(data.keywords) ? data.keywords : [];
+            const parsedYear = parseInt(data.year || '0', 10) || new Date().getFullYear();
             
             originalFormData = {
                 title: data.title || '',
                 authors: editAuthors,
                 program: data.program || '',
-                year: data.year || new Date().getFullYear(),
+                year: parsedYear,
                 adviser: data.adviser || '',
                 status: data.status || 'Completed',
                 abstract: data.abstract || '',
                 topics: editTopics,
-                keywords: editKeywords
+                keywords: editKeywords,
+                catalogLocation: '',
+                callNumber: '',
+                accessionNumber: '',
+                images: Array.isArray(data.images) ? [...data.images] : []
             };
             isEditMode = true;
             
@@ -3373,7 +3379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-id-input').value = projectId;
             document.getElementById('project-title-input').value = data.title || '';
             document.getElementById('project-program-select').value = data.program || '';
-            document.getElementById('project-year-input').value = data.year || '';
+            document.getElementById('project-year-input').value = data.year || parsedYear;
             document.getElementById('project-adviser-input').value = data.adviser || '';
             document.getElementById('project-status-select').value = data.status || 'Completed';
             document.getElementById('project-abstract-input').value = data.abstract || '';
@@ -3400,9 +3406,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const locInput = document.getElementById('project-catalog-location');
                 const callInput = document.getElementById('project-call-number');
                 const accInput = document.getElementById('project-accession-number');
-                if (locInput) locInput.value = cnData?.note || data.catalogLocation || '';
-                if (callInput) callInput.value = cnData?.callNumber || data.callNumber || '';
-                if (accInput) accInput.value = cnData?.accessionNumber || data.accessionNumber || '';
+                const locVal = cnData?.note || data.catalogLocation || '';
+                const callVal = cnData?.callNumber || data.callNumber || '';
+                const accVal = cnData?.accessionNumber || data.accessionNumber || '';
+                if (locInput) locInput.value = locVal;
+                if (callInput) callInput.value = callVal;
+                if (accInput) accInput.value = accVal;
+
+                originalFormData.catalogLocation = locVal;
+                originalFormData.callNumber = callVal;
+                originalFormData.accessionNumber = accVal;
 
                 if (isCataloged) {
                     if (badge) {
@@ -3467,13 +3480,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Populate existing project images
             projectExistingImages = Array.isArray(data.images) ? [...data.images] : [];
             projectImageFiles = [];
+            originalFormData.images = [...projectExistingImages];
             renderProjectImagesPreview();
 
             // Customize modal for editing
             document.getElementById('project-modal-title').textContent = 'Edit Capstone Project';
-            document.getElementById('submit-project-btn').textContent = 'Apply Edit';
+            const submitBtn = document.getElementById('submit-project-btn');
+            if (submitBtn) {
+                submitBtn.textContent = 'Save Project';
+                submitBtn.style.display = 'inline-flex';
+            }
             
-            // Update button visibility
+            // Update button visibility (guarantees Save Project button is always visible)
             updateButtonVisibility();
             
             // Show modal
@@ -4455,46 +4473,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!toggle || !toggle.checked) return;
         clearTimeout(autoSaveTimer);
         autoSaveTimer = setTimeout(() => {
-            const projectId = document.getElementById('project-id-input').value;
+            const projectId = document.getElementById('project-id-input')?.value;
             if (!projectId) {
                 // Draft auto-save to localStorage for new projects
-                const draft = {
-                    title: document.getElementById('project-title-input').value,
-                    authors: getDynamicValues('authors-container'),
-                    adviser: document.getElementById('project-adviser-input').value,
-                    year: document.getElementById('project-year-input').value,
-                    program: document.getElementById('project-program-select').value,
-                    status: document.getElementById('project-status-select').value,
-                    abstract: document.getElementById('project-abstract-input').value,
-                    topics: getDynamicValues('topics-container'),
-                    keywords: getDynamicValues('keywords-container')
-                };
-                localStorage.setItem('admin_project_draft', JSON.stringify(draft));
-                showToast('Draft auto-saved', '💾');
+                const title = document.getElementById('project-title-input')?.value || '';
+                const authors = getDynamicValues('authors-container');
+                const adviser = document.getElementById('project-adviser-input')?.value || '';
+                const year = document.getElementById('project-year-input')?.value || '';
+                const program = document.getElementById('project-program-select')?.value || '';
+                const status = document.getElementById('project-status-select')?.value || 'Completed';
+                const abstract = document.getElementById('project-abstract-input')?.value || '';
+                const topics = getDynamicValues('topics-container');
+                const keywords = getDynamicValues('keywords-container');
+                const catalogLocation = document.getElementById('project-catalog-location')?.value || '';
+                const callNumber = document.getElementById('project-call-number')?.value || '';
+                const accessionNumber = document.getElementById('project-accession-number')?.value || '';
+
+                if (title || abstract || adviser || authors.length > 0 || topics.length > 0 || keywords.length > 0 || catalogLocation || callNumber || accessionNumber) {
+                    const draft = {
+                        title,
+                        authors,
+                        adviser,
+                        year,
+                        program,
+                        status,
+                        abstract,
+                        topics,
+                        keywords,
+                        catalogLocation,
+                        callNumber,
+                        accessionNumber,
+                        savedAt: new Date().toISOString()
+                    };
+                    localStorage.setItem('admin_project_draft', JSON.stringify(draft));
+                    showToast('Draft auto-saved', '💾');
+                }
             }
         }, 1500);
     }
+
+    // Attach auto-save listeners to all static project fields
+    ['project-title-input', 'project-adviser-input', 'project-abstract-input', 'project-catalog-location', 'project-call-number', 'project-accession-number'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', triggerAutoSave);
+    });
+    ['project-year-input', 'project-program-select', 'project-status-select'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', triggerAutoSave);
+    });
 
     // Auto-save toggle visual
     const autoSaveToggle = document.getElementById('project-autosave-toggle');
     if (autoSaveToggle) {
         autoSaveToggle.addEventListener('change', () => {
             const track = autoSaveToggle.nextElementSibling;
-            const thumb = track && track.querySelector('.auto-save-switch-thumb');
+            const thumb = track && (track.querySelector('.pmodal-autosave-thumb') || track.querySelector('.auto-save-switch-thumb'));
             if (autoSaveToggle.checked) {
-                if (track) track.style.background = 'var(--admin-primary)';
-                if (thumb) thumb.style.transform = 'translateX(22px)';
+                if (track) track.style.background = 'var(--admin-primary, #08D488)';
+                if (thumb) thumb.style.transform = 'translateX(18px)';
+                triggerAutoSave();
             } else {
-                if (track) track.style.background = 'var(--border)';
+                if (track) track.style.background = 'var(--border, #475569)';
                 if (thumb) thumb.style.transform = 'translateX(0)';
             }
         });
         // Init visual state
         const track = autoSaveToggle.nextElementSibling;
-        const thumb = track && track.querySelector('.auto-save-switch-thumb');
+        const thumb = track && (track.querySelector('.pmodal-autosave-thumb') || track.querySelector('.auto-save-switch-thumb'));
         if (autoSaveToggle.checked) {
-            if (track) track.style.background = 'var(--admin-primary)';
-            if (thumb) thumb.style.transform = 'translateX(22px)';
+            if (track) track.style.background = 'var(--admin-primary, #08D488)';
+            if (thumb) thumb.style.transform = 'translateX(18px)';
         }
     }
 
@@ -4505,6 +4551,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addTopicBtn) addTopicBtn.addEventListener('click', () => createDynamicRow('topics-container', 'e.g., Machine Learning'));
     const addKeywordBtn = document.getElementById('add-keyword-btn');
     if (addKeywordBtn) addKeywordBtn.addEventListener('click', () => createDynamicRow('keywords-container', 'e.g., Python'));
+    const approvalAddAuthorBtn = document.getElementById('approval-add-author-btn');
+    if (approvalAddAuthorBtn) approvalAddAuthorBtn.addEventListener('click', () => createDynamicRow('approval-authors-container', 'Author name (e.g., Juan Dela Cruz or Reyes, A.)'));
 
     // ===== Pinecone Vector Sync Modal Controller =====
     const syncPineconeBtn              = document.getElementById('sync-pinecone-btn');
@@ -4987,6 +5035,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-status-select').value = 'Completed';
             document.getElementById('project-abstract-input').value = '';
 
+            // Reset Section 5 Location & Cataloging fields
+            const locInput = document.getElementById('project-catalog-location');
+            const callInput = document.getElementById('project-call-number');
+            const accInput = document.getElementById('project-accession-number');
+            if (locInput) locInput.value = '';
+            if (callInput) callInput.value = '';
+            if (accInput) accInput.value = '';
+
+            const auditBadge = document.getElementById('admin-audit-badge');
+            if (auditBadge) {
+                auditBadge.textContent = 'Not Cataloged';
+                auditBadge.classList.remove('cataloged');
+            }
+            const auditDetails = document.getElementById('admin-audit-details');
+            if (auditDetails) auditDetails.style.display = 'none';
+
             // Check for autosaved draft
             const draft = localStorage.getItem('admin_project_draft');
             if (draft) {
@@ -4998,6 +5062,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('project-program-select').value = d.program || '';
                     document.getElementById('project-status-select').value = d.status || 'Completed';
                     document.getElementById('project-abstract-input').value = d.abstract || '';
+                    if (d.catalogLocation && document.getElementById('project-catalog-location')) document.getElementById('project-catalog-location').value = d.catalogLocation;
+                    if (d.callNumber && document.getElementById('project-call-number')) document.getElementById('project-call-number').value = d.callNumber;
+                    if (d.accessionNumber && document.getElementById('project-accession-number')) document.getElementById('project-accession-number').value = d.accessionNumber;
                     initDynamicContainers({ authors: d.authors || [], topics: d.topics || [], keywords: d.keywords || [] });
                     showToast('Draft restored ✨', 'ℹ️');
                 } catch { initDynamicContainers(); }
@@ -5043,6 +5110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 yearInput.value = currentYear + 1;
                 // Trigger ripple effect
                 createRipple(e, yearBtnUp);
+                triggerAutoSave();
             }
         });
     }
@@ -5056,6 +5124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 yearInput.value = currentYear - 1;
                 // Trigger ripple effect
                 createRipple(e, yearBtnDown);
+                triggerAutoSave();
             }
         });
     }
@@ -5068,12 +5137,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let currentYear = parseInt(yearInput.value) || new Date().getFullYear();
                 if (currentYear < MAX_YEAR) {
                     yearInput.value = currentYear + 1;
+                    triggerAutoSave();
                 }
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
                 let currentYear = parseInt(yearInput.value) || new Date().getFullYear();
                 if (currentYear > MIN_YEAR) {
                     yearInput.value = currentYear - 1;
+                    triggerAutoSave();
                 }
             }
         });
@@ -5174,6 +5245,152 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateButtonVisibility();
     }
 
+    /**
+     * Parse and update Cloudinary angle and flip transformations cleanly
+     */
+    function updateCloudinaryOrientation(url, angleDelta = 90, toggleFlip = false) {
+        if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) {
+            return url;
+        }
+
+        const uploadIdx = url.indexOf('/upload/');
+        if (uploadIdx === -1) return url;
+
+        const beforeUpload = url.substring(0, uploadIdx + 8);
+        const afterUpload = url.substring(uploadIdx + 8);
+
+        let angle = 0;
+        let flipH = false;
+        const segments = afterUpload.split('/');
+        const remainingSegments = [];
+
+        for (const segment of segments) {
+            const parts = segment.split(',');
+            const nonTransformParts = [];
+            for (const part of parts) {
+                const angleMatch = part.match(/^a_(\d+)$/);
+                if (angleMatch) {
+                    angle = parseInt(angleMatch[1], 10) % 360;
+                } else if (part === 'a_hflip') {
+                    flipH = true;
+                } else if (part.startsWith('f_') || part.startsWith('q_') || part.startsWith('w_') || part.startsWith('h_') || part.startsWith('c_')) {
+                    // thumbnail/transient display params - ignore in storage URL
+                } else {
+                    nonTransformParts.push(part);
+                }
+            }
+            if (nonTransformParts.length > 0) {
+                remainingSegments.push(nonTransformParts.join(','));
+            }
+        }
+
+        let newAngle = angle;
+        if (angleDelta) {
+            newAngle = ((angle + angleDelta) % 360 + 360) % 360;
+        }
+
+        let newFlipH = flipH;
+        if (toggleFlip) {
+            newFlipH = !flipH;
+        }
+
+        const transformParts = [];
+        if (newAngle !== 0) {
+            transformParts.push('a_' + newAngle);
+        }
+        if (newFlipH) {
+            transformParts.push('a_hflip');
+        }
+
+        if (transformParts.length === 0) {
+            return beforeUpload + remainingSegments.join('/');
+        }
+        return beforeUpload + transformParts.join('/') + '/' + remainingSegments.join('/');
+    }
+
+    /**
+     * Transform a local File using HTML5 Canvas (Rotate / Mirror)
+     */
+    function transformImageFile(file, angleDelta = 90, toggleFlip = false) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(file);
+                    return;
+                }
+
+                const deg = ((angleDelta % 360) + 360) % 360;
+                const isSwapped = deg === 90 || deg === 270;
+
+                canvas.width = isSwapped ? img.height : img.width;
+                canvas.height = isSwapped ? img.width : img.height;
+
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                if (deg !== 0) {
+                    ctx.rotate((deg * Math.PI) / 180);
+                }
+                if (toggleFlip) {
+                    ctx.scale(-1, 1);
+                }
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                ctx.restore();
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+                    const newFile = new File([blob], file.name, {
+                        type: file.type || 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    resolve(newFile);
+                }, file.type || 'image/jpeg', 0.95);
+            };
+            img.onerror = (err) => {
+                URL.revokeObjectURL(objectUrl);
+                reject(err);
+            };
+            img.src = objectUrl;
+        });
+    }
+
+    function updateProjectExistingImageOrientation(index, angleDelta, toggleFlip) {
+        if (!projectExistingImages || !projectExistingImages[index]) return;
+        const currentItem = projectExistingImages[index];
+        const rawUrl = typeof currentItem === 'string' ? currentItem : (currentItem.secure_url || currentItem.url);
+        const newUrl = updateCloudinaryOrientation(rawUrl, angleDelta, toggleFlip);
+
+        if (typeof currentItem === 'string') {
+            projectExistingImages[index] = newUrl;
+        } else {
+            projectExistingImages[index] = { ...currentItem, url: newUrl, secure_url: newUrl };
+        }
+
+        renderProjectImagesPreview();
+        updateButtonVisibility();
+    }
+
+    async function updateProjectImageFileOrientation(index, angleDelta, toggleFlip) {
+        if (!projectImageFiles || !projectImageFiles[index]) return;
+        try {
+            const currentFile = projectImageFiles[index];
+            const newFile = await transformImageFile(currentFile, angleDelta, toggleFlip);
+            projectImageFiles[index] = newFile;
+            renderProjectImagesPreview();
+            updateButtonVisibility();
+        } catch (err) {
+            console.error('Failed to transform local file:', err);
+            showToast('Unable to rotate local image', '⚠️');
+        }
+    }
+
     function renderProjectImagesPreview() {
         const grid = document.getElementById('project-images-preview-grid');
         if (!grid) return;
@@ -5196,6 +5413,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="image-preview-actions">
                     <button type="button" class="remove-img-btn" title="Remove image" data-existing-index="${index}">✕</button>
                 </div>
+                <div class="image-preview-toolbar" role="toolbar" aria-label="Image orientation tools">
+                    <button type="button" class="img-tool-btn rotate-left-btn" title="Rotate 90° Left" aria-label="Rotate Left">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="img-tool-btn rotate-right-btn" title="Rotate 90° Right" aria-label="Rotate Right">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 7"></path>
+                            <path d="M21 3v4h-4"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="img-tool-btn mirror-btn" title="Mirror / Flip Horizontal" aria-label="Mirror Horizontal">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"></path>
+                            <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path>
+                            <line x1="12" y1="2" x2="12" y2="22"></line>
+                            <polyline points="7 8 3 12 7 16"></polyline>
+                            <polyline points="17 8 21 12 17 16"></polyline>
+                        </svg>
+                    </button>
+                </div>
             `;
 
             card.querySelector('.remove-img-btn').addEventListener('click', (e) => {
@@ -5203,6 +5443,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 projectExistingImages.splice(index, 1);
                 renderProjectImagesPreview();
                 updateButtonVisibility();
+            });
+
+            card.querySelector('.rotate-left-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateProjectExistingImageOrientation(index, -90, false);
+            });
+
+            card.querySelector('.rotate-right-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateProjectExistingImageOrientation(index, 90, false);
+            });
+
+            card.querySelector('.mirror-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateProjectExistingImageOrientation(index, 0, true);
             });
 
             grid.appendChild(card);
@@ -5223,6 +5478,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="image-preview-actions">
                     <button type="button" class="remove-img-btn" title="Remove image" data-file-index="${index}">✕</button>
                 </div>
+                <div class="image-preview-toolbar" role="toolbar" aria-label="Image orientation tools">
+                    <button type="button" class="img-tool-btn rotate-left-btn" title="Rotate 90° Left" aria-label="Rotate Left">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="img-tool-btn rotate-right-btn" title="Rotate 90° Right" aria-label="Rotate Right">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 7"></path>
+                            <path d="M21 3v4h-4"></path>
+                        </svg>
+                    </button>
+                    <button type="button" class="img-tool-btn mirror-btn" title="Mirror / Flip Horizontal" aria-label="Mirror Horizontal">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h3"></path>
+                            <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path>
+                            <line x1="12" y1="2" x2="12" y2="22"></line>
+                            <polyline points="7 8 3 12 7 16"></polyline>
+                            <polyline points="17 8 21 12 17 16"></polyline>
+                        </svg>
+                    </button>
+                </div>
             `;
 
             card.querySelector('.remove-img-btn').addEventListener('click', (e) => {
@@ -5231,6 +5509,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 projectImageFiles.splice(index, 1);
                 renderProjectImagesPreview();
                 updateButtonVisibility();
+            });
+
+            card.querySelector('.rotate-left-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateProjectImageFileOrientation(index, -90, false);
+            });
+
+            card.querySelector('.rotate-right-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateProjectImageFileOrientation(index, 90, false);
+            });
+
+            card.querySelector('.mirror-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                updateProjectImageFileOrientation(index, 0, true);
             });
 
             grid.appendChild(card);
@@ -5266,24 +5559,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: document.getElementById('project-title-input')?.value.trim() || '',
             authors: getDynamicValues('authors-container'),
             program: document.getElementById('project-program-select')?.value || '',
-            year: parseInt(document.getElementById('project-year-input')?.value || '0'),
+            year: parseInt(document.getElementById('project-year-input')?.value || '0', 10),
             adviser: document.getElementById('project-adviser-input')?.value.trim() || '',
             status: document.getElementById('project-status-select')?.value || '',
             abstract: document.getElementById('project-abstract-input')?.value.trim() || '',
             topics: getDynamicValues('topics-container'),
-            keywords: getDynamicValues('keywords-container')
+            keywords: getDynamicValues('keywords-container'),
+            catalogLocation: document.getElementById('project-catalog-location')?.value.trim() || '',
+            callNumber: document.getElementById('project-call-number')?.value.trim() || '',
+            accessionNumber: document.getElementById('project-accession-number')?.value.trim() || ''
         };
 
         // Compare with original
-        if (currentData.title !== originalFormData.title) return true;
-        if (JSON.stringify(currentData.authors) !== JSON.stringify(originalFormData.authors)) return true;
-        if (currentData.program !== originalFormData.program) return true;
-        if (currentData.year !== originalFormData.year) return true;
-        if (currentData.adviser !== originalFormData.adviser) return true;
-        if (currentData.status !== originalFormData.status) return true;
-        if (currentData.abstract !== originalFormData.abstract) return true;
-        if (JSON.stringify(currentData.topics) !== JSON.stringify(originalFormData.topics)) return true;
-        if (JSON.stringify(currentData.keywords) !== JSON.stringify(originalFormData.keywords)) return true;
+        if (currentData.title !== (originalFormData.title || '')) return true;
+        if (JSON.stringify(currentData.authors) !== JSON.stringify(originalFormData.authors || [])) return true;
+        if (currentData.program !== (originalFormData.program || '')) return true;
+        if (currentData.year !== (originalFormData.year || 0)) return true;
+        if (currentData.adviser !== (originalFormData.adviser || '')) return true;
+        if (currentData.status !== (originalFormData.status || '')) return true;
+        if (currentData.abstract !== (originalFormData.abstract || '')) return true;
+        if (JSON.stringify(currentData.topics) !== JSON.stringify(originalFormData.topics || [])) return true;
+        if (JSON.stringify(currentData.keywords) !== JSON.stringify(originalFormData.keywords || [])) return true;
+        if (currentData.catalogLocation !== (originalFormData.catalogLocation || '')) return true;
+        if (currentData.callNumber !== (originalFormData.callNumber || '')) return true;
+        if (currentData.accessionNumber !== (originalFormData.accessionNumber || '')) return true;
+        if (projectImageFiles && projectImageFiles.length > 0) return true;
+        if (JSON.stringify(projectExistingImages || []) !== JSON.stringify(originalFormData.images || [])) return true;
 
         return false;
     }
@@ -5295,78 +5596,90 @@ document.addEventListener('DOMContentLoaded', async () => {
             title: document.getElementById('project-title-input')?.value.trim() || '',
             authors: getDynamicValues('authors-container'),
             program: document.getElementById('project-program-select')?.value || '',
-            year: parseInt(document.getElementById('project-year-input')?.value || '0'),
+            year: parseInt(document.getElementById('project-year-input')?.value || '0', 10),
             adviser: document.getElementById('project-adviser-input')?.value.trim() || '',
             status: document.getElementById('project-status-select')?.value || '',
             abstract: document.getElementById('project-abstract-input')?.value.trim() || '',
             topics: getDynamicValues('topics-container'),
-            keywords: getDynamicValues('keywords-container')
+            keywords: getDynamicValues('keywords-container'),
+            catalogLocation: document.getElementById('project-catalog-location')?.value.trim() || '',
+            callNumber: document.getElementById('project-call-number')?.value.trim() || '',
+            accessionNumber: document.getElementById('project-accession-number')?.value.trim() || ''
         };
 
-        if (currentData.title !== originalFormData.title) {
-            changes.push({ field: 'Title', old: originalFormData.title, new: currentData.title });
+        if (currentData.title !== (originalFormData.title || '')) {
+            changes.push({ field: 'Title', old: originalFormData.title || 'None', new: currentData.title || 'None' });
         }
-        if (JSON.stringify(currentData.authors) !== JSON.stringify(originalFormData.authors)) {
+        if (JSON.stringify(currentData.authors) !== JSON.stringify(originalFormData.authors || [])) {
             changes.push({ 
                 field: 'Authors', 
-                old: originalFormData.authors.join(', ') || 'None', 
+                old: (originalFormData.authors || []).join(', ') || 'None', 
                 new: currentData.authors.join(', ') || 'None'
             });
         }
-        if (currentData.program !== originalFormData.program) {
-            changes.push({ field: 'Program', old: originalFormData.program, new: currentData.program });
+        if (currentData.program !== (originalFormData.program || '')) {
+            changes.push({ field: 'Program', old: originalFormData.program || 'None', new: currentData.program || 'None' });
         }
-        if (currentData.year !== originalFormData.year) {
-            changes.push({ field: 'Year', old: originalFormData.year, new: currentData.year });
+        if (currentData.year !== (originalFormData.year || 0)) {
+            changes.push({ field: 'Year', old: String(originalFormData.year || 'None'), new: String(currentData.year || 'None') });
         }
-        if (currentData.adviser !== originalFormData.adviser) {
-            changes.push({ field: 'Adviser', old: originalFormData.adviser, new: currentData.adviser });
+        if (currentData.adviser !== (originalFormData.adviser || '')) {
+            changes.push({ field: 'Adviser', old: originalFormData.adviser || 'None', new: currentData.adviser || 'None' });
         }
-        if (currentData.status !== originalFormData.status) {
-            changes.push({ field: 'Status', old: originalFormData.status, new: currentData.status });
+        if (currentData.status !== (originalFormData.status || '')) {
+            changes.push({ field: 'Status', old: originalFormData.status || 'None', new: currentData.status || 'None' });
         }
-        if (currentData.abstract !== originalFormData.abstract) {
+        if (currentData.abstract !== (originalFormData.abstract || '')) {
             changes.push({ 
                 field: 'Abstract', 
                 old: originalFormData.abstract ? (originalFormData.abstract.substring(0, 100) + '...') : 'None', 
                 new: currentData.abstract ? (currentData.abstract.substring(0, 100) + '...') : 'None'
             });
         }
-        if (JSON.stringify(currentData.topics) !== JSON.stringify(originalFormData.topics)) {
+        if (JSON.stringify(currentData.topics) !== JSON.stringify(originalFormData.topics || [])) {
             changes.push({ 
                 field: 'Topics', 
-                old: originalFormData.topics.join(', ') || 'None', 
+                old: (originalFormData.topics || []).join(', ') || 'None', 
                 new: currentData.topics.join(', ') || 'None'
             });
         }
-        if (JSON.stringify(currentData.keywords) !== JSON.stringify(originalFormData.keywords)) {
+        if (JSON.stringify(currentData.keywords) !== JSON.stringify(originalFormData.keywords || [])) {
             changes.push({ 
                 field: 'Keywords', 
-                old: originalFormData.keywords.join(', ') || 'None', 
+                old: (originalFormData.keywords || []).join(', ') || 'None', 
                 new: currentData.keywords.join(', ') || 'None'
             });
+        }
+        if (currentData.catalogLocation !== (originalFormData.catalogLocation || '')) {
+            changes.push({ field: 'Shelf Location', old: originalFormData.catalogLocation || 'None', new: currentData.catalogLocation || 'None' });
+        }
+        if (currentData.callNumber !== (originalFormData.callNumber || '')) {
+            changes.push({ field: 'Call Number', old: originalFormData.callNumber || 'None', new: currentData.callNumber || 'None' });
+        }
+        if (currentData.accessionNumber !== (originalFormData.accessionNumber || '')) {
+            changes.push({ field: 'Accession Number', old: originalFormData.accessionNumber || 'None', new: currentData.accessionNumber || 'None' });
+        }
+        if (projectImageFiles && projectImageFiles.length > 0) {
+            changes.push({ field: 'New Images', old: 'None', new: `${projectImageFiles.length} file(s) selected` });
+        }
+        if (JSON.stringify(projectExistingImages || []) !== JSON.stringify(originalFormData.images || [])) {
+            changes.push({ field: 'Existing Images', old: `${(originalFormData.images || []).length} image(s)`, new: `${(projectExistingImages || []).length} image(s)` });
         }
 
         return changes;
     }
 
-    // Update button visibility
+    // Update button visibility (guarantees Save Project button is always visible in both create and edit modes)
     function updateButtonVisibility() {
         const hasValues = hasFormValues();
-        const hasChanges = hasFormChanges();
 
-        // Clear button: only show if form has values
+        // Clear button: only show in create mode if form has values
         if (clearProjectBtn) {
-            clearProjectBtn.style.display = hasValues ? 'inline-flex' : 'none';
+            clearProjectBtn.style.display = (!isEditMode && hasValues) ? 'inline-flex' : 'none';
         }
 
-        // Submit button: 
-        // - In edit mode: only show if there are changes
-        // - In create mode: always show
-        if (submitProjectBtn && isEditMode) {
-            submitProjectBtn.style.display = hasChanges ? 'inline-flex' : 'none';
-            submitProjectBtn.textContent = 'Apply Edit';
-        } else if (submitProjectBtn) {
+        // Submit button: ALWAYS VISIBLE in both create and edit modes!
+        if (submitProjectBtn) {
             submitProjectBtn.style.display = 'inline-flex';
             submitProjectBtn.textContent = 'Save Project';
         }
@@ -5430,7 +5743,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (closeBtn)  closeBtn.disabled  = false;
             if (cancelBtn) cancelBtn.disabled = false;
             if (clearBtn)  clearBtn.disabled  = false;
-            // submitBtn visibility is managed by updateButtonVisibility — do not touch
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.display = 'inline-flex';
+            }
         }
     }
 
@@ -5453,13 +5769,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             projectImageFiles = [];
             renderProjectImagesPreview();
 
+            // Reset Section 5 Location & Cataloging fields
+            const locInput = document.getElementById('project-catalog-location');
+            const callInput = document.getElementById('project-call-number');
+            const accInput = document.getElementById('project-accession-number');
+            if (locInput) locInput.value = '';
+            if (callInput) callInput.value = '';
+            if (accInput) accInput.value = '';
+
+            const auditBadge = document.getElementById('admin-audit-badge');
+            if (auditBadge) {
+                auditBadge.textContent = 'Not Cataloged';
+                auditBadge.classList.remove('cataloged');
+            }
+            const auditDetails = document.getElementById('admin-audit-details');
+            if (auditDetails) auditDetails.style.display = 'none';
+
             // Reset edit mode and original data
             isEditMode = false;
             originalFormData = {};
             
             // Reset button visibility
             if (clearProjectBtn) clearProjectBtn.style.display = 'none';
-            if (submitProjectBtn) submitProjectBtn.style.display = 'inline-flex';
+            if (submitProjectBtn) {
+                submitProjectBtn.style.display = 'inline-flex';
+                submitProjectBtn.textContent = 'Save Project';
+            }
         }
     };
 
@@ -5523,7 +5858,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const changes = getChangedFields();
                     
                     if (changes.length === 0) {
-                        showToast('No changes detected', 'ℹ️');
+                        showToast('No changes detected — project is already up to date.', 'ℹ️');
+                        closeProjectModal();
                         return;
                     }
 
@@ -5544,8 +5880,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const confirmed = await ModalDialog.confirm({
                         title: 'Confirm Changes',
                         message: `You are about to update ${changes.length} field${changes.length > 1 ? 's' : ''} in this project:\n\n${changes.map(c => `• ${c.field}`).join('\n')}`,
-                        confirmText: 'Apply Changes',
-                        cancelText: 'Review Again',
+                        confirmText: 'Save Changes',
+                        cancelText: 'Cancel',
                         type: 'info'
                     });
                     if (confirmed) {
@@ -5607,6 +5943,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
+            const catalogLocation = document.getElementById('project-catalog-location')?.value.trim() || '';
+            const callNumber = document.getElementById('project-call-number')?.value.trim() || '';
+            const accessionNumber = document.getElementById('project-accession-number')?.value.trim() || '';
+            const isCataloged = !!(catalogLocation || callNumber || accessionNumber);
+
             const changedFields = [];
             
             if ((oldData.title || '') !== title) changedFields.push('title');
@@ -5622,6 +5963,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if ((oldData.abstract || '') !== abstract) changedFields.push('abstract');
             if (JSON.stringify(oldData.topics || []) !== JSON.stringify(topics)) changedFields.push('topics');
             if (JSON.stringify(oldData.keywords || []) !== JSON.stringify(keywords)) changedFields.push('keywords');
+            if ((oldData.catalogLocation || '') !== catalogLocation) changedFields.push('catalogLocation');
+            if ((oldData.callNumber || '') !== callNumber) changedFields.push('callNumber');
+            if ((oldData.accessionNumber || '') !== accessionNumber) changedFields.push('accessionNumber');
+            if (projectImageFiles.length > 0 || JSON.stringify(projectExistingImages || []) !== JSON.stringify(oldData.images || [])) {
+                if (!changedFields.includes('images')) changedFields.push('images');
+            }
 
             // Upload new images to Cloudinary if any
             let finalImages = [...projectExistingImages];
@@ -5672,9 +6019,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 topics,
                 keywords,
                 images: finalImages,
+                catalogLocation,
+                callNumber,
+                accessionNumber,
+                cataloged: isCataloged,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection('projects').doc(projectId).update(updatedData);
+
+            // Also update catalogNotes if location/call/accession data exists
+            try {
+                await db.collection('catalogNotes').doc(projectId).set({
+                    note: catalogLocation,
+                    callNumber,
+                    accessionNumber,
+                    lastUpdatedByName: 'Administrator',
+                    lastUpdatedByEmail: currentUser?.email || 'admin@ctu.edu.ph',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (cnSaveErr) {
+                console.warn('Could not update catalogNotes for project:', cnSaveErr);
+            }
 
             // Update Realtime Database
             if (changedFields.length > 0 && rtdb) {
@@ -5830,6 +6195,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
+            const catalogLocation = document.getElementById('project-catalog-location')?.value.trim() || '';
+            const callNumber = document.getElementById('project-call-number')?.value.trim() || '';
+            const accessionNumber = document.getElementById('project-accession-number')?.value.trim() || '';
+            const isCataloged = !!(catalogLocation || callNumber || accessionNumber);
+
             // Create in Firestore
             const newProject = {
                 title,
@@ -5843,12 +6213,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 topics,
                 keywords,
                 images: finalImages,
+                catalogLocation,
+                callNumber,
+                accessionNumber,
+                cataloged: isCataloged,
                 pineconeSynced: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             const docRef = await db.collection('projects').add(newProject);
             const projectId = docRef.id;
+
+            if (isCataloged) {
+                try {
+                    await db.collection('catalogNotes').doc(projectId).set({
+                        note: catalogLocation,
+                        callNumber,
+                        accessionNumber,
+                        createdByName: 'Administrator',
+                        createdByEmail: currentUser?.email || 'admin@ctu.edu.ph',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (cnCreateErr) {
+                    console.warn('Could not save catalogNotes for new project:', cnCreateErr);
+                }
+            }
 
             // Update Realtime Database count
             if (rtdb) {
@@ -5966,7 +6356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             userFilters.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
             filterUsersTable();
-            showToast(`Filtered: ${pill.textContent}`, 'ℹ️');
+            // showToast(`Filtered: ${pill.textContent}`, 'ℹ️');
         });
     });
 
@@ -6592,7 +6982,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="approvals-submitter-wrap">
                         <span class="approvals-submitter-name">${submitterName}</span>
                         <span class="approvals-submitter-meta">${submitterEmail}</span>
-                        <span class="approvals-submitter-meta" style="font-size:0.7rem;opacity:0.8;">📅 ${dateStr}</span>
+                        <span class="approvals-submitter-meta" style="font-size:0.7rem;opacity:0.8;">${dateStr}</span>
                     </div>
                 </td>
                 <td><span class="badge badge-info" style="font-weight:700;">${escapeHtml(item.program || 'N/A')}</span></td>
@@ -6669,7 +7059,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = customData || item;
         document.getElementById('approval-pending-id').value = id;
         document.getElementById('approval-title').value = data.title || '';
-        document.getElementById('approval-authors').value = Array.isArray(data.authors) ? data.authors.join(', ') : (data.authors || '');
+
+        // Hydrate dynamic authors container
+        clearDynamicContainer('approval-authors-container');
+        let authorsList = [];
+        if (Array.isArray(data.authors)) {
+            authorsList = data.authors;
+        } else if (typeof data.authors === 'string' && data.authors.trim()) {
+            authorsList = data.authors.split(',').map(a => a.trim()).filter(Boolean);
+        }
+        const authorPlaceholder = 'Author name (e.g., Juan Dela Cruz or Reyes, A.)';
+        if (authorsList.length === 0) {
+            createDynamicRow('approval-authors-container', authorPlaceholder);
+        } else {
+            authorsList.forEach(a => createDynamicRow('approval-authors-container', authorPlaceholder, a));
+        }
+
         document.getElementById('approval-program').value = data.program || 'BSIT';
         document.getElementById('approval-year').value = data.year || new Date().getFullYear();
         document.getElementById('approval-adviser').value = data.adviser || '';
@@ -6717,6 +7122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 el.disabled = isLocked;
             });
         }
+        const approvalAddAuthorBtn = document.getElementById('approval-add-author-btn');
+        if (approvalAddAuthorBtn) approvalAddAuthorBtn.disabled = isLocked;
+        const removeBtns = document.getElementById('approval-authors-container')?.querySelectorAll('.remove-row-btn');
+        if (removeBtns) removeBtns.forEach(btn => btn.disabled = isLocked);
+
         if (confirmBtn) {
             confirmBtn.disabled = isLocked;
             confirmBtn.title = isLocked ? 'Project is locked by Admin. Unlock to approve.' : '';
@@ -6745,6 +7155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             modal.classList.remove('active');
             modal.style.display = 'none';
             document.body.style.overflow = '';
+            clearDynamicContainer('approval-authors-container');
         }
     }
 
@@ -7653,19 +8064,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const title = document.getElementById('approval-title')?.value.trim();
             const abstract = document.getElementById('approval-abstract')?.value.trim();
-            const authorsRaw = document.getElementById('approval-authors')?.value.trim();
+            const authors = getDynamicValues('approval-authors-container');
             const program = document.getElementById('approval-program')?.value;
             const year = document.getElementById('approval-year')?.value;
 
-            if (!title || !abstract || !authorsRaw || !program || !year) {
-                showToast('Please fill all required fields.', '❌');
+            if (!title || !abstract || authors.length === 0 || !program || !year) {
+                showToast('Please fill all required fields, including at least one author.', '❌');
                 return;
             }
 
             const customData = {
                 title,
                 abstract,
-                authors: authorsRaw.split(',').map(a => a.trim()).filter(Boolean),
+                authors,
                 program,
                 year: parseInt(year, 10) || year,
                 adviser: document.getElementById('approval-adviser')?.value.trim(),
@@ -7749,7 +8160,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     item.isLockedByAdmin = isLock;
                     item.lockedByName = isLock ? (auth.currentUser?.displayName || 'Administrator') : null;
                 }
-                saveProjectsToCache(allProjectsData);
+                if (typeof saveToCache === 'function') {
+                    await saveToCache(allProjectsData).catch(e => console.warn('saveToCache warning:', e));
+                } else {
+                    localStorage.setItem('projectsData', JSON.stringify(allProjectsData));
+                }
                 const tbody = document.getElementById('projects-table-body');
                 if (tbody) renderProjectsTablePaginated(tbody);
 
@@ -7802,7 +8217,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     item.editingBy = null;
                     item.editingByName = null;
                 }
-                saveProjectsToCache(allProjectsData);
+                if (typeof saveToCache === 'function') {
+                    await saveToCache(allProjectsData).catch(e => console.warn('saveToCache warning:', e));
+                } else {
+                    localStorage.setItem('projectsData', JSON.stringify(allProjectsData));
+                }
                 const tbody = document.getElementById('projects-table-body');
                 if (tbody) renderProjectsTablePaginated(tbody);
 

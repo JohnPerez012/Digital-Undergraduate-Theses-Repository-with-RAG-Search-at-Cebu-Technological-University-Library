@@ -23,7 +23,8 @@ serviceAccount*.json
 firestore.indexes.json
 .firebaserc
 firebase.json
-firebase
+/firebase
+!public/vendor/firebase/
 localRunner.bat
 *.bat
 *.code-workspace

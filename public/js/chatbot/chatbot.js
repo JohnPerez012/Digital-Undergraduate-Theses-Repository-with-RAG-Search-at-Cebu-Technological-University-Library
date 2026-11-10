@@ -774,13 +774,20 @@ const Chatbot = {
 
     let matchedProject = null;
 
-    // 1. Search in AIService.lastRelevantProjects
-    if (typeof AIService !== 'undefined' && Array.isArray(AIService.lastRelevantProjects)) {
-      matchedProject = AIService.lastRelevantProjects.find(p => {
-        if (queryId && p.id === queryId) return true;
+    // Helper to find in a list
+    const findInList = (list) => {
+      if (!Array.isArray(list) || list.length === 0) return null;
+      return list.find(p => {
+        if (!p) return false;
+        if (queryId && (p.id === queryId || p.UIDproject === queryId)) return true;
         const pNorm = norm(p.title);
         return pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm));
       });
+    };
+
+    // 1. Search in AIService.lastRelevantProjects
+    if (typeof AIService !== 'undefined' && Array.isArray(AIService.lastRelevantProjects)) {
+      matchedProject = findInList(AIService.lastRelevantProjects);
     }
 
     // 2. Search in conversation messages
@@ -788,43 +795,113 @@ const Chatbot = {
       for (let i = this.conversationMessages.length - 1; i >= 0; i--) {
         const msg = this.conversationMessages[i];
         if (msg.relevantProjects && Array.isArray(msg.relevantProjects)) {
-          matchedProject = msg.relevantProjects.find(p => {
-            if (queryId && p.id === queryId) return true;
-            const pNorm = norm(p.title);
-            return pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm));
-          });
+          matchedProject = findInList(msg.relevantProjects);
           if (matchedProject) break;
         }
       }
     }
 
-    // 3. Search in global allProjects (from project-list.js)
-    if (!matchedProject && typeof allProjects !== 'undefined' && Array.isArray(allProjects)) {
-      matchedProject = allProjects.find(p => {
-        if (queryId && p.id === queryId) return true;
-        const pNorm = norm(p.title);
-        return pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm));
-      });
-    }
-
-    // 4. Query Firestore if available
-    if (typeof firebase !== 'undefined' && firebase.firestore) {
+    // 3. Look up in local client caches (projectsData, libCatalogProjectsData, libProjectsData, __allProjectsData, etc.)
+    // These local collections contain complete project records with images, saveCount, callNumber, etc.
+    let fullCatalogRecord = null;
+    const cacheKeys = ['projectsData', 'libCatalogProjectsData', 'libProjectsData'];
+    for (const key of cacheKeys) {
       try {
-        const db = firebase.firestore();
-        if (queryId) {
-          const doc = await db.collection('projects').doc(queryId).get();
-          if (doc.exists) {
-            matchedProject = { id: doc.id, ...doc.data() };
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const found = findInList(parsed);
+          if (found) {
+            fullCatalogRecord = found;
+            break;
           }
         }
-        if (!matchedProject && targetNorm) {
-          const snap = await db.collection('projects').limit(100).get();
+      } catch (e) {}
+    }
+
+    if (!fullCatalogRecord && typeof window !== 'undefined') {
+      if (Array.isArray(window.__allProjectsData)) {
+        fullCatalogRecord = findInList(window.__allProjectsData);
+      }
+      if (!fullCatalogRecord && typeof window.getMasterProjectsWrapper === 'function') {
+        fullCatalogRecord = findInList(window.getMasterProjectsWrapper());
+      }
+      if (!fullCatalogRecord && typeof allProjects !== 'undefined' && Array.isArray(allProjects)) {
+        fullCatalogRecord = findInList(allProjects);
+      }
+    }
+
+    // Merge fullCatalogRecord if found so full images & metrics are preserved
+    if (fullCatalogRecord) {
+      matchedProject = {
+        ...(matchedProject || {}),
+        ...fullCatalogRecord,
+        images: (Array.isArray(fullCatalogRecord.images) && fullCatalogRecord.images.length > 0)
+          ? fullCatalogRecord.images
+          : (Array.isArray(matchedProject?.images) && matchedProject.images.length > 0 ? matchedProject.images : []),
+        saveCount: typeof fullCatalogRecord.saveCount === 'number'
+          ? fullCatalogRecord.saveCount
+          : (typeof matchedProject?.saveCount === 'number' ? matchedProject.saveCount : 0),
+        catalogLocation: fullCatalogRecord.catalogLocation || matchedProject?.catalogLocation || '',
+        callNumber: fullCatalogRecord.callNumber || matchedProject?.callNumber || '',
+        accessionNumber: fullCatalogRecord.accessionNumber || fullCatalogRecord.accessionNo || matchedProject?.accessionNumber || ''
+      };
+    }
+
+    // 4. Query Firestore if images or saveCount are still missing
+    const targetDocId = queryId || (matchedProject && matchedProject.id);
+    const needsFirestore = !matchedProject || 
+                           !matchedProject.images || 
+                           !Array.isArray(matchedProject.images) || 
+                           matchedProject.images.length === 0 || 
+                           matchedProject.saveCount === undefined;
+
+    if (needsFirestore && typeof firebase !== 'undefined' && firebase.firestore) {
+      try {
+        const db = firebase.firestore();
+        if (targetDocId) {
+          const doc = await db.collection('projects').doc(targetDocId).get();
+          if (doc.exists) {
+            const data = doc.data();
+            matchedProject = {
+              ...(matchedProject || {}),
+              ...data,
+              id: doc.id,
+              images: (Array.isArray(data.images) && data.images.length > 0)
+                ? data.images
+                : (matchedProject?.images || []),
+              saveCount: typeof data.saveCount === 'number'
+                ? data.saveCount
+                : (typeof matchedProject?.saveCount === 'number' ? matchedProject.saveCount : 0),
+              catalogLocation: data.catalogLocation || matchedProject?.catalogLocation || '',
+              callNumber: data.callNumber || matchedProject?.callNumber || '',
+              accessionNumber: data.accessionNumber || data.accessionNo || matchedProject?.accessionNumber || ''
+            };
+          }
+        }
+        
+        // If still missing images, try matching by title across Firestore
+        if ((!matchedProject || !matchedProject.images || !matchedProject.images.length) && targetNorm) {
+          const snap = await db.collection('projects').limit(150).get();
           snap.forEach(doc => {
-            if (matchedProject) return;
+            if (matchedProject && matchedProject.images && matchedProject.images.length) return;
             const data = doc.data();
             const pNorm = norm(data.title);
             if (pNorm && targetNorm && (pNorm === targetNorm || pNorm.includes(targetNorm) || targetNorm.includes(pNorm))) {
-              matchedProject = { id: doc.id, ...data };
+              matchedProject = {
+                ...(matchedProject || {}),
+                ...data,
+                id: doc.id,
+                images: (Array.isArray(data.images) && data.images.length > 0)
+                  ? data.images
+                  : (matchedProject?.images || []),
+                saveCount: typeof data.saveCount === 'number'
+                  ? data.saveCount
+                  : (typeof matchedProject?.saveCount === 'number' ? matchedProject.saveCount : 0),
+                catalogLocation: data.catalogLocation || matchedProject?.catalogLocation || '',
+                callNumber: data.callNumber || matchedProject?.callNumber || '',
+                accessionNumber: data.accessionNumber || data.accessionNo || matchedProject?.accessionNumber || ''
+              };
             }
           });
         }
@@ -833,23 +910,33 @@ const Chatbot = {
       }
     }
 
-    // 5. Fallback: if not found, construct a valid project record so details always render
+    // 5. Fallback: if not found anywhere, construct a valid project record so details always render
     if (!matchedProject) {
       matchedProject = {
         title: queryTitle,
         authors: ['Undergraduate Research Team'],
-        program: 'BIT-Electronics',
-        year: '2025',
+        program: 'BSIE',
+        year: '2024',
         status: 'Completed',
         adviser: 'Not specified',
-        abstract: 'Automated Plant Irrigation System capstone project. Details retrieved via repository archive.'
+        abstract: 'Details retrieved via repository archive.'
       };
     }
 
     // Ensure essential fields exist for renderProjectDetails
     if (!matchedProject.status) matchedProject.status = 'Completed';
-    if (!matchedProject.program) matchedProject.program = 'BIT-Electronics';
-    if (!matchedProject.year) matchedProject.year = '2025';
+    if (!matchedProject.program) matchedProject.program = 'BSIE';
+    if (!matchedProject.year) matchedProject.year = '2024';
+    if (!Array.isArray(matchedProject.images)) matchedProject.images = [];
+    if (typeof matchedProject.saveCount !== 'number') matchedProject.saveCount = 0;
+
+    // Check user bookmark status
+    if (window.ProjectBookmarkService && matchedProject.id) {
+      const isSaved = ProjectBookmarkService.isSaved(matchedProject.id);
+      if (isSaved && matchedProject.saveCount < 1) {
+        matchedProject.saveCount = 1;
+      }
+    }
 
     // 6. Save to sessionStorage
     sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(matchedProject));
