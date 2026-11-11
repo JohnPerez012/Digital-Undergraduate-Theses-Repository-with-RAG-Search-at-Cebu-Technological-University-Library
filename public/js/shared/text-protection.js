@@ -23,6 +23,7 @@
         '.recent-thesis-authors',
         '.project-author',
         '.catalog-card-authors',
+        '.top-bookmarked-authors',
         '[data-allow-copy="true"]'
     ];
 
@@ -33,6 +34,9 @@
         '.project-title-large',
         '.saved-card-title',
         '.recent-thesis-title',
+        '.recent-item-title',
+        '.top-bookmarked-title',
+        '.top-bookmarked-theses-title',
         '.catalog-card-title',
         '.ctm-thesis-title',
         '.offline-card-title',
@@ -41,6 +45,8 @@
         '#cn-project-title',
         '.project-title-cell',
         '.project-title-text',
+        '.analytics-table .top-bookmarked-title',
+        '.analytics-table .project-title-text',
         '#pinecone-current-project-title',
         '#secure-delete-project-title',
 
@@ -67,7 +73,24 @@
 
     let calloutEl = null;
     let lastTriggerTime = 0;
+    let lastToastTime = 0;
     const THROTTLE_MS = 300;
+    const TOAST_THROTTLE_MS = 2200;
+
+    /**
+     * Trigger warning toast for text protection and anti-plagiarism compliance
+     */
+    function triggerProtectionToast(customMsg) {
+        const now = Date.now();
+        if (now - lastToastTime < TOAST_THROTTLE_MS) return;
+        lastToastTime = now;
+
+        const message = customMsg || 'Text highlighting and copying are disabled under R.A. 10173 & Anti-Plagiarism regulations.';
+        const toastFn = (typeof window.showToast === 'function') ? window.showToast : ((typeof showToast === 'function') ? showToast : null);
+        if (toastFn) {
+            toastFn(message, 'warning');
+        }
+    }
 
     /**
      * Check if a given DOM element is an author or whitelisted copyable element
@@ -98,10 +121,10 @@
             }
         }
 
-        // Check if explicitly marked with user-select: none on specific project text classes
+        // Check if explicitly marked with user-select: none on specific project text classes or tables
         const computed = window.getComputedStyle(target);
         if (computed && computed.userSelect === 'none') {
-            const isTextContent = target.closest('.project-card, .project-section, .modal-body, .details-grid, .saved-project-card');
+            const isTextContent = target.closest('.project-card, .project-section, .modal-body, .details-grid, .saved-project-card, .analytics-insights-card, .analytics-table, .projects-table');
             if (isTextContent && !isWhitelisted(target)) return target;
         }
 
@@ -141,9 +164,18 @@
                 <strong>Data Privacy Act (R.A. 10173)</strong> and <strong>Anti-Plagiarism</strong> regulations.
             </p>
             <div class="protection-callout-tags" aria-hidden="true">
-                <span class="protection-mini-pill">🔒 R.A. 10173</span>
-                <span class="protection-mini-pill">🛡️ Anti-Plagiarism</span>
-                <span class="protection-mini-pill">🎓 CTU Library</span>
+                <span class="protection-mini-pill">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    R.A. 10173
+                </span>
+                <span class="protection-mini-pill">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    Anti-Plagiarism
+                </span>
+                <span class="protection-mini-pill">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                    CTU Library
+                </span>
             </div>
         `;
 
@@ -222,6 +254,9 @@
         callout.style.visibility = 'visible';
         callout.classList.add('visible');
 
+        // Always trigger system warning toast per Anti-Plagiarism regulations
+        triggerProtectionToast();
+
         // Note: No auto-dismiss timer. User must manually close via close button or Escape key.
     }
 
@@ -249,7 +284,10 @@
         const protectedTarget = getProtectedAncestor(e.target);
         if (protectedTarget) {
             e.preventDefault();
+            const selection = window.getSelection();
+            if (selection) selection.removeAllRanges();
             showProtectionCallout(e.clientX, e.clientY, protectedTarget);
+            triggerProtectionToast('Text highlighting is restricted under R.A. 10173 & Anti-Plagiarism regulations.');
         }
     }, true);
 
@@ -268,7 +306,10 @@
             // Handle double-click word selection attempt
             if (e.detail >= 2) {
                 e.preventDefault();
+                const selection = window.getSelection();
+                if (selection) selection.removeAllRanges();
                 showProtectionCallout(e.clientX, e.clientY, protectedTarget);
+                triggerProtectionToast('Text highlighting is restricted under R.A. 10173 & Anti-Plagiarism regulations.');
             }
         } else {
             isMouseDown = false;
@@ -282,7 +323,10 @@
             // If dragging more than 8 pixels, user is trying to select/highlight text
             if (dist > 8) {
                 isMouseDown = false; // Only trigger once per drag
+                const selection = window.getSelection();
+                if (selection) selection.removeAllRanges();
                 showProtectionCallout(e.clientX, e.clientY, currentProtectedTarget);
+                triggerProtectionToast('Text highlighting is restricted under R.A. 10173 & Anti-Plagiarism regulations.');
             }
         }
     }, true);
@@ -303,15 +347,10 @@
 
         if (protectedAncestor) {
             e.preventDefault();
+            const selection = window.getSelection();
+            if (selection) selection.removeAllRanges();
             showProtectionCallout(window.innerWidth / 2 - 160, window.innerHeight - 180, protectedAncestor);
-
-            // Optional: trigger warning toast if toast system is loaded
-            if (typeof window.showToast === 'function') {
-                window.showToast(
-                    'Text copying is disabled in compliance with the Data Privacy Act (R.A. 10173) & Anti-Plagiarism Policy.',
-                    'warning'
-                );
-            }
+            triggerProtectionToast('Text copying is disabled in compliance with R.A. 10173 & Anti-Plagiarism regulations.');
         }
     }, true);
 
@@ -322,12 +361,8 @@
             const node = selection.anchorNode ? (selection.anchorNode.nodeType === 3 ? selection.anchorNode.parentElement : selection.anchorNode) : null;
             if (node && getProtectedAncestor(node)) {
                 e.preventDefault();
-                if (typeof window.showToast === 'function') {
-                    window.showToast(
-                        'Text copying is restricted under the Data Privacy Act (R.A. 10173) & Anti-Plagiarism Policy.',
-                        'warning'
-                    );
-                }
+                selection.removeAllRanges();
+                triggerProtectionToast('Text copying is restricted under R.A. 10173 & Anti-Plagiarism regulations.');
             }
         }
     }, true);
@@ -340,6 +375,7 @@
             const x = e.clientX || window.innerWidth / 2;
             const y = e.clientY || window.innerHeight / 2;
             showProtectionCallout(x, y, protectedTarget);
+            triggerProtectionToast('Right-click context menu is restricted on protected research content (R.A. 10173).');
         }
     }, true);
 
@@ -359,6 +395,7 @@
             touchTimer = setTimeout(() => {
                 if (touchTarget) {
                     showProtectionCallout(touchStartPos.x, touchStartPos.y, touchTarget);
+                    triggerProtectionToast('Touch selection is restricted under R.A. 10173 & Anti-Plagiarism regulations.');
                 }
             }, 450);
         }
@@ -384,7 +421,26 @@
         }
     }, { passive: true });
 
-    // 7. Close callout on Escape key
+    // 7. Active Selection Guard (Clears any rogue blue selection that gets created)
+    document.addEventListener('selectionchange', function () {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+
+        const anchorNode = selection.anchorNode;
+        const focusNode = selection.focusNode;
+
+        const anchorEl = anchorNode ? (anchorNode.nodeType === 3 ? anchorNode.parentElement : anchorNode) : null;
+        const focusEl = focusNode ? (focusNode.nodeType === 3 ? focusNode.parentElement : focusNode) : null;
+
+        const protectedAncestor = getProtectedAncestor(anchorEl) || getProtectedAncestor(focusEl);
+        if (protectedAncestor) {
+            selection.removeAllRanges();
+            showProtectionCallout(window.innerWidth / 2 - 160, window.innerHeight - 180, protectedAncestor);
+            triggerProtectionToast('Text highlighting is restricted under R.A. 10173 & Anti-Plagiarism regulations.');
+        }
+    });
+
+    // 8. Close callout on Escape key
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             hideProtectionCallout();

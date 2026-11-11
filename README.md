@@ -499,6 +499,12 @@ node scripts/preflight.js
           - `agreed`: Boolean `true` acknowledgment flag.
           - `projectId`, `projectTitle`, `callNumber`, `catalogLocation`: Target manuscript metadata.
         - Dismissing or closing the dropdown menu automatically resets access state, ensuring the security modal and agreement check re-triggers every time the physical placement is requested.
+      - *Universal Anti-Plagiarism Protection & Warning Toast Guard (`text-protection.js`, `text-protection.css`, `admin/main.js`):*
+        - Enforced strict Anti-Plagiarism and R.A. 10173 guards across the Admin **Top Bookmarked & Referenced Theses** insights table (`.top-bookmarked-title`) and all repository surfaces.
+        - Project titles and abstracts are made strictly uncopyable (`user-select: none !important; -webkit-touch-callout: none !important;`) while authors remain whitelisted and copyable (`.authors`, `.top-bookmarked-authors`, `data-allow-copy="true"`).
+        - Any unauthorized mouse highlighting, drag-selection, double-click selection, copy shortcut (`Ctrl+C`), copy event, right-click context menu, or mobile touch-hold triggers a high-visibility warning toast notification alongside the floating callout badge.
+        - Incorporated an active `selectionchange` event listener that immediately clears any rogue text selections (`selection.removeAllRanges()`) and emits the anti-plagiarism warning toast.
+        - Purged legacy emojis from the text protection callout badges in adherence to Pillar 2, substituting accessible vector SVGs.
 - **Universal Institutional Typography System (Google Fonts "Roboto Mono"):** Migrated and established "Roboto Mono" as the universal, system-wide primary typeface across all RE-CAPS surfaces:
   - *Comprehensive Variable Font Integration:* Embedded Google Fonts preconnect and variable stylesheet links (`family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Cedarville+Cursive&display=swap`) across all 8 HTML entry points (`index.html`, `maintenance.html`, `about_page.html`, `account_registration.html`, `admin_page.html`, `librarian_page.html`, `student_page.html`, and `teacher_page.html`).
   - *Global CSS Tokens & Cascade:* Configured `--font-primary: 'Roboto Mono', monospace;`, `--font-display: 'Roboto Mono', monospace;`, and `--font-mono: 'Roboto Mono', monospace;` with global `@import` rules in `style.css`, propagating universally across `body`, `button`, `input`, `select`, `textarea`, headers, and cards.

@@ -11,6 +11,11 @@
 .saved-card-title,
 .saved-card-abstract,
 .recent-thesis-title,
+.recent-item-title,
+.top-bookmarked-title,
+.top-bookmarked-theses-title,
+.analytics-table .top-bookmarked-title,
+.analytics-table .project-title-text,
 .catalog-card-title,
 .ctm-thesis-title,
 .ctm-abstract-text,
@@ -48,6 +53,7 @@
 .recent-thesis-authors,
 .project-author,
 .catalog-card-authors,
+.top-bookmarked-authors,
 [data-allow-copy="true"] {
     user-select: text !important;
     -webkit-user-select: text !important;
@@ -230,6 +236,9 @@
 }
 
 .protection-mini-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 0.64rem;
     font-weight: 600;
     color: #94a3b8;
@@ -237,6 +246,11 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 2px 6px;
     border-radius: 4px;
+}
+
+.protection-mini-pill svg {
+    color: inherit;
+    flex-shrink: 0;
 }
 
 [data-theme="light"] .protection-mini-pill {

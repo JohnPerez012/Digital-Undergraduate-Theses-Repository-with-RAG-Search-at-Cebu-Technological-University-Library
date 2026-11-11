@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         item.innerHTML = `
                             <div class="recent-item-main">
-                                <div class="recent-item-title">${escapeHtml(data.title || 'Untitled Project')}</div>
+                                <div class="recent-item-title project-title-text" data-protected="true">${escapeHtml(data.title || 'Untitled Project')}</div>
                                 <div class="recent-item-meta">
                                     <span class="dash-prog-tag dash-prog-${program.toLowerCase().replace(/[^a-z0-9]/g, '')}">${program}</span>
                                     ${yearStr ? `<span class="dash-year-tag">${yearStr}</span>` : ''}
@@ -3185,10 +3185,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <span class="analytics-rank-badge ${rankClass}">#${rank}</span>
                     </td>
                     <td>
-                        <div style="font-weight:600; color:var(--text-primary); margin-bottom:2px; line-height:1.3;">
+                        <div class="top-bookmarked-title project-title-text" data-protected="true" style="font-weight:600; color:var(--text-primary); margin-bottom:2px; line-height:1.3; user-select: none !important; -webkit-user-select: none !important; cursor: default;">
                             ${escapeHtml(p.title || 'Untitled Thesis')}
                         </div>
-                        <div style="font-size:0.75rem; color:var(--text-secondary); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        <div class="authors top-bookmarked-authors" data-allow-copy="true" style="font-size:0.75rem; color:var(--text-secondary); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; user-select: text !important; -webkit-user-select: text !important; cursor: text;">
                             ${escapeHtml(authorsStr)}
                         </div>
                     </td>
