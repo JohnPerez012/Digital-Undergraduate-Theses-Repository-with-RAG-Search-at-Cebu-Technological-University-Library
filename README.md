@@ -476,6 +476,18 @@ node scripts/preflight.js
         - Fulfills academic survey questionnaire requirement **4.1.4 (Real-Time Streaming AI Responses)** across both the public student chatbot and the internal admin copilot.
         - Emits real-time tokens across the 4-tier cascading fallback LLM engine (Mistral, Groq, Gemini, OpenRouter) with an emerald typewriter cursor (`.streaming-cursor`), dynamically parsing Spatial Landmark cards, Step Stepper cards, and Policy Precaution warnings in real time.
         - Preserves instant offline/local institutional knowledge base fallback if external LLM gateways are unreachable.
+      - *Public Physical Library Shelf Location & Archival Dropdown (`view-manager.js`, `view_project_details.css`):*
+        - Empowers students, faculty, and public visitors to independently locate hardbound thesis copies on physical library shelves without librarian intervention.
+        - Integrated directly into the **Project Info** sidebar card (`.catalog-details-dropdown-wrapper`) with a default collapsed/dropdown state (`#catalog-details-dropdown-toggle`).
+        - One-click expandable accordion revealing the physical location input by the librarian:
+          - Physical Placement / Cabinet note (`catalogLocation` or `note`, highlighted in brand yellow `#FCCC56` badge).
+          - Dewey Decimal / LC Classification Call Number (`callNumber` in monospace).
+          - Accession Inventory Index (`accessionNumber` in monospace).
+          - Subject Heading (`subjectHeading`).
+          - Real-time cataloging status chips (`Shelved` in emerald `#08D488` vs `Awaiting Shelf` in warning amber `#FCCC56`).
+          - Institutional verification watermark badge with SVG shield icon.
+        - Full compliance with the 3 Universal Institutional UI Pillars (Zero Emojis, system color palette, monochromatic slide-down animation) with both dark and light theme fidelity.
+        - Dynamic background Firestore and cache hydration ensuring physical location updates reflect instantly when viewing project details.
 - **Universal Institutional Typography System (Google Fonts "Roboto Mono"):** Migrated and established "Roboto Mono" as the universal, system-wide primary typeface across all RE-CAPS surfaces:
   - *Comprehensive Variable Font Integration:* Embedded Google Fonts preconnect and variable stylesheet links (`family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Cedarville+Cursive&display=swap`) across all 8 HTML entry points (`index.html`, `maintenance.html`, `about_page.html`, `account_registration.html`, `admin_page.html`, `librarian_page.html`, `student_page.html`, and `teacher_page.html`).
   - *Global CSS Tokens & Cascade:* Configured `--font-primary: 'Roboto Mono', monospace;`, `--font-display: 'Roboto Mono', monospace;`, and `--font-mono: 'Roboto Mono', monospace;` with global `@import` rules in `style.css`, propagating universally across `body`, `button`, `input`, `select`, `textarea`, headers, and cards.

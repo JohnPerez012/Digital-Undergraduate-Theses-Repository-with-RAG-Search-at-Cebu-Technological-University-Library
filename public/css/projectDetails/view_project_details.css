@@ -975,3 +975,297 @@ body::before {
 .project-abstract-text {
     transition: text-align 0.2s ease;
 }
+
+/* ==========================================================================
+   Physical Library Location & Cataloging Dropdown in Project Info Card
+   ========================================================================== */
+.catalog-details-dropdown-wrapper {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+:root:not([data-theme="dark"]) .catalog-details-dropdown-wrapper {
+    border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.catalog-details-dropdown-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    background: rgba(8, 212, 136, 0.06);
+    border: 1px solid rgba(8, 212, 136, 0.22);
+    border-radius: 10px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    user-select: none;
+}
+
+.catalog-details-dropdown-toggle:hover {
+    background: rgba(8, 212, 136, 0.12);
+    border-color: rgba(8, 212, 136, 0.4);
+}
+
+.catalog-details-dropdown-toggle:focus-visible {
+    box-shadow: 0 0 0 2px rgba(8, 212, 136, 0.35);
+}
+
+.catalog-details-dropdown-toggle.is-open {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+    background: rgba(8, 212, 136, 0.1);
+}
+
+:root:not([data-theme="dark"]) .catalog-details-dropdown-toggle {
+    background: rgba(8, 212, 136, 0.08);
+    border-color: rgba(8, 212, 136, 0.3);
+}
+
+:root:not([data-theme="dark"]) .catalog-details-dropdown-toggle:hover {
+    background: rgba(8, 212, 136, 0.14);
+}
+
+.catalog-toggle-label-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+}
+
+.catalog-toggle-label-wrap .catalog-book-icon {
+    color: #08D488;
+    flex-shrink: 0;
+}
+
+.catalog-toggle-meta-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.catalog-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.catalog-status-chip.catalog-status-shelved {
+    background: rgba(8, 212, 136, 0.16);
+    color: #08D488;
+    border: 1px solid rgba(8, 212, 136, 0.3);
+}
+
+.dark-mode .catalog-status-chip.catalog-status-shelved,
+[data-theme="dark"] .catalog-status-chip.catalog-status-shelved {
+    color: #34d399;
+}
+
+.catalog-status-chip.catalog-status-pending {
+    background: rgba(252, 204, 86, 0.14);
+    color: #d97706;
+    border: 1px solid rgba(252, 204, 86, 0.3);
+}
+
+.dark-mode .catalog-status-chip.catalog-status-pending,
+[data-theme="dark"] .catalog-status-chip.catalog-status-pending {
+    color: #FCCC56;
+}
+
+.catalog-toggle-chevron {
+    color: var(--text-secondary);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+
+.catalog-details-dropdown-toggle.is-open .catalog-toggle-chevron {
+    transform: rotate(180deg);
+    color: #08D488;
+}
+
+/* Dropdown Content Panel */
+.catalog-details-dropdown-panel {
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(8, 212, 136, 0.22);
+    border-top: none;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    padding: 0.85rem;
+    animation: catalogPanelSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root:not([data-theme="dark"]) .catalog-details-dropdown-panel {
+    background: rgba(248, 250, 252, 0.98);
+    border-color: rgba(8, 212, 136, 0.3);
+}
+
+@keyframes catalogPanelSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.catalog-panel-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.catalog-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+:root:not([data-theme="dark"]) .catalog-info-item {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.catalog-info-item:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.catalog-info-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.73rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.catalog-info-label svg {
+    color: var(--text-secondary);
+    opacity: 0.85;
+}
+
+.catalog-info-value {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.catalog-info-value.font-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+}
+
+/* Shelf placement callout box */
+.catalog-info-highlight {
+    background: rgba(252, 204, 86, 0.07);
+    border: 1px solid rgba(252, 204, 86, 0.25);
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+    margin-bottom: 0.2rem;
+}
+
+.catalog-info-highlight .catalog-info-label {
+    color: #FCCC56;
+}
+
+:root:not([data-theme="dark"]) .catalog-info-highlight .catalog-info-label {
+    color: #b45309;
+}
+
+.catalog-info-highlight .catalog-info-label svg {
+    color: currentColor;
+    opacity: 1;
+}
+
+.catalog-location-pill {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #FCCC56;
+    letter-spacing: 0.02em;
+}
+
+:root:not([data-theme="dark"]) .catalog-location-pill {
+    color: #92400e;
+}
+
+/* Staff verification stamp */
+.catalog-staff-verification-stamp {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: #08D488;
+    margin-top: 0.35rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed rgba(8, 212, 136, 0.2);
+    font-weight: 500;
+}
+
+:root:not([data-theme="dark"]) .catalog-staff-verification-stamp {
+    color: #046541;
+}
+
+.catalog-staff-verification-stamp svg {
+    color: currentColor;
+    flex-shrink: 0;
+}
+
+/* Unshelved notice */
+.catalog-unshelved-notice {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.6rem;
+    border-radius: 8px;
+    background: rgba(252, 204, 86, 0.08);
+    border: 1px solid rgba(252, 204, 86, 0.25);
+    color: var(--text-primary);
+}
+
+.catalog-unshelved-notice svg {
+    color: #FCCC56;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+}
+
+:root:not([data-theme="dark"]) .catalog-unshelved-notice svg {
+    color: #d97706;
+}
+
+.catalog-unshelved-notice strong {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.catalog-unshelved-notice p {
+    font-size: 0.74rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    margin: 0;
+}

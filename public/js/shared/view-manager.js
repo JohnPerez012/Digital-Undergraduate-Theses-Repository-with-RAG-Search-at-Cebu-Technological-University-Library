@@ -589,9 +589,11 @@
                                             saveCount: typeof matched.saveCount === 'number'
                                                 ? matched.saveCount
                                                 : (typeof project.saveCount === 'number' ? project.saveCount : 0),
-                                            catalogLocation: matched.catalogLocation || project.catalogLocation || '',
+                                            catalogLocation: matched.catalogLocation || matched.note || project.catalogLocation || project.note || '',
                                             callNumber: matched.callNumber || project.callNumber || '',
-                                            accessionNumber: matched.accessionNumber || matched.accessionNo || project.accessionNumber || ''
+                                            accessionNumber: matched.accessionNumber || matched.accessionNo || project.accessionNumber || project.accessionNo || '',
+                                            subjectHeading: matched.subjectHeading || project.subjectHeading || '',
+                                            cataloged: (matched.cataloged !== undefined) ? matched.cataloged : project.cataloged
                                         };
                                         sessionStorage.setItem('selectedProjectForViewDetails', JSON.stringify(project));
                                     }
@@ -601,8 +603,8 @@
                             }
                             renderProjectDetails(project);
 
-                            // Background Firestore refresh for live images and save count if missing
-                            if (project && project.id && (!project.images || !project.images.length || project.saveCount === undefined)) {
+                            // Background Firestore refresh for live images, save count, and physical cataloging placement
+                            if (project && project.id) {
                                 if (typeof firebase !== 'undefined' && firebase.firestore) {
                                     const db = firebase.firestore();
                                     db.collection('projects').doc(project.id).get().then(doc => {
@@ -617,8 +619,26 @@
                                                 project.saveCount = fresh.saveCount;
                                                 hasUpdates = true;
                                             }
-                                            if (fresh.catalogLocation && !project.catalogLocation) {
-                                                project.catalogLocation = fresh.catalogLocation;
+                                            const freshLocation = fresh.catalogLocation || fresh.note || '';
+                                            if (freshLocation && freshLocation !== (project.catalogLocation || project.note)) {
+                                                project.catalogLocation = freshLocation;
+                                                hasUpdates = true;
+                                            }
+                                            if (fresh.callNumber && fresh.callNumber !== project.callNumber) {
+                                                project.callNumber = fresh.callNumber;
+                                                hasUpdates = true;
+                                            }
+                                            const freshAcc = fresh.accessionNumber || fresh.accessionNo || '';
+                                            if (freshAcc && freshAcc !== (project.accessionNumber || project.accessionNo)) {
+                                                project.accessionNumber = freshAcc;
+                                                hasUpdates = true;
+                                            }
+                                            if (fresh.subjectHeading && fresh.subjectHeading !== project.subjectHeading) {
+                                                project.subjectHeading = fresh.subjectHeading;
+                                                hasUpdates = true;
+                                            }
+                                            if (fresh.cataloged !== undefined && fresh.cataloged !== project.cataloged) {
+                                                project.cataloged = fresh.cataloged;
                                                 hasUpdates = true;
                                             }
                                             if (hasUpdates) {
@@ -955,6 +975,12 @@
         const adviser = escapeHtml(project.adviser || 'Not listed');
         const updatedAtStr = formatDate(project.updatedAt || project.createdAt);
 
+        const locationNote = (project.catalogLocation || project.note || '').trim();
+        const callNo = (project.callNumber || '').trim();
+        const accessionNo = (project.accessionNumber || project.accessionNo || '').trim();
+        const subjectHeading = (project.subjectHeading || '').trim();
+        const isCataloged = Boolean(project.cataloged || locationNote || callNo || accessionNo || subjectHeading);
+
         const headerSaveButtonHtml = isRestricted ? `
             <div class="project-header-save-pill ${effectiveSaveCount > 0 ? 'has-saves' : ''}" title="${effectiveSaveCount} ${effectiveSaveCount === 1 ? 'user' : 'users'} saved this project">
                 <span class="save-icon-svg">${getBookmarkSvg(effectiveSaveCount > 0)}</span>
@@ -1105,6 +1131,96 @@
                 <div class="info-row">
                     <span>Full file</span>
                     <em>Restricted (Library only)</em>
+                </div>
+
+                <div class="catalog-details-dropdown-wrapper">
+                    <button type="button" class="catalog-details-dropdown-toggle" id="catalog-details-dropdown-toggle" aria-expanded="false" aria-controls="catalog-details-dropdown-panel" title="Click to view physical shelf and library placement details">
+                        <div class="catalog-toggle-label-wrap">
+                            <svg class="catalog-book-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                            <span class="catalog-toggle-title">Physical Library Location</span>
+                        </div>
+                        <div class="catalog-toggle-meta-wrap">
+                            ${isCataloged ? `
+                                <span class="catalog-status-chip catalog-status-shelved">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    Shelved
+                                </span>
+                            ` : `
+                                <span class="catalog-status-chip catalog-status-pending">
+                                    Awaiting Shelf
+                                </span>
+                            `}
+                            <svg class="catalog-toggle-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </button>
+
+                    <div class="catalog-details-dropdown-panel" id="catalog-details-dropdown-panel" style="display: none;">
+                        ${isCataloged ? `
+                            <div class="catalog-panel-inner">
+                                ${locationNote ? `
+                                    <div class="catalog-info-item catalog-info-highlight">
+                                        <div class="catalog-info-label">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                            <span>Shelf Placement / Cabinet</span>
+                                        </div>
+                                        <div class="catalog-info-value catalog-location-pill">${escapeHtml(locationNote)}</div>
+                                    </div>
+                                ` : `
+                                    <div class="catalog-info-item">
+                                        <div class="catalog-info-label">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                            <span>Shelf Placement</span>
+                                        </div>
+                                        <div class="catalog-info-value">Library Archives Section</div>
+                                    </div>
+                                `}
+                                ${callNo ? `
+                                    <div class="catalog-info-item">
+                                        <div class="catalog-info-label">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                            <span>Call Number (Dewey/LC)</span>
+                                        </div>
+                                        <div class="catalog-info-value font-mono">${escapeHtml(callNo)}</div>
+                                    </div>
+                                ` : ''}
+                                ${accessionNo ? `
+                                    <div class="catalog-info-item">
+                                        <div class="catalog-info-label">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+                                            <span>Accession No.</span>
+                                        </div>
+                                        <div class="catalog-info-value font-mono">${escapeHtml(accessionNo)}</div>
+                                    </div>
+                                ` : ''}
+                                ${subjectHeading ? `
+                                    <div class="catalog-info-item">
+                                        <div class="catalog-info-label">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                                            <span>Subject Heading</span>
+                                        </div>
+                                        <div class="catalog-info-value">${escapeHtml(subjectHeading)}</div>
+                                    </div>
+                                ` : ''}
+                                <div class="catalog-staff-verification-stamp">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    <span>Cataloged & physically indexed by Library Staff</span>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="catalog-unshelved-notice">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                <div>
+                                    <strong>Awaiting Shelf Placement</strong>
+                                    <p>The physical hardbound thesis is currently in cataloging review. Please inquire directly with the librarian desk if hard copy inspection is required.</p>
+                                </div>
+                            </div>
+                        `}
+                    </div>
                 </div>
             </div>
         `;
@@ -1297,6 +1413,21 @@
 
         // Attach click handlers to gallery thumbnails for Lightbox viewer
         setupGalleryLightbox(project.images);
+
+        // Attach event listener for Physical Library Location dropdown toggle
+        const catalogToggleBtn = detailsSidebar.querySelector('#catalog-details-dropdown-toggle');
+        const catalogPanel = detailsSidebar.querySelector('#catalog-details-dropdown-panel');
+        if (catalogToggleBtn && catalogPanel) {
+            catalogToggleBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const isExpanded = catalogToggleBtn.getAttribute('aria-expanded') === 'true';
+                const nextState = !isExpanded;
+                catalogToggleBtn.setAttribute('aria-expanded', String(nextState));
+                catalogToggleBtn.classList.toggle('is-open', nextState);
+                catalogPanel.style.display = nextState ? 'block' : 'none';
+            });
+        }
     };
 
     /**
