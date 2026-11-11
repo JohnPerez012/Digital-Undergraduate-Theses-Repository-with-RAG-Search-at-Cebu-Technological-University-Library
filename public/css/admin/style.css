@@ -10113,6 +10113,30 @@ form #project-id-input {
     border-bottom-left-radius: 4px;
 }
 
+/* Response Streaming Blinking Cursor for Copilot */
+.copilot-msg-bubble .streaming-cursor {
+    display: inline-block;
+    width: 6px;
+    height: 14px;
+    background: #08D488;
+    margin-left: 4px;
+    vertical-align: middle;
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(8, 212, 136, 0.6);
+    animation: copilot-blink-cursor 0.75s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes copilot-blink-cursor {
+    0%, 100% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+    50% {
+        opacity: 0.15;
+        transform: scaleY(0.75);
+    }
+}
+
 /* Dynamic Copilot Response Architecture */
 .copilot-dynamic-response {
     display: flex;

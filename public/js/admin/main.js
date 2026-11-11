@@ -11161,7 +11161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const messagesList = targetContainer === 'widget' 
             ? document.getElementById('copilot-widget-messages') 
             : document.getElementById('copilot-messages-list');
-        if (!messagesList) return;
+        if (!messagesList) return null;
 
         const row = document.createElement('div');
         row.className = `copilot-msg-row ${sender}`;
@@ -11189,6 +11189,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body.scrollTop = body.scrollHeight;
             }, 60);
         }
+
+        return { row, bubble };
     }
 
     function handleSendQuery(queryText, source = 'widget') {
@@ -11229,6 +11231,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         (async () => {
             let replyHTML = '';
             let backendSucceeded = false;
+            let widgetBubble = null;
+            let sectionBubble = null;
+            let accumulatedText = '';
+            let currentProvider = 'Mistral AI';
+
+            function ensureBotBubbles() {
+                if (widgetTyping) widgetTyping.style.display = 'none';
+                if (sectionTyping) sectionTyping.style.display = 'none';
+                if (!widgetBubble) {
+                    const res = appendCopilotMessage('bot', '', 'widget');
+                    if (res) widgetBubble = res.bubble;
+                }
+                if (sectionMessages && !sectionBubble) {
+                    const res = appendCopilotMessage('bot', '', 'section');
+                    if (res) sectionBubble = res.bubble;
+                }
+            }
+
+            function updateStreamView(streamText, isDone = false) {
+                const html = dynamicCopilotNormalizer(streamText, currentProvider);
+                const displayHTML = isDone ? html : (html + '<span class="streaming-cursor"></span>');
+                if (widgetBubble) widgetBubble.innerHTML = displayHTML;
+                if (sectionBubble) sectionBubble.innerHTML = displayHTML;
+                if (widgetBody) widgetBody.scrollTop = widgetBody.scrollHeight;
+                if (sectionBody) sectionBody.scrollTop = sectionBody.scrollHeight;
+            }
 
             try {
                 const apiBase = typeof getBackendUrl === 'function' 
@@ -11240,15 +11268,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
                 const timeoutId = setTimeout(() => {
                     if (controller) controller.abort();
-                }, 25000);
+                }, 35000);
 
                 const response = await fetch(`${apiBase}/api/staff-copilot/chat`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
                     body: JSON.stringify({
                         message: text,
                         userRole: 'admin',
-                        history: copilotConversationHistory.slice(-4)
+                        history: copilotConversationHistory.slice(-4),
+                        stream: true
                     }),
                     signal: controller ? controller.signal : undefined
                 });
@@ -11256,11 +11288,65 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (timeoutId) clearTimeout(timeoutId);
 
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.success && data.reply) {
-                        backendSucceeded = true;
-                        // Universal Dynamic NLP Normalizer & Ast Renderer
-                        replyHTML = dynamicCopilotNormalizer(data.reply, data.provider || 'Mistral AI');
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('text/event-stream') && response.body) {
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder('utf-8');
+                        let buffer = '';
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+
+                            for (const line of lines) {
+                                const trimmed = line.trim();
+                                if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+                                const dataStr = trimmed.slice(5).trim();
+                                if (dataStr === '[DONE]') break;
+
+                                try {
+                                    const data = JSON.parse(dataStr);
+                                    if (data.type === 'start') {
+                                        currentProvider = data.provider || currentProvider;
+                                        ensureBotBubbles();
+                                    } else if (data.type === 'token') {
+                                        accumulatedText += data.content;
+                                        ensureBotBubbles();
+                                        updateStreamView(accumulatedText, false);
+                                    } else if (data.type === 'done') {
+                                        accumulatedText = data.fullResponse || accumulatedText;
+                                        currentProvider = data.provider || currentProvider;
+                                    } else if (data.type === 'error') {
+                                        console.warn('Staff Copilot stream event error:', data.error);
+                                    }
+                                } catch (parseErr) {
+                                    // Partial JSON chunk
+                                }
+                            }
+                        }
+
+                        if (accumulatedText.trim()) {
+                            backendSucceeded = true;
+                            ensureBotBubbles();
+                            updateStreamView(accumulatedText, true);
+                            replyHTML = dynamicCopilotNormalizer(accumulatedText, currentProvider);
+                        }
+                    } else {
+                        // Standard non-streaming JSON response fallback
+                        const data = await response.json();
+                        if (data && data.success && (data.reply || data.response)) {
+                            backendSucceeded = true;
+                            currentProvider = data.provider || 'Mistral AI';
+                            accumulatedText = data.reply || data.response;
+                            replyHTML = dynamicCopilotNormalizer(accumulatedText, currentProvider);
+                            ensureBotBubbles();
+                            updateStreamView(accumulatedText, true);
+                        }
                     }
                 }
             } catch (err) {
@@ -11269,19 +11355,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Fallback to local verified knowledge base if backend is not reachable
             if (!backendSucceeded) {
+                if (widgetTyping) widgetTyping.style.display = 'none';
+                if (sectionTyping) sectionTyping.style.display = 'none';
                 const guidance = getAdminCopilotResponse(text);
                 replyHTML = formatCopilotGuidanceHTML(guidance);
-            }
-
-            if (widgetTyping) widgetTyping.style.display = 'none';
-            if (sectionTyping) sectionTyping.style.display = 'none';
-            appendCopilotMessage('bot', replyHTML, 'widget');
-            if (sectionMessages) {
-                appendCopilotMessage('bot', replyHTML, 'section');
+                if (widgetBubble) {
+                    widgetBubble.innerHTML = replyHTML;
+                } else {
+                    appendCopilotMessage('bot', replyHTML, 'widget');
+                }
+                if (sectionMessages) {
+                    if (sectionBubble) {
+                        sectionBubble.innerHTML = replyHTML;
+                    } else {
+                        appendCopilotMessage('bot', replyHTML, 'section');
+                    }
+                }
             }
 
             copilotConversationHistory.push({ role: 'user', content: text });
-            copilotConversationHistory.push({ role: 'assistant', content: replyHTML.replace(/<[^>]+>/g, '') });
+            copilotConversationHistory.push({ role: 'assistant', content: (accumulatedText || replyHTML).replace(/<[^>]+>/g, '') });
         })();
     }
 
