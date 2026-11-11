@@ -964,6 +964,194 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     /**
+     * Extract a contextual snippet around the matched search query in text
+     */
+    function extractContextSnippet(fullText, query, maxRadius = 38) {
+        if (!fullText || !query) return '';
+        const text = String(fullText).trim();
+        const q = query.trim().toLowerCase();
+        const idx = text.toLowerCase().indexOf(q);
+        if (idx === -1) return '';
+
+        let start = Math.max(0, idx - maxRadius);
+        let end = Math.min(text.length, idx + q.length + maxRadius);
+
+        // Snap to nearest space so words are not awkwardly cut
+        if (start > 0) {
+            const nextSpace = text.indexOf(' ', start);
+            if (nextSpace !== -1 && nextSpace < idx) {
+                start = nextSpace + 1;
+            }
+        }
+        if (end < text.length) {
+            const prevSpace = text.lastIndexOf(' ', end);
+            if (prevSpace !== -1 && prevSpace > idx + q.length) {
+                end = prevSpace;
+            }
+        }
+
+        let snippet = text.slice(start, end).trim();
+        if (start > 0) snippet = '...' + snippet;
+        if (end < text.length) snippet = snippet + '...';
+
+        return snippet;
+    }
+
+    /**
+     * Render clickable badges for matches in hidden fields (keywords, topics, abstract, location)
+     * @param {Object} data - Project data object
+     * @param {string} searchQuery - Active search query
+     * @returns {string} - HTML string with clickable badge(s) or empty string
+     */
+    function renderMatchedHiddenBadges(data, searchQuery) {
+        if (!searchQuery || typeof searchQuery !== 'string' || !searchQuery.trim()) return '';
+        const qLower = searchQuery.trim().toLowerCase();
+
+        const matches = [];
+
+        // 1. Matched Keywords
+        const rawKeywords = Array.isArray(data.keywords)
+            ? data.keywords
+            : (data.keywords ? String(data.keywords).split(',').map(k => k.trim()).filter(Boolean) : []);
+        const matchingKeywords = rawKeywords.filter(k => String(k).toLowerCase().includes(qLower));
+        matchingKeywords.forEach(k => {
+            matches.push({
+                type: 'keyword',
+                label: 'Keyword',
+                term: k,
+                displaySnippet: k,
+                iconSvg: `<svg class="mfc-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>`
+            });
+        });
+
+        // 2. Matched Topics
+        const rawTopics = Array.isArray(data.topics)
+            ? data.topics
+            : (data.topics ? String(data.topics).split(',').map(t => t.trim()).filter(Boolean) : []);
+        const matchingTopics = rawTopics.filter(t => String(t).toLowerCase().includes(qLower));
+        matchingTopics.forEach(t => {
+            matches.push({
+                type: 'topic',
+                label: 'Topic',
+                term: t,
+                displaySnippet: t,
+                iconSvg: `<svg class="mfc-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`
+            });
+        });
+
+        // 3. Matched in Abstract
+        if (data.abstract && String(data.abstract).toLowerCase().includes(qLower)) {
+            const snippet = extractContextSnippet(data.abstract, searchQuery);
+            if (snippet) {
+                matches.push({
+                    type: 'abstract',
+                    label: 'Abstract',
+                    term: searchQuery,
+                    displaySnippet: snippet,
+                    iconSvg: `<svg class="mfc-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`
+                });
+            }
+        }
+
+        if (matches.length === 0) return '';
+
+        // If only 1 match, render the single clean card directly
+        if (matches.length === 1) {
+            const m = matches[0];
+            return `
+                <div class="matched-keywords-wrapper">
+                    <button type="button" 
+                            class="matched-field-card matched-keyword-btn ${m.type === 'abstract' ? 'matched-abstract-btn' : ''}" 
+                            data-action="jump-matched-field"
+                            data-field-type="${m.type}"
+                            data-project-id="${data.id}" 
+                            data-term="${escapeHtml(m.term)}"
+                            onclick="window.jumpToMatchedField('${data.id}', '${m.type}', '${escapeHtml(m.term).replace(/'/g, "\\'")}')"
+                            title="Matched in ${m.label.toLowerCase()} &mdash; Click to view in project modal">
+                        <div class="mfc-header">
+                            <div class="mfc-header-left">
+                                ${m.iconSvg}
+                                <span class="mfc-label">Matched in ${m.label}</span>
+                            </div>
+                            <svg class="mfc-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </div>
+                        <div class="mfc-body">
+                            ${highlightSearchTerms(m.displaySnippet, searchQuery)}
+                        </div>
+                    </button>
+                </div>
+            `;
+        }
+
+        // If multiple matches (> 1), collapse into an elegant dropdown option
+        const counts = {};
+        matches.forEach(m => { counts[m.label] = (counts[m.label] || 0) + 1; });
+        const summaryText = Object.entries(counts)
+            .map(([lbl, cnt]) => `${cnt} ${lbl}${cnt > 1 ? (lbl.endsWith('s') ? '' : 's') : ''}`)
+            .join(', ');
+
+        return `
+            <div class="matched-keywords-wrapper">
+                <div class="mfc-dropdown-wrapper" id="mfc-dropdown-${data.id}">
+                    <button type="button" 
+                            class="mfc-dropdown-btn" 
+                            data-action="toggle-matched-dropdown" 
+                            onclick="window.toggleMatchedDropdown(event, '${data.id}')"
+                            aria-expanded="false" 
+                            title="Click to view all ${matches.length} matched fields (${escapeHtml(summaryText)})">
+                        <svg class="mfc-dropdown-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                        <span class="mfc-dropdown-count">${matches.length} Matched Fields</span>
+                        <span class="mfc-dropdown-summary">(${escapeHtml(summaryText)})</span>
+                        <svg class="mfc-dropdown-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="mfc-dropdown-menu" role="menu">
+                        <div class="mfc-dropdown-menu-header">
+                            <span>Select field to inspect:</span>
+                            <span class="mfc-dropdown-badge">${matches.length} matches</span>
+                        </div>
+                        <div class="mfc-dropdown-list">
+                            ${matches.map(m => `
+                                <button type="button" 
+                                        class="mfc-menu-item" 
+                                        data-action="jump-matched-field"
+                                        data-field-type="${m.type}"
+                                        data-project-id="${data.id}" 
+                                        data-term="${escapeHtml(m.term)}"
+                                        onclick="window.selectMatchedDropdownItem(event, '${data.id}', '${m.type}', '${escapeHtml(m.term).replace(/'/g, "\\'")}')"
+                                        role="menuitem"
+                                        title="Jump to ${m.label} in project modal">
+                                    <div class="mfc-menu-item-header">
+                                        <span class="mfc-menu-tag">
+                                            ${m.iconSvg}
+                                            <span>Matched in ${m.label}</span>
+                                        </span>
+                                        <svg class="mfc-menu-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <polyline points="9 18 15 12 9 6"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="mfc-menu-item-body">
+                                        ${highlightSearchTerms(m.displaySnippet, searchQuery)}
+                                    </div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Backward compatibility alias
+    const renderMatchedKeywordsBadge = renderMatchedHiddenBadges;
+
+    /**
      * Render projects table from array of project objects
      */
     function renderProjectsTable(projects, tbody) {
@@ -984,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isSynced = data.pineconeSynced === true;
             row.setAttribute('data-synced', isSynced ? 'true' : 'false');
             row.setAttribute('data-project-id', data.id);
+            row.setAttribute('data-original-title', data.title || '');
             
             const syncStatusTitle = isSynced 
                 ? 'Synced with Pinecone (AI Search active) - Click to re-sync' 
@@ -998,7 +1187,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 onclick="syncSingleProject(event, '${data.id}')">
                             <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
                         </button>
-                        <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>${(data.cataloged || data.catalogLocation) ? `<span class="project-catalog-pill" title="Cataloged by ${escapeHtml(data.catalogAudit?.lastUpdatedByName || data.lastCatalogedByName || 'Librarian')}">📍 Cataloged</span>` : ''}
+                        <div class="project-title-content">
+                            <div class="project-title-top-row">
+                                <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>
+                                ${(data.cataloged || data.catalogLocation) ? `<span class="project-catalog-pill" title="Cataloged by ${escapeHtml(data.catalogAudit?.lastUpdatedByName || data.lastCatalogedByName || 'Librarian')}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Cataloged</span>` : ''}
+                            </div>
+                            ${renderMatchedKeywordsBadge(data, searchQuery)}
+                        </div>
                     </div>
                 </td>
                 <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
@@ -1074,6 +1269,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const program = String(project.program || '').toLowerCase();
                 const year = String(project.year || '').toLowerCase();
                 const keywords = Array.isArray(project.keywords) ? project.keywords.join(' ').toLowerCase() : String(project.keywords || '').toLowerCase();
+                const topics = Array.isArray(project.topics) ? project.topics.join(' ').toLowerCase() : String(project.topics || '').toLowerCase();
+                const abstract = String(project.abstract || '').toLowerCase();
+                const location = String(project.catalogLocation || '').toLowerCase();
+                const callNumber = String(project.callNumber || '').toLowerCase();
+                const accessionNumber = String(project.accessionNumber || '').toLowerCase();
 
                 let parsedAdviserMatch = false;
                 if (typeof AcademicNameParser !== 'undefined' && project.adviser) {
@@ -1093,7 +1293,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 parsedAdviserMatch ||
                                 program.includes(searchTerm) ||
                                 year.includes(searchTerm) ||
-                                keywords.includes(searchTerm);
+                                keywords.includes(searchTerm) ||
+                                topics.includes(searchTerm) ||
+                                abstract.includes(searchTerm) ||
+                                location.includes(searchTerm) ||
+                                callNumber.includes(searchTerm) ||
+                                accessionNumber.includes(searchTerm);
                 if (!matches) return false;
             }
 
@@ -1131,6 +1336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isSynced = data.pineconeSynced === true;
             row.setAttribute('data-synced', isSynced ? 'true' : 'false');
             row.setAttribute('data-project-id', data.id);
+            row.setAttribute('data-original-title', data.title || '');
             
             const syncStatusTitle = isSynced 
                 ? 'Synced with Pinecone (AI Search active) - Click to re-sync' 
@@ -1145,11 +1351,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 onclick="syncSingleProject(event, '${data.id}')">
                             <span class="sync-dot ${isSynced ? 'synced' : 'unsynced'}"></span>
                         </button>
-                        <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>
-                        ${data.isLockedByAdmin
-                            ? `<span class="badge badge-locked-admin" style="background:rgba(239,68,68,0.15);color:#f87171;font-size:0.68rem;padding:2px 7px;border-radius:4px;border:1px solid rgba(239,68,68,0.35);margin-left:6px;display:inline-flex;align-items:center;gap:3px;" title="Locked by Admin — Cataloging and editing are disabled"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>`
-                            : ''
-                        }
+                        <div class="project-title-content">
+                            <div class="project-title-top-row">
+                                <strong class="project-title-text">${highlightSearchTerms(data.title || 'Untitled', searchQuery)}</strong>
+                                ${data.isLockedByAdmin
+                                    ? `<span class="badge badge-locked-admin" style="background:rgba(239,68,68,0.15);color:#f87171;font-size:0.68rem;padding:2px 7px;border-radius:4px;border:1px solid rgba(239,68,68,0.35);margin-left:6px;display:inline-flex;align-items:center;gap:3px;" title="Locked by Admin — Cataloging and editing are disabled"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Locked</span>`
+                                    : ''
+                                }
+                            </div>
+                            ${renderMatchedKeywordsBadge(data, searchQuery)}
+                        </div>
                     </div>
                 </td>
                 <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
@@ -1172,47 +1383,67 @@ document.addEventListener('DOMContentLoaded', async () => {
                                    <span class="action-btn-text">Lock</span>
                                </button>`;
 
-                        // Stale Lock Guard (15 minutes TTL): Auto-expire abandoned cataloging/editing locks
+                        // Stale Lock Guard (45 seconds TTL with Heartbeat): Auto-expire abandoned cataloging/editing locks
                         let isCatalogLockStale = false;
-                        if (isBeingCataloged && data.catalogingStartedAt) {
-                            try {
-                                const started = data.catalogingStartedAt.toDate ? data.catalogingStartedAt.toDate() : new Date(data.catalogingStartedAt);
-                                if (Date.now() - started.getTime() > 15 * 60 * 1000) {
+                        if (isBeingCataloged) {
+                            const ts = data.catalogingHeartbeat || data.catalogingStartedAt;
+                            if (!ts) {
+                                isCatalogLockStale = true;
+                            } else {
+                                try {
+                                    const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+                                    if (Date.now() - time > 45 * 1000) {
+                                        isCatalogLockStale = true;
+                                    }
+                                } catch (e) {
                                     isCatalogLockStale = true;
-                                    db.collection('projects').doc(data.id).update({
-                                        isBeingCataloged: false,
-                                        catalogingBy: null,
-                                        catalogingByName: null,
-                                        catalogingStartedAt: null
-                                    }).catch(() => {});
                                 }
-                            } catch (e) {}
+                            }
+                            if (isCatalogLockStale) {
+                                db.collection('projects').doc(data.id).update({
+                                    isBeingCataloged: false,
+                                    catalogingBy: null,
+                                    catalogingByName: null,
+                                    catalogingStartedAt: null,
+                                    catalogingHeartbeat: null
+                                }).catch(() => {});
+                            }
                         }
 
                         let isEditLockStale = false;
-                        if (isBeingEdited && data.editingStartedAt) {
-                            try {
-                                const started = data.editingStartedAt.toDate ? data.editingStartedAt.toDate() : new Date(data.editingStartedAt);
-                                if (Date.now() - started.getTime() > 15 * 60 * 1000) {
+                        if (isBeingEdited) {
+                            const ts = data.editingHeartbeat || data.editingStartedAt;
+                            if (!ts) {
+                                isEditLockStale = true;
+                            } else {
+                                try {
+                                    const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+                                    if (Date.now() - time > 45 * 1000) {
+                                        isEditLockStale = true;
+                                    }
+                                } catch (e) {
                                     isEditLockStale = true;
-                                    db.collection('projects').doc(data.id).update({
-                                        isBeingEdited: false,
-                                        editingBy: null,
-                                        editingByName: null,
-                                        editingStartedAt: null
-                                    }).catch(() => {});
                                 }
-                            } catch (e) {}
+                            }
+                            if (isEditLockStale) {
+                                db.collection('projects').doc(data.id).update({
+                                    isBeingEdited: false,
+                                    editingBy: null,
+                                    editingByName: null,
+                                    editingStartedAt: null,
+                                    editingHeartbeat: null
+                                }).catch(() => {});
+                            }
                         }
 
                         if (isBeingCataloged && !isCatalogLockStale) {
                             const cataloger = escapeHtml(data.catalogingByName || 'Librarian');
                             return `
-                                <div class="approvals-live-editing-pill" title="Currently being cataloged by ${cataloger}. Click × to release lock.">
+                                <div class="approvals-live-editing-mini-pill" title="Currently in catalog by ${cataloger}. Click × to release lock.">
                                     <span class="live-editing-dot"></span>
-                                    <span class="live-editing-text">In catalog by: <strong>${cataloger}</strong></span>
-                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleaseCatalogLock('${data.id}')" title="Force release lock">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    <span class="live-editing-name" title="${cataloger}">${cataloger}</span>
+                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleaseCatalogLock('${data.id}')" title="Force release lock" aria-label="Force release lock">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     </button>
                                 </div>
                             `;
@@ -1221,11 +1452,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (isBeingEdited && !isEditLockStale) {
                             const editor = escapeHtml(data.editingByName || 'Librarian');
                             return `
-                                <div class="approvals-live-editing-pill" title="Currently being edited by ${editor}. Click × to release lock.">
+                                <div class="approvals-live-editing-mini-pill" title="Currently being edited by ${editor}. Click × to release lock.">
                                     <span class="live-editing-dot"></span>
-                                    <span class="live-editing-text">In edit by: <strong>${editor}</strong></span>
-                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleaseCatalogLock('${data.id}')" title="Force release lock">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    <span class="live-editing-name" title="${editor}">${editor}</span>
+                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleaseCatalogLock('${data.id}')" title="Force release lock" aria-label="Force release lock">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     </button>
                                 </div>
                             `;
@@ -3321,6 +3552,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    function isProjectCatalogLockActive(projectData) {
+        if (!projectData || !projectData.isBeingCataloged) return false;
+        const ts = projectData.catalogingHeartbeat || projectData.catalogingStartedAt;
+        if (!ts) return false;
+        try {
+            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+            return (Date.now() - time) <= 45 * 1000;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function isProjectEditLockActive(projectData) {
+        if (!projectData || !projectData.isBeingEdited) return false;
+        const ts = projectData.editingHeartbeat || projectData.editingStartedAt;
+        if (!ts) return false;
+        try {
+            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+            return (Date.now() - time) <= 45 * 1000;
+        } catch (e) {
+            return false;
+        }
+    }
+
     window.editProject = async (projectId) => {
         console.log('Edit project:', projectId);
         try {
@@ -3338,17 +3593,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // Mutual exclusion: If project is being cataloged by a librarian, block access
-            if (data.isBeingCataloged) {
+            // Mutual exclusion: If project is being cataloged by a librarian, block access if active
+            if (isProjectCatalogLockActive(data)) {
                 const cataloger = data.catalogingByName || 'a librarian';
-                showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+                showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`);
                 return;
             }
 
-            // Mutual exclusion: If project is being edited in real-time, block access
-            if (data.isBeingEdited) {
+            // Mutual exclusion: If project is being edited in real-time, block access if active
+            if (isProjectEditLockActive(data)) {
                 const editor = data.editingByName || 'another user';
-                showToast(`This project is currently being edited by ${editor}. Simultaneous editing is locked out.`, '⚠️');
+                showToast(`This project is currently being edited by ${editor}. Simultaneous editing is locked out.`);
                 return;
             }
             
@@ -3511,14 +3766,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     showToast('Cannot delete: This project is locked by the Administrator. Please unlock it first.', '🔒');
                     return;
                 }
-                if (data.isBeingCataloged) {
+                if (isProjectCatalogLockActive(data)) {
                     const cataloger = data.catalogingByName || 'a librarian';
-                    showToast(`Cannot delete: This project is currently being cataloged by ${cataloger}.`, '⚠️');
+                    showToast(`Cannot delete: This project is currently being cataloged by ${cataloger}.`);
                     return;
                 }
-                if (data.isBeingEdited) {
+                if (isProjectEditLockActive(data)) {
                     const editor = data.editingByName || 'another user';
-                    showToast(`Cannot delete: This project is currently being edited by ${editor}.`, '⚠️');
+                    showToast(`Cannot delete: This project is currently being edited by ${editor}.`);
                     return;
                 }
             }
@@ -3527,6 +3782,162 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         showSecureDeleteModal(projectId, title);
     };
+
+    /**
+     * Jump directly to the matched field (keyword, topic, abstract) in the project edit modal
+     * Opens the modal and scrolls/focuses the target field with an emerald pulse animation
+     */
+    window.jumpToMatchedField = async (projectId, fieldType, term) => {
+        try {
+            if (typeof window.editProject === 'function') {
+                await window.editProject(projectId);
+            }
+
+            // Wait for modal transition and dynamic container population
+            setTimeout(() => {
+                const modal = document.getElementById('project-modal');
+                if (!modal || !modal.classList.contains('active')) return;
+
+                if (fieldType === 'keyword') {
+                    const container = document.getElementById('keywords-container');
+                    if (!container) return;
+                    const inputs = Array.from(container.querySelectorAll('.dynamic-input-row input'));
+                    const searchTarget = (term || '').trim().toLowerCase();
+
+                    let targetInput = inputs.find(inp => inp.value.trim().toLowerCase() === searchTarget);
+                    if (!targetInput) {
+                        targetInput = inputs.find(inp => {
+                            const val = inp.value.trim().toLowerCase();
+                            return val.includes(searchTarget) || searchTarget.includes(val);
+                        });
+                    }
+
+                    if (targetInput) {
+                        targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetInput.focus();
+                        targetInput.select();
+                        targetInput.classList.add('keyword-match-focus-pulse');
+                        setTimeout(() => {
+                            targetInput.classList.remove('keyword-match-focus-pulse');
+                        }, 3200);
+                    } else {
+                        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } else if (fieldType === 'topic') {
+                    const container = document.getElementById('topics-container');
+                    if (!container) return;
+                    const inputs = Array.from(container.querySelectorAll('.dynamic-input-row input'));
+                    const searchTarget = (term || '').trim().toLowerCase();
+
+                    let targetInput = inputs.find(inp => inp.value.trim().toLowerCase() === searchTarget);
+                    if (!targetInput) {
+                        targetInput = inputs.find(inp => {
+                            const val = inp.value.trim().toLowerCase();
+                            return val.includes(searchTarget) || searchTarget.includes(val);
+                        });
+                    }
+
+                    if (targetInput) {
+                        targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetInput.focus();
+                        targetInput.select();
+                        targetInput.classList.add('keyword-match-focus-pulse');
+                        setTimeout(() => {
+                            targetInput.classList.remove('keyword-match-focus-pulse');
+                        }, 3200);
+                    } else {
+                        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } else if (fieldType === 'abstract') {
+                    const abstractTextarea = document.getElementById('project-abstract-input');
+                    if (abstractTextarea) {
+                        abstractTextarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        abstractTextarea.focus();
+                        const val = abstractTextarea.value || '';
+                        const qLower = (term || '').trim().toLowerCase();
+                        const matchIdx = val.toLowerCase().indexOf(qLower);
+                        if (matchIdx !== -1) {
+                            try {
+                                abstractTextarea.setSelectionRange(matchIdx, matchIdx + qLower.length);
+                            } catch (_) {}
+                        }
+                        abstractTextarea.classList.add('keyword-match-focus-pulse');
+                        setTimeout(() => {
+                            abstractTextarea.classList.remove('keyword-match-focus-pulse');
+                        }, 3200);
+                    }
+                }
+            }, 180);
+        } catch (err) {
+            console.error('Error jumping to matched field:', err);
+        }
+    };
+
+    // Backward compatibility alias for jumpToMatchedKeyword
+    window.jumpToMatchedKeyword = (projectId, keywordText) => window.jumpToMatchedField(projectId, 'keyword', keywordText);
+
+    // Toggle matched fields dropdown menu
+    window.toggleMatchedDropdown = (event, projectId) => {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        const wrapper = document.getElementById(`mfc-dropdown-${projectId}`);
+        if (!wrapper) return;
+        const isCurrentlyOpen = wrapper.classList.contains('open');
+
+        // Close any other open dropdowns
+        document.querySelectorAll('.mfc-dropdown-wrapper.open').forEach(el => {
+            if (el !== wrapper) {
+                el.classList.remove('open');
+                const btn = el.querySelector('.mfc-dropdown-btn');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        wrapper.classList.toggle('open', !isCurrentlyOpen);
+        const btn = wrapper.querySelector('.mfc-dropdown-btn');
+        if (btn) btn.setAttribute('aria-expanded', !isCurrentlyOpen ? 'true' : 'false');
+    };
+
+    // Select matched item from dropdown menu, close dropdown, and jump to field in modal
+    window.selectMatchedDropdownItem = (event, projectId, fieldType, term) => {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        const wrapper = document.getElementById(`mfc-dropdown-${projectId}`);
+        if (wrapper) {
+            wrapper.classList.remove('open');
+            const btn = wrapper.querySelector('.mfc-dropdown-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+        if (typeof window.jumpToMatchedField === 'function') {
+            window.jumpToMatchedField(projectId, fieldType, term);
+        }
+    };
+
+    // Close any open matched dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.mfc-dropdown-wrapper')) {
+            document.querySelectorAll('.mfc-dropdown-wrapper.open').forEach(el => {
+                el.classList.remove('open');
+                const btn = el.querySelector('.mfc-dropdown-btn');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
+
+    // Close open matched dropdowns on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.mfc-dropdown-wrapper.open').forEach(el => {
+                el.classList.remove('open');
+                const btn = el.querySelector('.mfc-dropdown-btn');
+                if (btn) btn.setAttribute('aria-expanded', 'false');
+            });
+        }
+    });
     
     // Secure Delete Modal Logic
     let secureDeleteProjectId = null;
@@ -3629,16 +4040,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         closeSecureDeleteModal();
                         return;
                     }
-                    if (projectData.isBeingCataloged) {
+                    if (isProjectCatalogLockActive(projectData)) {
                         const cataloger = projectData.catalogingByName || 'a librarian';
-                        showToast(`Delete blocked: This project is currently being cataloged by ${cataloger}.`, '⚠️');
+                        showToast(`Delete blocked: This project is currently being cataloged by ${cataloger}.`);
                         setDeleteProcessing(false);
                         closeSecureDeleteModal();
                         return;
                     }
-                    if (projectData.isBeingEdited) {
+                    if (isProjectEditLockActive(projectData)) {
                         const editor = projectData.editingByName || 'another user';
-                        showToast(`Delete blocked: This project is currently being edited by ${editor}.`, '⚠️');
+                        showToast(`Delete blocked: This project is currently being edited by ${editor}.`);
                         setDeleteProcessing(false);
                         closeSecureDeleteModal();
                         return;
@@ -5930,15 +6341,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 setSaveProcessing(false);
                 return;
             }
-            if (oldData.isBeingCataloged) {
+            if (isProjectCatalogLockActive(oldData)) {
                 const cataloger = oldData.catalogingByName || 'a librarian';
-                showToast(`Operation blocked: This project is currently being cataloged by ${cataloger}.`, '⚠️');
+                showToast(`Operation blocked: This project is currently being cataloged by ${cataloger}.`);
                 setSaveProcessing(false);
                 return;
             }
-            if (oldData.isBeingEdited) {
+            if (isProjectEditLockActive(oldData)) {
                 const editor = oldData.editingByName || 'another user';
-                showToast(`Operation blocked: This project is currently being edited by ${editor}.`, '⚠️');
+                showToast(`Operation blocked: This project is currently being edited by ${editor}.`);
                 setSaveProcessing(false);
                 return;
             }
@@ -6762,7 +7173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             let aText = a.cells[columnIndex]?.textContent.trim() || '';
             let bText = b.cells[columnIndex]?.textContent.trim() || '';
             
-            if (tableId === 'users-table') {
+            if (tableId === 'projects-table' && columnIndex === 0) {
+                aText = a.getAttribute('data-original-title') || aText;
+                bText = b.getAttribute('data-original-title') || bText;
+            } else if (tableId === 'users-table') {
                 if (columnIndex === 0) {
                     aText = a.getAttribute('data-original-name') || aText;
                     bText = b.getAttribute('data-original-name') || bText;
@@ -8202,10 +8616,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     catalogingBy: null,
                     catalogingByName: null,
                     catalogingStartedAt: null,
+                    catalogingHeartbeat: null,
                     isBeingEdited: false,
                     editingBy: null,
                     editingByName: null,
-                    editingStartedAt: null
+                    editingStartedAt: null,
+                    editingHeartbeat: null
                 });
 
                 const item = allProjectsData.find(x => x.id === id);
@@ -8213,9 +8629,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     item.isBeingCataloged = false;
                     item.catalogingBy = null;
                     item.catalogingByName = null;
+                    item.catalogingStartedAt = null;
+                    item.catalogingHeartbeat = null;
                     item.isBeingEdited = false;
                     item.editingBy = null;
                     item.editingByName = null;
+                    item.editingStartedAt = null;
+                    item.editingHeartbeat = null;
                 }
                 if (typeof saveToCache === 'function') {
                     await saveToCache(allProjectsData).catch(e => console.warn('saveToCache warning:', e));
@@ -8229,10 +8649,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ActivityService.logAdmin('lock_released', item?.title || id, `Admin manually broke cataloging/editing lock on "${item?.title || id}".`);
                 }
 
-                showToast('Session lock released successfully.', '🔓');
+                showToast('Session lock released successfully.');
             } catch (err) {
                 console.error('forceReleaseCatalogLock error:', err);
-                showToast('Failed to release lock.', '❌');
+                showToast('Failed to release lock.');
             }
         };
     }

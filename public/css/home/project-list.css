@@ -794,6 +794,7 @@
 }
 
 .relevance-badge {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -804,6 +805,7 @@
     white-space: nowrap;
     transition: all 0.2s ease;
     animation: fadeInScale 0.4s ease-out;
+    cursor: default;
 }
 
 @keyframes fadeInScale {

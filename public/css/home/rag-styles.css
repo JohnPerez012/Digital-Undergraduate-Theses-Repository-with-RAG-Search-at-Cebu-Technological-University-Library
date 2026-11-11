@@ -190,18 +190,22 @@
 .relevance-badge[title]:hover::after {
     content: attr(title);
     position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-0.5rem);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
+    bottom: calc(100% + 4px);
+    right: 0;
+    transform: translateY(-0.25rem);
+    background: #0f172a;
+    color: #F7F7F8;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.45rem 0.75rem;
+    border-radius: 7px;
     font-size: 0.75rem;
+    font-family: var(--font-mono, 'Roboto Mono', monospace);
+    font-weight: 600;
     white-space: nowrap;
     z-index: 100;
     pointer-events: none;
-    animation: tooltipFadeIn 0.2s ease-out;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    animation: tooltipFadeIn 0.18s ease-out;
 }
 
 @keyframes tooltipFadeIn {

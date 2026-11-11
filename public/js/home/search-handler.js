@@ -714,7 +714,7 @@ const SearchHandler = {
       notice.className = 'search-notice';
       notice.style.cssText = 'background: #fef3c7; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; margin-bottom: 1.5rem; border-radius: 6px; font-size: 0.9rem;';
       notice.innerHTML = `
-        <strong>ℹ️ Note:</strong> Showing results with medium relevance (50%+). 
+        <strong>Note:</strong> Showing results with medium relevance (50%+). 
         Try more specific keywords for better matches.
       `;
       container.insertBefore(notice, container.firstChild);

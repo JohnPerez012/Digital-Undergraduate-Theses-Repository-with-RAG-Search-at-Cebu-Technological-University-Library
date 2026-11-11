@@ -55,6 +55,12 @@
         return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
     function switchSection(sectionId) {
+        if (currentCatalogingProjectId) {
+            closeCatalogNoteModal(true);
+        }
+        if (currentEditingPendingId) {
+            closePendingProjectEditModal(true);
+        }
         document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.rail-nav-item[data-section]').forEach(n => n.classList.remove('active'));
         const sec = document.getElementById('section-' + sectionId);
@@ -263,6 +269,12 @@
             if (typeof getLogoutModal === 'function') {
                 getLogoutModal().show({
                     onConfirm: async () => {
+                        if (currentCatalogingProjectId) {
+                            await freeCatalogingSession(currentCatalogingProjectId, true);
+                        }
+                        if (currentEditingPendingId) {
+                            await freePendingProjectEdit(currentEditingPendingId, true);
+                        }
                         await auth.signOut();
                         sessionStorage.clear();
                         localStorage.removeItem('cachedAuthState');
@@ -271,7 +283,14 @@
                 });
             } else {
                 if (confirm('Are you sure you want to logout?')) {
-                    auth.signOut().then(() => { sessionStorage.clear(); window.location.href = '../index.html'; });
+                    const cleanAndExit = async () => {
+                        if (currentCatalogingProjectId) await freeCatalogingSession(currentCatalogingProjectId, true);
+                        if (currentEditingPendingId) await freePendingProjectEdit(currentEditingPendingId, true);
+                        await auth.signOut();
+                        sessionStorage.clear();
+                        window.location.href = '../index.html';
+                    };
+                    cleanAndExit();
                 }
             }
         });
@@ -383,23 +402,33 @@
                         const shelfLabel = hasShelf 
                             ? (n.note?.trim() ? `Shelved: ${escapeHtml(n.note.trim())}` : 'Location Assigned')
                             : 'Awaiting Shelf Placement';
-                        const shelfPill = hasShelf
-                            ? `<span class="dash-shelf-pill shelved"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ${shelfLabel}</span>`
-                            : `<span class="dash-shelf-pill unshelved">⚪ ${shelfLabel}</span>`;
+                        const shelfIcon = hasShelf
+                            ? `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+                            : `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+                        const shelfPill = `<span class="dash-shelf-pill ${hasShelf ? 'shelved' : 'unshelved'}">${shelfIcon}<span>${shelfLabel}</span></span>`;
                         const authorNames = Array.isArray(p.authors) ? p.authors.filter(Boolean).join(', ') : (p.author || '');
 
                         return `
-                            <div class="lib-recent-item" data-id="${escapeHtml(p.id)}" onclick="window.__libPreviewCatalogThesis('${escapeHtml(p.id)}')" title="Click to preview thesis">
-                                <div class="dash-recent-top">
+                            <div class="lib-recent-item" data-id="${escapeHtml(p.id)}" onclick="window.__libPreviewCatalogThesis('${escapeHtml(p.id)}')" title="Click to view details">
+                                <div class="dash-recent-row-top">
                                     <h4 class="lib-recent-item-title" title="${escapeHtml(p.title || 'Untitled')}">${escapeHtml(p.title || 'Untitled')}</h4>
-                                    <span class="dash-preview-badge">Preview ↗</span>
+                                    <span class="dash-date-meta" title="Submission Date">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        ${formatDate(p.createdAt)}
+                                    </span>
                                 </div>
-                                <div class="dash-recent-meta-row">
-                                    <span class="dash-prog-pill">${escapeHtml(p.program || 'N/A')}</span>
-                                    <span class="dash-year-pill">AY ${escapeHtml(String(p.year || 'N/A'))}</span>
-                                    ${shelfPill}
-                                    ${authorNames ? `<span class="dash-author-meta" title="${escapeHtml(authorNames)}">${escapeHtml(authorNames)}</span>` : ''}
-                                    <span class="dash-date-meta">${formatDate(p.createdAt)}</span>
+                                <div class="dash-recent-row-bottom">
+                                    <div class="dash-recent-chips">
+                                        <span class="dash-prog-pill">${escapeHtml(p.program || 'N/A')}</span>
+                                        <span class="dash-year-pill">AY ${escapeHtml(String(p.year || 'N/A'))}</span>
+                                        ${shelfPill}
+                                    </div>
+                                    ${authorNames ? `
+                                        <div class="dash-recent-author-wrap" title="${escapeHtml(authorNames)}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            <span class="dash-author-meta">${escapeHtml(authorNames)}</span>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                         `;
@@ -415,7 +444,7 @@
             startProjectsRealtimeListener();
         } catch (err) {
             console.error('loadDashboardData:', err);
-            showToast && showToast('Error loading dashboard data', '❌');
+            showToast && showToast('Error loading dashboard data', 'error');
         }
     }
 
@@ -714,7 +743,12 @@
             const matchText = !term ||
                 (p.title || '').toLowerCase().includes(term) ||
                 (p.authors || []).join(' ').toLowerCase().includes(term) ||
-                (p.program || '').toLowerCase().includes(term);
+                (p.program || '').toLowerCase().includes(term) ||
+                (p.adviser || '').toLowerCase().includes(term) ||
+                (p.year || '').toLowerCase().includes(term) ||
+                (Array.isArray(p.keywords) ? p.keywords.join(' ') : String(p.keywords || '')).toLowerCase().includes(term) ||
+                (Array.isArray(p.topics) ? p.topics.join(' ') : String(p.topics || '')).toLowerCase().includes(term) ||
+                (p.abstract || '').toLowerCase().includes(term);
             const pStatus = (p.status || '').trim().toLowerCase();
             const matchStatus = !statusFilter || pStatus === statusFilter || (statusFilter === 'completed' && pStatus === 'complete');
             const matchProgram = programFilter === 'all'
@@ -813,8 +847,8 @@
             if (isCompleted) {
                 const isLocked = Boolean(p.isLockedByAdmin);
                 const currentUid = currentUser?.uid || '';
-                const isBeingCatalogedByOther = Boolean(p.isBeingCataloged) && p.catalogingBy && p.catalogingBy !== currentUid;
-                const isBeingEditedByOther = Boolean(p.isBeingEdited) && p.editingBy && p.editingBy !== currentUid;
+                const isBeingCatalogedByOther = isProjectCatalogLockActive(p) && p.catalogingBy && p.catalogingBy !== currentUid;
+                const isBeingEditedByOther = isProjectEditLockActive(p) && p.editingBy && p.editingBy !== currentUid;
 
                 if (isLocked) {
                     completedActionBtns = `
@@ -1033,8 +1067,33 @@
     // ─────────────────────────────────────────────
     let currentEditingPendingId = null;
     let currentCatalogingProjectId = null;
+    let catalogHeartbeatInterval = null;
     let unsubscribePendingProjects = null;
     let unsubscribeProjects = null;
+
+    function isProjectCatalogLockActive(p) {
+        if (!p || !p.isBeingCataloged) return false;
+        const ts = p.catalogingHeartbeat || p.catalogingStartedAt;
+        if (!ts) return false;
+        try {
+            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+            return (Date.now() - time) <= 45 * 1000;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function isProjectEditLockActive(p) {
+        if (!p || !p.isBeingEdited) return false;
+        const ts = p.editingHeartbeat || p.editingStartedAt;
+        if (!ts) return false;
+        try {
+            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+            return (Date.now() - time) <= 45 * 1000;
+        } catch (e) {
+            return false;
+        }
+    }
 
     function startPendingProjectsListener() {
         if (unsubscribePendingProjects) return;
@@ -1169,6 +1228,10 @@
     }
 
     async function freeCatalogingSession(projectId, silent = false) {
+        if (catalogHeartbeatInterval) {
+            clearInterval(catalogHeartbeatInterval);
+            catalogHeartbeatInterval = null;
+        }
         const pid = projectId || currentCatalogingProjectId;
         if (!pid) return;
 
@@ -1177,7 +1240,8 @@
                 isBeingCataloged: false,
                 catalogingBy: null,
                 catalogingByName: null,
-                catalogingStartedAt: null
+                catalogingStartedAt: null,
+                catalogingHeartbeat: null
             });
         } catch (err) {
             if (!silent) console.warn('Error releasing cataloging lock:', err);
@@ -1190,13 +1254,18 @@
 
     // Auto-free editing & cataloging locks if the browser window/tab is closed
     window.addEventListener('beforeunload', () => {
+        if (catalogHeartbeatInterval) {
+            clearInterval(catalogHeartbeatInterval);
+            catalogHeartbeatInterval = null;
+        }
         if (currentEditingPendingId) {
             try {
                 db.collection('pendingProjects').doc(currentEditingPendingId).update({
                     isBeingEdited: false,
                     editingBy: null,
                     editingByName: null,
-                    editingStartedAt: null
+                    editingStartedAt: null,
+                    editingHeartbeat: null
                 });
             } catch (e) {}
         }
@@ -1206,20 +1275,26 @@
                     isBeingCataloged: false,
                     catalogingBy: null,
                     catalogingByName: null,
-                    catalogingStartedAt: null
+                    catalogingStartedAt: null,
+                    catalogingHeartbeat: null
                 });
             } catch (e) {}
         }
     });
 
     window.addEventListener('pagehide', () => {
+        if (catalogHeartbeatInterval) {
+            clearInterval(catalogHeartbeatInterval);
+            catalogHeartbeatInterval = null;
+        }
         if (currentEditingPendingId) {
             try {
                 db.collection('pendingProjects').doc(currentEditingPendingId).update({
                     isBeingEdited: false,
                     editingBy: null,
                     editingByName: null,
-                    editingStartedAt: null
+                    editingStartedAt: null,
+                    editingHeartbeat: null
                 });
             } catch (e) {}
         }
@@ -1229,7 +1304,8 @@
                     isBeingCataloged: false,
                     catalogingBy: null,
                     catalogingByName: null,
-                    catalogingStartedAt: null
+                    catalogingStartedAt: null,
+                    catalogingHeartbeat: null
                 });
             } catch (e) {}
         }
@@ -2977,6 +3053,39 @@
             // Sort newest first
             completed.sort((a, b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt));
 
+            // Self/Stale Lock Reclamation: Auto-release orphaned locks left over from past sessions or crashes
+            const myUid = currentUser?.uid;
+            completed.forEach(p => {
+                if (p.isBeingCataloged) {
+                    const ts = p.catalogingHeartbeat || p.catalogingStartedAt;
+                    let isStale = false;
+                    if (!ts) {
+                        isStale = true;
+                    } else {
+                        try {
+                            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+                            if (Date.now() - time > 45 * 1000) isStale = true;
+                        } catch (e) {
+                            isStale = true;
+                        }
+                    }
+                    if (isStale || (p.catalogingBy === myUid && currentCatalogingProjectId !== p.id)) {
+                        p.isBeingCataloged = false;
+                        p.catalogingBy = null;
+                        p.catalogingByName = null;
+                        p.catalogingStartedAt = null;
+                        p.catalogingHeartbeat = null;
+                        db.collection('projects').doc(p.id).update({
+                            isBeingCataloged: false,
+                            catalogingBy: null,
+                            catalogingByName: null,
+                            catalogingStartedAt: null,
+                            catalogingHeartbeat: null
+                        }).catch(() => {});
+                    }
+                }
+            });
+
             // Load all catalog notes
             let freshNotes = {};
             try {
@@ -3197,18 +3306,18 @@
 
             const isLocked = Boolean(p.isLockedByAdmin);
             const currentUid = currentUser?.uid || '';
-            const isBeingCatalogedByOther = Boolean(p.isBeingCataloged) && p.catalogingBy && p.catalogingBy !== currentUid;
-            const isBeingEditedByOther = Boolean(p.isBeingEdited) && p.editingBy && p.editingBy !== currentUid;
+            const isBeingCatalogedByOther = isProjectCatalogLockActive(p) && p.catalogingBy && p.catalogingBy !== currentUid;
+            const isBeingEditedByOther = isProjectEditLockActive(p) && p.editingBy && p.editingBy !== currentUid;
 
             let shelfBoxClick = `onclick="window.__libOpenCatalogNote('${escapeHtml(p.id)}')"` ;
             if (isLocked) {
-                shelfBoxClick = `onclick="showToast('This project is locked by the Administrator and cannot be modified.', '🔒')"` ;
+                shelfBoxClick = `onclick="showToast('This project is locked by the Administrator and cannot be modified.')"` ;
             } else if (isBeingCatalogedByOther) {
                 const cataloger = escapeHtml(p.catalogingByName || 'another librarian');
-                shelfBoxClick = `onclick="showToast('This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.', '⚠️')"` ;
+                shelfBoxClick = `onclick="showToast('This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.')"` ;
             } else if (isBeingEditedByOther) {
                 const editor = escapeHtml(p.editingByName || 'another user');
-                shelfBoxClick = `onclick="showToast('This project is currently being edited by ${editor}. Please wait until it is freed.', '⚠️')"` ;
+                shelfBoxClick = `onclick="showToast('This project is currently being edited by ${editor}. Please wait until it is freed.')"` ;
             }
 
             const shelfBox = isShelved
@@ -3218,7 +3327,7 @@
                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                                Physical Location
                            </span>
-                           <span class="catalog-shelf-quick-edit">${isLocked ? '🔒 Locked' : isBeingCatalogedByOther ? 'In Use' : 'Click to edit ✏️'}</span>
+                           <span class="catalog-shelf-quick-edit">${isLocked ? 'Locked' : isBeingCatalogedByOther ? 'In Use' : 'Click to edit'}</span>
                        </div>
                        <div class="catalog-shelf-location-text">${escapeHtml(note?.note || 'Location recorded (see call number)')}</div>
                    </div>`
@@ -3228,7 +3337,7 @@
                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
                            </div>
                            <div class="catalog-shelf-empty-text">
-                               <strong>${isLocked ? '🔒 Locked by Admin' : isBeingCatalogedByOther ? '✏️ In Use by ' + escapeHtml(p.catalogingByName || 'Librarian') : 'No Physical Shelf Assigned'}</strong>
+                               <strong>${isLocked ? 'Locked by Admin' : isBeingCatalogedByOther ? 'In Use by ' + escapeHtml(p.catalogingByName || 'Librarian') : 'No Physical Shelf Assigned'}</strong>
                                <span>${isLocked ? 'Cataloging disabled while locked' : isBeingCatalogedByOther ? 'Being cataloged in another session' : 'Click to record cabinet, shelf, or call #'}</span>
                            </div>
                        </div>
@@ -3655,6 +3764,16 @@
             if (e.target === e.currentTarget) closeCatalogNoteModal();
         });
 
+        // Escape key listener to close modal and release lock
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('catalog-note-modal');
+                if (modal && (modal.style.display === 'flex' || modal.style.display === 'block')) {
+                    closeCatalogNoteModal(true);
+                }
+            }
+        });
+
         // Dynamic Collapsible Section Headers with Local Storage Memory
         document.querySelectorAll('.cn-collapsible-section[data-section-key] .cn-collapse-header').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -3860,15 +3979,20 @@
         }
         if (cachedProject.isBeingCataloged && cachedProject.catalogingBy && cachedProject.catalogingBy !== currentUid) {
             let isStale = false;
-            if (cachedProject.catalogingStartedAt) {
+            const ts = cachedProject.catalogingHeartbeat || cachedProject.catalogingStartedAt;
+            if (!ts) {
+                isStale = true;
+            } else {
                 try {
-                    const started = cachedProject.catalogingStartedAt.toDate ? cachedProject.catalogingStartedAt.toDate() : new Date(cachedProject.catalogingStartedAt);
-                    if (Date.now() - started.getTime() > 15 * 60 * 1000) isStale = true;
-                } catch (e) {}
+                    const started = ts.toDate ? ts.toDate() : new Date(ts);
+                    if (Date.now() - started.getTime() > 45 * 1000) isStale = true;
+                } catch (e) {
+                    isStale = true;
+                }
             }
             if (!isStale) {
                 const cataloger = cachedProject.catalogingByName || 'another librarian';
-                showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+                showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`);
                 return;
             }
         }
@@ -3970,16 +4094,21 @@
                 const activeUid = currentUser?.uid || '';
                 if (freshProject.isBeingCataloged && freshProject.catalogingBy && freshProject.catalogingBy !== activeUid) {
                     let isStale = false;
-                    if (freshProject.catalogingStartedAt) {
+                    const ts = freshProject.catalogingHeartbeat || freshProject.catalogingStartedAt;
+                    if (!ts) {
+                        isStale = true;
+                    } else {
                         try {
-                            const started = freshProject.catalogingStartedAt.toDate ? freshProject.catalogingStartedAt.toDate() : new Date(freshProject.catalogingStartedAt);
-                            if (Date.now() - started.getTime() > 15 * 60 * 1000) isStale = true;
-                        } catch (e) {}
+                            const started = ts.toDate ? ts.toDate() : new Date(ts);
+                            if (Date.now() - started.getTime() > 45 * 1000) isStale = true;
+                        } catch (e) {
+                            isStale = true;
+                        }
                     }
                     if (!isStale) {
                         const cataloger = freshProject.catalogingByName || 'another librarian';
                         await closeCatalogNoteModal(false);
-                        showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+                        showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`);
                         return;
                     }
                 }
@@ -3987,16 +4116,21 @@
                 // Concurrency Check 3: Another User Editing
                 if (freshProject.isBeingEdited && freshProject.editingBy && freshProject.editingBy !== activeUid) {
                     let isEditStale = false;
-                    if (freshProject.editingStartedAt) {
+                    const ts = freshProject.editingHeartbeat || freshProject.editingStartedAt;
+                    if (!ts) {
+                        isEditStale = true;
+                    } else {
                         try {
-                            const started = freshProject.editingStartedAt.toDate ? freshProject.editingStartedAt.toDate() : new Date(freshProject.editingStartedAt);
-                            if (Date.now() - started.getTime() > 15 * 60 * 1000) isEditStale = true;
-                        } catch (e) {}
+                            const started = ts.toDate ? ts.toDate() : new Date(ts);
+                            if (Date.now() - started.getTime() > 45 * 1000) isEditStale = true;
+                        } catch (e) {
+                            isEditStale = true;
+                        }
                     }
                     if (!isEditStale) {
                         const editor = freshProject.editingByName || 'another user';
                         await closeCatalogNoteModal(false);
-                        showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`, '⚠️');
+                        showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`);
                         return;
                     }
                 }
@@ -4010,8 +4144,26 @@
                     isBeingCataloged: true,
                     catalogingBy: activeUid,
                     catalogingByName: librarianName,
-                    catalogingStartedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    catalogingStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    catalogingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                // Start active 20-second heartbeat to renew lock while librarian keeps modal open
+                if (catalogHeartbeatInterval) clearInterval(catalogHeartbeatInterval);
+                catalogHeartbeatInterval = setInterval(async () => {
+                    if (currentCatalogingProjectId === sessionProjectId) {
+                        try {
+                            await db.collection('projects').doc(sessionProjectId).update({
+                                catalogingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } catch (e) {
+                            console.warn('Cataloging heartbeat ping warning:', e);
+                        }
+                    } else {
+                        clearInterval(catalogHeartbeatInterval);
+                        catalogHeartbeatInterval = null;
+                    }
+                }, 20000);
 
                 // If closed while lock update was in flight, release it immediately
                 if (currentCatalogingProjectId !== sessionProjectId) {
@@ -4075,6 +4227,10 @@
     }
 
     async function closeCatalogNoteModal(releaseLock = true) {
+        if (catalogHeartbeatInterval) {
+            clearInterval(catalogHeartbeatInterval);
+            catalogHeartbeatInterval = null;
+        }
         document.getElementById('catalog-note-modal').style.display = 'none';
         const pid = currentCatalogingProjectId;
         currentCatalogingProjectId = null;
@@ -4163,6 +4319,7 @@
                 catalogingBy: null,
                 catalogingByName: null,
                 catalogingStartedAt: null,
+                catalogingHeartbeat: null,
                 catalogAudit: {
                     lastAction: actionName,
                     lastUpdatedByName: currentUserName,
@@ -4267,6 +4424,7 @@
                 catalogingBy: null,
                 catalogingByName: null,
                 catalogingStartedAt: null,
+                catalogingHeartbeat: null,
                 catalogAudit: {
                     lastAction: 'Cleared catalog record',
                     lastUpdatedByName: currentUserName,

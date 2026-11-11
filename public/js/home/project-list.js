@@ -1066,18 +1066,32 @@ document.addEventListener('DOMContentLoaded', () => {
             let relevanceBadge = '';
             let cardTierClass = '';
             if (isRAGResults && typeof data.relevanceScore === 'number') {
-                const relevancePercent = (data.relevanceScore * 100).toFixed(0);
-                const isHighTier = data.relevanceScore >= 0.8;
-                const badgeClass = isHighTier ? 'high' : (data.relevanceScore >= 0.6 ? 'medium' : 'low');
+                const rawScore = data.relevanceScore;
+                const rawPercent = rawScore * 100;
+                const exactPercent = rawPercent.toFixed(2);
+                const isHighTier = rawScore >= 0.8;
+                const badgeClass = isHighTier ? 'high' : (rawScore >= 0.6 ? 'medium' : 'low');
                 cardTierClass = isHighTier ? 'relevance-tier-high' : 'relevance-tier-moderate';
 
+                // Display percent: prevent borderline scores in "Below 80%" tier from rounding up to 80%
+                let displayPercent;
+                if (isHighTier) {
+                    displayPercent = Math.round(rawPercent);
+                } else if (rawPercent >= 79.5) {
+                    // Borderline score right below 80% (e.g. 79.6% - 79.9%): display 1 decimal place
+                    // so it accurately reflects "Below 80%" and doesn't mislead as 80%
+                    displayPercent = Math.min(79.9, Number(rawPercent.toFixed(1))).toFixed(1);
+                } else {
+                    displayPercent = Math.round(rawPercent);
+                }
+
                 relevanceBadge = `
-                    <div class="relevance-badge ${badgeClass}" title="Semantic relevance score: ${relevancePercent}%">
+                    <div class="relevance-badge ${badgeClass}" title="Semantic relevance score: ${exactPercent}%" data-exact-score="${exactPercent}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
                             <path d="M12 6v6l4 2"></path>
                         </svg>
-                        ${relevancePercent}% Match
+                        ${displayPercent}% Match
                     </div>
                 `;
             }

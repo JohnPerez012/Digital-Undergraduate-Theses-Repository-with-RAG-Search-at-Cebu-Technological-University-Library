@@ -412,7 +412,7 @@
             sendOtpBtn.addEventListener('click', async () => {
                 sendOtpBtn.disabled = true;
                 const origText = sendOtpBtn.innerHTML;
-                sendOtpBtn.innerHTML = '⏳ Sending OTP...';
+                sendOtpBtn.innerHTML = 'Sending OTP...';
 
                 try {
                     const idToken = await user.getIdToken();
