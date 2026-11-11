@@ -1134,7 +1134,7 @@
                 </div>
 
                 <div class="catalog-details-dropdown-wrapper">
-                    <button type="button" class="catalog-details-dropdown-toggle" id="catalog-details-dropdown-toggle" aria-expanded="false" aria-controls="catalog-details-dropdown-panel" title="Click to view physical shelf and library placement details">
+                    <button type="button" class="catalog-details-dropdown-toggle" id="catalog-details-dropdown-toggle" aria-expanded="false" aria-controls="catalog-details-dropdown-panel" title="${isCataloged ? 'Click to view physical shelf and library placement details' : 'Click to view physical shelf status (Awaiting Shelf Placement)'}">
                         <div class="catalog-toggle-label-wrap">
                             <svg class="catalog-book-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -1609,12 +1609,21 @@
                 const isExpanded = catalogToggleBtn.getAttribute('aria-expanded') === 'true';
 
                 if (isExpanded) {
-                    // Close the dropdown and reset state (next open requires accountability modal again)
+                    // Close the dropdown and reset state (next open requires accountability modal again if shelved)
                     catalogToggleBtn.setAttribute('aria-expanded', 'false');
                     catalogToggleBtn.classList.remove('is-open');
                     catalogPanel.style.display = 'none';
                 } else {
-                    // Intercept open: show the Accountability Modal first
+                    // IF the project is "Awaiting Shelf" (empty/not cataloged yet),
+                    // open directly without the modal to avoid wasting user's time
+                    if (!isCataloged) {
+                        catalogToggleBtn.setAttribute('aria-expanded', 'true');
+                        catalogToggleBtn.classList.add('is-open');
+                        catalogPanel.style.display = 'block';
+                        return;
+                    }
+
+                    // For shelved projects with restricted physical locations, require the accountability modal
                     showCatalogAccountabilityModal(() => {
                         catalogToggleBtn.setAttribute('aria-expanded', 'true');
                         catalogToggleBtn.classList.add('is-open');

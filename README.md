@@ -490,8 +490,9 @@ node scripts/preflight.js
         - Dynamic background Firestore and cache hydration ensuring physical location updates reflect instantly when viewing project details.
       - *Institutional Physical Shelf Location Accountability Security Modal & Firestore Audit Logging (`view-manager.js`, `view_project_details.css`):*
         - Physical thesis manuscripts and their specific shelf placements are restricted institutional assets under R.A. 10173 and university repository regulations.
-        - Whenever a user clicks the collapsed physical location dropdown, an **Accountability Security Modal** intercepts the action before exposing the shelf coordinates.
-        - Requires explicit user acknowledgment via a mandatory checkbox (`#catalog-accountability-checkbox`) verifying that the request is for legitimate on-site research under library supervision.
+        - Whenever a user clicks the collapsed physical location dropdown on a shelved project, an **Accountability Security Modal** intercepts the action before exposing the shelf coordinates.
+        - *Smart Zero-Friction Bypass for Unshelved Capstones:* If a project is designated as "Awaiting Shelf" (unpopulated/not physically cataloged yet), clicking the dropdown toggles open directly to show the pending review status without displaying the security modal, preventing redundant prompts and user friction.
+        - For cataloged hard copies, requires explicit user acknowledgment via a mandatory checkbox (`#catalog-accountability-checkbox`) verifying that the request is for legitimate on-site research under library supervision.
         - The **"Proceed to Location"** button (`#catalog-accountability-proceed-btn`) remains strictly disabled until the acknowledgment is checked.
         - Upon proceeding, an auditable document is automatically recorded in the Firebase Firestore `physicalLocationAccessLogs` collection, logging:
           - `timestamp`: Server timestamp (`serverTimestamp()`).
