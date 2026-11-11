@@ -488,6 +488,17 @@ node scripts/preflight.js
           - Institutional verification watermark badge with SVG shield icon.
         - Full compliance with the 3 Universal Institutional UI Pillars (Zero Emojis, system color palette, monochromatic slide-down animation) with both dark and light theme fidelity.
         - Dynamic background Firestore and cache hydration ensuring physical location updates reflect instantly when viewing project details.
+      - *Institutional Physical Shelf Location Accountability Security Modal & Firestore Audit Logging (`view-manager.js`, `view_project_details.css`):*
+        - Physical thesis manuscripts and their specific shelf placements are restricted institutional assets under R.A. 10173 and university repository regulations.
+        - Whenever a user clicks the collapsed physical location dropdown, an **Accountability Security Modal** intercepts the action before exposing the shelf coordinates.
+        - Requires explicit user acknowledgment via a mandatory checkbox (`#catalog-accountability-checkbox`) verifying that the request is for legitimate on-site research under library supervision.
+        - The **"Proceed to Location"** button (`#catalog-accountability-proceed-btn`) remains strictly disabled until the acknowledgment is checked.
+        - Upon proceeding, an auditable document is automatically recorded in the Firebase Firestore `physicalLocationAccessLogs` collection, logging:
+          - `timestamp`: Server timestamp (`serverTimestamp()`).
+          - `userName`, `userEmail`, `userId`, `userRole`: Requesting user identity.
+          - `agreed`: Boolean `true` acknowledgment flag.
+          - `projectId`, `projectTitle`, `callNumber`, `catalogLocation`: Target manuscript metadata.
+        - Dismissing or closing the dropdown menu automatically resets access state, ensuring the security modal and agreement check re-triggers every time the physical placement is requested.
 - **Universal Institutional Typography System (Google Fonts "Roboto Mono"):** Migrated and established "Roboto Mono" as the universal, system-wide primary typeface across all RE-CAPS surfaces:
   - *Comprehensive Variable Font Integration:* Embedded Google Fonts preconnect and variable stylesheet links (`family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Cedarville+Cursive&display=swap`) across all 8 HTML entry points (`index.html`, `maintenance.html`, `about_page.html`, `account_registration.html`, `admin_page.html`, `librarian_page.html`, `student_page.html`, and `teacher_page.html`).
   - *Global CSS Tokens & Cascade:* Configured `--font-primary: 'Roboto Mono', monospace;`, `--font-display: 'Roboto Mono', monospace;`, and `--font-mono: 'Roboto Mono', monospace;` with global `@import` rules in `style.css`, propagating universally across `body`, `button`, `input`, `select`, `textarea`, headers, and cards.

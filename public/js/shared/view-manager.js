@@ -1414,6 +1414,191 @@
         // Attach click handlers to gallery thumbnails for Lightbox viewer
         setupGalleryLightbox(project.images);
 
+        /**
+         * Institutional Physical Shelf Location Accountability Security Modal
+         * Enforces R.A. 10173 and institutional archive accountability.
+         * Requires explicit acknowledgment checkbox before "Proceed" unlocks.
+         * Automatically logs timestamp, userName, userId, userRole, and agreed boolean to Firestore.
+         */
+        function showCatalogAccountabilityModal(onProceed) {
+            // Remove any existing instance
+            const existingModal = document.getElementById('catalog-accountability-modal');
+            if (existingModal) existingModal.remove();
+
+            const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+            const userName = currentUser?.displayName || sessionStorage.getItem('userName') || localStorage.getItem('userName') || 'Campus Researcher';
+            const userEmail = currentUser?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || 'campus-researcher@ctu.edu.ph';
+            const userId = currentUser?.uid || 'guest-session';
+            const userRole = sessionStorage.getItem('userType') || sessionStorage.getItem('userRole') || localStorage.getItem('userType') || 'student';
+
+            const modalEl = document.createElement('div');
+            modalEl.id = 'catalog-accountability-modal';
+            modalEl.className = 'catalog-accountability-overlay';
+            modalEl.setAttribute('role', 'dialog');
+            modalEl.setAttribute('aria-modal', 'true');
+            modalEl.setAttribute('aria-labelledby', 'catalog-modal-title');
+
+            modalEl.innerHTML = `
+                <div class="catalog-accountability-backdrop"></div>
+                <div class="catalog-accountability-card">
+                    <button type="button" class="catalog-accountability-close-btn" id="catalog-accountability-close-btn" aria-label="Close accountability modal">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+
+                    <div class="catalog-accountability-header">
+                        <div class="catalog-accountability-icon-wrap">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg>
+                        </div>
+                        <div class="catalog-accountability-header-text">
+                            <h3 class="catalog-accountability-title" id="catalog-modal-title">Physical Archive Location Accountability</h3>
+                            <span class="catalog-accountability-sub-pill">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Restricted Institutional Asset · R.A. 10173
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="catalog-accountability-body">
+                        <div class="catalog-accountability-policy-box">
+                            <p>
+                                Under university repository regulations, physical undergraduate capstone volumes and their shelf placements are restricted assets. Requesting the specific cabinet placement and classification call number requires formal acknowledgment and auditable user logging.
+                            </p>
+                        </div>
+
+                        <div class="catalog-accountability-meta-card">
+                            <div class="catalog-meta-row">
+                                <span class="catalog-meta-label">Capstone Manuscript</span>
+                                <strong class="catalog-meta-value catalog-title-truncate">${escapeHtml(project.title || 'Untitled Project')}</strong>
+                            </div>
+                            <div class="catalog-meta-grid">
+                                <div class="catalog-meta-col">
+                                    <span class="catalog-meta-label">Program & Year</span>
+                                    <strong class="catalog-meta-value">${escapeHtml(program)} (${escapeHtml(year)})</strong>
+                                </div>
+                                <div class="catalog-meta-col">
+                                    <span class="catalog-meta-label">Accountable User</span>
+                                    <strong class="catalog-meta-value">${escapeHtml(userName)}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="catalog-accountability-agreement">
+                            <label class="catalog-accountability-check-label" for="catalog-accountability-checkbox">
+                                <input type="checkbox" id="catalog-accountability-checkbox" class="catalog-accountability-checkbox">
+                                <span class="catalog-accountability-custom-box">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </span>
+                                <span class="catalog-accountability-check-text">
+                                    I hereby declare and agree that I am requesting the physical shelf placement of this manuscript strictly for legitimate academic research on university library grounds. I accept full institutional accountability for handling, consulting, and preserving this hardbound copy in compliance with library policies.
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="catalog-accountability-actions">
+                        <button type="button" class="catalog-btn-secondary" id="catalog-accountability-cancel-btn">
+                            Cancel
+                        </button>
+                        <button type="button" class="catalog-btn-primary" id="catalog-accountability-proceed-btn" disabled>
+                            <span>Proceed to Location</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modalEl);
+            document.body.style.overflow = 'hidden';
+
+            const checkbox = modalEl.querySelector('#catalog-accountability-checkbox');
+            const proceedBtn = modalEl.querySelector('#catalog-accountability-proceed-btn');
+            const cancelBtn = modalEl.querySelector('#catalog-accountability-cancel-btn');
+            const closeBtn = modalEl.querySelector('#catalog-accountability-close-btn');
+            const backdrop = modalEl.querySelector('.catalog-accountability-backdrop');
+
+            const closeModal = () => {
+                document.removeEventListener('keydown', handleKeyDown);
+                modalEl.remove();
+                document.body.style.overflow = '';
+            };
+
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') closeModal();
+            };
+            document.addEventListener('keydown', handleKeyDown);
+
+            checkbox.addEventListener('change', () => {
+                proceedBtn.disabled = !checkbox.checked;
+            });
+
+            cancelBtn.addEventListener('click', closeModal);
+            closeBtn.addEventListener('click', closeModal);
+            backdrop.addEventListener('click', closeModal);
+
+            proceedBtn.addEventListener('click', async () => {
+                if (!checkbox.checked) return;
+
+                proceedBtn.disabled = true;
+                proceedBtn.innerHTML = `
+                    <svg class="catalog-spin-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                    <span>Logging Accountability...</span>
+                `;
+
+                // Log audit record to Firebase Firestore collection 'physicalLocationAccessLogs'
+                try {
+                    if (typeof firebase !== 'undefined' && firebase.firestore) {
+                        const db = firebase.firestore();
+                        const logData = {
+                            projectId: project.id || '',
+                            projectTitle: project.title || 'Untitled Project',
+                            program: project.program || '',
+                            year: project.year || '',
+                            catalogLocation: locationNote || 'Unshelved',
+                            callNumber: callNo || '',
+                            accessionNumber: accessionNo || '',
+                            userId: userId,
+                            userName: userName,
+                            userEmail: userEmail,
+                            userRole: userRole,
+                            agreed: true,
+                            accessType: 'physical_shelf_view',
+                            clientTimestamp: new Date().toISOString(),
+                            timestamp: (firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.serverTimestamp === 'function')
+                                ? firebase.firestore.FieldValue.serverTimestamp()
+                                : new Date()
+                        };
+                        await db.collection('physicalLocationAccessLogs').add(logData);
+                    }
+                } catch (logErr) {
+                    console.warn('Physical location audit log write notice:', logErr);
+                }
+
+                // Also trigger ActivityService if available for local accountability timeline
+                if (typeof ActivityService !== 'undefined' && ActivityService.logActivity) {
+                    try {
+                        ActivityService.logActivity('view_physical_location', `Acknowledged physical shelf placement access for "${project.title || 'Project'}"`, {
+                            projectId: project.id,
+                            userName,
+                            userEmail
+                        });
+                    } catch (_) {}
+                }
+
+                closeModal();
+
+                if (typeof showToast === 'function') {
+                    showToast('Physical location accountability verified and logged.', 'success');
+                }
+
+                if (typeof onProceed === 'function') {
+                    onProceed();
+                }
+            });
+        }
+
         // Attach event listener for Physical Library Location dropdown toggle
         const catalogToggleBtn = detailsSidebar.querySelector('#catalog-details-dropdown-toggle');
         const catalogPanel = detailsSidebar.querySelector('#catalog-details-dropdown-panel');
@@ -1422,10 +1607,20 @@
                 e.preventDefault();
                 e.stopPropagation();
                 const isExpanded = catalogToggleBtn.getAttribute('aria-expanded') === 'true';
-                const nextState = !isExpanded;
-                catalogToggleBtn.setAttribute('aria-expanded', String(nextState));
-                catalogToggleBtn.classList.toggle('is-open', nextState);
-                catalogPanel.style.display = nextState ? 'block' : 'none';
+
+                if (isExpanded) {
+                    // Close the dropdown and reset state (next open requires accountability modal again)
+                    catalogToggleBtn.setAttribute('aria-expanded', 'false');
+                    catalogToggleBtn.classList.remove('is-open');
+                    catalogPanel.style.display = 'none';
+                } else {
+                    // Intercept open: show the Accountability Modal first
+                    showCatalogAccountabilityModal(() => {
+                        catalogToggleBtn.setAttribute('aria-expanded', 'true');
+                        catalogToggleBtn.classList.add('is-open');
+                        catalogPanel.style.display = 'block';
+                    });
+                }
             });
         }
     };

@@ -1269,3 +1269,401 @@ body::before {
     color: var(--text-secondary);
     margin: 0;
 }
+
+/* ==========================================================================
+   Physical Archive Location Accountability Modal & Policy Directives
+   ========================================================================== */
+.catalog-accountability-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: catalogModalFadeIn 0.22s ease-out;
+}
+
+.catalog-accountability-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 15, 23, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.catalog-accountability-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 540px;
+    background: #121824;
+    border: 1px solid rgba(8, 212, 136, 0.25);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55), 0 0 24px rgba(8, 212, 136, 0.08);
+    animation: catalogCardPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    color: var(--text-primary, #F7F7F8);
+    font-family: inherit;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-card {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15), 0 0 24px rgba(8, 212, 136, 0.06);
+    color: #0f172a;
+}
+
+@keyframes catalogModalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes catalogCardPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.catalog-accountability-close-btn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.catalog-accountability-close-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary, #F7F7F8);
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-close-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.catalog-accountability-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.15rem;
+    padding-right: 2rem;
+}
+
+.catalog-accountability-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(8, 212, 136, 0.12);
+    border: 1px solid rgba(8, 212, 136, 0.3);
+    color: #08D488;
+    flex-shrink: 0;
+}
+
+.catalog-accountability-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.catalog-accountability-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary, #F7F7F8);
+    line-height: 1.3;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-title {
+    color: #0f172a;
+}
+
+.catalog-accountability-sub-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #FCCC56;
+    letter-spacing: 0.02em;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-sub-pill {
+    color: #b45309;
+}
+
+.catalog-accountability-sub-pill svg {
+    color: currentColor;
+    flex-shrink: 0;
+}
+
+/* Body */
+.catalog-accountability-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.catalog-accountability-policy-box {
+    background: rgba(252, 204, 86, 0.06);
+    border: 1px solid rgba(252, 204, 86, 0.22);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+}
+
+.catalog-accountability-policy-box p {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-policy-box {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-policy-box p {
+    color: #92400e;
+}
+
+/* Meta Card */
+.catalog-accountability-meta-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-meta-card {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.catalog-meta-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.catalog-meta-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary, #64748b);
+    font-weight: 600;
+}
+
+.catalog-meta-value {
+    font-size: 0.84rem;
+    color: var(--text-primary, #F7F7F8);
+    font-weight: 600;
+}
+
+:root:not([data-theme="dark"]) .catalog-meta-value {
+    color: #1e293b;
+}
+
+.catalog-title-truncate {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.35;
+}
+
+.catalog-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+:root:not([data-theme="dark"]) .catalog-meta-grid {
+    border-top-color: #e2e8f0;
+}
+
+.catalog-meta-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+/* Agreement Checkbox */
+.catalog-accountability-agreement {
+    background: rgba(8, 212, 136, 0.04);
+    border: 1px solid rgba(8, 212, 136, 0.2);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-agreement {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+}
+
+.catalog-accountability-check-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.catalog-accountability-checkbox {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.catalog-accountability-custom-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1.5px solid rgba(8, 212, 136, 0.4);
+    background: rgba(15, 23, 42, 0.6);
+    color: transparent;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s ease;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-custom-box {
+    background: #ffffff;
+    border-color: #10b981;
+}
+
+.catalog-accountability-checkbox:checked + .catalog-accountability-custom-box {
+    background: #08D488;
+    border-color: #08D488;
+    color: #0b0f17;
+}
+
+.catalog-accountability-checkbox:focus-visible + .catalog-accountability-custom-box {
+    box-shadow: 0 0 0 2px rgba(8, 212, 136, 0.45);
+}
+
+.catalog-accountability-check-text {
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: var(--text-primary, #F7F7F8);
+    font-weight: 500;
+}
+
+:root:not([data-theme="dark"]) .catalog-accountability-check-text {
+    color: #064e3b;
+}
+
+/* Actions */
+.catalog-accountability-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.catalog-btn-secondary {
+    padding: 0.6rem 1.15rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.catalog-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #F7F7F8);
+}
+
+:root:not([data-theme="dark"]) .catalog-btn-secondary {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+:root:not([data-theme="dark"]) .catalog-btn-secondary:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.catalog-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    background: #08D488;
+    border: 1px solid #08D488;
+    color: #0b0f17;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.catalog-btn-primary:hover:not(:disabled) {
+    background: #06b774;
+    border-color: #06b774;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.25);
+}
+
+.catalog-btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(8, 212, 136, 0.35);
+    border-color: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    box-shadow: none;
+    transform: none;
+}
+
+:root:not([data-theme="dark"]) .catalog-btn-primary:disabled {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.catalog-spin-svg {
+    animation: catalogSpin 0.85s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes catalogSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
