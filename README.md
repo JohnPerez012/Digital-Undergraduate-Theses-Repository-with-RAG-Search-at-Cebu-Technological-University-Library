@@ -52,9 +52,9 @@ flowchart TD
 
     subgraph LLMFallbackTier ["4. Cascading LLM RAG Pipeline"]
         L1{"1. Mistral API<br/>(open-mistral-nemo)"}
-        L2{"2. Groq API<br/>(llama-3.3-70b-versatile)"}
-        L3{"3. Google Gemini API<br/>(gemini-2.5-flash)"}
-        L4{"4. OpenRouter API<br/>(Ling-3.0-Flash)"}
+        L2{"2. Groq API<br/>(openai/gpt-oss-120b)"}
+        L3{"3. Google Gemini API<br/>(gemini-3.5-flash-lite)"}
+        L4{"4. OpenRouter API<br/>(nemotron-3-nano-omni-30b-free)"}
     end
 
     UI -->|HTTP / JSON| Server
@@ -85,9 +85,9 @@ flowchart TD
 The RAG chatbot leverages multi-provider cascading failover to maintain 99.9% uptime:
 
 1. **Mistral AI** (`open-mistral-nemo`) — Primary grounded synthesizer.
-2. **Groq** (`llama-3.3-70b-versatile`) — Ultra-low latency fallback.
-3. **Google Gemini** (`gemini-2.5-flash`) — Context-rich secondary fallback.
-4. **OpenRouter** (`Ling-3.0-Flash`) — Autonomous tertiary safety net.
+2. **Groq** (`openai/gpt-oss-120b`) — High-throughput fallback tier.
+3. **Google Gemini** (`gemini-3.5-flash-lite`) — Low-latency secondary fallback.
+4. **OpenRouter** (`nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`) — Autonomous tertiary safety net.
 
 ### 📱 C. Glassmorphic Mobile Navigation Dock
 
@@ -506,6 +506,10 @@ node scripts/preflight.js
         - Any unauthorized mouse highlighting, drag-selection, double-click selection, copy shortcut (`Ctrl+C`), copy event, right-click context menu, or mobile touch-hold triggers a high-visibility warning toast notification alongside the floating callout badge.
         - Incorporated an active `selectionchange` event listener that immediately clears any rogue text selections (`selection.removeAllRanges()`) and emits the anti-plagiarism warning toast.
         - Purged legacy emojis from the text protection callout badges in adherence to Pillar 2, substituting accessible vector SVGs.
+    - **Admin AI Copilot Zero-Hallucination Grounding, Security Hardening & Live E2E Verification (`recap-backend/seed-staff-copilot.js`, `recap-backend/server.js`, `public/pages/admin_page.html`, `public/js/admin/main.js`, `public/js/admin/admin-settings.js`):**
+      - *Comprehensive 27-Vector Staff Knowledge Base (`recaps-staff-copilot`):* Audited every Admin UI view, modal, filter pill, shortcut, and read-only boundary across all 9 Sidebar Rail areas (`Dashboard`, `Projects`, `Approvals`, `Users`, `Analytics`, `Activity`, `Settings`, `Home`, `Logout`) plus the AI Copilot workspace (`#section-copilot` / `#admin-copilot-widget`). Removed the obsolete `admin_maintenance_mode_activation` vector, updated 4 shared physical-cataloging vectors (clarifying Admin Project Modal Section 04 Images vs Section 05 Physical Catalog & Librarian Accountability), updated 13 Admin vectors, added 7 Admin/Copilot/Negative-Boundary vectors (clarifying that `.dashboard-topbar` `#theme-toggle-admin` is inactive on Admin Dashboard and `Ctrl+Shift+A` switches to Approvals rather than batch-approving), and preserved all 3 `librarian_*` vectors untouched (`<= 1,663` chars under the 512-token `multilingual-e5-large` input ceiling).
+      - *Backend Cascade Resilience, Input Sanitization & RAG Precision (`POST /api/staff-copilot/chat`, `recap-backend/server.js`):* Replaced deprecated/404 provider models across the 4-tier cascade (`Groq` -> `openai/gpt-oss-120b`, `Google Gemini` -> `gemini-3.5-flash-lite`, `OpenRouter` -> `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free`), stripped reasoning-only stream deltas so internal chain-of-thought never leaks into client bubbles, enforced 25s provider `fetch` timeouts (`AbortSignal.timeout`), guarded against empty-token streams, added transient 429/503 backoff rescue, enforced `temperature: 0.1` + Unicode emoji stripping for Staff Copilot, rejected control-char/empty messages (`400`), whitelisted `history` roles strictly to `user`/`assistant` (blocking client `system` role injection), fixed `{ stream: false }` response routing, enforced `['admin', 'shared']` role scoping (`topK: 6`, cosine score `>= 0.60`), and grounded explicit UI negative boundaries.
+      - *Frontend XSS Neutralization, UI Emoji Purge & Deterministic Navigation (`admin_page.html`, `admin/main.js`, `admin/admin-settings.js`):* Purged remaining UI emojis from `#section-copilot`, `#admin-copilot-widget`, and `admin-settings.js` fallback toast, updated obsolete delete-button quick chip text, enforced `bubble.textContent` for user chat bubbles and `escapeHtml()` before Markdown rendering inside `dynamicCopilotNormalizer()` + `formatCopilotBlockSafe()`, converted offline `getAdminCopilotResponse()` steps to pure Markdown matching online responses, added `AbortController` request serialization (`_activeCopilotRequestSeq`) + mid-stream SSE error fallback recovery, refined `buildAdminCopilotJumpButton()` precedence (preventing Section 05 `"Librarian Accountability"` or `"Catalog Security"` from misrouting to Users/Settings), and expanded `copyCopilotGuidance()` label cleanup.
 - **Universal Institutional Typography System (Google Fonts "Roboto Mono"):** Migrated and established "Roboto Mono" as the universal, system-wide primary typeface across all RE-CAPS surfaces:
   - *Comprehensive Variable Font Integration:* Embedded Google Fonts preconnect and variable stylesheet links (`family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Cedarville+Cursive&display=swap`) across all 8 HTML entry points (`index.html`, `maintenance.html`, `about_page.html`, `account_registration.html`, `admin_page.html`, `librarian_page.html`, `student_page.html`, and `teacher_page.html`).
   - *Global CSS Tokens & Cascade:* Configured `--font-primary: 'Roboto Mono', monospace;`, `--font-display: 'Roboto Mono', monospace;`, and `--font-mono: 'Roboto Mono', monospace;` with global `@import` rules in `style.css`, propagating universally across `body`, `button`, `input`, `select`, `textarea`, headers, and cards.

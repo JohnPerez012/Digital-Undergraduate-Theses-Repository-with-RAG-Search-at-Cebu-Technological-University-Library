@@ -10529,8 +10529,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const card = btn.closest('.copilot-dynamic-response') || btn.closest('.copilot-msg-bubble');
         if (!card) return;
         const textToCopy = card.innerText
-            .replace(/Trigger Sync|Open Form|Bulk Import|Go to [^\n]+/g, '')
+            .replace(/Trigger Sync|Open Form|Bulk Import|Open Copilot View|Create Librarian|Approve All|Print Report|Export CSV|Change Password|Edit Profile|Open Logout|Go to [^\n]+/g, '')
             .replace(/Copy Guidance|Copied!/g, '')
+            .replace(/\n{3,}/g, '\n\n')
             .trim();
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -10545,11 +10546,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    function stripCopilotEmojis(text) {
+        if (!text) return '';
+        return String(text).replace(/[\u2600-\u27BF\uFE0F]|\p{Extended_Pictographic}/gu, '');
+    }
+
+    function formatCopilotBlockSafe(rawBlock) {
+        if (!rawBlock) return '';
+        const normalized = stripCopilotEmojis(rawBlock).replace(/\r\n/g, '\n');
+        return escapeHtml(normalized)
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/(^|\n)[ \t]*[-*•]\s+(.*?)(?=\n|$)/g, '$1__SUB_BULLET_START__$2__SUB_BULLET_END__')
+            .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\n?__SUB_BULLET_START__(.*?)__SUB_BULLET_END__/g, '<div class="step-sub-bullet">• $1</div>')
+            .replace(/\n{2,}/g, '<br>')
+            .replace(/\n/g, '<br>');
+    }
+
     // Universal Dynamic NLP Normalizer & Renderer
     function dynamicCopilotNormalizer(rawText, provider = 'Mistral AI') {
         if (!rawText || typeof rawText !== 'string') return '';
 
-        let text = rawText
+        let text = stripCopilotEmojis(rawText)
             .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
             .trim();
 
@@ -10586,12 +10605,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Strip leftover anchor markers like "** > **" or ">" or standalone "**"
         text = text.replace(/^[ \t]*(?:\*\*)?\s*(?:>|->|\|)?\s*(?:\*\*)?[ \t]*$/gm, '');
 
-        // Also remove parenthetical locator notes like *(Locate the left sidebar rail...)*
-        text = text.replace(/\*?\([^*)]*(?:sidebar|dashboard|screen|button|rail|card|table)[^*)]*\)\*?/gi, '');
+        // Remove filler parenthetical locator notes like *(Locate the left sidebar rail...)*
+        text = text.replace(/\*?\(Locate the [^*)]+\)\*?/gi, '');
 
-        // 3. Extract Precaution / Policy Alert
+        // 3. Extract Precaution / Policy Alert (stop cleanly before numbered steps, markdown headings, or secondary [Area:] blocks)
         let precautionText = '';
-        const precautionRegex = /(?:###\s*)?(?:\*\*)?(?:[1-3]\.\s*)?(?:⚠️|⚠)?\s*(?:\*\*)?(?:PRECAUTION|Precaution|POLICY ALERT|Policy Alert|CRITICAL NOTE)[^\n\r:]*:?\s*(?:\*\*)?([\s\S]*?)(?=(?:\r?\n\s*###|\r?\n\s*\d+\.\s+[A-Z]|$))/i;
+        const precautionRegex = /(?:###\s*)?(?:\*\*)?(?:[1-3]\.\s*)?(?:\*\*)?(?:PRECAUTION|Precaution|POLICY ALERT|Policy Alert|CRITICAL NOTE)[^\n\r:]*:?\s*(?:\*\*)?([\s\S]*?)(?=(?:\r?\n\s*(?:###|\d+\.\s+(?:\*\*|\[|[A-Za-z`])|(?:\*\*)?\[Area:))|$)/i;
         const precautionMatch = text.match(precautionRegex);
         if (precautionMatch) {
             precautionText = precautionMatch[1].trim();
@@ -10617,12 +10636,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const parts = landmarkArea.split(/\s*>\s*/);
                 parts.forEach(p => {
                     const clean = p.replace(/\*\*/g, '').replace(/[*_]/g, '').trim();
-                    if (clean) breadcrumbs.push(`<span class="crumb-area">${clean}</span>`);
+                    if (clean) breadcrumbs.push(`<span class="crumb-area">${escapeHtml(clean)}</span>`);
                 });
             }
             if (landmarkElement) {
                 const cleanElem = landmarkElement.replace(/\*\*/g, '').replace(/[*_]/g, '').trim();
-                breadcrumbs.push(`<span class="crumb-element">${cleanElem}</span>`);
+                breadcrumbs.push(`<span class="crumb-element">${escapeHtml(cleanElem)}</span>`);
             }
 
             // Detect dynamic quick jump target using deterministic hierarchical resolver
@@ -10649,16 +10668,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (stepMatches.length > 0) {
             html += `<div class="copilot-stepper-container">`;
             stepMatches.forEach(m => {
-                const stepNum = m[1];
-                let stepContent = m[2].trim();
-
-                stepContent = stepContent
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
-                    .replace(/`([^`]+)`/g, '<code>$1</code>')
-                    .replace(/\r?\n[ \t]*[-*•]\s*(.*?)(?=\r?\n|$)/g, '<div class="step-sub-bullet">• $1</div>')
-                    .replace(/\r?\n\r?\n/g, '<br>')
-                    .replace(/\r?\n/g, '<br>');
+                const stepNum = escapeHtml(m[1]);
+                const stepContent = formatCopilotBlockSafe(m[2].trim());
 
                 html += `
                 <div class="copilot-step-card">
@@ -10668,12 +10679,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             html += `</div>`;
         } else {
-            let bodyHTML = text
+            const safeNormalized = stripCopilotEmojis(text).replace(/\r\n/g, '\n');
+            let bodyHTML = escapeHtml(safeNormalized)
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(^|\n)[ \t]*[-*]\s+(.*?)(?=\n|$)/g, '$1<li class="copilot-bullet-item">$2</li>')
                 .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
                 .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/^-\s+(.*?)$/gm, '<li class="copilot-bullet-item">$1</li>')
-                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n{2,}/g, '<br><br>')
                 .replace(/\n/g, '<br>');
 
             if (bodyHTML.includes('<li class="copilot-bullet-item">')) {
@@ -10687,15 +10699,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // C. Render Institutional Precaution / Policy Alert
         if (precautionText) {
-            let cleanPrecaution = precautionText
-                .replace(/^(?:⚠️|⚠)?\s*(?:\*\*)?(?:Precaution:?|POLICY ALERT:?)\s*(?:\*\*)?/i, '')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/(^|[^*])\*(?!\*)(.*?)\*/g, '$1<em>$2</em>')
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/\r?\n[ \t]*[-*•]\s*(.*?)(?=\r?\n|$)/g, '<div class="step-sub-bullet">• $1</div>')
-                .replace(/\r?\n\r?\n/g, '<br>')
-                .replace(/\r?\n/g, '<br>')
+            const rawPrecaution = precautionText
+                .replace(/^(?:\*\*)?(?:Precaution:?|POLICY ALERT:?)\s*(?:\*\*)?/i, '')
                 .trim();
+            const cleanPrecaution = formatCopilotBlockSafe(rawPrecaution);
 
             html += `
             <div class="copilot-precaution-card">
@@ -10712,7 +10719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="copilot-footer-meta">
             <span class="rag-indicator">
                 <span class="pulse-dot"></span>
-                <span>Grounded Pinecone RAG • Powered by ${provider}</span>
+                <span>Grounded Pinecone RAG • Powered by ${escapeHtml(stripCopilotEmojis(provider))}</span>
             </span>
             <button type="button" class="copilot-copy-btn" onclick="window.copyCopilotGuidance(this)" title="Copy guidance text">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -10733,88 +10740,116 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Step 1: Resolve the target section deterministically
         let targetSection = '';
 
-        // Priority 1: Check landmarkArea for primary domain keywords
-        // Approvals takes precedence if specifically referencing evaluating librarian submissions
-        if (area.includes('approv') || area.includes('evaluat') || area.includes('pending submission')) {
+        // Priority 1: Check landmarkArea for primary domain keywords (projects before accidental 'librarian accountability' / 'catalog security')
+        const isPhysicalCatalogArea = area.includes('project modal') || area.includes('physical catalog') || area.includes('projects section') || area.includes('#section-projects') || area.includes('#secure-delete-modal');
+        if (area.includes('logout') || area.includes('sign out') || area.includes('sign-out')) {
+            targetSection = 'logout';
+        } else if (area.includes('home link') || area.includes('"home"') || area.includes('return home') || area.includes('public catalog') || area.includes('#back-to-home-btn')) {
+            targetSection = 'home';
+        } else if (area.includes('copilot') || area.includes('#section-copilot')) {
+            targetSection = 'copilot';
+        } else if (area.includes('approv') || area.includes('evaluat') || area.includes('pending submission')) {
             targetSection = 'approvals';
-        } else if (area.includes('user') || area.includes('student') || area.includes('faculty') || area.includes('account') || area.includes('librarian')) {
+        } else if (isPhysicalCatalogArea || area.includes('project') || area.includes('thesis') || area.includes('theses') || area.includes('capstone') || area.includes('shelf') || area.includes('dewey') || area.includes('call number') || area.includes('accession')) {
+            targetSection = 'projects';
+        } else if (area.includes('user') || area.includes('student') || area.includes('faculty') || /\baccount\b/.test(area) || area.includes('librarian') || area.includes('sanction') || area.includes('quarantine')) {
             targetSection = 'users';
         } else if (area.includes('analytic') || area.includes('accredit') || area.includes('report') || area.includes('chart') || area.includes('statistic')) {
             targetSection = 'analytics';
         } else if (area.includes('activity') || area.includes('audit') || area.includes('log') || area.includes('history')) {
             targetSection = 'activity';
-        } else if (area.includes('setting') || area.includes('maintenance')) {
+        } else if (area.includes('setting') || area.includes('security') || area.includes('diagnostic') || area.includes('shortcut') || area.includes('maintenance') || area.includes('password') || area.includes('telegram')) {
             targetSection = 'settings';
         } else if (area.includes('dashboard') || area.includes('overview') || area.includes('kpi') || area.includes('metric')) {
             targetSection = 'dashboard';
-        } else if (area.includes('project') || area.includes('thesis') || area.includes('theses') || area.includes('capstone') || area.includes('shelf') || area.includes('dewey') || area.includes('call number') || area.includes('accession')) {
-            targetSection = 'projects';
         }
 
-        // Priority 2: Check landmarkElement if area was generic (e.g., "Sidebar Rail", "Header", "Actions Column")
+        // Priority 2: Check landmarkElement if area was generic (e.g., "Sidebar Rail", "Footer Navigation", "Actions Column")
         if (!targetSection) {
-            if (elem.includes('approv') || elem.includes('evaluat') || elem.includes('submission')) {
+            if (elem.includes('logout') || elem.includes('admin-logout-btn')) {
+                targetSection = 'logout';
+            } else if (elem.includes('back-to-home-btn') || elem.includes('"home"') || elem.includes('home link')) {
+                targetSection = 'home';
+            } else if (elem.includes('copilot') || elem.includes('rail-nav-copilot')) {
+                targetSection = 'copilot';
+            } else if (elem.includes('approv') || elem.includes('evaluat') || elem.includes('submission')) {
                 targetSection = 'approvals';
-            } else if (elem.includes('user') || elem.includes('student') || elem.includes('faculty') || elem.includes('account') || elem.includes('librarian')) {
+            } else if (elem.includes('project') || elem.includes('thesis') || elem.includes('capstone') || elem.includes('shelf') || elem.includes('pinecone') || elem.includes('sync') || elem.includes('bulk import')) {
+                targetSection = 'projects';
+            } else if (elem.includes('user') || elem.includes('student') || elem.includes('faculty') || /\baccount\b/.test(elem) || elem.includes('librarian') || elem.includes('sanction') || elem.includes('quarantine')) {
                 targetSection = 'users';
             } else if (elem.includes('analytic') || elem.includes('accredit') || elem.includes('report') || elem.includes('print')) {
                 targetSection = 'analytics';
             } else if (elem.includes('activity') || elem.includes('audit') || elem.includes('log')) {
                 targetSection = 'activity';
-            } else if (elem.includes('setting') || elem.includes('maintenance')) {
+            } else if (elem.includes('setting') || elem.includes('change-password-btn') || elem.includes('update-profile-btn') || elem.includes('btn-purge-cache') || elem.includes('maintenance')) {
                 targetSection = 'settings';
             } else if (elem.includes('dashboard') || elem.includes('kpi')) {
                 targetSection = 'dashboard';
-            } else if (elem.includes('project') || elem.includes('thesis') || elem.includes('capstone') || elem.includes('shelf') || elem.includes('pinecone') || elem.includes('sync') || elem.includes('bulk import')) {
-                targetSection = 'projects';
             }
         }
 
-        // Priority 3: Fall back to raw text keywords (e.g. "Click 'Users'", "Click 'Approvals'")
+        // Priority 3: Fall back to raw text keywords
         if (!targetSection) {
-            if (text.includes('click "users"') || text.includes("click 'users'") || text.includes('user account') || text.includes('delete a user') || text.includes('#section-users')) {
+            if (text.includes('#admin-logout-btn') || text.includes('logoutmodal')) {
+                targetSection = 'logout';
+            } else if (text.includes('#back-to-home-btn') || text.includes('../index.html')) {
+                targetSection = 'home';
+            } else if (text.includes('#section-copilot') || text.includes('#rail-nav-copilot')) {
+                targetSection = 'copilot';
+            } else if (text.includes('click "users"') || text.includes("click 'users'") || text.includes('users section') || text.includes('user account') || text.includes('quarantine (14d trash)') || text.includes('#section-users')) {
                 targetSection = 'users';
-            } else if (text.includes('click "approvals"') || text.includes("click 'approvals'") || text.includes('evaluate') || text.includes('#section-approvals')) {
+            } else if (text.includes('click "approvals"') || text.includes("click 'approvals'") || text.includes('approvals section') || text.includes('evaluate') || text.includes('#section-approvals')) {
                 targetSection = 'approvals';
-            } else if (text.includes('click "analytics"') || text.includes("click 'analytics'") || text.includes('accreditation') || text.includes('#section-analytics')) {
+            } else if (text.includes('click "analytics"') || text.includes("click 'analytics'") || text.includes('analytics section') || text.includes('accreditation') || text.includes('#section-analytics')) {
                 targetSection = 'analytics';
-            } else if (text.includes('click "activity"') || text.includes("click 'activity'") || text.includes('audit trail') || text.includes('#section-activity')) {
+            } else if (text.includes('click "activity"') || text.includes("click 'activity'") || text.includes('activity section') || text.includes('audit trail') || text.includes('#section-activity')) {
                 targetSection = 'activity';
-            } else if (text.includes('click "settings"') || text.includes("click 'settings'") || text.includes('maintenance mode') || text.includes('#section-settings')) {
+            } else if (text.includes('click "settings"') || text.includes("click 'settings'") || text.includes('settings section') || text.includes('settings diagnostics') || text.includes('system diagnostics') || text.includes('active theme') || text.includes('#btn-purge-cache') || text.includes('#btn-export-catalog') || text.includes('#change-password-btn') || text.includes('maintenance mode') || text.includes('allow registration') || text.includes('#section-settings')) {
                 targetSection = 'settings';
-            } else if (text.includes('click "dashboard"') || text.includes("click 'dashboard'") || text.includes('#section-dashboard')) {
+            } else if (text.includes('click "dashboard"') || text.includes("click 'dashboard'") || text.includes('dashboard section') || text.includes('#section-dashboard')) {
                 targetSection = 'dashboard';
-            } else if (text.includes('click "projects"') || text.includes("click 'projects'") || text.includes('#section-projects') || text.includes('pinecone')) {
+            } else if (text.includes('click "projects"') || text.includes("click 'projects'") || text.includes('projects section') || text.includes('#section-projects') || text.includes('pinecone')) {
                 targetSection = 'projects';
             }
         }
 
-        // Default fallback if still unresolved
+        // Default safe fallback if still unresolved (Dashboard Overview rather than misleading Projects jump)
         if (!targetSection) {
-            targetSection = 'projects';
+            targetSection = 'dashboard';
         }
 
-        // Step 2: Determine specific action and button appearance based on resolved section
-        const combined = `${area} ${elem} ${text}`.toLowerCase();
+        // Step 2: Determine specific action and button appearance strictly from landmark scope ([Area] + [Element])
+        // Never auto-trigger modals, print dialogs, or batch actions from incidental mentions in step prose.
+        const landmarkScope = `${area} ${elem}`.trim().toLowerCase();
 
         switch (targetSection) {
+            case 'home':
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard(null, 'back-to-home-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Go to Home</button>`;
+
+            case 'logout':
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard(null, 'admin-logout-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Open Logout</button>`;
+
+            case 'copilot':
+                return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('copilot');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="8" width="16" height="12" rx="4"></rect><circle cx="9" cy="13" r="1.5" fill="currentColor"></circle><circle cx="15" cy="13" r="1.5" fill="currentColor"></circle><path d="M12 2v6"></path></svg> Open Copilot View</button>`;
+
             case 'users':
-                if (elem.includes('create librarian') || combined.includes('create librarian') || combined.includes('register librarian')) {
-                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('users', 'create-librarian-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg> + Create Librarian</button>`;
+                if (landmarkScope.includes('create librarian') || landmarkScope.includes('create-librarian-btn') || landmarkScope.includes('register librarian')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('users', 'create-librarian-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg> Create Librarian</button>`;
                 }
                 return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('users');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Go to Users</button>`;
 
             case 'approvals':
-                if (elem.includes('batch approve') || combined.includes('batch approve')) {
-                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('approvals', 'batch-approve-all-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Batch Approve</button>`;
+                if ((landmarkScope.includes('batch approve') || landmarkScope.includes('batch-approve-all-btn')) && !landmarkScope.includes('evaluate')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('approvals', 'batch-approve-all-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Approve All</button>`;
                 }
                 return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('approvals');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Go to Approvals</button>`;
 
             case 'analytics':
-                if (elem.includes('print') || combined.includes('print report') || combined.includes('print official')) {
+                if ((landmarkScope.includes('print report') || landmarkScope.includes('print official') || landmarkScope.includes('analytics-print-btn')) && !landmarkScope.includes('chart') && !landmarkScope.includes('export') && !landmarkScope.includes('drilldown')) {
                     return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('analytics', 'analytics-print-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg> Print Report</button>`;
                 }
-                if (elem.includes('export') || combined.includes('export csv')) {
+                if ((landmarkScope.includes('export csv') || landmarkScope.includes('analytics-export-btn')) && !landmarkScope.includes('chart') && !landmarkScope.includes('print') && !landmarkScope.includes('drilldown')) {
                     return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('analytics', 'analytics-export-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Export CSV</button>`;
                 }
                 return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('analytics');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg> Go to Analytics</button>`;
@@ -10823,6 +10858,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('activity');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Go to Activity Logs</button>`;
 
             case 'settings':
+                if (landmarkScope.includes('change-password-btn') || (landmarkScope.includes('change password') && !landmarkScope.includes('verified'))) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('settings', 'change-password-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Change Password</button>`;
+                }
+                if (landmarkScope.includes('update-profile-btn') || landmarkScope.includes('edit profile info')) {
+                    return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('settings', 'update-profile-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Edit Profile</button>`;
+                }
                 return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('settings');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Go to Settings</button>`;
 
             case 'dashboard':
@@ -10830,312 +10871,345 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             case 'projects':
             default:
-                if (elem.includes('sync pinecone') || combined.includes('sync pinecone') || combined.includes('sync all')) {
+                if (landmarkScope.includes('sync pinecone') || landmarkScope.includes('sync-pinecone-btn') || landmarkScope.includes('sync all')) {
                     return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects', 'sync-pinecone-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Trigger Sync</button>`;
                 }
-                if (elem.includes('+ add project') || combined.includes('+ add project') || combined.includes('add project') || combined.includes('open form') || combined.includes('upload new project')) {
+                if (landmarkScope.includes('add project') || landmarkScope.includes('add-project-btn') || landmarkScope.includes('open form') || landmarkScope.includes('upload new project')) {
                     return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects', 'add-project-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Open Form</button>`;
                 }
-                if (elem.includes('bulk import') || combined.includes('bulk import') || combined.includes('import excel')) {
+                if (landmarkScope.includes('bulk import') || landmarkScope.includes('bulk-import-btn') || landmarkScope.includes('import excel')) {
                     return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects', 'bulk-import-btn');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Bulk Import</button>`;
                 }
                 return `<button type="button" class="copilot-jump-action" onclick="window.navigateAdminDashboard('projects');"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Go to Projects</button>`;
         }
     }
 
-    // Comprehensive Fallback Guidance Engine (Subject-Disambiguated & Anti-Hallucination)
+    // Comprehensive Fallback Guidance Engine (Verified UI Ground Truth & Anti-Hallucination)
     function getAdminCopilotResponse(query) {
         const q = (query || '').toLowerCase().trim();
 
-        // 1. USER MANAGEMENT DOMAIN (Evaluated first to prevent general keywords like 'delete', 'edit', 'browse', 'search' from colliding with Projects)
-        const isUserScope = q.includes('user') || q.includes('student') || q.includes('faculty') || q.includes('account') || (q.includes('librarian') && !q.includes('submission') && !q.includes('evaluate') && !q.includes('pending'));
+        // 0A. AI COPILOT CAPABILITIES & READ-ONLY BOUNDARIES
+        if (q.includes('copilot') || q.includes('chatbot') || q.includes('what can you do') || (q.includes('can you ') && (q.includes('delete') || q.includes('add') || q.includes('edit') || q.includes('approve') || q.includes('sync') || q.includes('create') || q.includes('purge')))) {
+            return {
+                landmark: 'AI Copilot Workspace (#section-copilot) & Floating Widget (#admin-copilot-widget)',
+                steps: [
+                    'Open Copilot from the left Sidebar Rail (`Copilot`), the bottom-right floating button (`#admin-floating-copilot-btn`), or press `Ctrl+Shift+C`.',
+                    'Use **Expand to Full Workspace** (`#copilot-widget-fullscreen-btn`) inside the floating widget, quick prompt chips, or the **Copy Guidance** & Quick-Jump navigation buttons in replies.',
+                    '**Read-Only Boundary:** AI Copilot provides verified instructions and Quick-Jump navigation only. It CANNOT directly add, edit, or delete Firestore records, approve pending submissions, trigger Pinecone syncs, sanction or purge users, or change passwords on your behalf.'
+                ],
+                precaution: 'Always execute actual data mutations yourself inside the linked dashboard section and confirmation modal.'
+            };
+        }
+
+        // 0B. LOGOUT / SIGN OUT WORKFLOW
+        if (q.includes('logout') || q.includes('log out') || q.includes('sign out') || q.includes('signout')) {
+            return {
+                landmark: 'Sidebar Rail Footer > "Logout" Button (#admin-logout-btn)',
+                steps: [
+                    'Click the red **"Logout"** link (`#admin-logout-btn`) in the lower-left footer of the Sidebar Rail.',
+                    'A shared **Logout Confirmation Modal** (`LogoutModal`) opens with **"Cancel"** and **"Logout"** buttons.',
+                    'Click **"Logout"** to confirm sign-out.',
+                    'RE-CAPS logs a local logout event, runs `sessionStorage.clear()`, removes `cachedAuthState` from `localStorage`, executes `firebase.auth().signOut()`, and redirects to `../index.html`.'
+                ],
+                precaution: 'Save open Project Modal drafts and let active Pinecone syncs finish before confirming Logout.'
+            };
+        }
+
+        // 0C. HOME LINK & MOBILE DRAWER / THEME
+        if (q.includes('back to home') || q.includes('home link') || q.includes('go home') || q.includes('public home') || q.includes('public catalog') || q.includes('landing page') || q === 'home' || q.includes('mobile menu') || q.includes('dark mode') || q.includes('theme')) {
+            return {
+                landmark: 'Sidebar Rail Footer > "Home" Link (#back-to-home-btn)',
+                steps: [
+                    'Click **"Home"** (`#back-to-home-btn`) at the bottom of the left Sidebar Rail to open the public repository catalog (`../index.html`).',
+                    'Your Administrator authentication session stays active when going Home, and the Copilot closed state is preserved.',
+                    'There is **NO active topbar theme toggle** (`#theme-toggle-admin` is inactive on Admin Dashboard); Admin automatically inherits `localStorage.getItem(\'theme\')` or OS `prefers-color-scheme`, displayed under Settings > Diagnostics (`Active Theme`).',
+                    'On screens `<= 1024px` wide, use the menu toggle (`#mobile-rail-toggle`) to open the slide-over drawer and press `Esc` or tap the overlay to close.'
+                ],
+                precaution: 'Clicking "Home" does NOT sign you out; use the red "Logout" item (#admin-logout-btn) on shared workstations.'
+            };
+        }
+
+        // 1. SETTINGS DOMAIN (Evaluated before Users when asking about Admin password/OTP, Cache, Profile, or legacy toggles)
+        const isAdminPasswordQuery = (q.includes('change password') || q.includes('my password') || q.includes('admin password') || q.includes('telegram') || q.includes('otp'));
+        if (isAdminPasswordQuery || q.includes('maintenance') || q.includes('allow registration') || q.includes('guest browsing') || q.includes('setting') || q.includes('purge cache') || q.includes('export catalog') || q.includes('shortcut') || q.includes('diagnostic') || q.includes('edit profile')) {
+            if (q.includes('maintenance') || q.includes('allow registration') || q.includes('guest browsing') || q.includes('offline') || q.includes('downtime')) {
+                return {
+                    landmark: 'Settings Section (#section-settings) > Verified Configuration Inventory',
+                    steps: [
+                        'Open **"Settings"** in the left Sidebar Rail.',
+                        '**Does Not Exist:** RE-CAPS Admin Settings has **NO Maintenance Mode switch**, **NO Allow Registration toggle**, and **NO Guest Browsing toggle**.',
+                        'Available Settings utilities are: Sticky Profile Card (clickable **Holdings**, **Pending**, and **Users** jump stats plus email copy), **"Edit Profile Info"** (`#update-profile-btn`), and **"Change Password"** (`#change-password-btn` with Current Password + 6-digit Telegram OTP).',
+                        'Scroll to `#settings-card-maintenance` for **"Purge Cache"** (`#btn-purge-cache`), **"Export Repository Catalog"** (`CSV` / `JSON`), the 4-cell Diagnostics grid, and Productivity Shortcuts.'
+                    ],
+                    precaution: 'Do not look for removed Maintenance Mode or Registration toggles; use Approvals and Users governance controls to manage repository visibility and accounts.'
+                };
+            }
+            if (isAdminPasswordQuery) {
+                return {
+                    landmark: 'Settings Section > Security Card > "Change Password" (#change-password-btn)',
+                    steps: [
+                        'Click **"Settings"** in the left Sidebar Rail.',
+                        'Under Security, click **"Change Password"** (`#change-password-btn`).',
+                        'Verify your identity using **both** your Current Password and a 6-digit Telegram OTP sent via `@RecapsOtpBot` (`#send-otp-btn` / `#link-chat-id-input`).',
+                        'Choose a strong new password (8-128 characters with uppercase, lowercase, number, and special character).',
+                        'Submit to revoke refresh tokens and dispatch Telegram + Resend confirmation notifications.'
+                    ],
+                    precaution: 'Password updates are limited to 10 changes per 24 hours; 5 consecutive failures lock password changes for 1 hour.'
+                };
+            }
+            return {
+                landmark: 'Settings Section (#section-settings) > Profile, Security & Data Utilities',
+                steps: [
+                    'Click **"Settings"** in the left Sidebar Rail.',
+                    'Use the sticky left Profile Card to copy your email (`#aset-card-copy-email-btn`) or click **Holdings**, **Pending**, or **Users** stat counters to jump to those tabs.',
+                    'Click **"Edit Profile Info"** (`#update-profile-btn`) to update your Full Name (`@ctu.edu.ph` email and `University Library` department are read-only), or **"Change Password"** (`#change-password-btn`) for Current Password + Telegram OTP rotation.',
+                    'Under Data Management (`#settings-card-maintenance`), click **"Purge Cache"** (`#btn-purge-cache`) or export the catalog as **"CSV"** (`#btn-export-catalog-csv`) / **"JSON"** (`#btn-export-catalog-json`).',
+                    'Review the 4-cell Diagnostics grid and Shortcuts (`Ctrl+K` Search, `Ctrl+Shift+P` Add Project, `Ctrl+Shift+A` Switch to Approvals, `Ctrl+Shift+C` Copilot, `Esc` Close).'
+                ],
+                precaution: 'Settings contains NO Maintenance Mode, Allow Registration, or Guest Browsing switches.'
+            };
+        }
+
+        // 2. USER MANAGEMENT DOMAIN
+        const hasProjectContext = q.includes('project') || q.includes('thesis') || q.includes('theses') || q.includes('capstone') || q.includes('catalog');
+        const isUserScope = q.includes('user') || q.includes('student') || q.includes('faculty') || q.includes('teacher') || q.includes('account') || q.includes('sanction') || q.includes('suspend') || q.includes('quarantine') || (!hasProjectContext && q.includes('librarian') && !q.includes('submission') && !q.includes('evaluate') && !q.includes('pending'));
 
         if (isUserScope) {
-            // 1A. Create / Register Librarian Staff
+            // 2A. Create Librarian Staff
             if (q.includes('create') || q.includes('register') || q.includes('new staff') || q.includes('add librarian') || q.includes('new librarian')) {
                 return {
-                    landmark: 'Users Section > Header Toolbar > "+ Create Librarian" (Emerald Button #create-librarian-btn)',
+                    landmark: 'Users Section > Header Toolbar > "Create Librarian" (#create-librarian-btn)',
                     steps: [
-                        'Click <strong>"Users"</strong> in the left sidebar rail.',
-                        'Click the emerald green <strong>"+ Create Librarian"</strong> button at the top right of the Users section.',
-                        'Enter the staff member’s Full Name, CTU Institutional Email (<code>@ctu.edu.ph</code>), and initial temporary password.',
-                        'Click <strong>"Register Librarian"</strong>.',
-                        'Copy the generated credentials card displayed on the success screen to securely share with the staff member.'
+                        'Click **"Users"** in the left Sidebar Rail.',
+                        'Click **"Create Librarian"** (`#create-librarian-btn`) to open `#create-librarian-modal`.',
+                        'Enter Full Name, institutional Email username (auto-formatted with `@ctu.edu.ph` chip), and Position/Designation (datalist options defaulting to `Librarian`).',
+                        'Enter a Password of at least 6 characters (or click **"Auto-Generate"** beside the field with live strength meter) and Confirm Password.',
+                        'Click **"Create Librarian"**, then use **"Copy Credentials"** on the confirmation card for staff sign-in at `/pages/login.html`.'
                     ],
-                    precaution: 'Librarians can draft and propose capstone theses with shelf locations, but all their entries require Head Librarian / Admin evaluation before publishing.'
+                    precaution: 'Librarian accounts submit thesis drafts into Approvals (pendingProjects) and cannot publish or delete records directly.'
                 };
             }
 
-            // 1B. Delete / Remove User Account (Permanent Purge)
-            if (q.includes('delete') || q.includes('remove') || q.includes('purge') || q.includes('trash') || q.includes('can i delete') || q.includes('can administrator delete')) {
+            // 2B. Clarify removed Key / Pencil / Shield icons or Faculty pill
+            if (q.includes('key icon') || q.includes('password') || q.includes('reset') || q.includes('pencil') || q.includes('edit role') || q.includes('promote') || q.includes('demote') || q.includes('shield') || q.includes('unlock') || q.includes('faculty pill')) {
                 return {
-                    landmark: 'Users Section > Users Catalog Table > Actions Column (Red Trash Can Icon)',
+                    landmark: 'Users Section > Search (#users-search), 6 Filter Pills & "Sanction" Action',
                     steps: [
-                        'Click <strong>"Users"</strong> in the left sidebar rail.',
-                        'Use the <strong>Role Filter Pills</strong> (e.g., <code>All Users</code>, <code>Students</code>, <code>Faculty</code>, <code>Librarians</code>) or the <code>#users-search</code> box to locate the target account.',
-                        'Hover over the user row and locate the <strong>Actions</strong> column on the right.',
-                        'Click the red <strong>Trash Can icon</strong> to trigger the account removal modal.',
-                        'Review the verification prompt (<em>"Are you sure you want to permanently remove this user account?"</em>).',
-                        'Click <strong>"Delete"</strong> to confirm the permanent purge.'
+                        'Click **"Users"** in the left Sidebar Rail.',
+                        '**UI Boundary:** The Users table does **NOT** contain Key (password reset), Pencil (role edit), Shield (unlock), or instant red Trash icons, and there is **NO "Faculty" filter pill**.',
+                        'Use the 6 real filter pills in `#user-filters`: `All Users`, `Admins`, `Librarians`, `Students`, `Suspended`, and `Quarantine (14d Trash)` (type `faculty` in `#users-search` to match `teacher` rows).',
+                        'Available per-row actions are strictly: **"Sanction"** (Active rows -> opens `#user-governance-modal`), **"Reactivate"** / **"Sanction"** (Suspended rows), and **"Restore"** / **"Purge"** (Quarantine rows). Admin rows have no sanction or delete buttons.'
                     ],
-                    precaution: 'Deleted user accounts are permanently purged from Firebase Authentication and Firestore records. Ensure the user has no pending thesis submissions or active evaluations before deletion. Administrator accounts cannot be deleted to prevent institutional lockout.'
+                    precaution: 'Administrators rotate their own password in Settings > Change Password with Telegram OTP; campus users use the standard login reset flow.'
                 };
             }
 
-            // 1C. Reset Password
-            if (q.includes('password') || q.includes('reset') || q.includes('forgot') || q.includes('credential')) {
+            // 2C. Suspend, Quarantine (14d Trash), Restore, or Permanently Purge User Account
+            if (q.includes('delete') || q.includes('remove') || q.includes('purge') || q.includes('trash') || q.includes('sanction') || q.includes('suspend') || q.includes('quarantine') || q.includes('restore') || q.includes('reactivate') || q.includes('can i delete') || q.includes('can administrator delete')) {
                 return {
-                    landmark: 'Users Section > Users Catalog Table > Actions Column (Key Icon)',
+                    landmark: 'Users Section > Actions Column > "Sanction" (#user-governance-modal) & "Purge" in Quarantine',
                     steps: [
-                        'Click <strong>"Users"</strong> in the left sidebar rail.',
-                        'Locate the user by name or CTU email using the search box (<code>#users-search</code>).',
-                        'Click the <strong>Key icon</strong> in the user row’s Actions column.',
-                        'In the Reset Credentials modal, generate verified temporary login credentials.',
-                        'Copy the credentials card to deliver to the user.'
+                        'Click **"Users"** in the left Sidebar Rail and locate the active non-Admin account via `#users-search` or `#user-filters`.',
+                        'Click **"Sanction"** in the row Actions column to open the 3-tier Governance Modal (`#user-governance-modal`).',
+                        '**Tier 1:** Choose **Account Suspension (Freeze)** (`24h`, `3d`, `7d`, `30d`, or `indefinite`) OR **14-Day Deletion Quarantine** (soft-delete).',
+                        '**Tier 2 & Tier 3:** Select a Violation Category, enter at least **15 characters** of justification notes, check the Affirmation box, and submit.',
+                        'Filter by **"Quarantine (14d Trash)"** to click **"Restore"** or **"Purge"** (calls `DELETE /api/users/:uid` to wipe Firebase Auth and Firestore user records); filter by **"Suspended"** to click **"Reactivate"**.'
                     ],
-                    precaution: 'Inform the user to update their temporary password immediately upon their next login.'
+                    precaution: 'Purging permanently removes user authentication and Firestore profile documents while keeping historical authored/advised theses intact. Admin accounts are protected against sanctions and purging.'
                 };
             }
 
-            // 1D. Unlock Locked Account
-            if (q.includes('unlock') || q.includes('lock') || q.includes('failed login') || q.includes('attempts') || q.includes('suspended')) {
-                return {
-                    landmark: 'Users Section > Users Catalog Table > Actions Column (Gold Shield/Unlock Icon)',
-                    steps: [
-                        'Click <strong>"Users"</strong> in the left sidebar rail.',
-                        'Find the locked account in the table (locked accounts feature a red/amber status tag).',
-                        'Click the gold <strong>Unlock/Shield button</strong> in the row’s Actions column.',
-                        'Confirm the security verification modal to reset the failed login counter to zero.'
-                    ],
-                    precaution: 'Always verify user identity before manually releasing account lockout.'
-                };
-            }
-
-            // 1E. Edit User Role / Privileges
-            if (q.includes('role') || q.includes('privilege') || q.includes('promote') || q.includes('demote') || q.includes('edit')) {
-                return {
-                    landmark: 'Users Section > Users Catalog Table > Actions Column (Pencil Icon)',
-                    steps: [
-                        'Click <strong>"Users"</strong> in the left sidebar rail.',
-                        'Locate the target user using the search box or Role Filter Pills.',
-                        'Click the <strong>Edit icon</strong> (Pencil) in the Actions column.',
-                        'In the user management modal, update the assigned role (Student, Faculty, or Librarian).',
-                        'Click <strong>"Save Changes"</strong> to immediately update account RBAC privileges.'
-                    ],
-                    precaution: 'Administrator privileges cannot be altered from this table to prevent institutional lockout.'
-                };
-            }
-
-            // 1F. General User Management / Search / Filter
+            // 2D. General Users Overview
             return {
-                landmark: 'Users Section > Users Catalog Table > Role Filter Pills & Search (#users-search)',
+                landmark: 'Users Section > Search (#users-search) & 6 Filter Pills (#user-filters)',
                 steps: [
-                    'Click <strong>"Users"</strong> in the left sidebar rail.',
-                    'Filter accounts by role using the Filter Pills: <code>All Users</code>, <code>Students</code>, <code>Faculty</code>, <code>Librarians</code>, or <code>Administrators</code>.',
-                    'Use the live search bar (<code>#users-search</code>) to search by name or CTU institutional email.',
-                    'Use row action icons to Reset Password (Key), Edit Role (Pencil), Unlock (Shield), or Delete (Trash bin).'
+                    'Click **"Users"** in the left Sidebar Rail to inspect columns: *User*, *Email*, *User Type*, *Account Status*, *Joined*, *Last Login*, and *Actions*.',
+                    'Filter by the 6 pills in `#user-filters`: `All Users`, `Admins`, `Librarians`, `Students`, `Suspended`, and `Quarantine (14d Trash)`.',
+                    'Use `#users-search` to filter by name, email, or role (typing `faculty` matches `teacher` accounts).',
+                    'Manage accounts via **"Create Librarian"** (`#create-librarian-btn`), **"Sanction"** (`#user-governance-modal`), **"Reactivate"**, **"Restore"**, and **"Purge"**.'
                 ],
-                precaution: 'Institutional accounts are linked to CTU Google authentication. Preserve user records for historical thesis authorship verification.'
+                precaution: 'There is no Key, Pencil, Shield, or Faculty filter pill in Users; Admin rows intentionally hide governance action buttons.'
             };
         }
 
-        // 2. APPROVALS / EVALUATIONS DOMAIN
-        if (q.includes('approv') || q.includes('evaluate') || q.includes('pending') || (q.includes('librarian') && (q.includes('submission') || q.includes('thesis') || q.includes('draft') || q.includes('review')))) {
+        // 3. APPROVALS & DUPLICATE CHECK DOMAIN
+        if (q.includes('approv') || q.includes('evaluate') || q.includes('pending') || q.includes('duplicate') || (q.includes('librarian') && (q.includes('submission') || q.includes('thesis') || q.includes('draft') || q.includes('review')))) {
             return {
-                landmark: 'Sidebar Rail > Approvals (Checkmark Badge) OR Dashboard Overview > "Pending Approvals" Card',
+                landmark: 'Approvals Section > Toolbar ("Approve All" #batch-approve-all-btn) & Submissions Table ("Evaluate")',
                 steps: [
-                    'Click <strong>"Approvals"</strong> in the sidebar rail (or the amber <strong>"Pending Approvals"</strong> card on the dashboard).',
-                    'Locate the submission in the Librarian Submissions table and click the <strong>"Evaluate"</strong> button (Eye icon).',
-                    'In the modal, review <strong>Section 01 (Core Information)</strong>: check project title and authors.',
-                    'Review <strong>Section 02 (Academic Classification)</strong>: verify academic program, academic year, and faculty adviser.',
-                    'Review <strong>Section 03 (Abstract &amp; Summary)</strong> and <strong>Section 04 (Submitted Images)</strong>: inspect abstract and verify uploaded physical book photos (cover and documentation).',
-                    'Click the emerald <strong>"Approve &amp; Publish Publicly"</strong> button to publish and index in Pinecone AI search, or click <strong>"Reject &amp; Discard"</strong> with feedback.'
+                    'Click **"Approvals"** in the Sidebar Rail (live badge `#approvals-live-counter`, or press `Ctrl+Shift+A` to switch to the Approvals tab). Filter with `#approvals-search`, `#approvals-program-filter`, or **"Refresh"** (`#refresh-approvals-btn`).',
+                    'If a submission shows *"Being edited by: [Name]"*, wait until the Librarian closes their editor before evaluating.',
+                    'Click **"Evaluate"** to open `#approval-review-modal`. You may edit Title, Authors (`#approval-add-author-btn`), Program, Year, Adviser, Keywords, Abstract, and inspect submitted photos.',
+                    'Click **"Approve & Publish Publicly"** (or **"Reject & Discard"**), or click **"Approve All"** (`#batch-approve-all-btn`) for bulk processing.',
+                    'Duplicate checks (`findPotentialDuplicates`) run automatically against `projects` and `pendingProjects`; similarities open `#approval-duplicate-confirm-modal` (`VS` comparison with **"Evaluate & Edit Details"**, **"Approve Clean Only"**, or **"Approve Anyway"**).'
                 ],
-                precaution: 'Approved capstones immediately become searchable to students in the public catalog and AI RAG interface. If locked by Admin, unlock the record before evaluating.'
+                precaution: 'Publishing moves the record from pendingProjects to public projects (status: Completed, isPublic: true) and syncs Pinecone immediately.'
             };
         }
 
-        // 3. ACCREDITATION & ANALYTICS DOMAIN
-        if (q.includes('accredit') || q.includes('report') || q.includes('print') || q.includes('dean') || q.includes('ched') || q.includes('pdf') || q.includes('chart') || q.includes('statistic') || q.includes('intake') || q.includes('export csv') || q.includes('analytic')) {
+        // 4. ANALYTICS, DRILLDOWNS, PRINT & EXPORT CSV DOMAIN
+        if (q.includes('accredit') || q.includes('report') || q.includes('print') || q.includes('dean') || q.includes('ched') || q.includes('pdf') || q.includes('chart') || q.includes('statistic') || q.includes('intake') || q.includes('export csv') || q.includes('drilldown') || q.includes('analytic')) {
+            const isPrintRequest = (q.includes('print') || q.includes('accredit') || q.includes('dean') || q.includes('ched') || q.includes('pdf')) && !q.includes('chart') && !q.includes('drilldown');
+            const isCsvRequest = q.includes('export csv') && !isPrintRequest && !q.includes('chart') && !q.includes('drilldown');
+            const analyticsLandmark = isPrintRequest
+                ? 'Analytics Section > Command Toolbar > "Print Report" (#analytics-print-btn)'
+                : isCsvRequest
+                    ? 'Analytics Section > Command Toolbar > "Export CSV" (#analytics-export-btn)'
+                    : 'Analytics Section > Interactive Charts, KPI Grid & Command Toolbar';
             return {
-                landmark: 'Analytics Section > Top Command Toolbar > "Print Official Accreditation Report"',
+                landmark: analyticsLandmark,
                 steps: [
-                    'Click <strong>"Analytics"</strong> in the left sidebar rail.',
-                    'Use the dropdown filters at the top to select the target Academic Year and Academic Program.',
-                    'Review the generated charts: Program Distribution, Intake Timeline, and Faculty Advisers.',
-                    'Click <strong>"Print Official Accreditation Report"</strong> in the top toolbar.',
-                    'A formatted, printable institutional document with CTU header and thesis counts will generate.'
+                    'Click **"Analytics"** in the left Sidebar Rail.',
+                    'Filter by Program (`#analytics-program-filter`) and Time Horizon tabs (`All Time`, `This Year`, `90 Days`, `30 Days`), or click **"Reset Filter"** / **"Refresh"**.',
+                    'Inspect the 6 KPIs (*Total Capstones*, *Repository Community*, *Thesis Bookmarks*, *Active Programs*, *Intake Last 30d*, *AI Vector Index*), 4 interactive charts (Program Distribution clicks drill to Projects; User Roles Doughnut clicks drill to Users; Intake Timeline; Top Advisers), and Top 10 Bookmarked Theses table.',
+                    'Click **"Print Report"** (`#analytics-print-btn`) to stamp `#analytics-print-header` and run `window.print()`, or click **"Export CSV"** (`#analytics-export-btn`) for a UTF-8 BOM Excel CSV.'
                 ],
-                precaution: 'Only approved, cataloged theses are tallied in official accreditation reports.'
+                precaution: 'Confirm the active Program filter and Time Horizon before printing or exporting CSV so report totals match your target accreditation period.'
             };
         }
 
-        // 4. AUDIT LOGS & ACTIVITY DOMAIN
-        if (q.includes('log') || q.includes('audit') || q.includes('activity') || q.includes('history') || q.includes('who deleted') || q.includes('who added') || q.includes('trail')) {
+        // 5. LOCAL ACTIVITY LOGS DOMAIN
+        if (q.includes('log') || q.includes('audit') || q.includes('activity') || q.includes('history') || q.includes('who deleted') || q.includes('who added') || q.includes('trail') || q.includes('ip address')) {
             return {
-                landmark: 'Sidebar Rail > "Activity" (Clock Icon) > System Audit Trail',
+                landmark: 'Sidebar Rail > "Activity" > Local Activity History (#section-activity)',
                 steps: [
-                    'Click <strong>"Activity"</strong> in the left sidebar rail to view the comprehensive audit trail.',
-                    'Inspect chronological logs of all institutional actions: project uploads, evaluations, deletions, user logins, and Pinecone vector syncs.',
-                    'Filter logs by action type or date range to audit librarian cataloging contributions or security events.',
-                    'Click any entry to inspect actor email, timestamp, IP address, and changed fields.'
+                    'Click **"Activity"** in the left Sidebar Rail to open `#section-activity`.',
+                    'Review logs stored strictly in browser `localStorage` under key `recaps_activities_<uid>` (capped at 200 items, zero Firestore reads/writes to protect Spark free-tier quota).',
+                    'Filter using Date range (`All Time`, `Today`, `7d`, `30d`) or 9 Category pills, inspect Storage Used and Device summary (*Browser on Desktop/Mobile*), or open any entry Details modal (**"Delete Record"** / **"View Manuscript"**).',
+                    'Use **Refresh**, **Export CSV/JSON**, **Clear History**, or **Bulk Select** (*Select All*, *Export Selected*, *Remove Selected*).'
                 ],
-                precaution: 'System audit trails are immutable and permanent for CHED accreditation compliance.'
+                precaution: 'Activity history is browser-local to the signed-in device and does NOT record IP addresses or write to a Firestore audit log collection.'
             };
         }
 
-        // 5. SETTINGS & MAINTENANCE DOMAIN
-        if (q.includes('maintenance') || q.includes('setting') || q.includes('offline') || q.includes('advisory') || q.includes('downtime') || q.includes('allow registration')) {
+        // 6. DASHBOARD OVERVIEW DOMAIN
+        if (q.includes('dashboard') || q.includes('kpi') || q.includes('overview') || q.includes('counter') || q.includes('metric') || q.includes('executive summary') || q.includes('recent project') || q.includes('recent user')) {
             return {
-                landmark: 'Settings Section > General Settings Card > "Maintenance Mode" Switch',
+                landmark: 'Sidebar Rail > "Dashboard" > Live Updates Bar, 5 KPI Cards & Recent Feeds',
                 steps: [
-                    'Click <strong>"Settings"</strong> at the bottom of the left sidebar rail.',
-                    'Under the <strong>General Settings</strong> card, locate <strong>Maintenance Mode</strong>.',
-                    'Toggle the switch to <strong>ON</strong>.',
-                    'A confirmation toast will notify that the public portal is locked.'
+                    'Click **"Dashboard"** at the top of the left Sidebar Rail.',
+                    'Check the **"Live Updates"** pulse badge, `#dash-last-updated` timestamp, and click **"Refresh"** (`#refresh-dashboard-btn`) to pull fresh counts.',
+                    'Click any of the 5 interactive KPI cards to navigate immediately: **Total Projects** (`#dash-stat-projects` -> Projects), **Pending Approvals** (`#pending-approvals-card` -> Approvals), **Total Users** & **Role Distribution** (-> Users), and **Recent Activities** (-> Activity).',
+                    'Click rows in **"Recent Projects"** (`#recent-projects-list`) to preview project details or **"Recent Users"** (`#recent-users-list`) to open filtered Users.'
                 ],
-                precaution: 'When active, students and guests will see the maintenance advisory screen. Only logged-in Administrators retain system access.'
-            };
-        }
-
-        // 6. DASHBOARD DOMAIN
-        if (q.includes('dashboard') || q.includes('kpi') || q.includes('overview') || q.includes('counter') || q.includes('metric') || q.includes('executive summary')) {
-            return {
-                landmark: 'Sidebar Rail > "Dashboard" (Grid Icon) > Institutional KPI Metrics',
-                steps: [
-                    'Click <strong>"Dashboard"</strong> at the top of the left sidebar rail.',
-                    'Inspect the top KPI cards: Total Projects, Pending Approvals, Total Users, and Recent Activity.',
-                    'Click the amber <strong>"Pending Approvals"</strong> card for direct navigation to pending submissions.',
-                    'Inspect Recent Projects and Recent Users widget feeds for latest repository events.'
-                ],
-                precaution: 'KPI metrics reflect live Firestore repository counters refreshed in real-time.'
+                precaution: 'KPI cards and feeds read from cached/live dashboard snapshots; click Refresh after batch operations if counts look delayed.'
             };
         }
 
         // 7. PROJECTS & REPOSITORY OPERATIONS DOMAIN
 
-        // 7A. Add / Upload Project
-        if (q.includes('shelf') || q.includes('location') || q.includes('call number') || q.includes('accession') || q.includes('add project') || q.includes('upload') || q.includes('new project') || q.includes('catalog thesis') || (q.includes('add') && q.includes('project'))) {
+        // 7A. Bulk Import Excel / JSON (Checked before Add Project so "Bulk Import ... call numbers" never routes to Add Project)
+        if (q.includes('bulk') || q.includes('excel') || q.includes('import') || q.includes('spreadsheet') || q.includes('xlsx') || q.includes('json template')) {
             return {
-                landmark: 'Projects Section > Table Header Action Bar > "+ Add Project" (Emerald Green Button #add-project-btn)',
+                landmark: 'Projects Section > Table Header Action Bar > "Bulk Import" (#bulk-import-btn)',
                 steps: [
-                    'Click <strong>"Projects"</strong> in the left sidebar rail.',
-                    'Click the emerald green <strong>"+ Add Project"</strong> button in the table header action bar.',
-                    'Fill in <strong>Section 01 (Core Identity)</strong>: Project Title and Authors.',
-                    'Fill in <strong>Section 02 (Academic Details)</strong>: Academic Program (BSFi, BSIT, BSHM, BSIE, BSEd, BEEd, BIT, BTLEd), Academic Year, and Faculty Adviser.',
-                    'Fill in <strong>Section 03 (Research Content)</strong>: Abstract and search Keywords.',
-                    'Fill in <strong>Section 04 (Physical Book &amp; Shelf Details)</strong>: Enter <em>Physical Location Note</em> (e.g., <code>Rack 1, Row 2, Stand 3, Color Blue</code>), <em>Call Number</em> (e.g., <code>025.5 / Dea / 2024</code>), <em>Accession Number</em> (e.g., <code>CTU-2024-001</code>), and upload 4 to 6 physical book representation photos.',
-                    'Click <strong>"Save Capstone Project"</strong>. As an Administrator, your submission is immediately published to the institutional catalog without requiring an approval review.'
+                    'Open **"Projects"** and click **"Bulk Import"** (`#bulk-import-btn`) to open `#bulk-import-modal`.',
+                    'Download either **"Excel Template (.xlsx)"** or **"JSON Template (.json)"**.',
+                    'Populate the **9 supported columns**: 4 required (`title`, `authors`, `program`, `year`) and 5 optional (`adviser`, `abstract`, `keywords`, `topics`, `status` defaulting to `Completed`). There are NO shelf location, callNumber, or accessionNo columns.',
+                    'Upload one or multiple `.xlsx`/`.xls`/`.json` files to stage batches, optionally attach per-project images, and verify validation (duplicate `titleNorm` rows are skipped).',
+                    'Click **"Import Projects"** to batch-write into Firestore and trigger automatic Pinecone vector sync.'
                 ],
-                precaution: 'Accession numbers must be unique across all campus holdings. For bulk uploading multiple theses from a spreadsheet, click the blue "Bulk Import" button instead.'
+                precaution: 'Bulk Import does not accept physical shelf columns; add Section 05 shelf coordinates later via Edit > Section 05.'
             };
         }
 
-        // 7B. Bulk Import Excel
-        if (q.includes('bulk') || q.includes('excel') || q.includes('import') || q.includes('spreadsheet') || q.includes('xlsx')) {
+        // 7B. Add / Upload Project & Physical Shelf / Call / Accession Standards
+        if (q.includes('shelf') || q.includes('location') || q.includes('call number') || q.includes('accession') || q.includes('add project') || q.includes('upload') || q.includes('new project') || q.includes('catalog thesis') || (q.includes('add') && q.includes('project'))) {
             return {
-                landmark: 'Projects Section > Table Header Action Bar > "Bulk Import" (Blue Button #bulk-import-btn)',
+                landmark: 'Projects Section > Table Header Action Bar > "Add Project" (#add-project-btn)',
                 steps: [
-                    'Go to <strong>Projects</strong> in the sidebar rail.',
-                    'Click the blue <strong>"Bulk Import"</strong> button located right beside the search bar.',
-                    'If you need the template format, click <strong>"Download Excel Template"</strong> inside the modal.',
-                    'Upload your completed <code>.xlsx</code> or <code>.xls</code> file into the dropzone.',
-                    'Review the batch validation checklist (Title, Authors, Year, Adviser).',
-                    'Click <strong>"Execute Import"</strong> to batch-insert the theses into Firestore.'
+                    'Click **"Projects"** in the left Sidebar Rail and click **"Add Project"** (`#add-project-btn`, shortcut `Ctrl+Shift+P`). Toggle `#project-autosave-toggle` if you want local draft recovery.',
+                    '**Section 01 (Core Identity):** Enter a unique Project Title (duplicate `titleNorm` check runs on save) and add at least 1 author via `#add-author-btn`.',
+                    '**Section 02 (Academic Details):** Fill Faculty Adviser, Academic Year (readonly spinner `2023-2100`), one of 10 Programs (`BSFi`, `BSIT`, `BSHM`, `BSIE`, `BSEd-Math`, `BEEd`, `BIT-Computer`, `BIT-Electronics`, `BIT-Automotive`, `BTLEd-HE`), and Status (`Completed`, `Published`, or `Draft`).',
+                    '**Section 03 & Section 04:** Enter Abstract, Topics, Keywords, and optionally upload Section 04 Book & Representation Images (PNG/JPG/WEBP up to 10 MB with Rotate/Mirror tools; optional for Admin saves).',
+                    '**Section 05 (Physical Catalog & Librarian Accountability):** Optionally enter Shelf Location Note (`Rack 1, Row 2, Stand 3, Color Blue`), Call Number (`025.5 / Dea / 2024`), and unique Accession Number (`CTU-2024-001`) alongside `#admin-catalog-audit-box`, then click **"Save Project"** (`#submit-project-btn`).'
                 ],
-                precaution: 'Ensure author names are separated by commas and years are valid 4-digit numbers to avoid parsing rejections.'
+                precaution: 'Admin submissions save directly to Firestore projects (bypassing Approvals) and automatically sync embeddings to Pinecone index recaps-projects-search.'
             };
         }
 
         // 7C. Pinecone AI Sync
-        if (q.includes('pinecone') || q.includes('sync') || q.includes('vector') || q.includes('rag') || q.includes('embedding') || q.includes('ai search')) {
+        if (q.includes('pinecone') || q.includes('sync pinecone') || q.includes('vector') || q.includes('rag') || q.includes('embedding') || q.includes('ai search')) {
             return {
-                landmark: 'Projects Section > Table Header Action Bar > "Sync Pinecone" (Amber Button #sync-pinecone-btn)',
+                landmark: 'Projects Section > Table Header Action Bar > "Sync Pinecone" (#sync-pinecone-btn)',
                 steps: [
-                    'Navigate to <strong>Projects</strong> in the sidebar rail.',
-                    'Look at the action bar immediately above the search input and table.',
-                    'Click the amber <strong>"Sync Pinecone"</strong> button with the lightning bolt icon.',
-                    'Confirm the modal dialog when prompted. Watch the sync progress counter update.',
-                    'Once completed, a green dot <code>🟢 Synced</code> will appear beside verified thesis titles.'
+                    'Open **"Projects"** and click **"Sync Pinecone"** (`#sync-pinecone-btn`) to open `#pinecone-sync-modal` (badge: `Index: recaps-projects-search`).',
+                    'Inspect Total, Indexed, and Unsynced counts and choose **"Sync Only Unsynced Projects"** or **"Full Index Re-Sync (All Projects)"**.',
+                    'Click **"Start Pinecone Sync"** (`#pinecone-sync-confirm-btn`). Modal closing is locked while syncing runs; use **"Retry Failed"** if partial errors appear.',
+                    'To sync a single thesis instead, click the sync status indicator dot beside its title row in All Projects (`syncSingleProject`).'
                 ],
-                precaution: 'Ensure network connection is stable during embedding generation. Do not close or refresh the tab while sync is active.'
+                precaution: 'Keep the browser tab open with a stable connection until syncing completes; Save Project, Approve, and Import Projects sync automatically.'
             };
         }
 
-        // 7D. Delete / Unlock Project
-        if (q.includes('delete') || q.includes('disabled') || q.includes('lock') || q.includes('unlock') || q.includes('purge')) {
-            return {
-                landmark: 'Projects Table > Actions Column > "Unlock" (Gold Lock Icon)',
-                steps: [
-                    'Find the target capstone row in the <strong>All Projects</strong> table.',
-                    'Notice that the red Delete button is initially hidden or disabled to prevent accidental catalog loss.',
-                    'Click the gold <strong>"Unlock"</strong> (lock-shaped) button in the row’s action buttons.',
-                    'Confirm the catalog security verification modal.',
-                    'The red <strong>"Delete"</strong> button will now become active and clickable for that row.'
-                ],
-                precaution: 'Permanent deletion wipes the record from both Firestore and Pinecone vector search. This action cannot be undone.'
-            };
-        }
-
-        // 7E. Edit Existing Project
+        // 7D. Edit Existing Project (Evaluated before Lock/Delete so "edit ... librarian lock" stays in Edit)
         if (q.includes('edit') || q.includes('modify') || q.includes('update') || q.includes('change title') || q.includes('replace photo')) {
             return {
-                landmark: 'Projects Section > All Projects Table > "Edit Record" (Pencil Icon in Actions Column)',
+                landmark: 'Projects Section > All Projects Table > Actions Column > "Edit" Button',
                 steps: [
-                    'Navigate to <strong>Projects</strong> in the left sidebar rail.',
-                    'Locate the thesis in the catalog using the search box or program filter pills.',
-                    'Click the gold <strong>Pencil icon</strong> (Edit) in the row\'s Actions column.',
-                    'In the Edit Capstone Project modal, update title, authors, academic program, abstract, keywords, or physical shelf location note (Rack, Row, Stand, Color).',
-                    'To update representation images, drag and drop new photos into Section 04.',
-                    'Click <strong>"Update Capstone Project"</strong>. Changes will immediately update Firestore and queue Pinecone AI embeddings for automatic re-indexing.'
+                    'Open **"Projects"** and find the thesis via `#projects-search` or `#project-filters`.',
+                    'If Admin-locked, click **"Unlock"**; if actively locked by a Librarian (45s lease), wait or click force-release `x`.',
+                    'Click **"Edit"** to open `#project-modal` across Sections 01-05 (Section 04 manages Book Images with Rotate/Mirror; Section 05 manages Physical Catalog & `#admin-catalog-audit-box`).',
+                    'Update fields and click **"Save Project"** (`#submit-project-btn`).'
                 ],
-                precaution: 'Modifying the title or abstract alters the vector embedding representation; verify data accuracy before updating.'
+                precaution: 'Changing searchable fields (title, abstract, authors, topics, keywords, program, year) automatically re-embeds and updates Pinecone.'
             };
         }
 
-        // 7F. Troubleshooting Missing Theses
-        if (q.includes('troubleshoot') || q.includes('search not working') || q.includes('not showing') || q.includes('can\'t find') || q.includes('unsynced')) {
+        // 7E. Delete / Lock / Unlock Project (#secure-delete-modal)
+        if (q.includes('delete') || q.includes('disabled') || q.includes('lock') || q.includes('unlock') || q.includes('purge') || q.includes('verification code')) {
             return {
-                landmark: 'Projects Section > Filter Pills > "🔴 Unsynced" Pill (#filter-unsynced)',
+                landmark: 'Projects Section > All Projects Table > Actions Column ("Delete" / "Lock" / "Unlock")',
                 steps: [
-                    'Navigate to <strong>Projects</strong> in the left sidebar rail.',
-                    'Check for Unsynced Status: Click the <strong>"🔴 Unsynced"</strong> filter pill above the table. If the project appears here, its vector embedding has not been indexed in Pinecone.',
-                    'Check Approval Status: Go to <strong>"Approvals"</strong> in the sidebar rail. If drafted by a librarian, it must be evaluated and approved before entering the public index.',
-                    'Trigger Pinecone Sync: In Projects, click the amber <strong>"Sync Pinecone"</strong> button (#sync-pinecone-btn) in the header action bar.',
-                    'Verify Green Dot: Once sync finishes, verify that the green dot ( 🟢 ) appears beside the thesis title.'
+                    'Open **"Projects"**. Admin table rows are **unlocked by default** and display *View*, *Edit*, *Delete*, and *Lock*. (Only manually Admin-locked rows hide *Edit*/*Delete* until you click **"Unlock"**, or rows locked by an active Librarian editing session show a force-release `x` control.)',
+                    'Click **"Delete"** on the target row to open `#secure-delete-modal`.',
+                    'Type the **exact project title** into the confirmation box. RE-CAPS does **NOT** use any secret verification code, PIN, or OTP for deleting projects.',
+                    'Click **"Delete"** in the modal to permanently remove the Firestore document, delete Cloudinary images, decrement the RTDB counter, and delete the Pinecone vector in `recaps-projects-search`.'
                 ],
-                precaution: 'The student AI chatbot and semantic RAG search only retrieve theses with active Pinecone embeddings and "Published" status.'
+                precaution: 'Project deletion is permanent and wipes Firestore metadata, Cloudinary files, and Pinecone vector index entries.'
+            };
+        }
+
+        // 7F. Troubleshooting Missing Theses / Unsynced Filter
+        if (q.includes('troubleshoot') || q.includes('search not working') || q.includes('not showing') || q.includes("can't find") || (q.includes('unsynced') && !q.includes('browse') && !q.includes('filter project'))) {
+            return {
+                landmark: 'Projects Section > Filter Pills > "Unsynced" Pill (#filter-unsynced)',
+                steps: [
+                    'Check **"Approvals"** first: Librarian drafts wait in `pendingProjects` until approved (`status: Completed`, `isPublic: true`).',
+                    'Open **"Projects"** and confirm the thesis Status in Section 02 is `Completed` or `Published` (not `Draft`).',
+                    'Click the **"Unsynced"** filter pill (`#filter-unsynced`) to locate rows not yet indexed in `recaps-projects-search`.',
+                    'Click the single-row sync dot beside the thesis title or open **"Sync Pinecone"** (`#sync-pinecone-btn`) and run **"Sync Only Unsynced Projects"**.'
+                ],
+                precaution: 'Both public search and student RAG chatbot queries require a published Firestore document and an indexed Pinecone vector.'
             };
         }
 
         // 7G. Browse / Search Projects
         if (q.includes('exist') || q.includes('browse') || q.includes('see project') || q.includes('view project') || q.includes('filter project') || q.includes('find project') || q.includes('project') || q.includes('thesis') || q.includes('catalog')) {
             return {
-                landmark: 'Sidebar Rail > "Projects" (2nd Tab from Top, Document Icon) > All Projects Section',
+                landmark: 'Sidebar Rail > "Projects" > Search (#projects-search) & Filter Pills (#project-filters)',
                 steps: [
-                    'Click <strong>"Projects"</strong> in the left sidebar rail (2nd item from the top with the document icon).',
-                    'The <strong>All Projects</strong> section (#section-projects) will open with the complete institutional catalog.',
-                    '<strong>Filter by Program:</strong> Click any one-click Filter Pill above the table (e.g., <code>All Projects</code>, <code>BSIT</code>, <code>BSFi</code>, <code>BSHM</code>, <code>BSIE</code>, <code>Recent (30 days)</code>, or <code>🔴 Unsynced</code>).',
-                    '<strong>Live Keyword Search:</strong> Use the search box (<code>#projects-search</code>) above the table to filter by title, author names, or keywords.',
-                    '<strong>Row Actions:</strong> Each project row features action icons: <strong>View</strong> (Eye icon to preview abstract and shelf coordinates), <strong>Edit</strong> (Pencil icon), <strong>Lock/Unlock</strong> (Gold lock icon), and <strong>Delete</strong> (Trash bin icon).'
+                    'Click **"Projects"** in the left Sidebar Rail to open `#section-projects`.',
+                    'Click filter pills in `#project-filters`: `All Projects`, 10 campus programs (`BSFi`, `BSIT`, `BSHM`, `BSIE`, `BSEd-Math`, `BEEd`, `BIT-Computer`, `BIT-Electronics`, `BIT-Automotive`, `BTLEd-HE`), `Recent (30 days)`, or `Unsynced` (`#filter-unsynced`).',
+                    'Search via `#projects-search` across title, authors, abstract, topics, keywords, adviser, program, year, and shelf notes (`Matched in` chips highlight hit fields).',
+                    'Use sortable columns and unlocked row actions (**View**, **Edit**, **Delete**, **Lock**) plus the single-row Pinecone sync indicator dot.'
                 ],
-                precaution: 'Cataloged projects are live in the institutional repository. Unlock project rows before performing edits or deletions.'
+                precaution: 'Under R.A. 10173, project Titles and Abstracts are copy-protected while Authors remain copyable for citations.'
             };
         }
 
-        // 8. General Workspace Guidance
+        // 8. GENERAL WORKSPACE GUIDANCE (ALL 9 SIDEBAR ITEMS + COPILOT)
         return {
-            landmark: 'Sidebar Rail & Executive Dashboard Workspace',
+            landmark: 'Sidebar Rail (#sidebar-rail) & Executive Admin Workspace',
             steps: [
-                'You can manage all repository operations using the left <strong>Sidebar Rail</strong>:',
-                '<strong>Projects:</strong> Catalog theses, assign shelf locations, or sync Pinecone AI.',
-                '<strong>Approvals:</strong> Evaluate submissions drafted by librarians.',
-                '<strong>Users:</strong> Manage student, faculty, and librarian accounts.',
-                '<strong>Analytics:</strong> Print accreditation reports and monitor research intake.',
-                '<strong>Activity:</strong> Review compliance audit logs and historical changes.',
-                '<strong>Settings:</strong> Toggle maintenance mode and registration.'
+                '**Dashboard:** 5 clickable KPI cards, Live Updates, Refresh, and Recent Projects/Users feeds.',
+                '**Projects:** Search/filter 10 programs, Add/Edit `#project-modal` (Sections 01-05), Lock/Unlock, Secure Delete (exact title), Bulk Import (9 columns), Sync Pinecone (`recaps-projects-search`).',
+                '**Approvals:** Evaluate or batch-approve Librarian `pendingProjects` with automatic duplicate checks.',
+                '**Users:** 6 filter pills, Create Librarian, 3-tier Sanction modal (Suspension or 14d Quarantine), Reactivate, Restore, Purge.',
+                '**Analytics & Activity:** Interactive chart drilldowns, Print Report, Export CSV, and browser-local Activity history.',
+                '**Settings, Copilot, Home & Logout:** Profile edit, Telegram OTP Password Change, Purge Cache/Catalog Export, Diagnostics, Shortcuts, read-only Copilot, Home (`../index.html`), and Logout confirmation modal.'
             ],
-            precaution: 'Feel free to ask for specific step-by-step instructions (e.g., "How to sync Pinecone", "Can administrator delete a user account?", or "How to approve a project").'
+            precaution: 'Ask specifically about any of the 9 Sidebar Rail items or AI Copilot limits for step-by-step screen guidance.'
         };
     }
 
@@ -11152,7 +11226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             md += '\n';
         }
         if (guidance.precaution) {
-            md += `⚠️ Precaution: ${guidance.precaution}\n`;
+            md += `Precaution: ${guidance.precaution}\n`;
         }
         return dynamicCopilotNormalizer(md, 'Local Institutional KB');
     }
@@ -11175,7 +11249,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const bubble = document.createElement('div');
         bubble.className = 'copilot-msg-bubble';
-        bubble.innerHTML = contentHTML;
+        if (sender === 'user') {
+            bubble.textContent = contentHTML;
+        } else {
+            bubble.innerHTML = contentHTML;
+        }
         row.appendChild(bubble);
 
         messagesList.appendChild(row);
@@ -11197,13 +11275,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const text = (queryText || '').trim();
         if (!text) return;
 
+        // Abort any older in-flight stream so rapid repeated queries never interleave
+        if (window._activeCopilotAbort) {
+            try { window._activeCopilotAbort.abort(); } catch (_) {}
+        }
+        const requestSeqId = (window._activeCopilotRequestSeq = (window._activeCopilotRequestSeq || 0) + 1);
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        window._activeCopilotAbort = controller;
+
         // Hide welcome greeting once user asks something
         const widgetWelcome = document.getElementById('copilot-widget-welcome');
         if (widgetWelcome) widgetWelcome.style.display = 'none';
         const sectionWelcome = document.getElementById('copilot-welcome-box');
         if (sectionWelcome) sectionWelcome.style.display = 'none';
 
-        // Display user message in widget
+        // Display user message cleanly without HTML evaluation (XSS-safe)
         appendCopilotMessage('user', text, 'widget');
 
         // Also sync to section if open
@@ -11229,6 +11315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const copilotConversationHistory = window._copilotHistory = window._copilotHistory || [];
 
         (async () => {
+            const isStale = () => window._activeCopilotRequestSeq !== requestSeqId;
             let replyHTML = '';
             let backendSucceeded = false;
             let widgetBubble = null;
@@ -11237,6 +11324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             let currentProvider = 'Mistral AI';
 
             function ensureBotBubbles() {
+                if (isStale()) return;
                 if (widgetTyping) widgetTyping.style.display = 'none';
                 if (sectionTyping) sectionTyping.style.display = 'none';
                 if (!widgetBubble) {
@@ -11250,6 +11338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             function updateStreamView(streamText, isDone = false) {
+                if (isStale()) return;
                 const html = dynamicCopilotNormalizer(streamText, currentProvider);
                 const displayHTML = isDone ? html : (html + '<span class="streaming-cursor"></span>');
                 if (widgetBubble) widgetBubble.innerHTML = displayHTML;
@@ -11258,6 +11347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (sectionBody) sectionBody.scrollTop = sectionBody.scrollHeight;
             }
 
+            let timeoutId = null;
             try {
                 const apiBase = typeof getBackendUrl === 'function' 
                     ? getBackendUrl() 
@@ -11265,8 +11355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ? 'http://localhost:3001'
                         : 'https://recap-backend-jy5b.onrender.com');
 
-                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-                const timeoutId = setTimeout(() => {
+                timeoutId = setTimeout(() => {
                     if (controller) controller.abort();
                 }, 35000);
 
@@ -11285,7 +11374,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     signal: controller ? controller.signal : undefined
                 });
 
-                if (timeoutId) clearTimeout(timeoutId);
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                    timeoutId = null;
+                }
+                if (isStale()) return;
 
                 if (response.ok) {
                     const contentType = response.headers.get('content-type') || '';
@@ -11293,10 +11386,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder('utf-8');
                         let buffer = '';
+                        let streamSawDone = false;
+                        let streamSawError = false;
 
                         while (true) {
                             const { done, value } = await reader.read();
-                            if (done) break;
+                            if (done || isStale()) break;
 
                             buffer += decoder.decode(value, { stream: true });
                             const lines = buffer.split('\n');
@@ -11315,13 +11410,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         currentProvider = data.provider || currentProvider;
                                         ensureBotBubbles();
                                     } else if (data.type === 'token') {
-                                        accumulatedText += data.content;
+                                        accumulatedText += data.content || '';
                                         ensureBotBubbles();
                                         updateStreamView(accumulatedText, false);
                                     } else if (data.type === 'done') {
+                                        streamSawDone = true;
                                         accumulatedText = data.fullResponse || accumulatedText;
                                         currentProvider = data.provider || currentProvider;
                                     } else if (data.type === 'error') {
+                                        streamSawError = true;
                                         console.warn('Staff Copilot stream event error:', data.error);
                                     }
                                 } catch (parseErr) {
@@ -11330,7 +11427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
 
-                        if (accumulatedText.trim()) {
+                        if (!isStale() && accumulatedText.trim() && (streamSawDone || !streamSawError)) {
                             backendSucceeded = true;
                             ensureBotBubbles();
                             updateStreamView(accumulatedText, true);
@@ -11339,7 +11436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else {
                         // Standard non-streaming JSON response fallback
                         const data = await response.json();
-                        if (data && data.success && (data.reply || data.response)) {
+                        if (!isStale() && data && data.success && (data.reply || data.response)) {
                             backendSucceeded = true;
                             currentProvider = data.provider || 'Mistral AI';
                             accumulatedText = data.reply || data.response;
@@ -11350,10 +11447,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
             } catch (err) {
-                console.warn('Backend RAG endpoint unavailable, utilizing verified local knowledge base fallback:', err.message);
+                if (!isStale()) {
+                    console.warn('Backend RAG endpoint unavailable, utilizing verified local knowledge base fallback:', err.message);
+                }
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+                if (window._activeCopilotAbort === controller) {
+                    window._activeCopilotAbort = null;
+                }
             }
 
-            // Fallback to local verified knowledge base if backend is not reachable
+            if (isStale()) return;
+
+            // Fallback to local verified knowledge base if backend failed, errored mid-stream, or returned empty
             if (!backendSucceeded) {
                 if (widgetTyping) widgetTyping.style.display = 'none';
                 if (sectionTyping) sectionTyping.style.display = 'none';

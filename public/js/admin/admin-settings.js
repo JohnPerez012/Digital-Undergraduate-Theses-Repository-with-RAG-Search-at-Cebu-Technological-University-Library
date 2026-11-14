@@ -837,7 +837,7 @@
                     if (securityModal) {
                         securityModal.classList.add('active');
                     } else if (typeof showToast === 'function') {
-                        showToast('ℹ️ Password change verification loading...', 'info');
+                        showToast('Password change verification loading...', 'info');
                     }
                 }
             });
