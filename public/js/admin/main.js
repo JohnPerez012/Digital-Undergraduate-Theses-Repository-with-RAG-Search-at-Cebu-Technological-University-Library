@@ -575,36 +575,50 @@ document.addEventListener('DOMContentLoaded', async () => {
      */
     async function isCacheValid() {
         try {
-            // Get cached metadata
+            // Get cached metadata and project array
             const cachedMetadata = localStorage.getItem('projectsMetadata');
-            if (!cachedMetadata) {
-                console.log('📦 No cache found, fetching fresh data');
+            const cachedProjectsRaw = localStorage.getItem('projectsData');
+            if (!cachedMetadata || !cachedProjectsRaw) {
+                console.log('No cache found, fetching fresh data');
                 return false;
             }
             
             const metadata = JSON.parse(cachedMetadata);
+            const parsedProjects = JSON.parse(cachedProjectsRaw);
+            const cachedArrayCount = Array.isArray(parsedProjects) ? parsedProjects.length : 0;
             const cachedCount = metadata.projectCount || 0;
             const cachedUpdateCounter = metadata.updateCounter || 0;
             
-            console.log(`📦 Cached: ${cachedCount} projects, update counter: ${cachedUpdateCounter}`);
+            if (cachedArrayCount === 0 || cachedCount !== cachedArrayCount) {
+                console.log('Cached project array length mismatch, fetching fresh data');
+                return false;
+            }
+            
+            console.log(`Cached: ${cachedCount} projects, update counter: ${cachedUpdateCounter}`);
             
             // Fetch RTDB counters
             const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
+            if (!rtdbResponse.ok) {
+                return false;
+            }
             const rtdbData = await rtdbResponse.json();
+            if (!rtdbData) {
+                return false;
+            }
             
             const currentCount = rtdbData.projects_document_count || 0;
             const currentUpdateCounter = rtdbData.update_counter || 0;
             
-            console.log(`🔄 RTDB: ${currentCount} projects, update counter: ${currentUpdateCounter}`);
+            console.log(`RTDB: ${currentCount} projects, update counter: ${currentUpdateCounter}`);
             
             // Compare counters
-            if (cachedCount !== currentCount) {
-                console.log('⚠️ Project count mismatch! Cache outdated (new project added/deleted)');
+            if (cachedCount !== currentCount || cachedArrayCount !== currentCount) {
+                console.log('Project count mismatch! Cache outdated (new project added/deleted)');
                 return false;
             }
             
             if (cachedUpdateCounter !== currentUpdateCounter) {
-                console.log('⚠️ Update counter mismatch! Cache outdated (project was updated)');
+                console.log('Update counter mismatch! Cache outdated (project was updated)');
                 return false;
             }
             
@@ -656,25 +670,103 @@ document.addEventListener('DOMContentLoaded', async () => {
     /**
      * Save projects to localStorage cache with metadata
      */
+    /**
+     * Authoritatively synchronize Firebase RTDB project count and update metadata
+     * against Firestore across all Admin CRUD, approval, and reconciliation flows.
+     */
+    async function syncAdminRtdbProjectState({ docId = 'system', changedFields = [], knownCount = null } = {}) {
+        if (typeof rtdb === 'undefined' || !rtdb) {
+            console.warn('RTDB not available, skipping counter synchronization');
+            return null;
+        }
+        try {
+            let authoritativeCount = (typeof knownCount === 'number' && !Number.isNaN(knownCount))
+                ? knownCount
+                : null;
+            if (authoritativeCount === null && typeof db !== 'undefined' && db) {
+                const countSnapshot = await db.collection('projects').get();
+                authoritativeCount = countSnapshot.size;
+            }
+            if (typeof authoritativeCount === 'number') {
+                await rtdb.ref('projects_document_count').set(authoritativeCount);
+            }
+
+            const counterRef = rtdb.ref('update_counter');
+            const counterTx = await counterRef.transaction((current) => (current || 0) + 1);
+            const nextUpdateId = counterTx?.snapshot?.val() || 1;
+
+            const normalizedFields = Array.isArray(changedFields) && changedFields.length > 0
+                ? changedFields
+                : ['metadata'];
+
+            const recentRef = rtdb.ref('recent update');
+            const prevRef = rtdb.ref('prev update');
+            const recentSnapshot = await recentRef.once('value');
+            const currentRecent = recentSnapshot.val();
+            if (currentRecent) {
+                await prevRef.set(currentRecent);
+            }
+
+            const newUpdate = {
+                UpdateID: nextUpdateId,
+                DocID: docId,
+                timestamp_updated: new Date().toISOString(),
+                field_updated: normalizedFields
+            };
+            await recentRef.set(newUpdate);
+
+            return {
+                projectsCount: authoritativeCount,
+                updateCounter: nextUpdateId,
+                recentUpdate: newUpdate
+            };
+        } catch (rtdbError) {
+            console.warn('RTDB counter synchronization failed:', rtdbError);
+            return null;
+        }
+    }
+
     async function saveToCache(projects) {
         try {
+            const safeProjects = Array.isArray(projects) ? projects : [];
             // Fetch current RTDB counters
-            const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
-            const rtdbData = await rtdbResponse.json();
-            
+            let rtdbData = {};
+            try {
+                const rtdbResponse = await fetch('https://re-caps-default-rtdb.asia-southeast1.firebasedatabase.app/.json');
+                if (rtdbResponse.ok) {
+                    rtdbData = (await rtdbResponse.json()) || {};
+                }
+            } catch (fetchErr) {
+                console.warn('Could not read RTDB during admin saveToCache:', fetchErr);
+            }
+
+            let currentUpdateCounter = typeof rtdbData.update_counter === 'number' ? rtdbData.update_counter : 0;
+
+            // Self-heal RTDB drift whenever Admin loads an authoritative Firestore snapshot
+            if (typeof auth !== 'undefined' && auth?.currentUser && rtdbData.projects_document_count !== safeProjects.length) {
+                const healed = await syncAdminRtdbProjectState({
+                    docId: 'system_reconciliation',
+                    changedFields: ['projects_document_count'],
+                    knownCount: safeProjects.length
+                });
+                if (healed && typeof healed.updateCounter === 'number') {
+                    currentUpdateCounter = healed.updateCounter;
+                }
+            }
+
             const metadata = {
-                projectCount: rtdbData.projects_document_count || projects.length,
-                updateCounter: rtdbData.update_counter || 0,
+                projectCount: safeProjects.length,
+                updateCounter: currentUpdateCounter,
                 lastCached: new Date().toISOString()
             };
             
             // Save projects data
-            localStorage.setItem('projectsData', JSON.stringify(projects));
+            localStorage.setItem('projectsData', JSON.stringify(safeProjects));
             
             // Save metadata
             localStorage.setItem('projectsMetadata', JSON.stringify(metadata));
             
-            console.log(`Cached ${projects.length} projects with metadata:`, metadata);
+            console.log(`Cached ${safeProjects.length} projects with metadata:`, metadata);
             
         } catch (error) {
             console.error('Error saving to cache:', error);
@@ -4080,20 +4172,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
-            // Update Realtime Database counters
-            try {
-                if (rtdb) {
-                    const countRef = rtdb.ref('projects_document_count');
-                    await countRef.transaction((current) => Math.max(0, (current || 0) - 1));
-                    const updateCounterRef = rtdb.ref('update_counter');
-                    await updateCounterRef.transaction((current) => (current || 0) + 1);
-                    console.log('RTDB counters updated after deletion');
-                } else {
-                    console.warn('RTDB not available, skipping counter update');
-                }
-            } catch (rtdbError) {
-                console.warn('RTDB counter update failed:', rtdbError);
-            }
+            // Reconcile Realtime Database counters atomically against Firestore
+            await syncAdminRtdbProjectState({
+                docId: secureDeleteProjectId,
+                changedFields: ['deleted']
+            });
             
             // Invalidate cache to force fresh data on next load
             invalidateCache();
@@ -6452,40 +6535,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn('Could not update catalogNotes for project:', cnSaveErr);
             }
 
-            // Update Realtime Database
-            if (changedFields.length > 0 && rtdb) {
-                try {
-                    const recentRef = rtdb.ref('recent update');
-                    const prevRef = rtdb.ref('prev update');
-                    const counterRef = rtdb.ref('update_counter');
-                    
-                    // Fetch and increment the update counter
-                    const counterSnapshot = await counterRef.once('value');
-                    const currentCounter = counterSnapshot.val() || 0;
-                    const nextUpdateId = currentCounter + 1;
-                    
-                    // Save updated counter
-                    await counterRef.set(nextUpdateId);
-                    
-                    const snapshot = await recentRef.once('value');
-                    const currentRecent = snapshot.val();
-                    
-                    if (currentRecent) {
-                        await prevRef.set(currentRecent);
-                    }
-                    
-                    const newUpdate = {
-                        UpdateID: nextUpdateId,
-                        DocID: projectId,
-                        timestamp_updated: new Date().toISOString(),
-                        field_updated: changedFields
-                    };
-                    await recentRef.set(newUpdate);
-                    console.log('RTDB update logged:', newUpdate);
-                    console.log('RTDB target path:', recentRef.toString());
-                } catch (rtdbErr) {
-                    console.error('Error logging update to RTDB:', rtdbErr);
-                }
+            // Synchronize Realtime Database (update log + project count reconciliation)
+            if (changedFields.length > 0) {
+                await syncAdminRtdbProjectState({
+                    docId: projectId,
+                    changedFields
+                });
             }
 
             // Sync to Pinecone
@@ -6545,7 +6600,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             setSaveProcessing(false);
             closeProjectModal();
-            await loadProjectsData();
+            invalidateCache();
+            await loadProjectsData(true);
             await loadDashboardData();
         } catch (error) {
             setSaveProcessing(false);
@@ -6651,17 +6707,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            // Update Realtime Database count
-            if (rtdb) {
-                try {
-                    const countSnapshot = await db.collection('projects').get();
-                    const newCount = countSnapshot.size;
-                    await rtdb.ref('projects_document_count').set(newCount);
-                    console.log('RTDB project count updated to:', newCount);
-                } catch (rtdbErr) {
-                    console.error('Error updating RTDB project count:', rtdbErr);
-                }
-            }
+            // Synchronize Realtime Database project count and update counter
+            await syncAdminRtdbProjectState({
+                docId: projectId,
+                changedFields: ['created']
+            });
 
             // Sync to Pinecone
             let isPineconeSynced = false;
@@ -8163,15 +8213,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         let successCount = 0;
+        const approvedIds = [];
         const total = itemsToApprove.length;
 
         for (const item of itemsToApprove) {
             try {
-                await approvePendingSubmission(item.id, null, true); // bypassConfirm = true
-                successCount++;
+                const publishedId = await approvePendingSubmission(item.id, null, true, {
+                    skipRtdbSync: true,
+                    skipUiRefresh: true
+                }); // bypassConfirm = true
+                if (publishedId) {
+                    approvedIds.push(publishedId);
+                    successCount++;
+                }
             } catch (e) {
                 console.error(`Batch approval error on ${item.id}:`, e);
             }
+        }
+
+        if (approvedIds.length > 0) {
+            await syncAdminRtdbProjectState({
+                docId: approvedIds.length === 1 ? approvedIds[0] : `${approvedIds.length}_projects`,
+                changedFields: ['batch_approved']
+            });
+            invalidateCache();
+            filterAndRenderApprovals();
+            if (typeof loadProjectsData === 'function') await loadProjectsData(true);
+            if (typeof updateDashboardStats === 'function') updateDashboardStats();
         }
 
         if (window.ActivityService && typeof window.ActivityService.logAdmin === 'function') {
@@ -8193,15 +8261,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatePendingCounters(allPendingApprovals.length);
     }
 
-    async function approvePendingSubmission(id, customData = null, bypassConfirm = false) {
+    async function approvePendingSubmission(id, customData = null, bypassConfirm = false, options = {}) {
         if (!bypassConfirm) {
             await openApprovalConfirmationDialog(id, customData);
-            return;
+            return null;
         }
         const item = allPendingApprovals.find(x => x.id === id);
         if (!item && !customData) {
-            showToast('Submission not found.', '❌');
-            return;
+            if (!options.skipUiRefresh) {
+                showToast('Submission not found.', '❌');
+            }
+            return null;
         }
 
         const title = (customData?.title || item?.title || 'Untitled').trim();
@@ -8225,20 +8295,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Fast-hand race condition guard: fresh read from Firestore
             const freshDoc = await db.collection('pendingProjects').doc(id).get();
             if (!freshDoc.exists) {
-                showToast('Submission is no longer in pending approvals queue.', '❌');
-                closeApprovalReviewModal();
-                return;
+                if (!options.skipUiRefresh) {
+                    showToast('Submission is no longer in pending approvals queue.', '❌');
+                    closeApprovalReviewModal();
+                }
+                return null;
             }
             const freshData = freshDoc.data() || {};
             if (freshData.isLockedByAdmin) {
-                showToast('Action Blocked: This project is locked. Please unlock it before approving.', '🔒');
-                closeApprovalReviewModal();
-                return;
+                if (!options.skipUiRefresh) {
+                    showToast('Action Blocked: This project is locked. Please unlock it before approving.', '🔒');
+                    closeApprovalReviewModal();
+                }
+                return null;
             }
             if (freshData.isBeingEdited) {
-                showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`, '⚠️');
-                closeApprovalReviewModal();
-                return;
+                if (!options.skipUiRefresh) {
+                    showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`, '⚠️');
+                    closeApprovalReviewModal();
+                }
+                return null;
             }
 
             const approvedProject = {
@@ -8270,6 +8346,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 2. Remove from pendingProjects collection
             await db.collection('pendingProjects').doc(id).delete();
+
+            // 2b. Reconcile RTDB project count & update counter (skipped inside batch loop until end)
+            if (!options.skipRtdbSync) {
+                await syncAdminRtdbProjectState({
+                    docId: docRef.id,
+                    changedFields: ['approved']
+                });
+            }
 
             // 3. Trigger Pinecone background vector sync
             try {
@@ -8318,22 +8402,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            closeApprovalReviewModal();
-            showToast(`Project "${title}" approved and published publicly!`);
+            if (!options.skipUiRefresh) {
+                closeApprovalReviewModal();
+                showToast(`Project "${title}" approved and published publicly!`);
+            }
 
             // 5. Update local state & persistent cache optimistically
             allPendingApprovals = allPendingApprovals.filter(x => x.id !== id);
             savePendingApprovalsToCache(allPendingApprovals);
             updatePendingCounters(allPendingApprovals.length);
-            filterAndRenderApprovals();
+            if (!options.skipUiRefresh) {
+                filterAndRenderApprovals();
 
-            // Refresh projects cache and dashboard
-            if (typeof loadProjectsData === 'function') loadProjectsData(true);
-            if (typeof updateDashboardStats === 'function') updateDashboardStats();
+                // Refresh projects cache and dashboard
+                invalidateCache();
+                if (typeof loadProjectsData === 'function') await loadProjectsData(true);
+                if (typeof updateDashboardStats === 'function') updateDashboardStats();
+            }
+
+            return docRef.id;
 
         } catch (err) {
             console.error('approvePendingSubmission error:', err);
-            showToast('Error approving project. Please try again.', '❌');
+            if (!options.skipUiRefresh) {
+                showToast('Error approving project. Please try again.', '❌');
+            }
+            return null;
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
@@ -10178,21 +10272,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 console.warn('Pinecone sync error:', syncError);
                             }
                             
-                            // Increment RTDB counter
-                            try {
-                                if (rtdb) {
-                                    const countRef = rtdb.ref('projects_document_count');
-                                    await countRef.transaction((current) => (current || 0) + 1);
-                                    
-                                    const updateCounterRef = rtdb.ref('update_counter');
-                                    await updateCounterRef.transaction((current) => (current || 0) + 1);
-                                } else {
-                                    console.warn('RTDB not available, skipping counter update');
-                                }
-                            } catch (rtdbError) {
-                                console.warn('RTDB counter update failed:', rtdbError);
-                            }
-                            
                             successCount++;
                             
                         } catch (error) {
@@ -10245,6 +10324,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 bulkImportErrors.style.display = 'block';
             }
             
+            // Single authoritative RTDB reconciliation after bulk import completes
+            if (successCount > 0) {
+                await syncAdminRtdbProjectState({
+                    docId: `${successCount}_projects`,
+                    changedFields: ['bulk_import']
+                });
+            }
+
             // Invalidate cache
             invalidateCache();
 
@@ -10274,9 +10361,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             bulkImportCancelBtn.disabled = false;
             bulkImportCancelBtn.textContent = 'Close';
             
-            // Reload projects table
-            if (document.getElementById('section-projects').classList.contains('active')) {
-                await loadProjectsData();
+            // Reload projects table and dashboard
+            if (successCount > 0) {
+                await loadProjectsData(true);
+                await loadDashboardData();
             }
         });
     }

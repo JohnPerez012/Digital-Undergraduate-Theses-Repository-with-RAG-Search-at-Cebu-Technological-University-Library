@@ -594,20 +594,28 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function isCacheValid() {
         try {
-            // Get cached metadata
+            // Get cached metadata and project array
             const cachedMetadata = localStorage.getItem('projectsMetadata');
-            if (!cachedMetadata) {
-                console.log('📦 No cache found, fetching fresh data');
+            const cachedProjectsRaw = localStorage.getItem('projectsData');
+            if (!cachedMetadata || !cachedProjectsRaw) {
+                console.log('No cache found, fetching fresh data');
                 return false;
             }
             
             const metadata = JSON.parse(cachedMetadata);
+            const parsedProjects = JSON.parse(cachedProjectsRaw);
+            const cachedArrayCount = Array.isArray(parsedProjects) ? parsedProjects.length : 0;
             const cachedCount = metadata.projectCount || 0;
             const cachedUpdateCounter = metadata.updateCounter || 0;
             const lastCached = metadata.lastCached ? new Date(metadata.lastCached).getTime() : 0;
             const isRecent = (Date.now() - lastCached) < (15 * 60 * 1000); // 15 mins
+
+            if (cachedArrayCount === 0 || cachedCount !== cachedArrayCount) {
+                console.log('Cached project array length mismatch, fetching fresh data');
+                return false;
+            }
             
-            console.log(`📦 Cached: ${cachedCount} projects, update counter: ${cachedUpdateCounter}`);
+            console.log(`Cached: ${cachedCount} projects, update counter: ${cachedUpdateCounter}`);
             
             // Try fetching RTDB counters with timeout
             let rtdbData = null;
@@ -627,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!rtdbData) {
                 // If RTDB is temporarily unreachable, trust fresh local cache
-                if (isRecent && cachedCount > 0) {
+                if (isRecent && cachedCount > 0 && cachedArrayCount > 0) {
                     console.log('RTDB offline, using fresh local cache');
                     return true;
                 }
@@ -637,16 +645,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentCount = rtdbData.projects_document_count || 0;
             const currentUpdateCounter = rtdbData.update_counter || 0;
             
-            console.log(`🔄 RTDB: ${currentCount} projects, update counter: ${currentUpdateCounter}`);
+            console.log(`RTDB: ${currentCount} projects, update counter: ${currentUpdateCounter}`);
             
             // Compare counters
-            if (cachedCount !== currentCount) {
-                console.log('⚠️ Project count mismatch! Cache outdated (new project added/deleted)');
+            if (cachedCount !== currentCount || cachedArrayCount !== currentCount) {
+                console.log('Project count mismatch! Cache outdated (new project added/deleted)');
                 return false;
             }
             
             if (cachedUpdateCounter !== currentUpdateCounter) {
-                console.log('⚠️ Update counter mismatch! Cache outdated (project was updated)');
+                console.log('Update counter mismatch! Cache outdated (project was updated)');
                 return false;
             }
             
@@ -707,9 +715,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // RTDB optional - use fallback metadata
             }
             
+            const safeProjects = Array.isArray(projects) ? projects : [];
             const metadata = {
-                projectCount: rtdbData.projects_document_count || projects.length,
-                updateCounter: rtdbData.update_counter || Date.now(),
+                projectCount: safeProjects.length,
+                updateCounter: typeof rtdbData.update_counter === 'number' ? rtdbData.update_counter : Date.now(),
                 lastCached: new Date().toISOString()
             };
             
@@ -1388,8 +1397,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const count = await response.json();
-                if (countElement && count !== null && count !== undefined) {
-                    countElement.textContent = count;
+                if (countElement && typeof count === 'number' && count >= 0) {
+                    if (Array.isArray(allProjects) && allProjects.length > 0) {
+                        countElement.textContent = allProjects.length;
+                    } else {
+                        countElement.textContent = count;
+                    }
                     return;
                 }
             }
