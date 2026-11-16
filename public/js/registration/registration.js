@@ -52,6 +52,50 @@
         }
     }
 
+    function normalizeInstitutionalId(rawId) {
+        if (typeof rawId !== 'string' && typeof rawId !== 'number') return '';
+        return String(rawId).trim().replace(/[\s-]+/g, '').toLowerCase();
+    }
+
+    async function fetchRegistrationApi(apiPath, payload, { idToken = null, timeoutMs = 30000 } = {}) {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const endpoints = isLocal
+            ? [`http://localhost:3001${apiPath}`, `https://recap-backend-jy5b.onrender.com${apiPath}`]
+            : [`https://recap-backend-jy5b.onrender.com${apiPath}`];
+
+        let lastNetworkErr = null;
+        for (const url of endpoints) {
+            const controller = new AbortController();
+            const timerId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload),
+                    signal: controller.signal
+                });
+                clearTimeout(timerId);
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (parseErr) {
+                    data = null;
+                }
+                return { response, data };
+            } catch (err) {
+                clearTimeout(timerId);
+                lastNetworkErr = err;
+                if (url.startsWith('http://localhost:3001')) {
+                    continue;
+                }
+                throw err;
+            }
+        }
+        throw lastNetworkErr || new Error('Unable to connect to the registration verification server.');
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         // Reset body padding
         document.body.style.paddingTop = "0px";
@@ -1873,6 +1917,11 @@
         async function processIdImage(imageSource) {
             if (isOcrProcessing) return;
             isOcrProcessing = true;
+            verifiedIdData = null;
+            if (nextToStep3Btn) {
+                nextToStep3Btn.disabled = true;
+                attachTooltipToButton(nextToStep3Btn, 'Please scan and verify your official CTU ID card first');
+            }
 
             if (cameraCapturePanel) cameraCapturePanel.style.display = 'none';
             if (uploadCapturePanel) uploadCapturePanel.style.display = 'none';
@@ -1979,11 +2028,11 @@
                 updateOcrStatus('Parsing institutional records...', 90, 'PARSING');
                 const parsed = parseCtuIdText(combinedText, { idNumber: idDigits });
 
-                // Lazy background duplicate check: force rescan if ID already exists
+                // Authoritative ID uniqueness check: never allow duplicate IDs or fail open
                 updateOcrStatus('Checking ID uniqueness in records...', 95, 'DUPLICATE CHECK');
                 const idAlreadyExists = await checkIdAlreadyExists(parsed.idNumber);
                 if (idAlreadyExists) {
-                    throw new Error(`ID Number (${parsed.idNumber}) is already registered in the system. The optical scanner may have misread the digits, or this ID already has an account. Please scan again in a well-lit area or upload a clear, bright photo.`);
+                    throw new Error(`ID Number (${parsed.idNumber}) is already registered in the system. Duplicate accounts using an existing ID are not permitted. If the optical scanner misread a digit, please rescan in bright light.`);
                 }
 
                 parsed.cardThumbnail = imageSource;
@@ -2013,34 +2062,73 @@
             }
         }
 
-        // Lazy background check: Determine if an ID number is already taken
-        async function checkIdAlreadyExists(idNumber) {
-            if (!idNumber) return false;
-            const cleanId = String(idNumber).trim().toLowerCase();
+        // Fail-closed uniqueness verification: checks local mock cache, backend Admin SDK registry, and Firestore
+        async function checkIdAlreadyExists(idNumber, options = {}) {
+            const rawTrimmed = String(idNumber || '').trim();
+            const cleanCanonical = normalizeInstitutionalId(rawTrimmed);
+            if (!cleanCanonical || !/^[a-z0-9]{4,24}$/.test(cleanCanonical)) {
+                throw new Error('Invalid institutional ID format detected. Please rescan your CTU ID card.');
+            }
+
+            const excludeUid = options.excludeUid || null;
+            const excludeEmail = options.excludeEmail ? String(options.excludeEmail).trim().toLowerCase() : null;
 
             // 1. Check local mock storage
             try {
                 const mockUsers = JSON.parse(localStorage.getItem('reCapsMockUsers') || '[]');
                 const localMatch = mockUsers.some(u => {
-                    const sid = String(u.studentId || u.teacherId || '').trim().toLowerCase();
-                    return sid === cleanId;
+                    if (excludeUid && u.uid === excludeUid) return false;
+                    if (excludeEmail && u.email && String(u.email).trim().toLowerCase() === excludeEmail) return false;
+                    const existingCanonical = normalizeInstitutionalId(
+                        u.studentId || u.teacherId || u.idNumber || u.employeeId || ''
+                    );
+                    return existingCanonical && existingCanonical === cleanCanonical;
                 });
                 if (localMatch) return true;
             } catch (e) { }
 
-            // 2. Check Firestore users collection (lazy query)
-            if (typeof db !== 'undefined' && db && db.collection) {
-                try {
-                    const sSnap = await db.collection('users').where('studentId', '==', idNumber).limit(1).get();
-                    if (!sSnap.empty) return true;
+            // 2. Authoritative backend check (works pre-auth during Step 1 OCR and post-auth)
+            let serverError = null;
+            try {
+                const { response, data } = await fetchRegistrationApi(
+                    '/api/auth/check-id-unique',
+                    { idNumber: rawTrimmed },
+                    { idToken: options.idToken || null }
+                );
+                if (response.ok && data && data.success) {
+                    return Boolean(data.duplicate || data.available === false);
+                }
+                serverError = new Error(
+                    (data && data.error) || `ID uniqueness verification returned status ${response.status}.`
+                );
+            } catch (apiErr) {
+                serverError = apiErr;
+            }
 
-                    const tSnap = await db.collection('users').where('teacherId', '==', idNumber).limit(1).get();
-                    if (!tSnap.empty) return true;
+            // 3. Authenticated Firestore fallback only if user already signed in
+            if (typeof auth !== 'undefined' && auth && auth.currentUser && typeof db !== 'undefined' && db && db.collection) {
+                try {
+                    const candidates = Array.from(new Set([rawTrimmed, cleanCanonical, cleanCanonical.toUpperCase()].filter(Boolean)));
+                    const fields = ['studentId', 'teacherId', 'idNumber', 'employeeId'];
+                    for (const field of fields) {
+                        const snap = await db.collection('users').where(field, 'in', candidates).limit(5).get();
+                        for (const doc of snap.docs) {
+                            if (!excludeUid || doc.id !== excludeUid) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
                 } catch (fsErr) {
-                    console.debug('[ID Check] Firestore check bypassed or offline:', fsErr);
+                    console.warn('[ID Check] Authenticated Firestore fallback failed:', fsErr);
                 }
             }
-            return false;
+
+            // Fail CLOSED: never silently allow a scan/registration when uniqueness cannot be verified
+            throw new Error(
+                (serverError && serverError.message) ||
+                `Unable to verify uniqueness of ID Number (${rawTrimmed}) with the server. Please check your internet connection and try again.`
+            );
         }
 
         function updateOcrStatus(message, progressPct, reticleTag) {
@@ -3559,9 +3647,9 @@
             });
         }
 
-        // Step 4 (Faculty Affiliation) Next button -> proceeds to Step 5 (Create Password)
+        // Step 4 (Faculty Affiliation) Next button -> validates Teacher Employee ID uniqueness before Step 5
         if (nextToStep5Btn) {
-            nextToStep5Btn.addEventListener('click', () => {
+            nextToStep5Btn.addEventListener('click', async () => {
                 if (userType === 'teacher') {
                     const teacherId = teacherIdInput ? teacherIdInput.value.trim() : '';
                     const teacherCollege = teacherCollegeInput ? teacherCollegeInput.value : '';
@@ -3570,9 +3658,46 @@
                         showToast('Please enter your Employee ID', '⚠️');
                         return;
                     }
+                    const canonicalTeacherId = normalizeInstitutionalId(teacherId);
+                    if (!canonicalTeacherId || !/^[a-z0-9]{4,24}$/.test(canonicalTeacherId)) {
+                        showToast('Employee ID must be 4-24 alphanumeric characters.', '❌');
+                        if (teacherIdInput) teacherIdInput.focus();
+                        return;
+                    }
                     if (!teacherCollege) {
                         showToast('Please select your College (COTE or COED)', '⚠️');
                         return;
+                    }
+
+                    const originalBtnHtml = nextToStep5Btn.innerHTML;
+                    nextToStep5Btn.disabled = true;
+                    nextToStep5Btn.textContent = 'Verifying ID...';
+                    try {
+                        const idToken = (googleUser && typeof googleUser.getIdToken === 'function')
+                            ? await googleUser.getIdToken()
+                            : null;
+                        const isDuplicate = await checkIdAlreadyExists(teacherId, {
+                            excludeUid: googleUser ? googleUser.uid : null,
+                            excludeEmail: verifiedEmail,
+                            idToken
+                        });
+                        if (isDuplicate) {
+                            showToast(`Employee ID (${teacherId}) is already registered to another account.`, '❌');
+                            if (teacherIdInput) {
+                                teacherIdInput.focus();
+                                teacherIdInput.classList.add('shake');
+                                setTimeout(() => teacherIdInput.classList.remove('shake'), 500);
+                            }
+                            return;
+                        }
+                        if (verifiedIdData) verifiedIdData.idNumber = teacherId;
+                        if (summaryIdVal) summaryIdVal.textContent = teacherId;
+                    } catch (verifyErr) {
+                        showToast(verifyErr.message || 'Unable to verify Employee ID uniqueness. Please try again.', '❌');
+                        return;
+                    } finally {
+                        nextToStep5Btn.disabled = false;
+                        nextToStep5Btn.innerHTML = originalBtnHtml;
                     }
                 }
 
@@ -4278,20 +4403,31 @@
                     college = teacherCollegeInput.value;
                 }
 
-                // Account De-duplication Check against local Simulated Database
-                const mockDb = JSON.parse(localStorage.getItem('reCapsMockUsers')) || [];
-                const idExists = mockDb.some(u => {
-                    if (u.uid === googleUser.uid || (u.email && u.email.toLowerCase() === verifiedEmail.toLowerCase())) {
-                        return false;
-                    }
-                    const existingId = u.studentId || u.teacherId;
-                    return existingId && existingId.toLowerCase() === registeredId.toLowerCase();
-                });
-
-                if (idExists) {
-                    showToast(`⚠️ Validation Error: ID number (${registeredId}) is already taken.`, '❌');
+                if (!registeredId || !/^[a-z0-9]{4,24}$/.test(normalizeInstitutionalId(registeredId))) {
+                    showToast('Validation Error: A valid Student or Employee ID is required.', '❌');
                     return;
                 }
+
+                // Authoritative pre-link ID de-duplication check (local + server registry + Firestore)
+                try {
+                    const preCheckToken = (typeof googleUser.getIdToken === 'function')
+                        ? await googleUser.getIdToken()
+                        : null;
+                    const idExists = await checkIdAlreadyExists(registeredId, {
+                        excludeUid: googleUser.uid,
+                        excludeEmail: verifiedEmail,
+                        idToken: preCheckToken
+                    });
+                    if (idExists) {
+                        showToast(`Validation Error: ID number (${registeredId}) is already registered to another account.`, '❌');
+                        return;
+                    }
+                } catch (preCheckErr) {
+                    showToast(preCheckErr.message || 'Unable to verify ID uniqueness. Please check your connection and try again.', '❌');
+                    return;
+                }
+
+                const mockDb = JSON.parse(localStorage.getItem('reCapsMockUsers')) || [];
 
                 // --- ENTER SECURE BLUR & LOCKDOWN STATE ---
                 isCreatingAccount = true;
@@ -4391,8 +4527,8 @@
                     }
                 }
 
-                // Step 2: Update Firebase display name if needed & save to Firestore
-                showCreatingAccountOverlay('Saving profile to institutional database...', 65, 1);
+                // Step 2: Update Firebase display name if needed & atomically claim unique ID + profile via backend
+                showCreatingAccountOverlay('Securing unique ID and saving institutional profile...', 65, 1);
 
                 if (user.displayName !== fullName) {
                     await user.updateProfile({
@@ -4400,25 +4536,36 @@
                     });
                 }
 
-                await db.collection('users').doc(user.uid).set({
-                    uid: user.uid,
-                    userType: userData.userType,
-                    firstName: userData.firstName,
-                    middleName: userData.middleName,
-                    lastName: userData.lastName,
-                    fullName: fullName,
-                    email: userData.email,
-                    photoURL: userData.photoURL,
-                    studentId: userData.studentId || null,
-                    teacherId: userData.teacherId || null,
-                    college: userData.college,
-                    program: userData.program || null,
-                    securityQuestion: userData.securityQuestion || null,
-                    securityAnswer: userData.securityAnswer || null,
-                    authProviders: ['google.com', 'password'],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                const freshIdToken = (typeof user.getIdToken === 'function')
+                    ? await user.getIdToken(true)
+                    : null;
+                if (!freshIdToken) {
+                    throw new Error('Authentication session token unavailable. Please reconnect and try again.');
+                }
+
+                const { response: regResp, data: regData } = await fetchRegistrationApi(
+                    '/api/auth/register-profile',
+                    {
+                        userType: userData.userType,
+                        firstName: userData.firstName,
+                        middleName: userData.middleName,
+                        lastName: userData.lastName,
+                        fullName: fullName,
+                        email: userData.email,
+                        photoURL: userData.photoURL,
+                        registeredId: registeredId,
+                        college: userData.college,
+                        program: userData.program || null,
+                        department: userData.department || null,
+                        securityQuestion: userData.securityQuestion || null,
+                        securityAnswer: userData.securityAnswer || null
+                    },
+                    { idToken: freshIdToken }
+                );
+
+                if (!regResp.ok || !regData || !regData.success) {
+                    throw new Error((regData && regData.error) || `Unable to finalize profile (${regResp.status}).`);
+                }
 
                 // Step 3: Local secure storage hash & finalize
                 showCreatingAccountOverlay('Finalizing account and preparing dashboard...', 95, 2);
