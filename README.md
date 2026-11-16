@@ -256,6 +256,25 @@ node scripts/preflight.js
 
 ## 📝 8. Recent Changelog & Visual Enhancements
 
+- **Institutional Figure & Diagram Box Standard (Pillar 4 — Strict Academic Geometry) & Fig. 4 Alignment (`Chapter1_Capstone_Enhanced.docx`):**
+  - *Universal Figure Box Formatting Standard:* Enforced strict academic geometry across all architectural diagrams, functional decomposition diagrams, flowcharts, entity boxes, and component shapes throughout the thesis manuscript (`.docx` and exported `.pdf`):
+    - **Font:** Strictly `Tahoma` across all text inside figure boxes (`w:rFonts w:ascii="Tahoma" w:hAnsi="Tahoma" w:cs="Tahoma"`).
+    - **Line & Paragraph Spacing:** Strictly single line spacing `1.0` (`w:line="240" w:lineRule="auto"`) with zero before/after spacing (`w:before="0" w:after="0"`).
+    - **Background Fill:** Pure solid white background (`#FFFFFF`, `<a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>` in DrawingML, `fillcolor="#FFFFFF"` in VML fallback). Completely eliminated transparent fills (`noFill`) and theme tints (`sysClr`).
+    - **Borders & Strokes:** Crisp, solid black border (`#000000`, 0.75pt–1pt stroke, `<a:ln>` with `<a:srgbClr val="000000"/>` and VML `strokecolor="#000000"`).
+    - **Text Color:** Solid full black text (`#000000`, `<w:color w:val="000000"/>`).
+    - **Margins & Insets:** Strict zero margins `00` (`lIns="0" tIns="0" rIns="0" bIns="0"` in DrawingML `<wps:bodyPr>`, and `inset="0,0,0,0"` in VML `<v:textbox>`).
+  - *Fig. 4 (Functional Decomposition Diagram) Rigorous Audit & Defect Remediation:*
+    - Audited Fig. 4 ("Functional Decomposition Diagram of the AI-Integrated Capstone Metadata Repository") and identified that it was **NOT** originally correct, containing 7 critical discrepancies against the research methodology and codebase:
+      1. Contained obsolete `Chicago` citation style references (removed in accordance with the study's scope of APA 7th, MLA 9th, and IEEE formats).
+      2. Contained spelling typo `RAG DRIVEN AI CHATBOT ASSISSTANT` (corrected to `ASSISTANT`).
+      3. Contained non-standard lowercase `(archival)` (corrected to `(ARCHIVAL)`).
+      4. Contained missing space in `upload &delete` (corrected to `upload & delete`).
+      5. Contained outdated cataloging labels `call no., accession no., subject heading` (standardized to `Call No., Accession No., Shelf Location`).
+      6. Contained transparent / system-tinted box backgrounds instead of solid white.
+      7. Contained non-zero box insets and non-single line spacing instead of strict `00` margins and `1.0` line spacing.
+    - *ECMA-376 DrawingML Schema-Compliant Repair:* Re-architected `apply_fig4_box_styling()` in `scratch/transform_manuscript.py` to adhere strictly to OpenXML schema element sequencing in `wps:spPr` (`xfrm` -> `prstGeom` -> `solidFill` -> `ln`), eliminating conflicting `<a:noFill>` tags and guaranteeing flawless opening and repagination in Microsoft Word COM.
+    - *Zero-Fault Verification:* Verified that all 35 DrawingML boxes and 35 VML fallback shapes in Fig. 4 pass with `non_white=0`, `non_black_border=0`, `non_zero_ins=0`, `non_single_spc=0`, `non_tahoma=0`, `non_black_text=0`, and `chicago_found=0`. Word COM repagination and PDF export completed cleanly with 0 stale terms, 0 blank pages, and 0 `PAGEREF` mismatches.
 - **Universal Auto-Save Architecture Across All "Add New Project" Modals & Workstations:** Standardized comprehensive draft preservation across all project submission modals in every corner of the system (`admin_page.html`, `librarian_page.html`, `public/js/admin/main.js`, `public/js/pages/librarian_main.js`, `librarian_renovated.css`):
   - *Unified Auto-Save Switch Interface & Layout Protection:* Integrated the identical tactile toggle switch (`.pmodal-autosave-label`, `.pmodal-autosave-track`, `.pmodal-autosave-thumb`, `.pmodal-autosave-text`) in the header of the Librarian "Add New Project" modal (`#upload-metadata-modal`), seamlessly aligned with the Admin Capstone modal (`#project-modal`). Hardened flexbox properties with `white-space: nowrap`, `flex-shrink: 0`, and `min-width: 0` on `.pmodal-header-left`, eliminating text-wrapping collisions between long subtitles and the Auto-save label.
   - *Symmetric Switch Thumb Calibration:* Calibrated the 38px switch capsule with `translateX(18px)` translation, ensuring exact 2px margin symmetry on both active and inactive states with zero capsule overhang.
