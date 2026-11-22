@@ -29,13 +29,22 @@ service cloud.firestore {
       );
     }
 
-    // Projects collection (Public read; Admin create/delete; Staff metadata updates; safe saveCount toggles)
+    // Projects collection (Public read; Admin create/delete; Staff metadata updates; authenticated ±1 saveCount toggles)
     match /projects/{projectId} {
       allow read: if true;
       allow create, delete: if isAdmin();
       allow update: if isStaff() || (
+        isSignedIn() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['saveCount']) &&
-        request.resource.data.saveCount is number
+        request.resource.data.saveCount is number &&
+        request.resource.data.saveCount >= 0 &&
+        (
+          (resource.data.keys().hasAny(['saveCount']) &&
+            (request.resource.data.saveCount == resource.data.saveCount + 1 ||
+             request.resource.data.saveCount == resource.data.saveCount - 1)) ||
+          (!resource.data.keys().hasAny(['saveCount']) &&
+            request.resource.data.saveCount == 1)
+        )
       );
     }
 
@@ -61,18 +70,23 @@ service cloud.firestore {
       );
     }
 
-    // Users collection (Self-updates cannot modify role, locked institutional IDs, or moderation fields)
+    // Users collection (Self-updates cannot modify role, locked institutional IDs, or moderation fields;
+    // 2FA Telegram enrollment & 24-hour securityLockout fields are strictly Server Admin SDK only)
     match /users/{userId} {
       allow read: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (
-        isSignedIn() &&
-        request.auth.uid == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'userType', 'role', 'studentId', 'teacherId', 'idNumber', 'employeeId',
-          'idVerification', 'idCardVerified', 'status', 'suspensionReason',
-          'suspendedDuration', 'authProviders', 'uid', 'email'
-        ])
+      allow update: if !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'telegramChatId', 'telegramVerified', 'telegramLinkedAt', 'telegramUsername', 'securityLockout'
+      ]) && (
+        isAdmin() || (
+          isSignedIn() &&
+          request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'userType', 'role', 'studentId', 'teacherId', 'idNumber', 'employeeId',
+            'idVerification', 'idCardVerified', 'status', 'suspensionReason',
+            'suspendedDuration', 'authProviders', 'uid', 'email'
+          ])
+        )
       );
     }
 

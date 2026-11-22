@@ -506,9 +506,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                          (error.message && error.message.toLowerCase().includes('popup'));
 
                     if (isPopupIssue) {
-                        showToast('Google Sign-In popups are blocked in this IDE preview pane. Click the ↗ (Open in Browser) icon at top right or log in with Email & Password.', '⚠️');
+                        showToast('Google Sign-In popup was blocked by your browser. Please allow popups for this site or sign in with Email & Password.', 'warning');
                     } else {
-                        showToast('Sign-in failed: ' + error.message, '❌');
+                        showToast('Sign-in failed. Please verify your credentials and try again.', 'error');
                     }
                 }
             });

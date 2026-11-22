@@ -77,24 +77,10 @@
     // INIT
     // ─────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', async () => {
-        // Auth guard
+        // Strict Firebase Auth + Firestore Librarian RBAC guard (zero client bypasses)
         await new Promise(resolve => {
-            const isPreview = new URLSearchParams(window.location.search).get('preview') === 'true' ||
-                              localStorage.getItem('previewMode') === 'true' ||
-                              localStorage.getItem('bypassAuth') === 'true';
-            if (isPreview) {
-                currentUser = {
-                    uid: 'librarian-preview',
-                    email: 'librarian@ctu.edu.ph',
-                    displayName: 'Head Librarian',
-                    emailVerified: true
-                };
-                currentUserData = { fullName: 'Head Librarian', userType: 'librarian' };
-                sessionStorage.setItem('userId', currentUser.uid);
-                sessionStorage.setItem('userEmail', currentUser.email);
-                sessionStorage.setItem('userName', currentUser.displayName);
-                sessionStorage.setItem('userType', 'librarian');
-                resolve(true);
+            if (typeof auth === 'undefined' || !auth) {
+                window.location.href = '../index.html';
                 return;
             }
 
@@ -3301,7 +3287,8 @@
                        <span>Shelved by <strong>${escapeHtml(updatedByName || 'Librarian')}</strong> · ${formatDate(note?.updatedAt || note?.createdAt || p.lastCatalogedAt)}</span>
                    </div>`
                 : `<div class="catalog-card-accountability unassigned">
-                       <span>⚪ Awaiting physical shelving</span>
+                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                       <span>Awaiting physical shelving</span>
                    </div>`;
 
             const isLocked = Boolean(p.isLockedByAdmin);
@@ -3371,8 +3358,8 @@
                 primaryBtn = `
                     <button class="catalog-btn-primary ${isShelved ? 'btn-edit-shelf' : 'btn-add-shelf'}" onclick="window.__libOpenCatalogNote('${escapeHtml(p.id)}')">
                         ${isShelved
-                            ? '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 16.5-3.5z"/></svg> Edit Shelf &amp; Classification'
-                            : '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Assign Shelf Location'}
+                            ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Edit Shelf &amp; Classification</span>'
+                            : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Assign Shelf Location</span>'}
                     </button>
                 `;
             }

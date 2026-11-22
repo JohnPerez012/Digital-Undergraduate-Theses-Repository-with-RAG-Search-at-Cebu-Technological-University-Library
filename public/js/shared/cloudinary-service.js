@@ -211,11 +211,23 @@ const CloudinaryService = {
                 ? 'http://localhost:3001'
                 : 'https://recap-backend-jy5b.onrender.com';
 
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            try {
+                if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+                    const idToken = await firebase.auth().currentUser.getIdToken();
+                    if (idToken) {
+                        headers['Authorization'] = `Bearer ${idToken}`;
+                    }
+                }
+            } catch (tokenErr) {
+                console.warn('Could not attach auth token for Cloudinary delete:', tokenErr);
+            }
+
             const response = await fetch(`${backendUrl}/api/cloudinary/delete`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers,
                 body: JSON.stringify({ publicId })
             });
 

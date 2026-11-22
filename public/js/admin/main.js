@@ -76,6 +76,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'https://recap-backend-jy5b.onrender.com';
     }
 
+    // ===== Authenticated Staff/Admin Request Headers Helper =====
+    async function getAdminAuthHeaders(extraHeaders = {}) {
+        const headers = { ...extraHeaders };
+        try {
+            if (typeof auth !== 'undefined' && auth && auth.currentUser) {
+                const idToken = await auth.currentUser.getIdToken();
+                if (idToken) {
+                    headers['Authorization'] = `Bearer ${idToken}`;
+                }
+            }
+        } catch (tokenErr) {
+            console.warn('Could not obtain Firebase ID token:', tokenErr);
+        }
+        return headers;
+    }
+
     // ===== Title Normalization (for duplicate detection) =====
     // Collapses whitespace and lowercases so "Effect of Guyabano" === "effect of  guyabano"
     function normalizeTitle(str) {
@@ -986,7 +1002,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function checkPineconeSyncStatus() {
         try {
             const backendUrl = getBackendUrl();
-            const res = await fetch(`${backendUrl}/api/projects/sync-status`);
+            const authHeaders = await getAdminAuthHeaders();
+            const res = await fetch(`${backendUrl}/api/projects/sync-status`, {
+                headers: authHeaders
+            });
             if (!res.ok) return;
 
             const data = await res.json();
@@ -4185,9 +4204,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log('🔄 Deleting project from Pinecone...');
                 const backendUrl = getBackendUrl();
+                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 const deleteResponse = await fetch(`${backendUrl}/api/projects/sync/${secureDeleteProjectId}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: authHeaders
                 });
 
                 if (!deleteResponse.ok) {
@@ -4346,9 +4366,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const backendUrl = getBackendUrl();
             let authDeleted = false;
             try {
+                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 const response = await fetch(`${backendUrl}/api/users/${userId}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         email: userData?.email || '',
                         fullName: name || userData?.fullName || ''
@@ -5231,9 +5252,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (pineconeCurrentProjectTitle) pineconeCurrentProjectTitle.textContent = project.title || project.id;
 
             try {
+                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 const response = await fetch(`${backendUrl}/api/projects/sync`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         projectId: project.id,
                         projectData: project
@@ -5423,11 +5445,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const project = (allProjectsData || []).find(p => p.id === projectId);
             const backendUrl = getBackendUrl();
+            const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
             const response = await fetch(`${backendUrl}/api/projects/sync`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: authHeaders,
                 body: JSON.stringify({
                     projectId,
                     projectData: project || undefined
@@ -6548,11 +6569,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log('🔄 Syncing project to Pinecone...');
                 const backendUrl = getBackendUrl();
+                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         projectId,
                         projectData: updatedData
@@ -6718,11 +6738,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log('🔄 Syncing new project to Pinecone...');
                 const backendUrl = getBackendUrl();
+                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         projectId,
                         projectData: newProject
@@ -8358,9 +8377,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 3. Trigger Pinecone background vector sync
             try {
                 const backendUrl = getBackendUrl();
+                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 fetch(`${backendUrl}/api/projects/sync`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         projectId: docRef.id,
                         projectData: approvedProject
@@ -10251,9 +10271,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             // Sync to Pinecone (backend)
                             try {
                                 const backendUrl = getBackendUrl();
+                                const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                                 const syncResponse = await fetch(`${backendUrl}/api/projects/sync`, {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
+                                    headers: authHeaders,
                                     body: JSON.stringify({
                                         projectId: docRef.id,
                                         projectData: {
@@ -11447,12 +11468,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (controller) controller.abort();
                 }, 35000);
 
+                const authHeaders = await getAdminAuthHeaders({
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream'
+                });
                 const response = await fetch(`${apiBase}/api/staff-copilot/chat`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'text/event-stream'
-                    },
+                    headers: authHeaders,
                     body: JSON.stringify({
                         message: text,
                         userRole: 'admin',

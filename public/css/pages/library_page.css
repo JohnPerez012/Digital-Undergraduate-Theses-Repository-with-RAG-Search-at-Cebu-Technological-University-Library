@@ -708,9 +708,9 @@ body {
 
 /* Unhovered semantic state hints */
 .action-btn.action-view {
-    color: var(--librarian-accent, #3b82f6);
-    border-color: rgba(59, 130, 246, 0.3);
-    background: rgba(59, 130, 246, 0.04);
+    color: var(--librarian-accent, #08D488);
+    border-color: rgba(8, 212, 136, 0.3);
+    background: rgba(8, 212, 136, 0.05);
 }
 
 .action-btn.action-edit {
@@ -763,10 +763,10 @@ body {
 /* Hover themes for each action */
 .action-btn.action-view:hover,
 .action-btn.action-view:focus-visible {
-    background: var(--librarian-accent, #3b82f6) !important;
-    border-color: var(--librarian-accent, #3b82f6) !important;
+    background: var(--librarian-accent, #08D488) !important;
+    border-color: var(--librarian-accent, #08D488) !important;
     color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.35);
 }
 
 .action-btn.action-edit:hover,

@@ -1,6 +1,20 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null"
+    ".read": true,
+    ".write": false,
+    "projects_document_count": {
+      ".write": "auth != null && (auth.token.role === 'admin' || auth.token.role === 'librarian')",
+      ".validate": "newData.isNumber() && newData.val() >= 0"
+    },
+    "update_counter": {
+      ".write": "auth != null && (auth.token.role === 'admin' || auth.token.role === 'librarian')",
+      ".validate": "newData.isNumber() && newData.val() >= 0"
+    },
+    "recent update": {
+      ".write": "auth != null && (auth.token.role === 'admin' || auth.token.role === 'librarian')"
+    },
+    "prev update": {
+      ".write": "auth != null && (auth.token.role === 'admin' || auth.token.role === 'librarian')"
+    }
   }
 }

@@ -351,10 +351,13 @@
         if (btn) btn.disabled = true;
 
         const startTime = performance.now();
+        const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:3001'
+            : 'https://recap-backend-jy5b.onrender.com';
         try {
-            const res = await fetch('http://localhost:3001/api/health', {
+            const res = await fetch(`${apiBase}/api/health`, {
                 method: 'GET',
-                signal: AbortSignal.timeout(4000)
+                signal: AbortSignal.timeout(8000)
             });
 
             const latency = Math.round(performance.now() - startTime);
@@ -363,7 +366,7 @@
                 const data = await res.json();
                 if (resultBox) {
                     resultBox.style.display = 'block';
-                    resultBox.innerHTML = `⚡ <strong>Backend Healthy (${latency}ms)</strong> &bull; Firebase: ${data.firebase} &bull; Pinecone: ${data.pinecone} &bull; Primary: Mistral AI`;
+                    resultBox.innerHTML = `<strong>Backend Healthy (${latency}ms)</strong> &bull; Firebase: ${data.firebase} &bull; Pinecone: ${data.pinecone} &bull; Primary: Mistral AI`;
                 }
                 if (typeof showToast === 'function') {
                     showToast(`AI Vector Engine is online (${latency}ms latency)`, 'success');
@@ -375,10 +378,10 @@
             const latency = Math.round(performance.now() - startTime);
             if (resultBox) {
                 resultBox.style.display = 'block';
-                resultBox.innerHTML = `⚠️ <strong>AI Endpoint Latency: ${latency}ms</strong> (Local client fallback operational)`;
+                resultBox.innerHTML = `<strong>AI Endpoint Latency: ${latency}ms</strong> (Local client fallback operational)`;
             }
             if (typeof showToast === 'function') {
-                showToast(`ℹ️ AI pipeline online via local fallback (${latency}ms)`, 'info');
+                showToast(`AI pipeline online via local fallback (${latency}ms)`, 'info');
             }
         } finally {
             if (btnText) btnText.textContent = 'Check API Health';

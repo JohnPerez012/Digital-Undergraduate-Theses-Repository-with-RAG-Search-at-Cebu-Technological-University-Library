@@ -1,3 +1,16 @@
+// Production Console Hygiene: suppress verbose debug logs on live non-localhost origins
+(function suppressProductionDebugLogs() {
+  if (typeof window === 'undefined') return;
+  var host = window.location.hostname;
+  var isLocal = (host === 'localhost' || host === '127.0.0.1' || host === '');
+  if (!isLocal) {
+    var noop = function() {};
+    console.log = noop;
+    console.debug = noop;
+    console.info = noop;
+  }
+})();
+
 // Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyD-cx4ujJ2RUq6TZ8fUaNetft05OuTW4vk",
@@ -50,13 +63,9 @@ if (!auth || !db) {
                 return Promise.resolve();
             },
             onAuthStateChanged: function(callback) {
-                let cachedUser = null;
-                try {
-                    const u = sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
-                    if (u) cachedUser = JSON.parse(u);
-                } catch (e) {}
+                // Fail closed when offline/Firebase unavailable: never trust client storage for auth state
                 setTimeout(() => {
-                    if (typeof callback === 'function') callback(cachedUser);
+                    if (typeof callback === 'function') callback(null);
                 }, 20);
                 return function() {}; // Unsubscribe no-op
             },

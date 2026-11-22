@@ -184,7 +184,7 @@ body {
 .rail-nav-item.active {
     background: var(--rail-active-bg);
     color: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(8, 212, 136, 0.3);
 }
 
 .rail-nav-item.active .rail-nav-icon {
