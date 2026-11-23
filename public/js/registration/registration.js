@@ -2051,7 +2051,7 @@
                 showOcrError(userMsg);
                 if (idCapturedPreview) idCapturedPreview.src = imageSource;
                 if (window.showToast) {
-                    showToast(userMsg, '⚠️');
+                    showToast(userMsg, 'error');
                 }
             } finally {
                 if (worker) {
@@ -2125,9 +2125,13 @@
             }
 
             // Fail CLOSED: never silently allow a scan/registration when uniqueness cannot be verified
+            const rawErrMsg = (serverError && serverError.message) ? String(serverError.message) : '';
+            const isNetworkErr = /failed to fetch|networkerror|load failed|aborted|timeout/i.test(rawErrMsg) ||
+                (serverError && serverError.name === 'AbortError');
             throw new Error(
-                (serverError && serverError.message) ||
-                `Unable to verify uniqueness of ID Number (${rawTrimmed}) with the server. Please check your internet connection and try again.`
+                isNetworkErr
+                    ? `ID verification server unreachable. Your CTU ID (${rawTrimmed}) was scanned, but the server could not be reached. Please check your connection and try again.`
+                    : (rawErrMsg || `Unable to verify uniqueness of ID Number (${rawTrimmed}) with the server. Please check your internet connection and try again.`)
             );
         }
 
