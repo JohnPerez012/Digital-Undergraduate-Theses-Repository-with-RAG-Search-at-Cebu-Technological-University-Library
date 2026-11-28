@@ -1344,8 +1344,8 @@
             for (let i = 0; i < words.length; i++) {
                 const t = norm(words[i]);
                 const prev = i > 0 ? norm(words[i - 1]) : '';
-                const isNoLabel = /^N[o0]\.?:?/i.test(t);
-                const prevIsId = /^(I[D0O]|1D|lD)\.?$/i.test(prev) || /Employ/i.test(prev);
+                const isNoLabel = /^N[o0]\.?:?$/i.test(t);
+                const prevIsId = /^(I[D0O]|1D|lD|10)\.?$/i.test(prev) || /Employ/i.test(prev);
                 if ((isNoLabel && prevIsId) || /^I[D0O]N[o0]/i.test(t)) {
                     anchor = words[i]; // keep the last (bottom-most) occurrence
                 }
@@ -1398,9 +1398,14 @@
                 const r = await worker.recognize(crop);
                 let txt = ((r && r.data && r.data.text) || '').trim();
                 if (!cleanLabelOnly) {
-                    // Keep only what follows the "No.:" label, then fix o→0 / I→1
-                    const cut = Math.max(txt.lastIndexOf(':'), txt.lastIndexOf('.'));
-                    if (cut !== -1 && /\d{4,}/.test(txt.slice(cut + 1))) txt = txt.slice(cut + 1);
+                    // Strip trailing/leading "ID No." prefix before converting o→0 / I→1 so "No" never adds a leading 0
+                    const labelMatch = txt.match(/(?:I[D0O]\s*)?N[oO0]\.?\s*[:.;]?\s*(.+)$/i);
+                    if (labelMatch) {
+                        txt = labelMatch[1];
+                    } else {
+                        const cut = Math.max(txt.lastIndexOf(':'), txt.lastIndexOf('.'));
+                        if (cut !== -1 && /\d{4,}/.test(txt.slice(cut + 1))) txt = txt.slice(cut + 1);
+                    }
                     txt = txt.replace(/o/g, '0').replace(/I/g, '1');
                 }
                 const runs = txt.match(/\d{4,10}/g);
@@ -1417,6 +1422,78 @@
             const ranked = Object.keys(votes).sort((a, c) =>
                 (votes[c].count - votes[a].count) || (votes[c].conf - votes[a].conf) || (c.length - a.length));
             return ranked.length ? ranked[0] : '';
+        }
+
+        // Crop strictly above horizontal divider rules (e.g. CTU underline beneath course code)
+        // so PSM 7 reads isolated uppercase program text without line-merging artifacts.
+        function cropCleanBandAboveRule(canvas) {
+            const w = canvas.width, h = canvas.height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const d = ctx.getImageData(0, 0, w, h).data;
+            let bestRow = -1, bestCount = 0;
+            const xStart = Math.round(w * 0.15), xEnd = Math.round(w * 0.85);
+            const span = Math.max(1, xEnd - xStart);
+            for (let y = Math.round(h * 0.30); y < Math.round(h * 0.88); y++) {
+                let dark = 0;
+                for (let x = xStart; x < xEnd; x++) {
+                    if (d[(y * w + x) * 4] < 128) dark++;
+                }
+                if (dark > bestCount && dark > span * 0.45) {
+                    bestCount = dark;
+                    bestRow = y;
+                }
+            }
+            let cutY = bestRow !== -1 ? bestRow - 2 : h;
+            while (cutY > 10) {
+                let dark = 0;
+                for (let x = xStart; x < xEnd; x++) {
+                    if (d[(cutY * w + x) * 4] < 128) dark++;
+                }
+                if (dark > span * 0.45) cutY--;
+                else break;
+            }
+            const y0 = Math.max(0, cutY - Math.round(h * 0.48));
+            const ch = Math.max(20, cutY - y0);
+            const out = document.createElement('canvas');
+            out.width = w;
+            out.height = ch + 32;
+            const octx = out.getContext('2d');
+            octx.fillStyle = '#ffffff';
+            octx.fillRect(0, 0, out.width, out.height);
+            octx.drawImage(canvas, 0, y0, w, ch, 0, 16, w, ch);
+            return out;
+        }
+
+        // Dedicated single-line reader for centered CTU student degree/program band
+        async function readCourseBand(worker, imgElement, words, cardRefHeight) {
+            const zones = [{ x: 0.14, y: 0.65, w: 0.72, h: 0.15 }];
+            const anchor = findIdAnchorWord(words || []);
+            if (anchor && anchor.bbox && cardRefHeight > 0) {
+                const anchorTopRatio = Math.max(0, Math.min(1, (anchor.bbox.y0 - OCR_PADDING) / cardRefHeight));
+                const dy = Math.max(0.45, Math.min(0.75, anchorTopRatio - 0.16));
+                if (Math.abs(dy - 0.65) > 0.04) {
+                    zones.push({ x: 0.14, y: dy, w: 0.72, h: 0.15 });
+                }
+            }
+            const texts = [];
+            await worker.setParameters({
+                tessedit_pageseg_mode: '7',
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- '
+            });
+            try {
+                for (const zone of zones) {
+                    for (const grayMode of ['value', 'luma']) {
+                        const rawCanvas = buildOcrVariant(imgElement, zone, grayMode, 'bradley');
+                        const cleanCanvas = cropCleanBandAboveRule(rawCanvas);
+                        const r = await worker.recognize(cleanCanvas);
+                        const txt = ((r && r.data && r.data.text) || '').trim();
+                        if (txt) texts.push(txt);
+                    }
+                }
+            } finally {
+                await worker.setParameters({ tessedit_char_whitelist: '', tessedit_pageseg_mode: '6' });
+            }
+            return texts.join('\n');
         }
 
         // =====================================================================
@@ -1968,9 +2045,11 @@
                 const fullColorDrop = buildOcrVariant(img, FULL_CARD, 'value', 'bradley');  // removes coloured backgrounds
                 const fullLumaBrad = buildOcrVariant(img, FULL_CARD, 'luma', 'bradley');   // dark ink on any background
                 const fullLuma = buildOcrVariant(img, FULL_CARD, 'luma', 'otsu');       // global threshold
-                // Header: luma modes catch the dark-blue institutional text on yellow/green gradient
+                const fullCardRefHeight = Math.max(1, fullColorDrop.height - OCR_PADDING * 2);
+                // Header: luma + value color-dropout modes catch dark-blue institutional text on yellow/green gradient
                 const headerLumaBrad = buildOcrVariant(img, HEADER, 'luma', 'bradley');
                 const headerLumaOtsu = buildOcrVariant(img, HEADER, 'luma', 'otsu');
+                const headerColorDrop = buildOcrVariant(img, HEADER, 'value', 'bradley');
                 // Credentials block: three variants for voting
                 const credColorDrop = buildOcrVariant(img, CREDENTIALS, 'value', 'bradley');
                 const credLumaOtsu = buildOcrVariant(img, CREDENTIALS, 'luma', 'otsu');
@@ -1992,8 +2071,9 @@
                 updateOcrStatus('Reading institutional header & seal...', 34, 'CTU SEAL');
                 const passHeader = await recognizeWithWords(worker, headerLumaBrad);
 
-                // --- Pass A2: header otsu ---
+                // --- Pass A2: header otsu & header color-dropout ---
                 const passHeaderOtsu = await recognizeWithWords(worker, headerLumaOtsu);
+                const passHeaderVal = await recognizeWithWords(worker, headerColorDrop);
 
                 // --- Pass B: full card color-dropout ---
                 updateOcrStatus('Reading card (color-dropout pass)...', 44, 'BIOMETRICS');
@@ -2004,13 +2084,22 @@
                 const passB = await recognizeWithWords(worker, fullLumaBrad);
 
                 // --- Pass D: credentials block (color-dropout, PSM 6) ---
-                updateOcrStatus('Reading name & credentials block...', 64, 'CREDENTIALS');
+                updateOcrStatus('Reading name & credentials block...', 62, 'CREDENTIALS');
                 await worker.setParameters({ tessedit_pageseg_mode: '6' });
                 const passC = await recognizeWithWords(worker, credColorDrop);
+
+                // --- Pass D2: credentials sparse text (PSM 11, immune to divider bars) ---
+                await worker.setParameters({ tessedit_pageseg_mode: '11' });
+                const passC2 = await recognizeWithWords(worker, credColorDrop);
+                await worker.setParameters({ tessedit_pageseg_mode: '6' });
 
                 // --- Pass E: credentials block (grayscale, PSM 6) ---
                 updateOcrStatus('Cross-checking credentials...', 72, 'CROSS-CHECK');
                 const passD = await recognizeWithWords(worker, credGray);
+
+                // --- Pass E2: isolated course/program line above horizontal divider ---
+                updateOcrStatus('Verifying degree program...', 80, 'PROGRAM');
+                const courseBandText = await readCourseBand(worker, img, passB.words, fullCardRefHeight);
 
                 // --- Pass F: digits-only, voting from 3 credential variants ---
                 updateOcrStatus('Reading ID number (digits-only mode)...', 86, 'ID NUMBER');
@@ -2020,13 +2109,25 @@
                 if (!idDigits) idDigits = await readIdDigits(worker, [fullLumaBrad, fullLuma, fullColorDrop], passB.words);
 
                 // Combine ALL passes so parser has maximum keyword coverage
-                const combinedText = [passHeader.text, passHeaderOtsu.text, passA.text, passB.text, passC.text, passD.text].join('\n');
+                const combinedText = [
+                    passHeader.text,
+                    passHeaderOtsu.text,
+                    passHeaderVal.text,
+                    passA.text,
+                    passB.text,
+                    passC.text,
+                    passC2.text,
+                    passD.text,
+                    courseBandText
+                ].join('\n');
                 console.log('--- OCR HEADER (luma+Bradley) conf=' + passHeader.confidence + ' ---\n', passHeader.text);
                 console.log('--- OCR HEADER-OTSU conf=' + passHeaderOtsu.confidence + ' ---\n', passHeaderOtsu.text);
                 console.log('--- OCR PASS A (color-dropout, PSM 3) conf=' + passA.confidence + ' ---\n', passA.text);
                 console.log('--- OCR PASS B (luma+Bradley, PSM 3) conf=' + passB.confidence + ' ---\n', passB.text);
                 console.log('--- OCR PASS C (credentials b/w, PSM 6) conf=' + passC.confidence + ' ---\n', passC.text);
+                console.log('--- OCR PASS C2 (credentials b/w, PSM 11) conf=' + passC2.confidence + ' ---\n', passC2.text);
                 console.log('--- OCR PASS D (credentials gray, PSM 6) conf=' + passD.confidence + ' ---\n', passD.text);
+                console.log('--- OCR COURSE LINE (isolated PSM 7) ---\n', courseBandText);
                 console.log('--- OCR DIGITS-ONLY ID (voted) ---', idDigits || '(none)');
 
                 updateOcrStatus('Parsing institutional records...', 90, 'PARSING');
@@ -2241,7 +2342,7 @@
 
             // 2. Role Determination (Dynamic)
             const isTeacher = /Employee(?:\s*ID)?|INSTRUCTOR|DESIGNATION|PROFESSOR|FACULTY|LECTURER|ADVISER/i.test(cleanFull);
-            const isStudent = /COURSE|STUDENT|BACHELOR|COLLEGE/i.test(cleanFull) || /\b(BSIT|BSHM|BTLEd|BSEd|BEEd|BSIE|BSFi|BIT)\b/i.test(cleanFull);
+            const isStudent = /C[O0]?UR[S5]E|STUDENT|BACHELOR|COLLEGE/i.test(cleanFull) || /\b(BSIT|BSHM|BTLEd|BSEd|BEEd|BSIE|BSFi|BIT)\b/i.test(cleanFull) || /\b[BbRr8][S5$s]{1,2}[Il1!|][Tt7]\b/.test(cleanFull);
 
             if (!isTeacher && !isStudent) {
                 throw new Error('Could not identify card role. The image is blurry or text is illegible. Please retake a clearer photo.');
@@ -2305,15 +2406,18 @@
                 for (const prog of allPrograms) {
                     const codeMatch = new RegExp(`\\b${prog.code.replace('-', '[- ]?')}\\b`, 'i').test(cleanFull);
                     let aliasMatch = false;
-                    if (prog.code === 'BSIT' && /INFORMATION\s*TECHNOLOGY|BSIT|B\.?S\.?I\.?T|BS\s*IT/i.test(cleanFull)) aliasMatch = true;
-                    if (prog.code === 'BSIT' && /[BbRr][S5$][Il1][Tt]/.test(cleanFull)) aliasMatch = true; // OCR garbles
+                    if (prog.code === 'BSIT' && (/INFORMATION\s*TECHNOLOGY|BSIT|B\.?S\.?I\.?T|BS\s*IT/i.test(cleanFull) || /\b[BbRr8][S5$s]{1,2}[Il1!|][Tt7]\b/.test(cleanFull))) aliasMatch = true;
                     if (prog.code === 'BSHM' && /\bHM\b|HOSPITALITY|BSHM/i.test(cleanFull)) aliasMatch = true;
                     if (prog.code === 'BTLEd-HE' && /\bHE\b|BTLED|HOME\s*ECONOMICS/i.test(cleanFull)) aliasMatch = true;
                     if (prog.code === 'BSEd-Math' && /BSED|SECONDARY/i.test(cleanFull)) aliasMatch = true;
                     if (prog.code === 'BEEd' && /BEED|ELEMENTARY/i.test(cleanFull)) aliasMatch = true;
                     if (prog.code === 'BSIE' && /BSIE|INDUSTRIAL\s*ENGINEERING/i.test(cleanFull)) aliasMatch = true;
                     if (prog.code === 'BSFi' && /BSFI|FISHERIES/i.test(cleanFull)) aliasMatch = true;
-                    if (prog.code.startsWith('BIT') && /BIT|INDUSTRIAL\s*TECHNOLOGY/i.test(cleanFull)) aliasMatch = true;
+                    if (prog.code.startsWith('BIT') && /BIT|INDUSTRIAL\s*TECHNOLOGY/i.test(cleanFull)) {
+                        if (/ELECTRONICS/i.test(cleanFull) && prog.code !== 'BIT-Electronics') continue;
+                        if (/AUTOMOTIVE/i.test(cleanFull) && prog.code !== 'BIT-Automotive') continue;
+                        aliasMatch = true;
+                    }
 
                     if (codeMatch || aliasMatch) {
                         programCode = prog.code;
@@ -2549,7 +2653,7 @@
             renderStepIndicator();
 
             if (window.showToast) {
-                showToast(`CTU ID Authenticated! Verified as ${isStudent ? 'STUDENT' : 'FACULTY'}`, '🎉');
+                showToast(`CTU ID Authenticated! Verified as ${isStudent ? 'STUDENT' : 'FACULTY'}`, 'success');
             }
         }
 
