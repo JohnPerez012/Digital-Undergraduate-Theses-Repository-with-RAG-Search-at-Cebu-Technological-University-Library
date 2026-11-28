@@ -1532,18 +1532,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Stale Lock Guard (45 seconds TTL with Heartbeat): Auto-expire abandoned cataloging/editing locks
                         let isCatalogLockStale = false;
                         if (isBeingCataloged) {
-                            const ts = data.catalogingHeartbeat || data.catalogingStartedAt;
-                            if (!ts) {
+                            const time = getAdminLockTimestampMs(data.catalogingHeartbeat || data.catalogingStartedAt);
+                            if (!time || (Date.now() - time > ADMIN_LOCK_TTL_MS)) {
                                 isCatalogLockStale = true;
-                            } else {
-                                try {
-                                    const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
-                                    if (Date.now() - time > 45 * 1000) {
-                                        isCatalogLockStale = true;
-                                    }
-                                } catch (e) {
-                                    isCatalogLockStale = true;
-                                }
                             }
                             if (isCatalogLockStale) {
                                 db.collection('projects').doc(data.id).update({
@@ -1558,18 +1549,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         let isEditLockStale = false;
                         if (isBeingEdited) {
-                            const ts = data.editingHeartbeat || data.editingStartedAt;
-                            if (!ts) {
+                            const time = getAdminLockTimestampMs(data.editingHeartbeat || data.editingStartedAt);
+                            if (!time || (Date.now() - time > ADMIN_LOCK_TTL_MS)) {
                                 isEditLockStale = true;
-                            } else {
-                                try {
-                                    const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
-                                    if (Date.now() - time > 45 * 1000) {
-                                        isEditLockStale = true;
-                                    }
-                                } catch (e) {
-                                    isEditLockStale = true;
-                                }
                             }
                             if (isEditLockStale) {
                                 db.collection('projects').doc(data.id).update({
@@ -7234,12 +7216,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
 
         // Real-time pending projects listener
+        ensureAdminStaleLockWatcher();
         if (unsubscribePendingProjects) unsubscribePendingProjects();
         unsubscribePendingProjects = db.collection('pendingProjects').onSnapshot(
             (snapshot) => {
                 console.log('Pending projects updated in real-time');
                 if (snapshot && snapshot.docs) {
-                    const freshPending = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const freshPending = snapshot.docs.map(doc => {
+                        const item = { id: doc.id, ...doc.data() };
+                        if (item.isBeingEdited && isPendingEditLockStale(item)) {
+                            clearStalePendingEditLockInFirestore(item.id, item);
+                        }
+                        return item;
+                    });
                     freshPending.sort((a, b) => {
                         const dateA = getTimestamp(a.createdAt);
                         const dateB = getTimestamp(b.createdAt);
@@ -7512,7 +7501,122 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    const ADMIN_LOCK_TTL_MS = 45 * 1000;
+    let adminStaleLockSweepInterval = null;
+
+    function getAdminLockTimestampMs(ts) {
+        if (!ts) return 0;
+        try {
+            if (typeof ts.toDate === 'function') return ts.toDate().getTime();
+            if (typeof ts.toMillis === 'function') return ts.toMillis();
+            if (typeof ts.seconds === 'number') return ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
+            if (typeof ts._seconds === 'number') return ts._seconds * 1000 + Math.floor((ts._nanoseconds || 0) / 1e6);
+            const parsed = new Date(ts).getTime();
+            return Number.isFinite(parsed) ? parsed : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    function isPendingEditLockStale(data) {
+        if (!data || !data.isBeingEdited) return false;
+        const time = getAdminLockTimestampMs(data.editingHeartbeat || data.editingStartedAt);
+        if (!time) return true;
+        return (Date.now() - time) > ADMIN_LOCK_TTL_MS;
+    }
+
+    function clearStalePendingEditLockInFirestore(id, localItem = null) {
+        if (!id) return;
+        if (localItem) {
+            localItem.isBeingEdited = false;
+            localItem.editingBy = null;
+            localItem.editingByName = null;
+            localItem.editingStartedAt = null;
+            localItem.editingHeartbeat = null;
+        }
+        if (typeof db !== 'undefined') {
+            db.collection('pendingProjects').doc(id).update({
+                isBeingEdited: false,
+                editingBy: null,
+                editingByName: null,
+                editingStartedAt: null,
+                editingHeartbeat: null
+            }).catch(() => {});
+        }
+    }
+
+    function ensureAdminStaleLockWatcher() {
+        if (adminStaleLockSweepInterval) return;
+        adminStaleLockSweepInterval = setInterval(() => {
+            let pendingExpired = false;
+            if (Array.isArray(allPendingApprovals) && allPendingApprovals.length > 0) {
+                allPendingApprovals.forEach(item => {
+                    if (item && item.isBeingEdited && isPendingEditLockStale(item)) {
+                        clearStalePendingEditLockInFirestore(item.id, item);
+                        pendingExpired = true;
+                    }
+                });
+            }
+            if (pendingExpired) {
+                savePendingApprovalsToCache(allPendingApprovals);
+                filterAndRenderApprovals();
+            }
+
+            let projectsExpired = false;
+            if (Array.isArray(allProjectsData) && allProjectsData.length > 0) {
+                allProjectsData.forEach(proj => {
+                    if (!proj) return;
+                    if (proj.isBeingCataloged) {
+                        const catMs = getAdminLockTimestampMs(proj.catalogingHeartbeat || proj.catalogingStartedAt);
+                        if (!catMs || (Date.now() - catMs) > ADMIN_LOCK_TTL_MS) {
+                            proj.isBeingCataloged = false;
+                            proj.catalogingBy = null;
+                            proj.catalogingByName = null;
+                            proj.catalogingStartedAt = null;
+                            proj.catalogingHeartbeat = null;
+                            projectsExpired = true;
+                            if (typeof db !== 'undefined') {
+                                db.collection('projects').doc(proj.id).update({
+                                    isBeingCataloged: false,
+                                    catalogingBy: null,
+                                    catalogingByName: null,
+                                    catalogingStartedAt: null,
+                                    catalogingHeartbeat: null
+                                }).catch(() => {});
+                            }
+                        }
+                    }
+                    if (proj.isBeingEdited) {
+                        const editMs = getAdminLockTimestampMs(proj.editingHeartbeat || proj.editingStartedAt);
+                        if (!editMs || (Date.now() - editMs) > ADMIN_LOCK_TTL_MS) {
+                            proj.isBeingEdited = false;
+                            proj.editingBy = null;
+                            proj.editingByName = null;
+                            proj.editingStartedAt = null;
+                            proj.editingHeartbeat = null;
+                            projectsExpired = true;
+                            if (typeof db !== 'undefined') {
+                                db.collection('projects').doc(proj.id).update({
+                                    isBeingEdited: false,
+                                    editingBy: null,
+                                    editingByName: null,
+                                    editingStartedAt: null,
+                                    editingHeartbeat: null
+                                }).catch(() => {});
+                            }
+                        }
+                    }
+                });
+            }
+            if (projectsExpired) {
+                const tbody = document.getElementById('projects-table-body');
+                if (tbody) renderProjectsTablePaginated(tbody);
+            }
+        }, 5000);
+    }
+
     function filterAndRenderApprovals() {
+        ensureAdminStaleLockWatcher();
         const tbody = document.getElementById('approvals-table-body');
         const emptyState = document.getElementById('approvals-empty-state');
         const tableContainer = document.getElementById('approvals-table-container');
@@ -7583,17 +7687,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td style="max-width:220px;font-size:0.85rem;">${escapeHtml(authorsStr)}</td>
                 <td style="text-align:center;">
                     ${(() => {
-                        const isBeingEdited = Boolean(item.isBeingEdited);
+                        let isBeingEdited = Boolean(item.isBeingEdited);
+                        if (isBeingEdited && isPendingEditLockStale(item)) {
+                            clearStalePendingEditLockInFirestore(item.id, item);
+                            savePendingApprovalsToCache(allPendingApprovals);
+                            isBeingEdited = false;
+                        }
                         const editorName = escapeHtml(item.editingByName || 'Librarian');
                         const isLocked = Boolean(item.isLockedByAdmin);
 
                         if (isBeingEdited) {
-                            // While librarian is editing: Admin CANNOT see evaluate, approve, or reject!
-                            // Only seen is the real-time indication: "Being edited by: [librarian name]"
+                            // While librarian is actively editing (within 45s heartbeat window):
+                            // Evaluation actions are paused until freed or 45s TTL expires, with Admin force-release option
                             return `
-                                <div class="approvals-live-editing-pill" title="Project metadata is currently being edited in real-time by ${editorName}. Evaluation actions are paused until freed.">
+                                <div class="approvals-live-editing-pill" title="Project metadata is currently being edited in real-time by ${editorName} (auto-expires after 45s of inactivity). Click × to force release lock.">
                                     <span class="live-editing-dot"></span>
                                     <span class="live-editing-text">Being edited by: <strong>${editorName}</strong></span>
+                                    <button type="button" class="force-release-lock-btn" onclick="window.__adminForceReleasePendingEditLock('${escapeHtml(item.id)}')" title="Force release editing lock" aria-label="Force release editing lock">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    </button>
                                 </div>
                             `;
                         }
@@ -8445,12 +8557,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 return null;
             }
-            if (freshData.isBeingEdited) {
+            if (freshData.isBeingEdited && !isPendingEditLockStale(freshData)) {
                 if (!options.skipUiRefresh) {
-                    showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`, '⚠️');
+                    showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`);
                     closeApprovalReviewModal();
                 }
                 return null;
+            }
+            if (freshData.isBeingEdited && isPendingEditLockStale(freshData)) {
+                clearStalePendingEditLockInFirestore(id);
             }
 
             const approvedProject = {
@@ -8599,10 +8714,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     closeApprovalReviewModal();
                     return;
                 }
-                if (freshData.isBeingEdited) {
-                    showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`, '⚠️');
+                if (freshData.isBeingEdited && !isPendingEditLockStale(freshData)) {
+                    showToast(`Action Blocked: This project is currently being edited by ${freshData.editingByName || 'Librarian'}.`);
                     closeApprovalReviewModal();
                     return;
+                }
+                if (freshData.isBeingEdited && isPendingEditLockStale(freshData)) {
+                    clearStalePendingEditLockInFirestore(id);
                 }
             }
 
@@ -8879,6 +8997,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (err) {
                 console.error('forceReleaseCatalogLock error:', err);
                 showToast('Failed to release lock.');
+            }
+        };
+
+        window.__adminForceReleasePendingEditLock = async (id) => {
+            try {
+                await db.collection('pendingProjects').doc(id).update({
+                    isBeingEdited: false,
+                    editingBy: null,
+                    editingByName: null,
+                    editingStartedAt: null,
+                    editingHeartbeat: null
+                });
+
+                const item = allPendingApprovals.find(x => x.id === id);
+                if (item) {
+                    item.isBeingEdited = false;
+                    item.editingBy = null;
+                    item.editingByName = null;
+                    item.editingStartedAt = null;
+                    item.editingHeartbeat = null;
+                }
+                savePendingApprovalsToCache(allPendingApprovals);
+                filterAndRenderApprovals();
+
+                if (typeof ActivityService !== 'undefined') {
+                    ActivityService.logAdmin('lock_released', item?.title || id, `Admin manually released pending submission editing lock on "${item?.title || id}".`);
+                }
+
+                showToast('Pending submission editing lock released.');
+            } catch (err) {
+                console.error('forceReleasePendingEditLock error:', err);
+                showToast('Failed to release editing lock.');
             }
         };
     }

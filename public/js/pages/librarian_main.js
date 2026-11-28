@@ -855,7 +855,7 @@
             let pendingActionBtns = '';
             if (isPending) {
                 const isLocked = Boolean(p.isLockedByAdmin);
-                const isBeingEdited = Boolean(p.isBeingEdited) && p.editingBy && p.editingBy !== (currentUser?.uid || '');
+                const isBeingEdited = isProjectEditLockActive(p) && p.editingBy && p.editingBy !== (currentUser?.uid || '');
 
                 if (isLocked) {
                     pendingActionBtns = `
@@ -1086,12 +1086,12 @@
                     return;
                 }
                 const currentUid = currentUser?.uid || '';
-                if (data.isBeingCataloged && data.catalogingBy && data.catalogingBy !== currentUid) {
-                    showToast && showToast(`This project is currently being cataloged by ${data.catalogingByName || 'another librarian'}.`, '⚠️');
+                if (isProjectCatalogLockActive(data) && data.catalogingBy && data.catalogingBy !== currentUid) {
+                    showToast && showToast(`This project is currently being cataloged by ${data.catalogingByName || 'another librarian'}.`);
                     return;
                 }
-                if (data.isBeingEdited && data.editingBy && data.editingBy !== currentUid) {
-                    showToast && showToast(`This project is currently being edited by ${data.editingByName || 'another user'}.`, '⚠️');
+                if (isProjectEditLockActive(data) && data.editingBy && data.editingBy !== currentUid) {
+                    showToast && showToast(`This project is currently being edited by ${data.editingByName || 'another user'}.`);
                     return;
                 }
             }
@@ -1106,50 +1106,123 @@
     // ─────────────────────────────────────────────
     // PENDING PROJECT EDIT & CATALOG REAL-TIME LOCK MANAGEMENT
     // ─────────────────────────────────────────────
+    const LOCK_TTL_MS = 45 * 1000;
+    const LOCK_HEARTBEAT_MS = 20 * 1000;
     let currentEditingPendingId = null;
     let currentCatalogingProjectId = null;
+    let pendingEditHeartbeatInterval = null;
     let catalogHeartbeatInterval = null;
+    let staleLockSweepInterval = null;
     let unsubscribePendingProjects = null;
     let unsubscribeProjects = null;
 
+    function getLockTimestampMs(ts) {
+        if (!ts) return 0;
+        try {
+            if (typeof ts.toDate === 'function') return ts.toDate().getTime();
+            if (typeof ts.toMillis === 'function') return ts.toMillis();
+            if (typeof ts.seconds === 'number') return ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
+            if (typeof ts._seconds === 'number') return ts._seconds * 1000 + Math.floor((ts._nanoseconds || 0) / 1e6);
+            const parsed = new Date(ts).getTime();
+            return Number.isFinite(parsed) ? parsed : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
     function isProjectCatalogLockActive(p) {
         if (!p || !p.isBeingCataloged) return false;
-        const ts = p.catalogingHeartbeat || p.catalogingStartedAt;
-        if (!ts) return false;
-        try {
-            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
-            return (Date.now() - time) <= 45 * 1000;
-        } catch (e) {
-            return false;
-        }
+        const time = getLockTimestampMs(p.catalogingHeartbeat || p.catalogingStartedAt);
+        if (!time) return false;
+        return (Date.now() - time) <= LOCK_TTL_MS;
     }
 
     function isProjectEditLockActive(p) {
         if (!p || !p.isBeingEdited) return false;
-        const ts = p.editingHeartbeat || p.editingStartedAt;
-        if (!ts) return false;
-        try {
-            const time = ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
-            return (Date.now() - time) <= 45 * 1000;
-        } catch (e) {
-            return false;
-        }
+        const time = getLockTimestampMs(p.editingHeartbeat || p.editingStartedAt);
+        if (!time) return false;
+        return (Date.now() - time) <= LOCK_TTL_MS;
+    }
+
+    function ensureLibrarianStaleLockWatcher() {
+        if (staleLockSweepInterval) return;
+        staleLockSweepInterval = setInterval(() => {
+            if (!Array.isArray(allProjects) || allProjects.length === 0) return;
+            let didExpireAny = false;
+
+            allProjects.forEach(p => {
+                if (p.isBeingEdited && !isProjectEditLockActive(p) && p.id !== currentEditingPendingId) {
+                    p.isBeingEdited = false;
+                    p.editingBy = null;
+                    p.editingByName = null;
+                    p.editingStartedAt = null;
+                    p.editingHeartbeat = null;
+                    didExpireAny = true;
+                    const col = p.isPendingApproval ? 'pendingProjects' : 'projects';
+                    db.collection(col).doc(p.id).update({
+                        isBeingEdited: false,
+                        editingBy: null,
+                        editingByName: null,
+                        editingStartedAt: null,
+                        editingHeartbeat: null
+                    }).catch(() => {});
+                }
+                if (!p.isPendingApproval && p.isBeingCataloged && !isProjectCatalogLockActive(p) && p.id !== currentCatalogingProjectId) {
+                    p.isBeingCataloged = false;
+                    p.catalogingBy = null;
+                    p.catalogingByName = null;
+                    p.catalogingStartedAt = null;
+                    p.catalogingHeartbeat = null;
+                    didExpireAny = true;
+                    db.collection('projects').doc(p.id).update({
+                        isBeingCataloged: false,
+                        catalogingBy: null,
+                        catalogingByName: null,
+                        catalogingStartedAt: null,
+                        catalogingHeartbeat: null
+                    }).catch(() => {});
+                }
+            });
+
+            if (didExpireAny) {
+                saveLibProjectsToCache(allProjects);
+                const projectsSection = document.getElementById('section-projects');
+                if (projectsSection && projectsSection.classList.contains('active')) {
+                    renderProjectsTable();
+                }
+                const catalogSection = document.getElementById('section-catalog');
+                if (catalogSection && catalogSection.classList.contains('active')) {
+                    filterCatalogCards();
+                }
+            }
+        }, 5000);
     }
 
     function startPendingProjectsListener() {
         if (unsubscribePendingProjects) return;
+        ensureLibrarianStaleLockWatcher();
         try {
             unsubscribePendingProjects = db.collection('pendingProjects').onSnapshot(snap => {
                 const updatedPending = snap.docs.map(d => {
                     const data = d.data();
+                    const editLockActive = isProjectEditLockActive(data);
+                    if (data.isBeingEdited && !editLockActive && d.id !== currentEditingPendingId) {
+                        db.collection('pendingProjects').doc(d.id).update({
+                            isBeingEdited: false,
+                            editingBy: null,
+                            editingByName: null,
+                            editingStartedAt: null,
+                            editingHeartbeat: null
+                        }).catch(() => {});
+                    }
                     return {
                         id: d.id,
                         ...data,
                         status: 'pending',
                         isPendingApproval: true,
-                        isBeingEdited: Boolean(data.isBeingEdited),
-                        editingBy: data.editingBy || null,
-                        editingByName: data.editingByName || null,
+                        isBeingEdited: editLockActive,
+                        editingBy: editLockActive ? (data.editingBy || null) : null,
+                        editingByName: editLockActive ? (data.editingByName || null) : null,
                         isLockedByAdmin: Boolean(data.isLockedByAdmin)
                     };
                 });
@@ -1187,20 +1260,41 @@
 
     function startProjectsRealtimeListener() {
         if (unsubscribeProjects) return;
+        ensureLibrarianStaleLockWatcher();
         try {
             unsubscribeProjects = db.collection('projects').onSnapshot(snap => {
                 const updatedProjects = snap.docs.map(d => {
                     const data = d.data();
+                    const catLockActive = isProjectCatalogLockActive(data);
+                    const editLockActive = isProjectEditLockActive(data);
+                    if (data.isBeingCataloged && !catLockActive && d.id !== currentCatalogingProjectId) {
+                        db.collection('projects').doc(d.id).update({
+                            isBeingCataloged: false,
+                            catalogingBy: null,
+                            catalogingByName: null,
+                            catalogingStartedAt: null,
+                            catalogingHeartbeat: null
+                        }).catch(() => {});
+                    }
+                    if (data.isBeingEdited && !editLockActive) {
+                        db.collection('projects').doc(d.id).update({
+                            isBeingEdited: false,
+                            editingBy: null,
+                            editingByName: null,
+                            editingStartedAt: null,
+                            editingHeartbeat: null
+                        }).catch(() => {});
+                    }
                     return {
                         id: d.id,
                         ...data,
                         isLockedByAdmin: Boolean(data.isLockedByAdmin),
-                        isBeingCataloged: Boolean(data.isBeingCataloged),
-                        catalogingBy: data.catalogingBy || null,
-                        catalogingByName: data.catalogingByName || null,
-                        isBeingEdited: Boolean(data.isBeingEdited),
-                        editingBy: data.editingBy || null,
-                        editingByName: data.editingByName || null
+                        isBeingCataloged: catLockActive,
+                        catalogingBy: catLockActive ? (data.catalogingBy || null) : null,
+                        catalogingByName: catLockActive ? (data.catalogingByName || null) : null,
+                        isBeingEdited: editLockActive,
+                        editingBy: editLockActive ? (data.editingBy || null) : null,
+                        editingByName: editLockActive ? (data.editingByName || null) : null
                     };
                 });
 
@@ -1249,6 +1343,10 @@
     }
 
     async function freePendingProjectEdit(projectId, silent = false) {
+        if (pendingEditHeartbeatInterval) {
+            clearInterval(pendingEditHeartbeatInterval);
+            pendingEditHeartbeatInterval = null;
+        }
         const pid = projectId || currentEditingPendingId;
         if (!pid) return;
 
@@ -1257,7 +1355,8 @@
                 isBeingEdited: false,
                 editingBy: null,
                 editingByName: null,
-                editingStartedAt: null
+                editingStartedAt: null,
+                editingHeartbeat: null
             });
         } catch (err) {
             if (!silent) console.warn('Error releasing editing lock:', err);
@@ -1295,6 +1394,10 @@
 
     // Auto-free editing & cataloging locks if the browser window/tab is closed
     window.addEventListener('beforeunload', () => {
+        if (pendingEditHeartbeatInterval) {
+            clearInterval(pendingEditHeartbeatInterval);
+            pendingEditHeartbeatInterval = null;
+        }
         if (catalogHeartbeatInterval) {
             clearInterval(catalogHeartbeatInterval);
             catalogHeartbeatInterval = null;
@@ -1324,6 +1427,10 @@
     });
 
     window.addEventListener('pagehide', () => {
+        if (pendingEditHeartbeatInterval) {
+            clearInterval(pendingEditHeartbeatInterval);
+            pendingEditHeartbeatInterval = null;
+        }
         if (catalogHeartbeatInterval) {
             clearInterval(catalogHeartbeatInterval);
             catalogHeartbeatInterval = null;
@@ -1377,6 +1484,11 @@
         const modal = document.getElementById('pending-project-edit-modal');
         if (modal) modal.style.display = 'none';
 
+        if (pendingEditHeartbeatInterval) {
+            clearInterval(pendingEditHeartbeatInterval);
+            pendingEditHeartbeatInterval = null;
+        }
+
         const pid = currentEditingPendingId;
         if (releaseLock && pid) {
             await freePendingProjectEdit(pid);
@@ -1419,11 +1531,11 @@
             return;
         }
 
-        // 2. Check if already being edited in real-time by another user
+        // 2. Check if already being edited in real-time by another user (with 45s TTL enforcement)
         const currentUid = currentUser?.uid || '';
-        if (project.isBeingEdited && project.editingBy && project.editingBy !== currentUid) {
+        if (isProjectEditLockActive(project) && project.editingBy && project.editingBy !== currentUid) {
             const editor = project.editingByName || 'another librarian';
-            showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`, '⚠️');
+            showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`);
             return;
         }
 
@@ -1434,15 +1546,33 @@
                 isBeingEdited: true,
                 editingBy: currentUser?.uid || '',
                 editingByName: editorName,
-                editingStartedAt: firebase.firestore.FieldValue.serverTimestamp()
+                editingStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                editingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
             });
         } catch (err) {
             console.error('Error acquiring edit lock:', err);
-            showToast && showToast('Could not acquire editing session. Please try again.', '❌');
+            showToast && showToast('Could not acquire editing session. Please try again.');
             return;
         }
 
         currentEditingPendingId = projectId;
+
+        // Start active 20-second heartbeat to renew lock while librarian keeps pending edit modal open
+        if (pendingEditHeartbeatInterval) clearInterval(pendingEditHeartbeatInterval);
+        pendingEditHeartbeatInterval = setInterval(async () => {
+            if (currentEditingPendingId === projectId) {
+                try {
+                    await db.collection('pendingProjects').doc(projectId).update({
+                        editingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (e) {
+                    console.warn('Pending project edit heartbeat ping warning:', e);
+                }
+            } else {
+                clearInterval(pendingEditHeartbeatInterval);
+                pendingEditHeartbeatInterval = null;
+            }
+        }, LOCK_HEARTBEAT_MS);
 
         document.getElementById('ppe-project-id').value = project.id;
         document.getElementById('ppe-title-field').value = project.title || '';
@@ -1494,6 +1624,11 @@
 
             const editorName = currentUserData?.fullName || currentUser?.displayName || 'Librarian';
 
+            if (pendingEditHeartbeatInterval) {
+                clearInterval(pendingEditHeartbeatInterval);
+                pendingEditHeartbeatInterval = null;
+            }
+
             await db.collection('pendingProjects').doc(projectId).update({
                 title,
                 abstract,
@@ -1509,7 +1644,8 @@
                 isBeingEdited: false,
                 editingBy: null,
                 editingByName: null,
-                editingStartedAt: null
+                editingStartedAt: null,
+                editingHeartbeat: null
             });
 
             // Update in local cache optimistically
@@ -1527,7 +1663,9 @@
                     topics,
                     isBeingEdited: false,
                     editingBy: null,
-                    editingByName: null
+                    editingByName: null,
+                    editingStartedAt: null,
+                    editingHeartbeat: null
                 };
                 saveLibProjectsToCache(allProjects);
                 renderProjectsTable();
@@ -1596,14 +1734,14 @@
             return;
         }
         const currentUid = currentUser?.uid || '';
-        if (project.isBeingCataloged && project.catalogingBy && project.catalogingBy !== currentUid) {
+        if (isProjectCatalogLockActive(project) && project.catalogingBy && project.catalogingBy !== currentUid) {
             const cataloger = project.catalogingByName || 'another librarian';
-            showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`, '⚠️');
+            showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`);
             return;
         }
-        if (project.isBeingEdited && project.editingBy && project.editingBy !== currentUid) {
+        if (isProjectEditLockActive(project) && project.editingBy && project.editingBy !== currentUid) {
             const editor = project.editingByName || 'another user';
-            showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`, '⚠️');
+            showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`);
             return;
         }
 
@@ -4038,24 +4176,10 @@
             showToast && showToast('This project is locked by the Administrator. Cataloging and editing are disabled.', '🔒');
             return;
         }
-        if (cachedProject.isBeingCataloged && cachedProject.catalogingBy && cachedProject.catalogingBy !== currentUid) {
-            let isStale = false;
-            const ts = cachedProject.catalogingHeartbeat || cachedProject.catalogingStartedAt;
-            if (!ts) {
-                isStale = true;
-            } else {
-                try {
-                    const started = ts.toDate ? ts.toDate() : new Date(ts);
-                    if (Date.now() - started.getTime() > 45 * 1000) isStale = true;
-                } catch (e) {
-                    isStale = true;
-                }
-            }
-            if (!isStale) {
-                const cataloger = cachedProject.catalogingByName || 'another librarian';
-                showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`);
-                return;
-            }
+        if (isProjectCatalogLockActive(cachedProject) && cachedProject.catalogingBy && cachedProject.catalogingBy !== currentUid) {
+            const cataloger = cachedProject.catalogingByName || 'another librarian';
+            showToast && showToast(`This project is currently being cataloged by ${cataloger}. Simultaneous editing is locked out.`);
+            return;
         }
 
         // Set active session ID immediately
@@ -4175,25 +4299,11 @@
                 }
 
                 // Concurrency Check 3: Another User Editing
-                if (freshProject.isBeingEdited && freshProject.editingBy && freshProject.editingBy !== activeUid) {
-                    let isEditStale = false;
-                    const ts = freshProject.editingHeartbeat || freshProject.editingStartedAt;
-                    if (!ts) {
-                        isEditStale = true;
-                    } else {
-                        try {
-                            const started = ts.toDate ? ts.toDate() : new Date(ts);
-                            if (Date.now() - started.getTime() > 45 * 1000) isEditStale = true;
-                        } catch (e) {
-                            isEditStale = true;
-                        }
-                    }
-                    if (!isEditStale) {
-                        const editor = freshProject.editingByName || 'another user';
-                        await closeCatalogNoteModal(false);
-                        showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`);
-                        return;
-                    }
+                if (isProjectEditLockActive(freshProject) && freshProject.editingBy && freshProject.editingBy !== activeUid) {
+                    const editor = freshProject.editingByName || 'another user';
+                    await closeCatalogNoteModal(false);
+                    showToast && showToast(`This project is currently being edited by ${editor}. Please wait until it is freed.`);
+                    return;
                 }
 
                 // Guard check before lock acquisition

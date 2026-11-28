@@ -986,6 +986,11 @@ node scripts/preflight.js
     - Updated `Permissions-Policy` across both `firebase.json` and `recap-backend/server.js` from `camera=()` to `camera=(self)` so the registration CTU ID live webcam scanner operates cleanly on same-origin HTTPS sessions.
     - Hardened `processIdImage`, `readCourseBand`, and `initCameraCapture` in `public/js/registration/registration.js` to guard against `undefined` / non-`Error` worker rejections (eliminating `TypeError: Cannot read properties of undefined (reading 'message')` crashes), prevent redundant fallback `getUserMedia` permission calls, isolate centered degree/program text cleanly above horizontal divider lines (`cropCleanBandAboveRule` + sparse PSM 11 / PSM 7 passes for reliable CTU program recognition under low-light or blurred photos), and bump the registration script cache buster cleanly.
 
+  - *45-Second Heartbeat Shelf & Pending Submission Concurrency Lock Enforcement (`public/js/pages/librarian_main.js`, `public/js/admin/main.js`, `public/pages/admin_page.html`, `public/pages/librarian_page.html`):*
+    - Added active 20-second `editingHeartbeat` renewal (`pendingEditHeartbeatInterval`) in `openPendingProjectEditModal` on `pendingProjects/{projectId}` (matching `catalogHeartbeatInterval` on `projects/{projectId}`) with cleanup across `freePendingProjectEdit`, `closePendingProjectEditModal`, `savePendingProjectEdit`, `beforeunload`, and `pagehide`.
+    - Enforced the 45-second TTL (`LOCK_TTL_MS = 45000`) across Admin `filterAndRenderApprovals()`, `approvePendingSubmission()`, `rejectPendingSubmission()`, `pendingProjects` real-time snapshot listeners, and Librarian table/modal concurrency checks (`isProjectEditLockActive`, `isProjectCatalogLockActive`), supporting both live Firestore `Timestamp` instances and cached `localStorage` `{ seconds, nanoseconds }` payloads.
+    - Added 5-second background stale-lock sweepers (`ensureAdminStaleLockWatcher`, `ensureLibrarianStaleLockWatcher`) and an Admin manual force-release control (`window.__adminForceReleasePendingEditLock`) so abandoned or disconnected editing sessions auto-expire and restore evaluation actions automatically after 45 seconds without requiring a page reload.
+
 ---
 
 ## 🎓 Institutional Credits
