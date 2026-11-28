@@ -1639,6 +1639,13 @@
             });
         }
 
+        document.getElementById('ppe-add-topic-btn')?.addEventListener('click', () => {
+            createDynamicRow('ppe-topics-container', 'e.g., Machine Learning');
+        });
+        document.getElementById('ppe-add-keyword-btn')?.addEventListener('click', () => {
+            createDynamicRow('ppe-keywords-container', 'e.g., Python');
+        });
+
         document.getElementById('pending-project-edit-form')?.addEventListener('submit', async e => {
             e.preventDefault();
             await savePendingProjectEdit();
@@ -1762,8 +1769,18 @@
             ppeYearEl.value = project.year ? clampAcademicYearValue(project.year) : maxYear;
         }
 
-        document.getElementById('ppe-keywords').value = Array.isArray(project.keywords) ? project.keywords.join(', ') : (project.keywords || '');
-        document.getElementById('ppe-topics').value = Array.isArray(project.topics) ? project.topics.join(', ') : (project.topics || '');
+        // Hydrate dynamic Topics & Keywords rows (consistent with Add New Project modal)
+        clearDynamicContainer('ppe-topics-container');
+        clearDynamicContainer('ppe-keywords-container');
+        const topicsList = Array.isArray(project.topics)
+            ? project.topics.map(t => String(t || '').trim()).filter(Boolean)
+            : String(project.topics || '').split(',').map(t => t.trim()).filter(Boolean);
+        const keywordsList = Array.isArray(project.keywords)
+            ? project.keywords.map(k => String(k || '').trim()).filter(Boolean)
+            : String(project.keywords || '').split(',').map(k => k.trim()).filter(Boolean);
+
+        topicsList.forEach(t => createDynamicRow('ppe-topics-container', 'e.g., Machine Learning', t));
+        keywordsList.forEach(k => createDynamicRow('ppe-keywords-container', 'e.g., Python', k));
 
         // Hydrate existing submitted images & reset newly appended files
         const rawImgs = Array.isArray(project.images) ? project.images : [];
@@ -1833,8 +1850,8 @@
 
         try {
             const authors = authorsRaw.split(',').map(a => a.trim()).filter(Boolean);
-            const keywords = document.getElementById('ppe-keywords').value.split(',').map(k => k.trim()).filter(Boolean);
-            const topics = document.getElementById('ppe-topics').value.split(',').map(t => t.trim()).filter(Boolean);
+            const keywords = getDynamicValues('ppe-keywords-container');
+            const topics = getDynamicValues('ppe-topics-container');
 
             // Upload any newly appended images
             const newlyUploaded = [];
@@ -2105,18 +2122,23 @@
         const input = row.querySelector('input');
         const removeBtn = row.querySelector('.remove-row-btn');
 
+        const isUmContainer = containerId.startsWith('um-');
+        const isAuthorsContainer = containerId.includes('authors');
+
         removeBtn.addEventListener('click', () => {
             const allRows = container.querySelectorAll('.dynamic-input-row');
-            if (allRows.length <= 1) {
+            if (isAuthorsContainer && allRows.length <= 1) {
                 input.value = '';
                 input.focus();
             } else {
                 row.remove();
             }
-            triggerUmAutoSave();
+            if (isUmContainer) triggerUmAutoSave();
         });
 
-        input.addEventListener('input', triggerUmAutoSave);
+        if (isUmContainer) {
+            input.addEventListener('input', triggerUmAutoSave);
+        }
 
         // Enter key quickly adds next field
         input.addEventListener('keydown', (e) => {

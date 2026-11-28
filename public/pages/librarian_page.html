@@ -1146,15 +1146,20 @@
                         <textarea id="ppe-abstract" class="ppe-input ppe-textarea" rows="4" placeholder="Brief summary of capstone problem, methodology, and results (or leave blank if not available in the physical manuscript)..."></textarea>
                     </div>
 
-                    <!-- Keywords & Topics -->
+                    <!-- Topics & Keywords (Consistent Dynamic Add Button Format) -->
                     <div class="ppe-grid-2col">
                         <div class="ppe-field-group">
-                            <label for="ppe-keywords" class="ppe-label">Keywords <span class="ppe-hint">Separate with commas</span></label>
-                            <input type="text" id="ppe-keywords" class="ppe-input" placeholder="e.g. Ergonomics, Vibration, Safety">
+                            <label class="ppe-label">
+                                Topics
+                                <span class="pform-tooltip" title="Add core research topics/subjects"></span>
+                            </label>
+                            <div id="ppe-topics-container" class="dynamic-inputs-container pform-dynamic-list"></div>
+                            <button type="button" class="pform-add-btn" id="ppe-add-topic-btn">+ Add Topic</button>
                         </div>
                         <div class="ppe-field-group">
-                            <label for="ppe-topics" class="ppe-label">Topics / Fields <span class="ppe-hint">Separate with commas</span></label>
-                            <input type="text" id="ppe-topics" class="ppe-input" placeholder="e.g. Industrial Engineering, Occupational Health">
+                            <label class="ppe-label">Keywords</label>
+                            <div id="ppe-keywords-container" class="dynamic-inputs-container pform-dynamic-list"></div>
+                            <button type="button" class="pform-add-btn" id="ppe-add-keyword-btn">+ Add Keyword</button>
                         </div>
                     </div>
 
