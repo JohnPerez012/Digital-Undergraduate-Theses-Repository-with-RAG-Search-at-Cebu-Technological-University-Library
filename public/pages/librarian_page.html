@@ -158,7 +158,7 @@
                                 <div class="pform-field">
                                     <label class="pform-label" for="um-year">Year <span class="pform-required">*</span></label>
                                     <div class="year-selector-wrapper">
-                                        <input type="number" id="um-year" class="pform-input year-selector-input" placeholder="2025" required min="2000" max="2100" readonly>
+                                        <input type="number" id="um-year" class="pform-input year-selector-input" placeholder="2026" required min="2024" max="2026" readonly>
                                         <div class="year-controls">
                                             <button type="button" class="year-btn year-btn-up" id="um-year-up" aria-label="Increase year"></button>
                                             <button type="button" class="year-btn year-btn-down" id="um-year-down" aria-label="Decrease year"></button>
@@ -557,7 +557,7 @@
                     </div>
                     <div class="libm-field">
                         <label for="pe-year" class="libm-label">Year</label>
-                        <input type="number" id="pe-year" class="libm-input" min="2000" max="2099">
+                        <input type="number" id="pe-year" class="libm-input" min="2024" max="2026">
                     </div>
 
                     <div class="libm-field libm-full">
@@ -1121,8 +1121,8 @@
                             </select>
                         </div>
                         <div class="ppe-field-group">
-                            <label for="ppe-year" class="ppe-label">Academic Year <span class="ppe-req">*</span></label>
-                            <input type="number" id="ppe-year" class="ppe-input" min="2000" max="2100" placeholder="2024" required>
+                            <label for="ppe-year" class="ppe-label">Academic Year <span class="ppe-req">*</span> <span class="ppe-hint">2024 &ndash; Present</span></label>
+                            <input type="number" id="ppe-year" class="ppe-input" min="2024" max="2026" step="1" placeholder="2024" required>
                         </div>
                     </div>
 
@@ -1142,6 +1142,21 @@
                             <label for="ppe-topics" class="ppe-label">Topics / Fields <span class="ppe-hint">Separate with commas</span></label>
                             <input type="text" id="ppe-topics" class="ppe-input" placeholder="e.g. Industrial Engineering, Occupational Health">
                         </div>
+                    </div>
+
+                    <!-- Submitted & Appended Images -->
+                    <div class="ppe-field-group" id="ppe-images-section" style="margin-top: 0.35rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
+                            <label class="ppe-label" style="margin-bottom: 0;">
+                                Submitted Images
+                                <span class="ppe-hint">Uploaded book cover and physical book representation photos</span>
+                            </label>
+                            <div>
+                                <input type="file" id="ppe-images-input" multiple accept="image/png, image/jpeg, image/webp, image/jpg" style="display: none;">
+                                <button type="button" class="pform-add-btn" id="ppe-add-images-btn" style="margin: 0; padding: 0.35rem 0.75rem; font-size: 0.78rem;">+ Append Images</button>
+                            </div>
+                        </div>
+                        <div class="project-images-preview-grid" id="ppe-images-grid" style="margin-top: 0.5rem;"></div>
                     </div>
                 </form>
             </div>

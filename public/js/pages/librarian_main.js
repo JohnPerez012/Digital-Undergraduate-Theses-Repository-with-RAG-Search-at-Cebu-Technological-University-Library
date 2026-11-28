@@ -1512,6 +1512,83 @@
         }
     });
 
+    const MIN_ACADEMIC_YEAR = 2024;
+    function getMaxAcademicYear() {
+        return Math.max(MIN_ACADEMIC_YEAR, new Date().getFullYear());
+    }
+    function clampAcademicYearValue(rawVal) {
+        const maxYear = getMaxAcademicYear();
+        const parsed = parseInt(String(rawVal || '').trim(), 10);
+        if (!Number.isFinite(parsed)) return maxYear;
+        if (parsed < MIN_ACADEMIC_YEAR) return MIN_ACADEMIC_YEAR;
+        if (parsed > maxYear) return maxYear;
+        return parsed;
+    }
+
+    let ppeExistingImages = [];
+    let ppeNewImageFiles = [];
+
+    function renderPendingEditImagesGrid() {
+        const grid = document.getElementById('ppe-images-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        const totalCount = ppeExistingImages.length + ppeNewImageFiles.length;
+        if (totalCount === 0) {
+            grid.innerHTML = `
+                <div style="width: 100%; padding: 0.85rem 1rem; border-radius: 8px; border: 1px dashed rgba(148, 163, 184, 0.28); background: rgba(15, 23, 42, 0.25); color: var(--text-secondary, #94a3b8); font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                    <span>No attached images for this submission yet. Click <strong>+ Append Images</strong> to attach book cover or representation photos.</span>
+                </div>
+            `;
+            return;
+        }
+
+        // 1. Render existing saved images
+        ppeExistingImages.forEach((img, idx) => {
+            const rawUrl = typeof img === 'string' ? img : (img.secure_url || img.url || '');
+            if (!rawUrl) return;
+            const isCover = idx === 0;
+            const card = document.createElement('div');
+            card.className = `image-preview-card ${isCover ? 'is-cover' : ''}`;
+            card.innerHTML = `
+                <img src="${escapeHtml(rawUrl)}" alt="Submitted Image ${idx + 1}">
+                ${isCover ? '<span class="cover-badge">Cover</span>' : ''}
+                <div class="image-preview-actions">
+                    <button type="button" class="remove-img-btn" title="Remove image" aria-label="Remove image">&times;</button>
+                </div>
+            `;
+            card.querySelector('.remove-img-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                ppeExistingImages.splice(idx, 1);
+                renderPendingEditImagesGrid();
+            });
+            grid.appendChild(card);
+        });
+
+        // 2. Render newly appended local image files
+        ppeNewImageFiles.forEach((file, fileIdx) => {
+            const combinedIdx = ppeExistingImages.length + fileIdx;
+            const isCover = combinedIdx === 0;
+            const previewUrl = URL.createObjectURL(file);
+            const card = document.createElement('div');
+            card.className = `image-preview-card ${isCover ? 'is-cover' : ''}`;
+            card.innerHTML = `
+                <img src="${previewUrl}" alt="${escapeHtml(file.name)}">
+                ${isCover ? '<span class="cover-badge">Cover</span>' : ''}
+                <div class="image-preview-actions">
+                    <button type="button" class="remove-img-btn" title="Remove appended image" aria-label="Remove appended image">&times;</button>
+                </div>
+            `;
+            card.querySelector('.remove-img-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                URL.revokeObjectURL(previewUrl);
+                ppeNewImageFiles.splice(fileIdx, 1);
+                renderPendingEditImagesGrid();
+            });
+            grid.appendChild(card);
+        });
+    }
+
     window.__libEditPendingSubmission = (projectId) => {
         openPendingProjectEditModal(projectId);
     };
@@ -1522,6 +1599,45 @@
         document.getElementById('pending-project-edit-modal')?.addEventListener('click', e => {
             if (e.target.id === 'pending-project-edit-modal') closePendingProjectEditModal(true);
         });
+
+        const ppeYearInput = document.getElementById('ppe-year');
+        if (ppeYearInput) {
+            const maxYear = getMaxAcademicYear();
+            ppeYearInput.min = String(MIN_ACADEMIC_YEAR);
+            ppeYearInput.max = String(maxYear);
+            const enforcePpeYearBounds = () => {
+                const raw = ppeYearInput.value.trim();
+                if (!raw) return;
+                const num = parseInt(raw, 10);
+                const curMax = getMaxAcademicYear();
+                if (!Number.isFinite(num) || num < MIN_ACADEMIC_YEAR || num > curMax) {
+                    const clamped = clampAcademicYearValue(num);
+                    ppeYearInput.value = clamped;
+                    showToast && showToast(`Academic Year is strictly limited to ${MIN_ACADEMIC_YEAR} to ${curMax}.`);
+                }
+            };
+            ppeYearInput.addEventListener('change', enforcePpeYearBounds);
+            ppeYearInput.addEventListener('blur', enforcePpeYearBounds);
+        }
+
+        const ppeAddImagesBtn = document.getElementById('ppe-add-images-btn');
+        const ppeImagesInput = document.getElementById('ppe-images-input');
+        if (ppeAddImagesBtn && ppeImagesInput) {
+            ppeAddImagesBtn.addEventListener('click', () => ppeImagesInput.click());
+            ppeImagesInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files || []);
+                files.forEach(file => {
+                    if (!file.type.startsWith('image/')) return;
+                    if (file.size > 10 * 1024 * 1024) {
+                        showToast && showToast(`Image "${file.name}" exceeds 10MB limit.`);
+                        return;
+                    }
+                    ppeNewImageFiles.push(file);
+                });
+                ppeImagesInput.value = '';
+                renderPendingEditImagesGrid();
+            });
+        }
 
         document.getElementById('pending-project-edit-form')?.addEventListener('submit', async e => {
             e.preventDefault();
@@ -1637,9 +1753,41 @@
         document.getElementById('ppe-authors').value = Array.isArray(project.authors) ? project.authors.join(', ') : (project.authors || '');
         document.getElementById('ppe-adviser').value = cleanNullableField(project.adviser);
         document.getElementById('ppe-program').value = project.program || '';
-        document.getElementById('ppe-year').value = project.year || '';
+
+        const ppeYearEl = document.getElementById('ppe-year');
+        if (ppeYearEl) {
+            const maxYear = getMaxAcademicYear();
+            ppeYearEl.min = String(MIN_ACADEMIC_YEAR);
+            ppeYearEl.max = String(maxYear);
+            ppeYearEl.value = project.year ? clampAcademicYearValue(project.year) : maxYear;
+        }
+
         document.getElementById('ppe-keywords').value = Array.isArray(project.keywords) ? project.keywords.join(', ') : (project.keywords || '');
         document.getElementById('ppe-topics').value = Array.isArray(project.topics) ? project.topics.join(', ') : (project.topics || '');
+
+        // Hydrate existing submitted images & reset newly appended files
+        const rawImgs = Array.isArray(project.images) ? project.images : [];
+        if (rawImgs.length > 0) {
+            ppeExistingImages = rawImgs.map((img, idx) => {
+                if (typeof img === 'string') {
+                    return { url: img, secure_url: img, name: `Image ${idx + 1}` };
+                }
+                return {
+                    url: img.secure_url || img.url || '',
+                    secure_url: img.secure_url || img.url || '',
+                    public_id: img.public_id || '',
+                    name: img.name || `Image ${idx + 1}`
+                };
+            }).filter(img => Boolean(img.url));
+        } else if (project.coverImage && typeof project.coverImage === 'string') {
+            ppeExistingImages = [{ url: project.coverImage, secure_url: project.coverImage, name: 'Cover Image' }];
+        } else {
+            ppeExistingImages = [];
+        }
+        ppeNewImageFiles = [];
+        const ppeImagesInput = document.getElementById('ppe-images-input');
+        if (ppeImagesInput) ppeImagesInput.value = '';
+        renderPendingEditImagesGrid();
 
         const modal = document.getElementById('pending-project-edit-modal');
         if (modal) modal.style.display = 'flex';
@@ -1653,7 +1801,7 @@
         try {
             const freshDoc = await db.collection('pendingProjects').doc(projectId).get();
             if (freshDoc.exists && freshDoc.data().isLockedByAdmin) {
-                showToast && showToast('Operation aborted: This project has been locked by the Administrator.', '🔒');
+                showToast && showToast('Operation aborted: This project has been locked by the Administrator.');
                 await closePendingProjectEditModal(false);
                 return;
             }
@@ -1667,7 +1815,16 @@
         const adviser = cleanNullableField(document.getElementById('ppe-adviser').value);
 
         if (!title || !authorsRaw || !program || !year) {
-            showToast && showToast('Please fill all required fields (Title, Authors, Program, and Year).', '❌');
+            showToast && showToast('Please fill all required fields (Title, Authors, Program, and Year).');
+            return;
+        }
+
+        const yearNum = parseInt(year, 10);
+        const maxYear = getMaxAcademicYear();
+        if (!Number.isFinite(yearNum) || yearNum < MIN_ACADEMIC_YEAR || yearNum > maxYear) {
+            const ppeYearEl = document.getElementById('ppe-year');
+            if (ppeYearEl) ppeYearEl.value = clampAcademicYearValue(yearNum);
+            showToast && showToast(`Academic Year must be between ${MIN_ACADEMIC_YEAR} and ${maxYear}.`);
             return;
         }
 
@@ -1678,6 +1835,49 @@
             const authors = authorsRaw.split(',').map(a => a.trim()).filter(Boolean);
             const keywords = document.getElementById('ppe-keywords').value.split(',').map(k => k.trim()).filter(Boolean);
             const topics = document.getElementById('ppe-topics').value.split(',').map(t => t.trim()).filter(Boolean);
+
+            // Upload any newly appended images
+            const newlyUploaded = [];
+            if (ppeNewImageFiles.length > 0) {
+                if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured && CloudinaryService.isConfigured()) {
+                    for (let i = 0; i < ppeNewImageFiles.length; i++) {
+                        const file = ppeNewImageFiles[i];
+                        try {
+                            const res = await CloudinaryService.uploadImage(file, 'recaps/projects');
+                            newlyUploaded.push({
+                                url: res.secure_url || res.url,
+                                secure_url: res.secure_url || res.url,
+                                public_id: res.public_id || '',
+                                name: file.name
+                            });
+                        } catch (imgErr) {
+                            console.warn('Appended image upload failed, continuing:', imgErr);
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < ppeNewImageFiles.length; i++) {
+                        const file = ppeNewImageFiles[i];
+                        try {
+                            const dataUrl = await new Promise((res, rej) => {
+                                const r = new FileReader();
+                                r.onload = e => res(e.target.result);
+                                r.onerror = rej;
+                                r.readAsDataURL(file);
+                            });
+                            newlyUploaded.push({
+                                url: dataUrl,
+                                secure_url: dataUrl,
+                                name: file.name
+                            });
+                        } catch {}
+                    }
+                }
+            }
+
+            const finalImages = [...ppeExistingImages, ...newlyUploaded];
+            const coverImage = finalImages.length > 0
+                ? (finalImages[0].secure_url || finalImages[0].url || '')
+                : '';
 
             const editorName = currentUserData?.fullName || currentUser?.displayName || 'Librarian';
 
@@ -1692,9 +1892,11 @@
                 authors,
                 adviser,
                 program,
-                year: parseInt(year, 10) || year,
+                year: yearNum,
                 keywords,
                 topics,
+                images: finalImages,
+                coverImage,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastEditedBy: currentUser.uid,
                 lastEditedByName: editorName,
@@ -1715,9 +1917,11 @@
                     authors,
                     adviser,
                     program,
-                    year: parseInt(year, 10) || year,
+                    year: yearNum,
                     keywords,
                     topics,
+                    images: finalImages,
+                    coverImage,
                     isBeingEdited: false,
                     editingBy: null,
                     editingByName: null,
@@ -2270,11 +2474,17 @@
         const yearInput = document.getElementById('um-year');
         const yearBtnUp = document.getElementById('um-year-up');
         const yearBtnDown = document.getElementById('um-year-down');
-        const MIN_YEAR = 2000;
-        const MAX_YEAR = 2100;
+        const MIN_YEAR = MIN_ACADEMIC_YEAR;
+        const MAX_YEAR = getMaxAcademicYear();
 
-        if (yearInput && !yearInput.value) {
-            yearInput.value = new Date().getFullYear();
+        if (yearInput) {
+            yearInput.min = String(MIN_YEAR);
+            yearInput.max = String(MAX_YEAR);
+            if (!yearInput.value) {
+                yearInput.value = MAX_YEAR;
+            } else {
+                yearInput.value = clampAcademicYearValue(yearInput.value);
+            }
         }
 
         if (yearBtnUp) {
@@ -2512,7 +2722,13 @@
             return;
         }
         if (!year) {
-            showToast && showToast('Year is required.', '⚠️');
+            showToast && showToast('Year is required.');
+            return;
+        }
+        const umYearNum = parseInt(year, 10);
+        const umMaxYear = getMaxAcademicYear();
+        if (!Number.isFinite(umYearNum) || umYearNum < MIN_ACADEMIC_YEAR || umYearNum > umMaxYear) {
+            showToast && showToast(`Academic Year must be between ${MIN_ACADEMIC_YEAR} and ${umMaxYear}.`);
             return;
         }
 

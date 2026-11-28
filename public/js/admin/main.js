@@ -5706,8 +5706,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const yearInput = document.getElementById('project-year-input');
     const yearBtnUp = document.querySelector('.year-btn-up');
     const yearBtnDown = document.querySelector('.year-btn-down');
-    const MIN_YEAR = 2023;
-    const MAX_YEAR = 2100;
+    const MIN_YEAR = 2024;
+    const MAX_YEAR = Math.max(2024, new Date().getFullYear());
 
     // Set default year to current year if empty
     if (yearInput && !yearInput.value) {
@@ -7781,7 +7781,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         document.getElementById('approval-program').value = data.program || 'BSIT';
-        document.getElementById('approval-year').value = data.year || new Date().getFullYear();
+        const approvalYearEl = document.getElementById('approval-year');
+        if (approvalYearEl) {
+            const maxYear = Math.max(2024, new Date().getFullYear());
+            approvalYearEl.min = '2024';
+            approvalYearEl.max = String(maxYear);
+            const rawYr = parseInt(data.year, 10);
+            approvalYearEl.value = (Number.isFinite(rawYr) && rawYr >= 2024 && rawYr <= maxYear) ? rawYr : maxYear;
+        }
         document.getElementById('approval-adviser').value = cleanNullableField(data.adviser);
         document.getElementById('approval-keywords').value = Array.isArray(data.keywords) ? data.keywords.join(', ') : (data.keywords || '');
         document.getElementById('approval-abstract').value = cleanNullableField(data.abstract);
@@ -8827,7 +8834,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const year = document.getElementById('approval-year')?.value;
 
             if (!title || authors.length === 0 || !program || !year) {
-                showToast('Please fill all required fields (Title, Program, Year, and at least one Author).', '❌');
+                showToast('Please fill all required fields (Title, Program, Year, and at least one Author).');
+                return;
+            }
+            const maxApprovalYear = Math.max(2024, new Date().getFullYear());
+            const approvalYearNum = parseInt(year, 10);
+            if (!Number.isFinite(approvalYearNum) || approvalYearNum < 2024 || approvalYearNum > maxApprovalYear) {
+                showToast(`Academic Year must be between 2024 and ${maxApprovalYear}.`);
                 return;
             }
 
