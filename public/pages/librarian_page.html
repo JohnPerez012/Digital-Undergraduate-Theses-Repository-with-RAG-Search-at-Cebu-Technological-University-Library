@@ -282,15 +282,18 @@
                     </div>
                 </form>
 
-                <!-- Save Processing overlay: blocks all interaction while submitting -->
+                <!-- Save Processing overlay: blocks all interaction with a 1-100% determinate progress bar -->
                 <div class="save-processing-overlay" id="um-save-processing-overlay" aria-hidden="true">
-                    <div class="save-processing-spinner">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                        </svg>
+                    <div class="processing-progress-card">
+                        <div class="processing-progress-header">
+                            <p class="save-processing-label" id="um-save-processing-label">Submitting project for admin approval&hellip;</p>
+                            <span class="processing-progress-pct" id="um-save-processing-pct">1%</span>
+                        </div>
+                        <div class="processing-progress-track">
+                            <div class="processing-progress-fill" id="um-save-processing-bar" style="width: 1%;"></div>
+                        </div>
+                        <p class="save-processing-sublabel" id="um-save-processing-sublabel">Please wait, do not close this window.</p>
                     </div>
-                    <p class="save-processing-label" id="um-save-processing-label">Submitting project for admin approval&hellip;</p>
-                    <p class="save-processing-sublabel">Please wait, do not close this window.</p>
                 </div>
             </div>
         </div>
@@ -484,20 +487,17 @@
                 </button>
             </div>
 
-            <!-- Bulk Import Processing overlay -->
+            <!-- Bulk Import Processing overlay (1-100% bar only, zero circular spinner) -->
             <div class="save-processing-overlay bulk-import-processing-overlay" id="bulk-processing-overlay" aria-hidden="true">
-                <div class="save-processing-spinner">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
-                </div>
-                <p class="save-processing-label" id="bulk-processing-label">Submitting projects for admin approval&hellip;</p>
-                <p class="save-processing-sublabel" id="bulk-processing-sublabel">Please wait, do not close this window.</p>
-                <div style="width: 82%; max-width: 380px; margin-top: 0.5rem; text-align: center;">
-                    <div style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 0.5rem;">
-                        <div id="bulk-overlay-progress-bar" style="width: 0%; height: 100%; background: var(--admin-primary, #08D488); transition: width 0.2s;"></div>
+                <div class="processing-progress-card">
+                    <div class="processing-progress-header">
+                        <p class="save-processing-label" id="bulk-processing-label">Submitting projects for admin approval&hellip;</p>
+                        <span class="processing-progress-pct" id="bulk-overlay-progress-text">1%</span>
                     </div>
-                    <div id="bulk-overlay-progress-text" style="color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 500;">0%</div>
+                    <div class="processing-progress-track">
+                        <div class="processing-progress-fill" id="bulk-overlay-progress-bar" style="width: 1%;"></div>
+                    </div>
+                    <p class="save-processing-sublabel" id="bulk-processing-sublabel">Please wait, do not close this window.</p>
                 </div>
             </div>
         </div>
@@ -1188,6 +1188,20 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                         <span>Save Pending Changes</span>
                     </button>
+                </div>
+            </div>
+
+            <!-- Save Processing overlay for Edit Pending Submission (1-100% progress bar) -->
+            <div class="save-processing-overlay" id="ppe-save-processing-overlay" aria-hidden="true">
+                <div class="processing-progress-card">
+                    <div class="processing-progress-header">
+                        <p class="save-processing-label" id="ppe-save-processing-label">Saving pending changes&hellip;</p>
+                        <span class="processing-progress-pct" id="ppe-save-processing-pct">1%</span>
+                    </div>
+                    <div class="processing-progress-track">
+                        <div class="processing-progress-fill" id="ppe-save-processing-bar" style="width: 1%;"></div>
+                    </div>
+                    <p class="save-processing-sublabel" id="ppe-save-processing-sublabel">Please wait, do not close this window.</p>
                 </div>
             </div>
         </div>

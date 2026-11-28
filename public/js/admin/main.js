@@ -4144,34 +4144,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         secureDeleteProjectTitle = null;
     }
     
-    // ── Processing state helpers ──────────────────────────────────────────────
-    // Shows a full-modal blur overlay with a spinner so the admin cannot
-    // accidentally click anything else while the delete is in progress.
-    function setDeleteProcessing(active) {
-        const modal    = document.getElementById('secure-delete-modal');
-        const overlay  = document.getElementById('delete-processing-overlay');
-        const closeBtn = document.getElementById('secure-delete-modal-close-btn');
-        const cancelBtn = document.getElementById('secure-delete-cancel-btn');
-        const deleteBtn = document.getElementById('secure-delete-confirm-btn');
-        const input    = document.getElementById('secure-delete-input');
+    // ── Delete Processing state helper (Determinate 1% to 100% Progress Bar) ──
+    function setDeleteProcessing(active, label = 'Deleting project…', percent = 5, sublabel = 'Please wait, do not close this window.') {
+        const modal      = document.getElementById('secure-delete-modal');
+        const overlay    = document.getElementById('delete-processing-overlay');
+        const labelEl    = document.getElementById('delete-processing-label');
+        const sublabelEl = document.getElementById('delete-processing-sublabel');
+        const barEl      = document.getElementById('delete-processing-bar');
+        const pctEl      = document.getElementById('delete-processing-pct');
+        const closeBtn   = document.getElementById('secure-delete-modal-close-btn');
+        const cancelBtn  = document.getElementById('secure-delete-cancel-btn');
+        const deleteBtn  = document.getElementById('secure-delete-confirm-btn');
+        const input      = document.getElementById('secure-delete-input');
 
         if (active) {
-            // Show spinner overlay
+            if (labelEl && label) labelEl.textContent = label;
+            if (sublabelEl && sublabel) sublabelEl.textContent = sublabel;
+            const clampedPct = Math.max(1, Math.min(100, Math.round(percent || 5)));
+            if (barEl) barEl.style.width = `${clampedPct}%`;
+            if (pctEl) pctEl.textContent = `${clampedPct}%`;
             overlay.classList.add('active');
             overlay.setAttribute('aria-hidden', 'false');
-            // Add guard class to the outer modal (blocks backdrop click via CSS)
             modal.classList.add('is-processing');
-            // Disable all interactive elements as a belt-and-suspenders measure
             closeBtn.disabled  = true;
             cancelBtn.disabled = true;
             deleteBtn.disabled = true;
             input.disabled     = true;
         } else {
-            // Hide spinner overlay
             overlay.classList.remove('active');
             overlay.setAttribute('aria-hidden', 'true');
             modal.classList.remove('is-processing');
-            // Re-enable close/cancel (delete btn stays disabled — it's a one-shot)
+            if (barEl) barEl.style.width = '1%';
+            if (pctEl) pctEl.textContent = '1%';
             closeBtn.disabled  = false;
             cancelBtn.disabled = false;
             input.disabled     = false;
@@ -4188,8 +4192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ── Activate processing state ─────────────────────────────────────
             // Shows blur overlay + spinner and disables all modal controls so
             // the admin cannot accidentally click Cancel, Close, or the backdrop.
-            setDeleteProcessing(true);
-            showToast('Deleting project...', 'ℹ️');
+            setDeleteProcessing(true, 'Verifying project lock status…', 12, 'Checking active editing and cataloging sessions…');
 
             // Fetch project data to verify lock status and get image URLs before deletion
             let projectImages = [];
@@ -4227,10 +4230,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             
             // Delete from Firestore
+            setDeleteProcessing(true, 'Removing manuscript from Firestore…', 40, 'Deleting document record…');
             await db.collection('projects').doc(secureDeleteProjectId).delete();
             
             // Delete images from Cloudinary (non-blocking)
             if (projectImages.length > 0 && window.CloudinaryService) {
+                setDeleteProcessing(true, `Pruning ${projectImages.length} image(s) from Cloudinary…`, 65, 'Cleaning cloud media storage…');
                 console.log(`🗑️  Deleting ${projectImages.length} images from Cloudinary...`);
                 try {
                     const deleteResults = await window.CloudinaryService.deleteMultipleImages(projectImages);
@@ -4255,6 +4260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             invalidateCache();
 
             // Delete from Pinecone
+            setDeleteProcessing(true, 'Removing vector from Pinecone…', 85, 'Synchronizing semantic vector index…');
             try {
                 console.log('🔄 Deleting project from Pinecone...');
                 const backendUrl = getBackendUrl();
@@ -4275,6 +4281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // ── Deactivate processing state before closing ────────────────────
+            setDeleteProcessing(true, 'Project deleted!', 100, 'Completed (100%)');
+            await new Promise(r => setTimeout(r, 180));
             setDeleteProcessing(false);
             closeSecureDeleteModal();
             showToast('Project deleted successfully', '✅');
@@ -6328,13 +6336,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize form monitoring
     setupFormChangeMonitoring();
 
-    // ── Save Processing state helper ─────────────────────────────────────────
-    // Activates a blurred overlay over the project modal while create/update
-    // is running so the admin cannot click Cancel, Close, or the backdrop.
-    function setSaveProcessing(active, label) {
+    // ── Save Processing state helper (Determinate 1% to 100% Progress Bar) ──
+    function setSaveProcessing(active, label, percent = null, sublabel = null) {
         const modal      = document.getElementById('project-modal');
         const overlay    = document.getElementById('save-processing-overlay');
         const labelEl    = document.getElementById('save-processing-label');
+        const sublabelEl = document.getElementById('save-processing-sublabel');
+        const barEl      = document.getElementById('save-processing-bar');
+        const pctEl      = document.getElementById('save-processing-pct');
         const closeBtn   = document.getElementById('project-modal-close-btn');
         const cancelBtn  = document.getElementById('cancel-project-btn');
         const submitBtn  = document.getElementById('submit-project-btn');
@@ -6342,6 +6351,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (active) {
             if (labelEl && label) labelEl.textContent = label;
+            if (sublabelEl) {
+                sublabelEl.textContent = sublabel || 'Please wait, do not close this window.';
+            }
+            const clampedPct = percent !== null ? Math.max(1, Math.min(100, Math.round(percent))) : 5;
+            if (barEl) barEl.style.width = `${clampedPct}%`;
+            if (pctEl) pctEl.textContent = `${clampedPct}%`;
             overlay && overlay.classList.add('active');
             overlay && overlay.setAttribute('aria-hidden', 'false');
             modal   && modal.classList.add('is-saving');
@@ -6353,6 +6368,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             overlay && overlay.classList.remove('active');
             overlay && overlay.setAttribute('aria-hidden', 'true');
             modal   && modal.classList.remove('is-saving');
+            if (barEl) barEl.style.width = '1%';
+            if (pctEl) pctEl.textContent = '1%';
             if (closeBtn)  closeBtn.disabled  = false;
             if (cancelBtn) cancelBtn.disabled = false;
             if (clearBtn)  clearBtn.disabled  = false;
@@ -6527,7 +6544,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Separate function for performing project update
     async function performProjectUpdate(projectId, title, authors, program, year, adviser, status, abstract, topics, keywords) {
-        setSaveProcessing(true, 'Updating project…');
+        setSaveProcessing(true, 'Updating project…', 5, 'Checking duplicate records…');
         try {
             // ===== Duplicate title check (skip if title belongs to this same doc) =====
             const titleNorm = normalizeTitle(title);
@@ -6541,6 +6558,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
+            setSaveProcessing(true, 'Updating project…', 15, 'Verifying current manuscript record…');
             // Fetch existing data
             const currentDoc = await db.collection('projects').doc(projectId).get();
             if (!currentDoc.exists) {
@@ -6599,8 +6617,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let finalImages = [...projectExistingImages];
             if (projectImageFiles.length > 0) {
                 if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured()) {
-                    showToast(`Uploading ${projectImageFiles.length} image(s) to Cloudinary...`, 'ℹ️');
-                    for (let i = 0; i < projectImageFiles.length; i++) {
+                    const totalImgs = projectImageFiles.length;
+                    setSaveProcessing(true, `Uploading images (0/${totalImgs})…`, 20, 'Uploading image assets to Cloudinary…');
+                    for (let i = 0; i < totalImgs; i++) {
                         const file = projectImageFiles[i];
                         const card = document.getElementById(`new-image-preview-${i}`);
                         if (card) {
@@ -6619,6 +6638,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const text = document.getElementById(`upload-text-${i}`);
                                 if (fill) fill.style.width = `${percent}%`;
                                 if (text) text.textContent = `${percent}%`;
+                                const overallPct = 20 + Math.round(((i + (percent / 100)) / totalImgs) * 45);
+                                setSaveProcessing(true, `Uploading image ${i + 1} of ${totalImgs}…`, overallPct, `${file.name} (${percent}%)`);
                             });
                             finalImages.push(uploadRes.secure_url || uploadRes.url);
                         } catch (uploadErr) {
@@ -6630,6 +6651,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     showToast('Cloudinary is not configured yet. Project saved without new image uploads.', '⚠️');
                 }
             }
+
+            setSaveProcessing(true, 'Saving metadata to Firestore…', 70, 'Writing updated manuscript record…');
 
             // Update Firestore
             const updatedData = {
@@ -6675,6 +6698,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             // Sync to Pinecone
+            setSaveProcessing(true, 'Syncing AI vector index…', 88, 'Generating 1024-d Pinecone embedding…');
             let isPineconeSynced = false;
             try {
                 console.log('🔄 Syncing project to Pinecone...');
@@ -6728,6 +6752,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             
+            setSaveProcessing(true, 'Project updated!', 100, 'Completed (100%)');
+            await new Promise(r => setTimeout(r, 180));
             setSaveProcessing(false);
             closeProjectModal();
             invalidateCache();
@@ -6742,7 +6768,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Separate function for performing project creation
     async function performProjectCreate(title, authors, program, year, adviser, status, abstract, topics, keywords) {
-        setSaveProcessing(true, 'Creating project…');
+        setSaveProcessing(true, 'Creating project…', 5, 'Checking duplicate records…');
         try {
             // ===== Duplicate title check (targeted query — no full collection fetch) =====
             const titleNorm = normalizeTitle(title);
@@ -6760,8 +6786,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let finalImages = [...projectExistingImages];
             if (projectImageFiles.length > 0) {
                 if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured()) {
-                    showToast(`Uploading ${projectImageFiles.length} image(s) to Cloudinary...`, 'ℹ️');
-                    for (let i = 0; i < projectImageFiles.length; i++) {
+                    const totalImgs = projectImageFiles.length;
+                    setSaveProcessing(true, `Uploading images (0/${totalImgs})…`, 20, 'Uploading image assets to Cloudinary…');
+                    for (let i = 0; i < totalImgs; i++) {
                         const file = projectImageFiles[i];
                         const card = document.getElementById(`new-image-preview-${i}`);
                         if (card) {
@@ -6780,6 +6807,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const text = document.getElementById(`upload-text-${i}`);
                                 if (fill) fill.style.width = `${percent}%`;
                                 if (text) text.textContent = `${percent}%`;
+                                const overallPct = 20 + Math.round(((i + (percent / 100)) / totalImgs) * 45);
+                                setSaveProcessing(true, `Uploading image ${i + 1} of ${totalImgs}…`, overallPct, `${file.name} (${percent}%)`);
                             });
                             finalImages.push(uploadRes.secure_url || uploadRes.url);
                         } catch (uploadErr) {
@@ -6791,6 +6820,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     showToast('Cloudinary is not configured yet. Project saved without new image uploads.', '⚠️');
                 }
             }
+
+            setSaveProcessing(true, 'Saving metadata to Firestore…', 70, 'Writing updated manuscript record…');
 
             const catalogLocation = document.getElementById('project-catalog-location')?.value.trim() || '';
             const callNumber = document.getElementById('project-call-number')?.value.trim() || '';
@@ -6844,6 +6875,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             // Sync to Pinecone
+            setSaveProcessing(true, 'Syncing AI vector index…', 88, 'Generating 1024-d Pinecone embedding…');
             let isPineconeSynced = false;
             try {
                 console.log('🔄 Syncing new project to Pinecone...');
@@ -6887,6 +6919,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.ActivityService.logAdmin('project_created', title, `Created new project: ${title} by ${authors.join(', ')} (${program}, ${year})`);
             }
             
+            setSaveProcessing(true, 'Project created!', 100, 'Completed (100%)');
+            await new Promise(r => setTimeout(r, 180));
             setSaveProcessing(false);
             closeProjectModal();
             await loadProjectsData(true);

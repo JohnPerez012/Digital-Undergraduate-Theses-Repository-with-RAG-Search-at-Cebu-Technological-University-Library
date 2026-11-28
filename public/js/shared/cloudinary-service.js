@@ -42,7 +42,18 @@ const CloudinaryService = {
      * @param {Function} onProgress - Callback with progress percentage (0-100)
      * @returns {Promise<{url: string, secure_url: string, public_id: string, width: number, height: number, format: string}>}
      */
-    async uploadImage(file, onProgress = null) {
+    async uploadImage(file, onProgressOrFolder = null, maybeOnProgress = null) {
+        let folderOverride = null;
+        let onProgress = null;
+        if (typeof onProgressOrFolder === 'function') {
+            onProgress = onProgressOrFolder;
+        } else if (typeof onProgressOrFolder === 'string') {
+            folderOverride = onProgressOrFolder;
+            if (typeof maybeOnProgress === 'function') {
+                onProgress = maybeOnProgress;
+            }
+        }
+
         if (!this.isConfigured()) {
             throw new Error(
                 'Cloudinary is not configured. Please set your cloudName and uploadPreset in cloudinary-config.js'
@@ -61,18 +72,18 @@ const CloudinaryService = {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', this.config.uploadPreset);
-        if (this.config.folder) {
-            formData.append('folder', this.config.folder);
+        if (folderOverride || this.config.folder) {
+            formData.append('folder', folderOverride || this.config.folder);
         }
 
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
 
-            if (xhr.upload && onProgress) {
+            if (xhr.upload && typeof onProgress === 'function') {
                 xhr.upload.addEventListener('progress', (e) => {
                     if (e.lengthComputable) {
-                        const percent = Math.round((e.loaded / e.total) * 100);
+                        const percent = Math.max(1, Math.min(100, Math.round((e.loaded / e.total) * 100)));
                         onProgress(percent);
                     }
                 });

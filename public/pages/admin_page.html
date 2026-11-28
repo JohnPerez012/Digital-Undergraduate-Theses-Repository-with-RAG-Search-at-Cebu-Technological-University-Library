@@ -2528,16 +2528,18 @@
                     </div>
                 </form>
 
-                <!-- Save Processing overlay: blocks all interaction while saving/updating -->
+                <!-- Save Processing overlay: blocks all interaction with a 1-100% determinate progress bar -->
                 <div class="save-processing-overlay" id="save-processing-overlay" aria-hidden="true">
-                    <div class="save-processing-spinner">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                        </svg>
+                    <div class="processing-progress-card">
+                        <div class="processing-progress-header">
+                            <p class="save-processing-label" id="save-processing-label">Saving project…</p>
+                            <span class="processing-progress-pct" id="save-processing-pct">1%</span>
+                        </div>
+                        <div class="processing-progress-track">
+                            <div class="processing-progress-fill" id="save-processing-bar" style="width: 1%;"></div>
+                        </div>
+                        <p class="save-processing-sublabel" id="save-processing-sublabel">Please wait, do not close this window.</p>
                     </div>
-                    <p class="save-processing-label" id="save-processing-label">Saving project…</p>
-                    <p class="save-processing-sublabel">Please wait, do not close this window.</p>
                 </div>
             </div>
         </div>
@@ -2607,16 +2609,18 @@
                 </button>
             </div>
 
-            <!-- Processing overlay: covers the whole modal during deletion to block all interaction -->
+            <!-- Processing overlay: covers the whole modal during deletion with a 1-100% determinate progress bar -->
             <div class="delete-processing-overlay" id="delete-processing-overlay" aria-hidden="true">
-                <div class="delete-processing-spinner">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
+                <div class="processing-progress-card is-danger">
+                    <div class="processing-progress-header">
+                        <p class="delete-processing-label" id="delete-processing-label">Deleting project…</p>
+                        <span class="processing-progress-pct is-danger" id="delete-processing-pct">1%</span>
+                    </div>
+                    <div class="processing-progress-track">
+                        <div class="processing-progress-fill is-danger" id="delete-processing-bar" style="width: 1%;"></div>
+                    </div>
+                    <p class="delete-processing-sublabel" id="delete-processing-sublabel">Please wait, do not close this window.</p>
                 </div>
-                <p class="delete-processing-label">Deleting project…</p>
-                <p class="delete-processing-sublabel">Please wait, do not close this window.</p>
             </div>
         </div>
     </div>
@@ -2845,27 +2849,18 @@
                 </button>
             </div>
 
-            <!-- Bulk Import Processing overlay: shown during the import operation -->
+            <!-- Bulk Import Processing overlay: shown during the import operation (1-100% bar only, zero circular spinner) -->
             <div class="save-processing-overlay bulk-import-processing-overlay" id="bulk-processing-overlay"
                 aria-hidden="true">
-                <div class="save-processing-spinner">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="44" height="44">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
-                </div>
-                <p class="save-processing-label" id="bulk-processing-label">Importing projects…</p>
-                <p class="save-processing-sublabel" id="bulk-processing-sublabel">Please wait, do not close this window.
-                </p>
-                <div style="width: 82%; max-width: 380px; margin-top: 0.5rem; text-align: center;">
-                    <div
-                        style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 0.5rem;">
-                        <div id="bulk-overlay-progress-bar"
-                            style="width: 0%; height: 100%; background: var(--admin-primary, #667eea); transition: width 0.2s;">
-                        </div>
+                <div class="processing-progress-card">
+                    <div class="processing-progress-header">
+                        <p class="save-processing-label" id="bulk-processing-label">Importing projects…</p>
+                        <span class="processing-progress-pct" id="bulk-overlay-progress-text">1%</span>
                     </div>
-                    <div id="bulk-overlay-progress-text"
-                        style="color: rgba(255,255,255,0.9); font-size: 0.85rem; font-weight: 500;">0%</div>
+                    <div class="processing-progress-track">
+                        <div class="processing-progress-fill" id="bulk-overlay-progress-bar" style="width: 1%;"></div>
+                    </div>
+                    <p class="save-processing-sublabel" id="bulk-processing-sublabel">Please wait, do not close this window.</p>
                 </div>
             </div>
         </div>

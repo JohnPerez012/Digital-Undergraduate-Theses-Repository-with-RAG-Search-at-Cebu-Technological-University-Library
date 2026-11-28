@@ -1847,6 +1847,7 @@
 
         const saveBtn = document.getElementById('ppe-save-btn');
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+        setPendingEditProcessing(true, 'Saving pending changes…', 10, 'Validating metadata & lock status…');
 
         try {
             const authors = authorsRaw.split(',').map(a => a.trim()).filter(Boolean);
@@ -1856,11 +1857,15 @@
             // Upload any newly appended images
             const newlyUploaded = [];
             if (ppeNewImageFiles.length > 0) {
+                const totalNew = ppeNewImageFiles.length;
                 if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured && CloudinaryService.isConfigured()) {
-                    for (let i = 0; i < ppeNewImageFiles.length; i++) {
+                    for (let i = 0; i < totalNew; i++) {
                         const file = ppeNewImageFiles[i];
                         try {
-                            const res = await CloudinaryService.uploadImage(file, 'recaps/projects');
+                            const res = await CloudinaryService.uploadImage(file, 'recaps/projects', (pct) => {
+                                const overallPct = 20 + Math.round(((i + (pct / 100)) / totalNew) * 55);
+                                setPendingEditProcessing(true, `Uploading appended image ${i + 1} of ${totalNew}…`, overallPct, `${file.name} (${pct}%)`);
+                            });
                             newlyUploaded.push({
                                 url: res.secure_url || res.url,
                                 secure_url: res.secure_url || res.url,
@@ -1872,8 +1877,10 @@
                         }
                     }
                 } else {
-                    for (let i = 0; i < ppeNewImageFiles.length; i++) {
+                    for (let i = 0; i < totalNew; i++) {
                         const file = ppeNewImageFiles[i];
+                        const overallPct = 20 + Math.round(((i + 1) / totalNew) * 55);
+                        setPendingEditProcessing(true, `Encoding appended image ${i + 1} of ${totalNew}…`, overallPct, file.name);
                         try {
                             const dataUrl = await new Promise((res, rej) => {
                                 const r = new FileReader();
@@ -1889,7 +1896,11 @@
                         } catch {}
                     }
                 }
+            } else {
+                setPendingEditProcessing(true, 'Updating Firestore record…', 60, 'Applying metadata updates…');
             }
+
+            setPendingEditProcessing(true, 'Saving changes to Firestore…', 85, 'Releasing editing lock…');
 
             const finalImages = [...ppeExistingImages, ...newlyUploaded];
             const coverImage = finalImages.length > 0
@@ -1949,6 +1960,9 @@
                 renderProjectsTable();
             }
 
+            setPendingEditProcessing(true, 'Pending submission updated!', 100, 'Completed (100%)');
+            await new Promise(r => setTimeout(r, 160));
+            setPendingEditProcessing(false);
             await closePendingProjectEditModal(false);
             showToast && showToast('Pending project updated successfully!', '✅');
 
@@ -1959,6 +1973,7 @@
             console.error('savePendingProjectEdit:', err);
             showToast && showToast('Error saving project edits. Try again.', '❌');
         } finally {
+            setPendingEditProcessing(false);
             if (saveBtn) {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `
@@ -2448,10 +2463,13 @@
         });
     }
 
-    function setUploadProcessing(active, label) {
+    function setUploadProcessing(active, label, percent = null, sublabel = null) {
         const modal = document.getElementById('upload-metadata-modal');
         const overlay = document.getElementById('um-save-processing-overlay');
         const labelEl = document.getElementById('um-save-processing-label');
+        const sublabelEl = document.getElementById('um-save-processing-sublabel');
+        const barEl = document.getElementById('um-save-processing-bar');
+        const pctEl = document.getElementById('um-save-processing-pct');
         const closeBtn = document.getElementById('um-close-btn');
         const cancelBtn = document.getElementById('um-cancel-btn');
         const submitBtn = document.getElementById('um-submit-btn');
@@ -2459,6 +2477,12 @@
 
         if (active) {
             if (labelEl && label) labelEl.textContent = label;
+            if (sublabelEl) {
+                sublabelEl.textContent = sublabel || 'Please wait, do not close this window.';
+            }
+            const clampedPct = percent !== null ? Math.max(1, Math.min(100, Math.round(percent))) : 5;
+            if (barEl) barEl.style.width = `${clampedPct}%`;
+            if (pctEl) pctEl.textContent = `${clampedPct}%`;
             overlay && overlay.classList.add('active');
             overlay && overlay.setAttribute('aria-hidden', 'false');
             modal && modal.classList.add('is-saving');
@@ -2470,10 +2494,35 @@
             overlay && overlay.classList.remove('active');
             overlay && overlay.setAttribute('aria-hidden', 'true');
             modal && modal.classList.remove('is-saving');
+            if (barEl) barEl.style.width = '1%';
+            if (pctEl) pctEl.textContent = '1%';
             if (closeBtn) closeBtn.disabled = false;
             if (cancelBtn) cancelBtn.disabled = false;
             if (submitBtn) submitBtn.disabled = false;
             if (clearBtn) clearBtn.disabled = false;
+        }
+    }
+
+    function setPendingEditProcessing(active, label, percent = null, sublabel = null) {
+        const overlay = document.getElementById('ppe-save-processing-overlay');
+        const labelEl = document.getElementById('ppe-save-processing-label');
+        const sublabelEl = document.getElementById('ppe-save-processing-sublabel');
+        const barEl = document.getElementById('ppe-save-processing-bar');
+        const pctEl = document.getElementById('ppe-save-processing-pct');
+        if (!overlay) return;
+        if (active) {
+            if (labelEl && label) labelEl.textContent = label;
+            if (sublabelEl) sublabelEl.textContent = sublabel || 'Please wait, do not close this window.';
+            const clampedPct = percent !== null ? Math.max(1, Math.min(100, Math.round(percent))) : 5;
+            if (barEl) barEl.style.width = `${clampedPct}%`;
+            if (pctEl) pctEl.textContent = `${clampedPct}%`;
+            overlay.classList.add('active');
+            overlay.setAttribute('aria-hidden', 'false');
+        } else {
+            overlay.classList.remove('active');
+            overlay.setAttribute('aria-hidden', 'true');
+            if (barEl) barEl.style.width = '1%';
+            if (pctEl) pctEl.textContent = '1%';
         }
     }
 
@@ -2755,18 +2804,22 @@
         }
 
         isSubmittingMetadata = true;
-        setUploadProcessing(true, 'Submitting project for admin approval...');
+        setUploadProcessing(true, 'Submitting project for admin approval…', 8, 'Preparing manuscript metadata…');
 
         try {
             // Upload images to Cloudinary if files selected & Cloudinary is configured
             let uploadedImages = [];
             if (umProjectImageFiles.length > 0) {
+                const totalImgs = umProjectImageFiles.length;
                 if (typeof CloudinaryService !== 'undefined' && CloudinaryService.isConfigured && CloudinaryService.isConfigured()) {
-                    setUploadProcessing(true, `Uploading ${umProjectImageFiles.length} image(s) to Cloudinary...`);
-                    for (let i = 0; i < umProjectImageFiles.length; i++) {
+                    setUploadProcessing(true, `Uploading images (0/${totalImgs})…`, 15, 'Uploading image assets to Cloudinary…');
+                    for (let i = 0; i < totalImgs; i++) {
                         const file = umProjectImageFiles[i];
                         try {
-                            const res = await CloudinaryService.uploadImage(file, 'recaps/projects');
+                            const res = await CloudinaryService.uploadImage(file, 'recaps/projects', (pct) => {
+                                const overallPct = 15 + Math.round(((i + (pct / 100)) / totalImgs) * 60);
+                                setUploadProcessing(true, `Uploading image ${i + 1} of ${totalImgs}…`, overallPct, `${file.name} (${pct}%)`);
+                            });
                             uploadedImages.push({
                                 url: res.secure_url || res.url,
                                 secure_url: res.secure_url || res.url,
@@ -2779,8 +2832,10 @@
                     }
                 } else {
                     // Fallback to storing metadata / data preview
-                    for (let i = 0; i < umProjectImageFiles.length; i++) {
+                    for (let i = 0; i < totalImgs; i++) {
                         const file = umProjectImageFiles[i];
+                        const overallPct = 15 + Math.round(((i + 1) / totalImgs) * 60);
+                        setUploadProcessing(true, `Encoding image ${i + 1} of ${totalImgs}…`, overallPct, file.name);
                         try {
                             const dataUrl = await new Promise((res, rej) => {
                                 const r = new FileReader();
@@ -2796,7 +2851,11 @@
                         } catch {}
                     }
                 }
+            } else {
+                setUploadProcessing(true, 'Validating submission…', 50, 'Preparing pending approval record…');
             }
+
+            setUploadProcessing(true, 'Saving to Firestore pending queue…', 85, 'Registering submission for admin review…');
 
             const coverImage = uploadedImages.length > 0
                 ? (uploadedImages[0].secure_url || uploadedImages[0].url || '')
@@ -2822,7 +2881,9 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // 1. Turn off processing overlay
+            // 1. Show 100% completion then turn off processing overlay
+            setUploadProcessing(true, 'Submission complete!', 100, 'Completed (100%)');
+            await new Promise(r => setTimeout(r, 180));
             setUploadProcessing(false);
 
             // 2. Clear auto-saved draft and form inputs completely
