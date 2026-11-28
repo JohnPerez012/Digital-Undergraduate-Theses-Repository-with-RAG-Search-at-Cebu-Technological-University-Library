@@ -2745,8 +2745,8 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem 2rem;
-    background: linear-gradient(135deg, #1a1f3e 0%, #232847 60%, #2a2060 100%);
-    border-bottom: 1px solid rgba(102, 126, 234, 0.25);
+    background: linear-gradient(135deg, #161b22 0%, #1e242c 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px 16px 0 0;
     gap: 1rem;
     flex-wrap: wrap;
@@ -2763,38 +2763,22 @@ body {
 .pmodal-icon {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #08D488 0%, #FCCC56 100%);
-    border-radius: 12px;
+    background: rgba(8, 212, 136, 0.12);
+    border: 1px solid rgba(8, 212, 136, 0.28);
+    border-radius: 10px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: #08D488;
     flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(8, 212, 136, 0.4);
     position: relative;
 }
 
-/* CSS-only document icon via stacked pseudo-elements */
-.pmodal-icon::before {
-    content: '';
-    width: 18px;
-    height: 22px;
-    border: 2px solid #fff;
-    border-radius: 2px 6px 2px 2px;
-    display: block;
-}
-
+/* Suppress legacy CSS pseudo-element document icon so inline SVGs render cleanly without double-stacking */
+.pmodal-icon::before,
 .pmodal-icon::after {
-    content: '';
-    position: absolute;
-    top: 11px;
-    right: 11px;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 0 0 7px 7px;
-    border-color: transparent transparent rgba(255,255,255,0.5) transparent;
+    content: none;
+    display: none;
 }
 
 /* CSS-only librarian profile icon */
@@ -3270,7 +3254,7 @@ body {
 
 /* Dark mode header text overrides */
 [data-theme="dark"] .pmodal-header {
-    background: linear-gradient(135deg, #0f172a 0%, #1a1f3e 60%, #1e1545 100%);
+    background: linear-gradient(135deg, #161b22 0%, #1e242c 100%);
 }
 
 /* =====================================================
@@ -3342,27 +3326,15 @@ body {
     min-height: 0; /* critical for flex children to shrink */
 }
 
-/* The form itself becomes the scrollable area */
+/* The form itself becomes the scrollable area (no mask-image fade so footer buttons remain 100% sharp and visible) */
 .pmodal-body > form {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
     padding: 1.75rem 2rem 0;
-
-    /* Fade edge at bottom for a polished look */
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        black 0%,
-        black calc(100% - 32px),
-        transparent 100%
-    );
-    mask-image: linear-gradient(
-        to bottom,
-        black 0%,
-        black calc(100% - 32px),
-        transparent 100%
-    );
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
 }
 
 /* Remove the padding from pmodal-body since form handles it */
@@ -3418,21 +3390,23 @@ body {
     scrollbar-color: #08D488 transparent;
 }
 
-/* Footer: always pinned at the bottom, never scrolls */
+/* Footer: always pinned at the bottom, never scrolls or blurs */
 .pmodal-footer {
     flex-shrink: 0;
-    background: var(--surface);
+    position: sticky;
+    bottom: 0;
+    background: var(--surface, #1e2229);
     border-top: 1px solid var(--border);
     padding: 1rem 2rem;
-    margin-top: 0;
-    z-index: 5;
-    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.07);
+    margin: 0.75rem -2rem 0;
+    z-index: 10;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.14);
 }
 
 [data-theme="dark"] .pmodal-footer {
-    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.3);
-    background: var(--surface);
-    border-top-color: rgba(102, 126, 234, 0.2);
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35);
+    background: var(--surface, #1e2229);
+    border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Librarian modal footer — teal accent border */

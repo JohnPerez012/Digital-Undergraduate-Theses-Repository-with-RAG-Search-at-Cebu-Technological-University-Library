@@ -5390,6 +5390,35 @@ html, body, .dashboard-layout {
     flex-shrink: 0;
 }
 
+.pmodal-btn-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.65rem 1.25rem;
+    border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.15));
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-right: auto;
+}
+
+.pmodal-btn-clear:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.38);
+    color: #ef4444;
+}
+
+.pmodal-btn-clear:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .pmodal-btn-cancel {
     padding: 0.65rem 1.25rem;
     border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.15));
@@ -6967,10 +6996,18 @@ html, body, .dashboard-layout {
     border-top: 1px solid #e2e8f0 !important;
 }
 :root:not([data-theme="dark"]) .pmodal-btn-cancel,
-[data-theme="light"] .pmodal-btn-cancel {
+[data-theme="light"] .pmodal-btn-cancel,
+:root:not([data-theme="dark"]) .pmodal-btn-clear,
+[data-theme="light"] .pmodal-btn-clear {
     background: #f1f5f9 !important;
     border: 1px solid #cbd5e1 !important;
     color: #334155 !important;
+}
+:root:not([data-theme="dark"]) .pmodal-btn-clear:hover:not(:disabled),
+[data-theme="light"] .pmodal-btn-clear:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.08) !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    color: #dc2626 !important;
 }
 
 /* 6. Bulk Import Modal Content */
