@@ -349,6 +349,8 @@ async function rollback({ auth, db }) {
             }
             u.conversations.forEach(cid => batch.delete(db.collection('conversations').doc(cid)));
             batch.delete(db.collection('usersSavedProjects').doc(u.uid));
+            const devicesSnap = await db.collection('users').doc(u.uid).collection('devices').get();
+            devicesSnap.docs.forEach(d => batch.delete(d.ref));
             batch.delete(db.collection('users').doc(u.uid));
             await batch.commit();
             await auth.deleteUser(u.uid).catch(e => { if (e.code !== 'auth/user-not-found') throw e; });

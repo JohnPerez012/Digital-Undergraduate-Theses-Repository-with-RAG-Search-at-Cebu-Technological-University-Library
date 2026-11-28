@@ -1133,7 +1133,6 @@
         // Why plain Tesseract fails on CTU IDs even when the photo is sharp:
         //   • yellow/green gradient card background, blue/purple design bars,
         //     seal watermarks, signature strokes crossing the name, and small
-        //     tightly-spaced ID digits (e.g. "80419", "8230612").
         // Pipeline applied to every scan:
         //   1. Scale normalization  -> card is resampled to OCR_TARGET_WIDTH px
         //      (≈2x–3x upscale for typical phone crops) so small digits get

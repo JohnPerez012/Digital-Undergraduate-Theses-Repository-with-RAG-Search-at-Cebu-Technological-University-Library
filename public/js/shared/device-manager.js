@@ -230,6 +230,16 @@
                 } catch (_) {}
             }
 
+            // Guard against orphan subcollection writes for incomplete Google sign-ups or deleted accounts
+            if (typeof db !== 'undefined' && db && typeof db.collection === 'function') {
+                try {
+                    const profileSnap = await db.collection('users').doc(user.uid).get();
+                    if (!profileSnap.exists) {
+                        return null;
+                    }
+                } catch (_) {}
+            }
+
             const resp = await requestDeviceApi('/api/auth/devices/register', {
                 method: 'POST',
                 headers: {

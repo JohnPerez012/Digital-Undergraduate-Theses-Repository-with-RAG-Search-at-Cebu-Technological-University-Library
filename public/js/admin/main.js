@@ -4434,9 +4434,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn('Could not update user cache:', cacheErr);
             }
 
-            // 3. Call backend to delete user from Firebase Authentication & Firestore
+            // 3. Call backend to delete user from Firebase Authentication & Firestore (recursively)
             const backendUrl = getBackendUrl();
             let authDeleted = false;
+            let firestoreDeleted = false;
             try {
                 const authHeaders = await getAdminAuthHeaders({ 'Content-Type': 'application/json' });
                 const response = await fetch(`${backendUrl}/api/users/${userId}`, {
@@ -4450,7 +4451,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (response.ok) {
                     const resJson = await response.json();
-                    authDeleted = resJson.authDeleted;
+                    authDeleted = Boolean(resJson.authDeleted);
+                    firestoreDeleted = Boolean(resJson.firestoreDeleted);
                     console.log('Backend user delete success:', resJson);
                 } else {
                     console.warn(`⚠️ Backend delete returned status ${response.status}`);
@@ -4459,12 +4461,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn('⚠️ Backend user delete failed or unreachable:', backendError.message);
             }
 
-            // 4. Also guarantee Firestore document deletion directly from client SDK
-            try {
-                await db.collection('users').doc(userId).delete();
-                console.log(`Firestore document deleted for ${userId}`);
-            } catch (fsError) {
-                console.warn('⚠️ Client-side Firestore delete:', fsError.message);
+            // 4. Fallback client-side delete only if backend could not delete the user doc
+            if (!firestoreDeleted) {
+                try {
+                    await db.collection('users').doc(userId).delete();
+                    console.log(`Firestore document deleted for ${userId}`);
+                } catch (fsError) {
+                    console.warn('⚠️ Client-side Firestore delete:', fsError.message);
+                }
             }
 
             // 5. Invalidate users cache completely
