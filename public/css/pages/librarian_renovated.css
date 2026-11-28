@@ -1849,6 +1849,7 @@
 .ctm-modal-body {
     padding: 1.15rem 1.75rem;
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
     min-height: 0;
     display: flex;
@@ -2012,6 +2013,10 @@
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 12px;
     padding: 0.95rem 1.25rem;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .ctm-section-header {
@@ -2058,8 +2063,10 @@
 
 .ctm-placement-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
 }
 
 .ctm-tile {
@@ -2070,6 +2077,10 @@
     border: 1px solid var(--border);
     border-radius: 9px;
     padding: 0.65rem 0.8rem;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .ctm-tile-icon {
@@ -2107,6 +2118,7 @@
     flex-direction: column;
     gap: 0.15rem;
     min-width: 0;
+    flex: 1 1 0%;
 }
 
 .ctm-tile-label {
@@ -2127,6 +2139,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
 }
 
 /* Abstract & Scope Summary (Collapsible & Clamped) */

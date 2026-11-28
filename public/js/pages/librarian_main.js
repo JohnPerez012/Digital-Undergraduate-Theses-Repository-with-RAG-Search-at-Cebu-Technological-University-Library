@@ -4033,10 +4033,42 @@
             shelfPillEl.innerHTML = `${shelfIcon}<span>${isShelved ? 'Shelved in Archive' : 'Awaiting Shelf Assignment'}</span>`;
         }
 
-        if (shelfNoteEl) shelfNoteEl.textContent = cleanNullableField(note?.note) || 'Not specified in physical manuscript record';
-        if (callEl) callEl.textContent = cleanNullableField(note?.callNumber) || 'Not specified in record';
-        if (accEl) accEl.textContent = cleanNullableField(note?.accessionNumber) || 'Not specified in record';
-        if (subjEl) subjEl.textContent = cleanNullableField(note?.subjectHeading) || 'Not specified in record';
+        const shelfVal = cleanNullableField(note?.note) || 'Not specified in record';
+        const callVal = cleanNullableField(note?.callNumber) || 'Not specified in record';
+        const accVal = cleanNullableField(note?.accessionNumber) || 'Not specified in record';
+        const subjVal = cleanNullableField(note?.subjectHeading) || 'Not specified in record';
+
+        if (shelfNoteEl) { shelfNoteEl.textContent = shelfVal; shelfNoteEl.title = shelfVal; }
+        if (callEl) { callEl.textContent = callVal; callEl.title = callVal; }
+        if (accEl) { accEl.textContent = accVal; accEl.title = accVal; }
+        if (subjEl) { subjEl.textContent = subjVal; subjEl.title = subjVal; }
+
+        // Render attached manuscript images inside Thesis Archival Summary
+        const ctmImagesCard = document.getElementById('ctm-images-card');
+        const ctmImagesGrid = document.getElementById('ctm-images-grid');
+        const ctmImagesBadge = document.getElementById('ctm-images-count-badge');
+        if (ctmImagesCard && ctmImagesGrid) {
+            const rawImgs = Array.isArray(project.images) ? project.images : [];
+            const normalizedImgs = rawImgs.map(img => typeof img === 'string' ? img : (img?.secure_url || img?.url || '')).filter(Boolean);
+            if (normalizedImgs.length === 0 && project.coverImage && typeof project.coverImage === 'string') {
+                normalizedImgs.push(project.coverImage);
+            }
+            if (normalizedImgs.length > 0) {
+                ctmImagesCard.style.display = 'block';
+                if (ctmImagesBadge) {
+                    ctmImagesBadge.textContent = `${normalizedImgs.length} ${normalizedImgs.length === 1 ? 'Photo' : 'Photos'}`;
+                }
+                ctmImagesGrid.innerHTML = normalizedImgs.map((url, idx) => `
+                    <div class="image-preview-card ${idx === 0 ? 'is-cover' : ''}">
+                        <img src="${escapeHtml(url)}" alt="Manuscript Image ${idx + 1}">
+                        ${idx === 0 ? '<span class="cover-badge">Cover</span>' : ''}
+                    </div>
+                `).join('');
+            } else {
+                ctmImagesCard.style.display = 'none';
+                ctmImagesGrid.innerHTML = '';
+            }
+        }
 
         if (abstractEl) {
             const rawAbstract = cleanNullableField(project.abstract || project.description);
