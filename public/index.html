@@ -33,13 +33,15 @@
     <link rel="stylesheet" href="css/home/project-list.css?v=2.2">
     <link rel="stylesheet" href="css/shared/toast.css">
     <link rel="stylesheet" href="css/shared/modal-dialog.css">
-    <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.2">
+    <link rel="stylesheet" href="css/shared/secondary-header.css?v=2.4">
     <link rel="stylesheet" href="css/home/rag-styles.css">
     <link rel="stylesheet" href="css/projectDetails/view_project_details.css?v=2.1">
     <link rel="stylesheet" href="css/chatbot/chatbot.css">
     <link rel="stylesheet" href="css/shared/dramatic-intro.css">
-    <link rel="stylesheet" href="css/shared/modern-login.css">
+    <link rel="stylesheet" href="css/shared/sanction-notice.css">
+    <link rel="stylesheet" href="css/shared/modern-login.css?v=3.1">
     <link rel="stylesheet" href="css/shared/text-protection.css">
+    <link rel="stylesheet" href="css/shared/institutional-badges.css?v=1">
 
     <!-- GSAP loaded early in head so it's ready before DOMContentLoaded -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -91,6 +93,11 @@
                                     <!-- Theme icons loaded dynamically via SVGLoader -->
                                 </button>
 
+                                <!-- Sanction Notice Bell (shown only when active session sanction exists) -->
+                                <button class="sn-notice-bell" id="sn-notice-bell" aria-label="Important Account Notice" style="display:none;" title="View Important Account Notice">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                    <span class="sn-bell-badge" id="sn-bell-badge"></span>
+                                </button>
                                 <!-- About button - shown when logged out -->
                                 <a href="pages/about_page.html" class="nav-link" id="about-nav-link">About</a>
                                 <a href="#" class="nav-link" id="login-nav-link">Login</a>
@@ -364,6 +371,11 @@
                         <nav class="nav-menu">
                             <button id="theme-toggle" class="theme-toggle-btn" aria-label="Switch to light mode">
                             </button>
+                            <!-- Sanction Notice Bell (shown only when active session sanction exists) -->
+                            <button class="sn-notice-bell" id="sn-notice-bell" aria-label="Important Account Notice" style="display:none;" title="View Important Account Notice">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                <span class="sn-bell-badge" id="sn-bell-badge"></span>
+                            </button>
                             <a href="pages/about_page.html" class="nav-link" id="about-nav-link">About</a>
                             <a href="#" class="nav-link" id="login-nav-link">Login</a>
                             <div class="profile-dropdown-wrapper" id="profile-link" style="display: none;">
@@ -486,16 +498,18 @@
                         </p>
 
                         <div class="search-bar-wrapper">
-                            <div class="search-bar">
-                                <input type="text" class="search-input"
-                                    placeholder="Try: &quot;projects about machine learning in agriculture&quot; or &quot;IoT systems for monitoring&quot;">
-                                <button class="search-clear-btn" aria-label="Clear search" style="display: none;">
+                            <form class="search-bar" role="search" autocomplete="off" onsubmit="return false;" style="margin: 0;">
+                                <input type="search" id="main-search-input" name="search_query" class="search-input"
+                                    placeholder="Try: &quot;projects about machine learning in agriculture&quot; or &quot;IoT systems for monitoring&quot;"
+                                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                                    data-lpignore="true" data-1p-ignore="true" data-form-type="other">
+                                <button type="button" class="search-clear-btn" aria-label="Clear search" style="display: none;">
                                     <span id="search-clear-icon"></span>
                                 </button>
-                                <button class="search-btn">
+                                <button type="submit" class="search-btn" aria-label="Search">
                                     <span id="search-btn-icon"></span>
                                 </button>
-                            </div>
+                            </form>
                         </div>
 
                         <div class="search-options">
@@ -632,7 +646,9 @@
                     </a>
                 </div>
                 <div class="details-empty" id="details-empty">
-                    <div class="details-empty-icon">📄</div>
+                    <div class="details-empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </div>
                     <h2>No project selected yet</h2>
                     <p>Go back to the search page and select a project to view its details.</p>
                 </div>
@@ -667,6 +683,10 @@
                     <button class="floating-btn" id="history-btn" aria-label="View chat history" data-tooltip="Chat History">
                         <span id="history-btn-icon"></span>
                     </button>
+                    <button class="floating-btn" id="model-quota-dock-btn" aria-label="AI Model Usage and Health Quota" data-tooltip="AI Quota (0/25)">
+                        <span id="model-quota-dock-icon"></span>
+                        <span class="quota-dock-dot tone-healthy" id="model-quota-dock-dot" aria-hidden="true"></span>
+                    </button>
                     <button class="floating-btn" id="clear-btn" aria-label="Clear conversation" style="display: none;" data-tooltip="Clear Chat">
                         <span id="clear-btn-icon"></span>
                     </button>
@@ -678,6 +698,30 @@
                         <span id="settings-btn-icon"></span>
                     </button>
                 </div>
+
+                <!-- AI Model Usage & Health Quota Popover (Concept A + Concept B, Option 2 Segmented Bars) -->
+                <aside class="model-quota-popover" id="model-quota-popover" role="dialog" aria-label="AI Model Usage and Health Quota" aria-hidden="true">
+                    <div class="quota-popover-header">
+                        <div class="quota-popover-title-wrap">
+                            <span class="quota-popover-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16a9 9 0 0 1 18 0"></path><path d="M12 16l4-5"></path><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"></circle><line x1="6" y1="20" x2="18" y2="20"></line></svg>
+                            </span>
+                            <span class="quota-popover-title">AI Model Quota &amp; Health</span>
+                            <span class="quota-role-badge" id="quota-role-badge">Student</span>
+                        </div>
+                        <div class="quota-popover-actions">
+                            <button type="button" class="quota-icon-btn" id="quota-popover-refresh" aria-label="Refresh model health status" title="Refresh status">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            </button>
+                            <button type="button" class="quota-icon-btn" id="quota-popover-close" aria-label="Close quota panel" title="Close">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="quota-popover-body" id="model-quota-popover-body">
+                        <!-- Dynamically populated by ModelQuotaManager -->
+                    </div>
+                </aside>
 
                 <!-- Main Chat Area -->
                 <main class="chatbot-main">
@@ -748,6 +792,13 @@
 
                     <!-- Input Area -->
                     <div class="input-container">
+                        <!-- Graceful Daily Quota Lock Banner (shown only when daily quota is exhausted) -->
+                        <div class="quota-lock-banner" id="quota-lock-banner" role="alert" aria-hidden="true">
+                            <span class="quota-lock-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            </span>
+                            <span class="quota-lock-text" id="quota-lock-banner-text">Daily research quota reached (25/25 queries). Resets at 12:00 AM.</span>
+                        </div>
                         <div class="input-wrapper">
                             <textarea class="input-field" id="user-input" placeholder="Ask anything about capstones, methodologies, authors, or research topics... (Enter to send)"
                                 rows="1"></textarea>
@@ -757,6 +808,11 @@
                                     <span><kbd>Shift + Enter</kbd> New line</span>
                                 </div>
                                 <div class="input-controls-right">
+                                    <button type="button" class="quota-status-pill tone-healthy" id="quota-status-pill" aria-label="View AI model health and daily quota" title="View AI Model Usage &amp; Health">
+                                        <span class="quota-pill-dot tone-healthy" aria-hidden="true"></span>
+                                        <span class="quota-pill-text">0/25 · Mistral</span>
+                                        <span class="quota-pill-mini" aria-hidden="true"></span>
+                                    </button>
                                     <span class="char-counter" id="char-counter">0 / 500</span>
                                     <button class="send-btn btn-hidden" id="send-btn" disabled aria-label="Send message">
                                         <span id="send-btn-icon"></span>
@@ -773,85 +829,141 @@
         </div>
     </main>
 
-    <!-- Modern Animated Login Modal -->
-    <div id="login-modal" class="modal login-modal-modern">
+    <!-- Calm Institutional Login Modal -->
+    <div id="login-modal" class="modal login-modal-modern" role="dialog" aria-modal="true" aria-labelledby="login-modal-heading">
         <div class="modal-backdrop login-backdrop"></div>
         <div class="login-modal-container">
-            <!-- Left Side - Animated Text Section -->
-            <div class="login-left-panel">
-                <div class="grid-lines"></div>
-                <div class="animated-text-container">
-                    <h1 class="animated-welcome-text">
-                        <span class="welcome-line">Welcome to</span>
-                        <span class="brand-line">
-                            <span class="letter" data-letter="R">R</span>
-                            <span class="letter" data-letter="E">E</span>
-                            <span class="letter" data-letter="-">-</span>
-                            <span class="letter" data-letter="C">C</span>
-                            <span class="letter" data-letter="A">A</span>
-                            <span class="letter" data-letter="P">P</span>
-                            <span class="letter" data-letter="S">S</span>
-                        </span>
-                    </h1>
-                    <p class="tagline-animated">
-                        <span class="tagline-word">Research</span>
-                        <span class="tagline-word">&</span>
-                        <span class="tagline-word">Capstone</span>
-                        <span class="tagline-word">Archive</span>
-                    </p>
-                    <div class="floating-particles">
-                        <div class="particle"></div>
-                        <div class="particle"></div>
-                        <div class="particle"></div>
-                        <div class="particle"></div>
-                        <div class="particle"></div>
+            <!-- Left Side: Quiet Institutional Architectural Dossier -->
+            <aside class="login-left-panel" aria-label="RE-CAPS portal overview">
+                <div class="login-dossier-top">
+                    <div class="login-masthead">
+                        <div class="login-crest-row">
+                            <img src="assets/logo.png" alt="CTU Seal" class="login-crest-img">
+                            <div class="login-crest-text">
+                                <span class="login-crest-brand">RE-CAPS</span>
+                                <span class="login-crest-campus">CTU Daanbantayan</span>
+                            </div>
+                        </div>
+                        <span class="login-portal-tag">ARCHIVE PORTAL</span>
+                    </div>
+
+                    <div class="login-editorial-copy">
+                        <p class="login-eyebrow">Digital Thesis Repository</p>
+                        <h2 class="login-dossier-heading">Quietly built for academic discovery.</h2>
+                        <p class="login-dossier-desc">
+                            Sign in to access saved undergraduate capstones, grounded AI research assistance, and role-based repository tools.
+                        </p>
+                    </div>
+
+                    <!-- Interactive Role Access Preview -->
+                    <div class="login-role-explorer">
+                        <div class="login-role-caption">Preview Role Access</div>
+                        <div class="login-role-tabs" role="tablist" aria-label="Preview stakeholder access">
+                            <button type="button" class="login-role-tab active" role="tab" aria-selected="true" data-role="student">Student</button>
+                            <button type="button" class="login-role-tab" role="tab" aria-selected="false" data-role="teacher">Faculty</button>
+                            <button type="button" class="login-role-tab" role="tab" aria-selected="false" data-role="librarian">Librarian</button>
+                            <button type="button" class="login-role-tab" role="tab" aria-selected="false" data-role="admin">Admin</button>
+                        </div>
+                        <div class="login-role-panel" id="login-role-panel">
+                            <div class="login-role-panel-head">
+                                <span class="login-role-panel-title" id="login-role-title">Student Researcher</span>
+                                <span class="login-role-quota" id="login-role-quota">25 AI / day</span>
+                            </div>
+                            <ul class="login-role-list" id="login-role-list">
+                                <li>Semantic RAG search &amp; citation exports (APA, MLA, IEEE)</li>
+                                <li>Cloud thesis bookmarks &amp; 3 saved research threads</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Right Side - Login Form -->
+                <div class="login-dossier-footer">
+                    <span>R.A. 10173 Protected</span>
+                    <span>Staff Email 2FA</span>
+                </div>
+            </aside>
+
+            <!-- Right Side: Solid, High-Contrast Form Surface -->
             <div class="login-right-panel">
-                <button class="modal-close login-modal-close">&times;</button>
+                <button type="button" class="modal-close login-modal-close" aria-label="Close sign-in dialog">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
 
-                <div class="login-form-wrapper">
-                    <h2 class="login-title">Login to RE-CAPS</h2>
-                    <p class="login-subtitle">Enter your credentials to continue</p>
+                <!-- Mobile-only compact crest -->
+                <div class="login-mobile-brand" aria-hidden="true">
+                    <img src="assets/logo.png" alt="" class="login-crest-img">
+                    <span class="login-crest-brand">RE-CAPS</span>
+                </div>
 
-                    <div class="form-group modern-input-group">
-                        <label class="form-label modern-label">Email</label>
-                        <div class="input-with-icon">
-                            <span id="login-email-icon" class="input-icon"></span>
-                            <input type="email" id="login-email" class="form-input modern-input"
-                                placeholder="your@email.com">
+                <!-- VIEW 1: Primary Sign-In Form -->
+                <form id="login-modal-form" class="login-form-wrapper login-panel-view active" autocomplete="on" onsubmit="return false;" novalidate>
+                    <div class="login-header-block">
+                        <h2 class="login-title" id="login-modal-heading">Sign in to RE-CAPS</h2>
+                        <p class="login-subtitle">Enter your institutional or registered credentials.</p>
+                    </div>
+
+                    <!-- Calm Persistent Inline Notice -->
+                    <div class="login-inline-alert" id="login-inline-alert" role="alert" aria-live="polite" hidden>
+                        <span class="login-alert-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        </span>
+                        <div class="login-alert-body">
+                            <div class="login-alert-title" id="login-alert-title">Unable to sign in</div>
+                            <div class="login-alert-desc" id="login-alert-desc">Please verify your email and password and try again.</div>
                         </div>
-                        <div class="field-error" id="email-error"></div>
                     </div>
 
                     <div class="form-group modern-input-group">
-                        <label class="form-label modern-label">Password</label>
+                        <div class="login-label-row">
+                            <label class="form-label modern-label" for="login-email">Email Address</label>
+                            <span class="login-domain-tag" id="login-domain-tag" hidden>CTU Institutional</span>
+                        </div>
                         <div class="input-with-icon">
-                            <span id="login-password-icon" class="input-icon"></span>
-                            <input type="password" id="login-password" class="form-input modern-input"
-                                placeholder="••••••••">
+                            <span id="login-email-icon" class="input-icon" aria-hidden="true"></span>
+                            <input type="email" id="login-email" name="username" class="form-input modern-input"
+                                placeholder="name@ctu.edu.ph or registered email" autocomplete="username">
+                            <span class="login-field-valid-mark" id="login-email-valid" aria-hidden="true" hidden>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </span>
+                        </div>
+                        <div class="field-error" id="email-error" role="alert"></div>
+                    </div>
+
+                    <div class="form-group modern-input-group">
+                        <div class="login-label-row">
+                            <label class="form-label modern-label" for="login-password">Password</label>
+                            <span class="login-caps-indicator" id="login-caps-warning" hidden>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 4 14h5v6h6v-6h5z"></path></svg>
+                                <span>Caps Lock is on</span>
+                            </span>
+                        </div>
+                        <div class="input-with-icon">
+                            <span id="login-password-icon" class="input-icon" aria-hidden="true"></span>
+                            <input type="password" id="login-password" name="password" class="form-input modern-input"
+                                placeholder="Enter your password" autocomplete="current-password">
                             <button type="button" class="toggle-password-btn modern-toggle-password"
-                                data-target="login-password" aria-label="Toggle password visibility">
+                                data-target="login-password" aria-label="Toggle password visibility" title="Show or hide password">
                                 <!-- Password toggle icons loaded dynamically -->
                             </button>
                         </div>
-                        <div class="field-error" id="password-error"></div>
+                        <div class="field-error" id="password-error" role="alert"></div>
                     </div>
 
                     <div class="form-options modern-options">
                         <label class="checkbox-label modern-checkbox">
                             <input type="checkbox" id="remember-me" class="checkbox-input">
                             <span class="checkbox-custom modern-checkbox-custom"></span>
-                            Remember me
+                            <span>Keep me signed in</span>
                         </label>
+                        <button type="button" class="login-forgot-trigger" id="login-forgot-trigger">Forgot password?</button>
                     </div>
 
-                    <button id="login-btn" class="btn btn-primary modern-login-btn btn-flex">
-                        <span>Login</span>
-                        <span id="login-btn-icon"></span>
+                    <button type="submit" id="login-btn" class="btn btn-primary modern-login-btn btn-flex">
+                        <span class="login-btn-spinner" id="login-btn-spinner" aria-hidden="true" hidden>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                        </span>
+                        <span id="login-btn-label">Sign In</span>
+                        <span id="login-btn-icon" aria-hidden="true"></span>
                     </button>
 
                     <div class="divider-with-text">
@@ -859,14 +971,67 @@
                     </div>
 
                     <button type="button" id="google-login-btn" class="btn-google modern-google-btn">
-                        <span id="google-logo-icon"></span>
-                        <span>Sign in with Google</span>
+                        <span id="google-logo-icon" aria-hidden="true"></span>
+                        <span id="google-btn-label">Sign in with Google</span>
                     </button>
 
                     <p class="signup-link">
-                        Don't have an account?
-                        <a href="pages/account_registration.html" class="link-animated">Register here</a>
+                        New to RE-CAPS?
+                        <a href="pages/account_registration.html" class="link-animated">Create an account</a>
                     </p>
+                </form>
+
+                <!-- VIEW 2: Calm Inline Forgot Password Recovery -->
+                <form id="login-forgot-view" class="login-form-wrapper login-panel-view" onsubmit="return false;" novalidate hidden>
+                    <button type="button" class="login-back-btn" id="login-back-to-signin">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                        <span>Back to Sign In</span>
+                    </button>
+
+                    <div class="login-header-block">
+                        <h2 class="login-title">Reset your password</h2>
+                        <p class="login-subtitle">Enter your registered email and we will send a secure recovery link.</p>
+                    </div>
+
+                    <div class="login-inline-alert" id="forgot-inline-alert" role="status" aria-live="polite" hidden>
+                        <span class="login-alert-icon" aria-hidden="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        </span>
+                        <div class="login-alert-body">
+                            <div class="login-alert-title" id="forgot-alert-title"></div>
+                            <div class="login-alert-desc" id="forgot-alert-desc"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group modern-input-group">
+                        <label class="form-label modern-label" for="forgot-email-input">Registered Email</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                            </span>
+                            <input type="email" id="forgot-email-input" class="form-input modern-input" placeholder="name@ctu.edu.ph or registered email" autocomplete="email">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="forgot-submit-btn" class="btn btn-primary modern-login-btn btn-flex">
+                        <span class="login-btn-spinner" id="forgot-btn-spinner" aria-hidden="true" hidden>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+                        </span>
+                        <span id="forgot-btn-label">Send Recovery Link</span>
+                    </button>
+                </form>
+
+                <!-- VIEW 3: Serene Session Verified Handoff -->
+                <div id="login-success-view" class="login-success-view login-panel-view" hidden>
+                    <div class="login-success-icon" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <p class="login-eyebrow">Session Verified</p>
+                    <h3 class="login-success-heading" id="login-success-name">Welcome back</h3>
+                    <p class="login-success-meta" id="login-success-role">Preparing your workspace...</p>
+                    <div class="login-success-bar" aria-hidden="true">
+                        <div class="login-success-bar-fill"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -876,9 +1041,9 @@
     <div id="history-modal" class="modal">
         <div class="modal-backdrop" onclick="closeChatbotModal('history-modal')"></div>
         <div class="modal-content" style="max-width: 560px; width: 95%;">
-            <h2 class="modal-title">Chat History</h2>
+            <h2 class="modal-title">Chat History <span id="history-quota-badge" style="font-size: 0.85rem; font-weight: normal; color: var(--text-secondary); margin-left: 0.5rem;"></span></h2>
 
-            <!-- New Conversation Button (shown only if < 3 conversations) -->
+            <!-- New Conversation Button (shown only if < quota: 3 for regular, 5 for staff) -->
             <button class="btn btn-primary btn-full" id="new-conversation-modal-btn"
                 style="display: none; margin-bottom: 1rem;">
                 <span id="new-conversation-icon"></span>
@@ -1068,7 +1233,9 @@
 
                 <!-- Active Fallback Chain Visualizer -->
                 <div class="settings-cascade-badge">
-                    <span class="cascade-badge-icon">🛡️</span>
+                    <span class="cascade-badge-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                    </span>
                     <span class="cascade-badge-text"><strong>4-Tier High Availability Active:</strong> <span id="cascade-order-preview">Mistral → Groq → Gemini → OpenRouter</span></span>
                 </div>
             </div>
@@ -1154,6 +1321,7 @@
     <script src="vendor/firebase/firebase-auth-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'"></script>
     <script src="vendor/firebase/firebase-firestore-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'"></script>
     <script src="vendor/firebase/firebase-database-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'"></script>
+    <script src="vendor/firebase/firebase-app-check-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check-compat.js'"></script>
     <script src="js/shared/firebase-config.js"></script>
     <script src="js/core/auth-service.js"></script>
 
@@ -1170,7 +1338,9 @@
     <script src="js/shared/theme-toggle.js"></script>
     <script src="js/shared/activity-service.js"></script>
     <script src="js/shared/guest-storage.js"></script>
-    <script src="js/shared/auth-modal.js"></script>
+    <script src="js/shared/device-manager.js?v=1.0"></script>
+    <script src="js/shared/auth-modal.js?v=3.1"></script>
+    <script src="js/shared/sanction-notice.js"></script>
     <script src="js/shared/smooth-scroll.js?v=2"></script>
 
     <!-- RAG Service for AI Semantic Search -->
@@ -1184,6 +1354,7 @@
     <script src="js/shared/user-dashboard.js"></script>
 
     <!-- Chatbot Scripts -->
+    <script src="js/chatbot/model-quota.js"></script>
     <script src="js/chatbot/ai-service.js"></script>
     <script src="js/chatbot/chat-service.js"></script>
     <script src="js/chatbot/message-formatter.js"></script>
@@ -1200,7 +1371,7 @@
     <script src="js/shared/scroll-state-manager.js"></script>
 
     <!-- Unified View Controller -->
-    <script src="js/shared/view-manager.js"></script>
+    <script src="js/shared/view-manager.js?v=2.4"></script>
 
     <!-- Chatbot Modal Functions -->
     <script>
@@ -1285,12 +1456,16 @@
                     historyBody.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">No saved conversations yet.</p>';
                 }
 
-                // Update "New Conversation" button visibility
+                // Update "New Conversation" button visibility and quota badge
                 const newConvModalBtn = document.getElementById('new-conversation-modal-btn');
+                const maxAllowed = typeof ChatService !== 'undefined' && typeof ChatService.getMaxConversations === 'function'
+                    ? await ChatService.getMaxConversations() : 3;
                 if (newConvModalBtn && list) {
                     const remainingCount = list.children.length;
-                    if (remainingCount < 3) {
-                        newConvModalBtn.style.display = 'block';
+                    newConvModalBtn.style.display = remainingCount < maxAllowed ? 'block' : 'none';
+                    const quotaBadge = document.getElementById('history-quota-badge');
+                    if (quotaBadge) {
+                        quotaBadge.textContent = `(${remainingCount}/${maxAllowed})`;
                     }
                 }
 
@@ -1349,10 +1524,17 @@
                         }
 
                         const conversations = await Chatbot.getConversations();
+                        const maxAllowed = typeof ChatService !== 'undefined' && typeof ChatService.getMaxConversations === 'function'
+                            ? await ChatService.getMaxConversations(user) : 3;
                         const conversationCount = conversations.length;
 
+                        const quotaBadge = document.getElementById('history-quota-badge');
+                        if (quotaBadge) {
+                            quotaBadge.textContent = `(${conversationCount}/${maxAllowed})`;
+                        }
+
                         if (newConvModalBtn) {
-                            newConvModalBtn.style.display = conversationCount < 3 ? 'block' : 'none';
+                            newConvModalBtn.style.display = conversationCount < maxAllowed ? 'block' : 'none';
                         }
 
                         if (conversations.length === 0) {
@@ -1774,6 +1956,41 @@
             }
         });
     </script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Important Notice Modal — Sanction Awareness (suspended / quarantined)
+         Appears once per session after DramaticIntro completes.
+         ═══════════════════════════════════════════════════════════════════ -->
+    <div id="sanction-notice-modal"
+         class="sanction-notice-overlay"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="sn-modal-title"
+         style="display:none;">
+        <div class="sanction-notice-container">
+
+            <div class="sanction-notice-header">
+                <div class="sn-icon-wrap" id="sn-icon-wrap" aria-hidden="true">
+                    <!-- Icon injected by sanction-notice.js -->
+                </div>
+                <div class="sn-header-text">
+                    <span class="sn-badge" id="sn-badge">Account Notice</span>
+                    <h2 class="sn-title" id="sn-modal-title">Important Account Notice</h2>
+                </div>
+            </div>
+
+            <div class="sanction-notice-body" id="sn-body">
+                <!-- Body filled by sanction-notice.js -->
+            </div>
+
+            <div class="sanction-notice-footer">
+                <button type="button" class="sn-btn-noted" id="sn-btn-noted">Noted — Dismiss</button>
+            </div>
+
+        </div>
+    </div>
+    <!-- /sanction-notice-modal -->
+
 </body>
 
 </html>

@@ -91,6 +91,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Function to load saved projects from Firestore
     async function loadSavedProjectsFromFirestore(userId) {
+        if (!userId) return;
+        if (typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid !== userId) {
+            return;
+        }
         try {
             const docRef = db.collection('usersSavedProjects').doc(userId);
             const doc = await docRef.get();
@@ -107,7 +111,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Render
             renderSavedProjects();
         } catch (error) {
-            console.error('Error loading saved projects from Firestore:', error);
+            if (error && (error.code === 'permission-denied' || (error.message && error.message.includes('insufficient permissions')))) {
+                console.warn('[UserDashboard] Firestore saved projects access restricted for role; maintaining cached state.');
+            } else {
+                console.error('Error loading saved projects from Firestore:', error);
+            }
         }
     }
 
@@ -265,13 +273,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             card.className = 'saved-project-card';
 
             const raw = project.rawData || project;
-            let authors = 'CTU Researchers';
-            if (Array.isArray(raw.authors)) authors = raw.authors.join(' · ');
+            let authors = 'Not specified in physical manuscript record';
+            if (Array.isArray(raw.authors) && raw.authors.length > 0) authors = raw.authors.join(' · ');
             else if (typeof raw.authors === 'string' && raw.authors.trim()) authors = raw.authors;
 
-            const year = raw.year || '2024';
+            const year = raw.year || 'N/A';
             const program = raw.program || 'Capstone';
-            const abstract = raw.abstract || 'No abstract preview available for this capstone project.';
+            const rawAbstractStr = (raw.abstract && typeof raw.abstract === 'string') ? raw.abstract.trim() : '';
+            const isAbstractNull = !rawAbstractStr || /^(?:none|null|undefined|n\/?a|not specified|not specified in physical manuscript record\.?|no abstract provided\.?|the abstract is not available\.?|no abstract available for this project\.?)$/i.test(rawAbstractStr);
+            const abstractHtml = isAbstractNull
+                ? '<span style="font-style:italic;color:var(--text-secondary);">Not specified in physical manuscript record &mdash; consult hardbound volume at campus library.</span>'
+                : escapeHtml(rawAbstractStr);
 
             card.innerHTML = `
                 <div class="saved-card-header">
@@ -284,7 +296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                         <span>${escapeHtml(authors)}</span>
                     </div>
-                    <p class="saved-card-abstract" data-protected="true">${escapeHtml(abstract)}</p>
+                    <p class="saved-card-abstract" data-protected="true">${abstractHtml}</p>
                 </div>
                 <div class="saved-card-actions">
                     <button class="saved-card-view-btn" data-id="${project.id}">View Details &rarr;</button>

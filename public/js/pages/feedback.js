@@ -12,8 +12,185 @@ const FeedbackModule = (() => {
     // Form state
     let isSubmitting = false;
     let selectedImages = [];
+    let authenticatedUser = null; // { uid, email, name, role }
     const MAX_IMAGES = 3;
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+    /**
+     * Trigger sign-in flow when an unauthenticated visitor clicks Sign In
+     */
+    function promptSignInForFeedback() {
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            loginModal.classList.add('active');
+            return;
+        }
+        try {
+            sessionStorage.setItem('openLoginModal', 'true');
+        } catch (e) {
+            // ignore storage errors
+        }
+        window.location.href = window.location.pathname.includes('/pages/')
+            ? '../index.html'
+            : 'index.html';
+    }
+
+    /**
+     * Apply authenticated or guest-locked state to the feedback form
+     */
+    function applyAuthStateToForm(form, userProfile) {
+        authenticatedUser = userProfile && userProfile.email ? userProfile : null;
+
+        const guestGate = document.getElementById('feedback-auth-guest-gate');
+        const userBar = document.getElementById('feedback-auth-user-bar');
+        const roleBadge = document.getElementById('feedback-auth-role-badge');
+        const nameInput = form.querySelector('[name="name"]');
+        const emailInput = form.querySelector('[name="email"]');
+        const subjectInput = form.querySelector('[name="subject"]');
+        const messageInput = form.querySelector('[name="message"]');
+        const uploadBtn = document.getElementById('feedback-upload-btn');
+        const clearBtn = form.querySelector('#btn-clear-feedback');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        if (authenticatedUser) {
+            if (guestGate) guestGate.style.display = 'none';
+            if (userBar) userBar.style.display = 'flex';
+            if (roleBadge) {
+                const roleMap = {
+                    student: 'STUDENT',
+                    teacher: 'FACULTY',
+                    librarian: 'LIBRARIAN',
+                    admin: 'ADMINISTRATOR'
+                };
+                roleBadge.textContent = roleMap[(authenticatedUser.role || 'student').toLowerCase()] || 'VERIFIED USER';
+            }
+
+            form.classList.remove('is-guest-locked');
+
+            if (emailInput) {
+                emailInput.value = authenticatedUser.email;
+                emailInput.readOnly = true;
+                emailInput.disabled = false;
+                emailInput.classList.remove('invalid');
+            }
+            if (nameInput) {
+                nameInput.value = authenticatedUser.name || authenticatedUser.email.split('@')[0];
+                nameInput.readOnly = true;
+                nameInput.disabled = false;
+                nameInput.classList.remove('invalid');
+            }
+            if (subjectInput) subjectInput.disabled = false;
+            if (messageInput) messageInput.disabled = false;
+            if (uploadBtn) uploadBtn.disabled = false;
+            if (clearBtn) clearBtn.disabled = false;
+            if (submitBtn) submitBtn.disabled = false;
+        } else {
+            if (guestGate) guestGate.style.display = 'flex';
+            if (userBar) userBar.style.display = 'none';
+
+            form.classList.add('is-guest-locked');
+
+            if (emailInput) {
+                emailInput.value = '';
+                emailInput.placeholder = 'Sign in required — auto-retrieved';
+                emailInput.readOnly = true;
+                emailInput.disabled = true;
+            }
+            if (nameInput) {
+                nameInput.value = '';
+                nameInput.placeholder = 'Sign in required — auto-retrieved';
+                nameInput.readOnly = true;
+                nameInput.disabled = true;
+            }
+            if (subjectInput) subjectInput.disabled = true;
+            if (messageInput) messageInput.disabled = true;
+            if (uploadBtn) uploadBtn.disabled = true;
+            if (clearBtn) clearBtn.disabled = true;
+            if (submitBtn) submitBtn.disabled = true;
+        }
+    }
+
+    /**
+     * Observe Firebase Authentication state and automatically populate user's email & name
+     */
+    function initAuthenticationBinding(form) {
+        const signInBtn = document.getElementById('feedback-signin-btn');
+        if (signInBtn) {
+            signInBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                promptSignInForFeedback();
+            });
+        }
+
+        // 1. Instant hydration from cachedAuthState while Firebase Auth SDK boots
+        try {
+            const cachedRaw = localStorage.getItem('cachedAuthState');
+            if (cachedRaw) {
+                const cached = JSON.parse(cachedRaw);
+                if (cached && cached.isLoggedIn && cached.email) {
+                    applyAuthStateToForm(form, {
+                        uid: cached.uid || '',
+                        email: cached.email,
+                        name: cached.fullName || cached.displayName || cached.userName || cached.email.split('@')[0],
+                        role: cached.userType || cached.role || 'student'
+                    });
+                } else {
+                    applyAuthStateToForm(form, null);
+                }
+            } else {
+                applyAuthStateToForm(form, null);
+            }
+        } catch (err) {
+            applyAuthStateToForm(form, null);
+        }
+
+        // 2. Authoritative live Firebase Authentication listener
+        const authInstance = (typeof auth !== 'undefined' && auth)
+            ? auth
+            : (typeof firebase !== 'undefined' && typeof firebase.auth === 'function' ? firebase.auth() : null);
+
+        if (authInstance && typeof authInstance.onAuthStateChanged === 'function') {
+            authInstance.onAuthStateChanged(async (user) => {
+                if (!user) {
+                    applyAuthStateToForm(form, null);
+                    return;
+                }
+
+                let resolvedName = user.displayName || '';
+                let resolvedEmail = (user.email || '').trim().toLowerCase();
+                let resolvedRole = 'student';
+
+                try {
+                    const dbInstance = (typeof db !== 'undefined' && db)
+                        ? db
+                        : (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function' ? firebase.firestore() : null);
+
+                    if (dbInstance) {
+                        const userDoc = await dbInstance.collection('users').doc(user.uid).get();
+                        if (userDoc.exists) {
+                            const uData = userDoc.data() || {};
+                            resolvedName = uData.fullName || [uData.firstName, uData.lastName].filter(Boolean).join(' ') || resolvedName;
+                            resolvedEmail = (uData.email || resolvedEmail).trim().toLowerCase();
+                            resolvedRole = uData.userType || uData.role || resolvedRole;
+                        }
+                    }
+                } catch (profileErr) {
+                    console.warn('Feedback profile lookup fallback:', profileErr);
+                }
+
+                if (!resolvedName && resolvedEmail) {
+                    resolvedName = resolvedEmail.split('@')[0];
+                }
+
+                applyAuthStateToForm(form, {
+                    uid: user.uid,
+                    email: resolvedEmail,
+                    name: resolvedName,
+                    role: resolvedRole
+                });
+            });
+        }
+    }
 
     /**
      * Initialize feedback form
@@ -36,26 +213,31 @@ const FeedbackModule = (() => {
             ...options
         };
 
-
+        initAuthenticationBinding(form);
         initImageUpload();
 
         // Attach submit handler
         form.addEventListener('submit', (e) => handleSubmit(e, form, config));
 
-        // Attach clear handler
+        // Attach clear handler (preserves auto-retrieved name and email)
         const clearBtn = form.querySelector('#btn-clear-feedback');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
-                form.reset();
+                const subjectInput = form.querySelector('[name="subject"]');
+                const messageInput = form.querySelector('[name="message"]');
+                if (subjectInput) subjectInput.value = '';
+                if (messageInput) messageInput.value = '';
+                if (authenticatedUser) {
+                    applyAuthStateToForm(form, authenticatedUser);
+                }
                 selectedImages = [];
                 const previewContainer = document.getElementById('feedback-image-preview');
                 if (previewContainer) {
                     renderImagePreviews(previewContainer);
                 }
                 clearValidationStates(form);
-                const firstInput = form.querySelector('input:not([type="hidden"])');
-                if (firstInput) {
-                    firstInput.focus();
+                if (subjectInput && !subjectInput.disabled) {
+                    subjectInput.focus();
                 }
                 if (typeof showToast === 'function') {
                     showToast('Feedback form cleared', 'info');
@@ -63,18 +245,8 @@ const FeedbackModule = (() => {
             });
         }
 
-        // Add real-time validation
-        const nameInput = form.querySelector('[name="name"]');
-        const emailInput = form.querySelector('[name="email"]');
+        // Add real-time validation on message field (name & email are auto-retrieved from account)
         const messageInput = form.querySelector('[name="message"]');
-
-        if (nameInput) {
-            nameInput.addEventListener('blur', () => validateField(nameInput, 'Name is required'));
-        }
-
-        if (emailInput) {
-            emailInput.addEventListener('blur', () => validateEmail(emailInput));
-        }
 
         if (messageInput) {
             messageInput.addEventListener('blur', () => validateField(messageInput, 'Message is required'));
@@ -86,7 +258,7 @@ const FeedbackModule = (() => {
             }
         }
 
-        console.log('Feedback module initialized');
+        console.log('Feedback module initialized (authenticated-only mode)');
     }
 
     /**
@@ -134,7 +306,7 @@ const FeedbackModule = (() => {
             // Validate file type
             if (!file.type.startsWith('image/')) {
                 if (typeof showToast === 'function') {
-                    showToast(`${file.name} is not an image`, '❌');
+                    showToast(`${file.name} is not an image`, 'error');
                 }
                 return;
             }
@@ -142,7 +314,7 @@ const FeedbackModule = (() => {
             // Validate file size
             if (file.size > MAX_FILE_SIZE) {
                 if (typeof showToast === 'function') {
-                    showToast(`${file.name} exceeds 5MB limit`, '❌');
+                    showToast(`${file.name} exceeds 5MB limit`, 'error');
                 }
                 return;
             }
@@ -198,7 +370,7 @@ const FeedbackModule = (() => {
         renderImagePreviews(container);
         
         if (typeof showToast === 'function') {
-            showToast('Image removed', 'ℹ️');
+            showToast('Image removed', 'info');
         }
     }
 
@@ -214,12 +386,35 @@ const FeedbackModule = (() => {
             return;
         }
 
-        // Get form data
+        // Strictly enforce authenticated-only feedback rule
+        const authInstance = (typeof auth !== 'undefined' && auth)
+            ? auth
+            : (typeof firebase !== 'undefined' && typeof firebase.auth === 'function' ? firebase.auth() : null);
+        const currentUser = authInstance ? authInstance.currentUser : null;
+
+        if (!currentUser || !authenticatedUser || !authenticatedUser.email) {
+            const authError = 'Please sign in to your RE-CAPS account to submit feedback.';
+            if (config.showToast && typeof showToast === 'function') {
+                showToast(authError, 'warning');
+            } else if (window.ModalDialog) {
+                ModalDialog.alert({
+                    title: 'Authentication Required',
+                    message: authError,
+                    type: 'warning'
+                });
+            } else {
+                alert(authError);
+            }
+            return;
+        }
+
+        // Get form data (name and email are strictly retrieved from authenticated account)
         const formData = new FormData(form);
         const data = {
-            name: formData.get('name')?.trim(),
-            email: formData.get('email')?.trim(),
+            name: authenticatedUser.name || currentUser.displayName || authenticatedUser.email.split('@')[0],
+            email: authenticatedUser.email,
             subject: formData.get('subject')?.trim() || '',
+            category: formData.get('category')?.trim() || 'general',
             message: formData.get('message')?.trim()
         };
 
@@ -256,6 +451,9 @@ const FeedbackModule = (() => {
                 `;
             }
 
+            // Acquire verified Firebase Authentication ID token
+            const idToken = await currentUser.getIdToken();
+
             // Upload images to Cloudinary (if any)
             let imageUrls = [];
             if (selectedImages.length > 0 && window.CloudinaryService) {
@@ -274,11 +472,12 @@ const FeedbackModule = (() => {
             // Add images to data
             data.images = imageUrls;
 
-            // Send feedback
+            // Send authenticated feedback with Bearer token
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
                 },
                 body: JSON.stringify(data)
             });
@@ -299,11 +498,16 @@ const FeedbackModule = (() => {
                     alert(result.message || 'Feedback sent successfully!');
                 }
 
-                // Reset form and images
+                // Reset form and images while keeping auto-retrieved account name & email
                 if (config.resetOnSuccess) {
-                    form.reset();
+                    const subjectInput = form.querySelector('[name="subject"]');
+                    const messageInput = form.querySelector('[name="message"]');
+                    if (subjectInput) subjectInput.value = '';
+                    if (messageInput) messageInput.value = '';
+                    applyAuthStateToForm(form, authenticatedUser);
                     selectedImages = [];
-                    renderImagePreviews(document.getElementById('feedback-image-preview'));
+                    const previewEl = document.getElementById('feedback-image-preview');
+                    if (previewEl) renderImagePreviews(previewEl);
                     clearValidationStates(form);
                 }
 
@@ -502,25 +706,24 @@ const FeedbackModule = (() => {
                     <div class="feedback-modal-icon-wrapper">
                         ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('checkmark-animated') : ''}
                     </div>
-                    <h2 class="feedback-modal-title">Thank You!</h2>
-                    <p class="feedback-modal-greeting">Hi <span class="feedback-user-name"></span>! 👋</p>
+                    <h2 class="feedback-modal-title">Feedback Received</h2>
+                    <p class="feedback-modal-greeting">Thank you, <span class="feedback-user-name"></span></p>
                     <p class="feedback-modal-text">
-                        We've received your feedback and sent a confirmation email to 
-                        <strong class="feedback-email"></strong>
+                        Your feedback has been logged in the repository database. A confirmation receipt has been dispatched to 
+                        <strong class="feedback-email"></strong>.
                     </p>
                     <div class="feedback-modal-info">
                         <div class="feedback-info-item">
                             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-circle') : ''}
-                            <span>Our team will review your message</span>
+                            <span>Recorded in institutional repository</span>
                         </div>
                         <div class="feedback-info-item">
                             ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('mail-sm') : ''}
-                            <span>We'll get back to you soon</span>
+                            <span>Receipt sent to your inbox</span>
                         </div>
                     </div>
                     <button class="btn btn-primary feedback-modal-close">
-                        ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('check-sm') : ''}
-                        Got it, thanks!
+                        Close
                     </button>
                 </div>
             `;

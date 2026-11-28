@@ -267,6 +267,7 @@
             // Chatbot floating buttons
             { name: 'addconversation',    targetId: 'new-chat-dock-icon',  options: { width: 20, height: 20 } },
             { name: 'conversationhistory', targetId: 'history-btn-icon',  options: { width: 20, height: 20 } },
+            { name: 'modelgauge',         targetId: 'model-quota-dock-icon', options: { width: 20, height: 20 } },
             { name: 'delete',             targetId: 'clear-btn-icon',      options: { width: 20, height: 20 } },
             { name: 'download',           targetId: 'export-btn-icon',     options: { width: 20, height: 20 } },
             { name: 'settings',           targetId: 'settings-btn-icon',   options: { width: 20, height: 20 } },

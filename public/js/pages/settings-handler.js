@@ -34,6 +34,113 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Resolve current dashboard stakeholder role cleanly (never leaks across roles)
+    function resolveDashboardRole() {
+        const reqRole = (document.documentElement.getAttribute('data-required-role') || '').toLowerCase();
+        if (reqRole) return reqRole;
+        const layout = document.querySelector('.dashboard-layout');
+        if (layout) {
+            if (layout.classList.contains('role-admin')) return 'admin';
+            if (layout.classList.contains('role-librarian')) return 'librarian';
+            if (layout.classList.contains('role-teacher')) return 'teacher';
+            if (layout.classList.contains('role-student')) return 'student';
+        }
+        const path = (window.location.pathname || '').toLowerCase();
+        if (path.includes('admin_page')) return 'admin';
+        if (path.includes('librarian_page')) return 'librarian';
+        if (path.includes('teacher_page')) return 'teacher';
+        if (path.includes('student_page')) return 'student';
+        return (sessionStorage.getItem('userType') || 'user').toLowerCase();
+    }
+
+    // Universal 3-way Segmented Theme Control (Light / Dark / System)
+    function initThemeSegmentedControl() {
+        const groups = document.querySelectorAll('.lset-segmented, .pref-segmented, [id$="-theme-group"]');
+        if (!groups.length) return;
+
+        const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+        const currentChoice = () => localStorage.getItem('theme') || 'system';
+
+        const applyTheme = choice => {
+            const resolved = choice === 'system' ? (media && media.matches ? 'dark' : 'light') : choice;
+            document.documentElement.setAttribute('data-theme', resolved);
+            groups.forEach(group => {
+                const buttons = group.querySelectorAll('[data-theme-choice]');
+                buttons.forEach(b => {
+                    const on = b.dataset.themeChoice === choice;
+                    b.classList.toggle('active', on);
+                    b.setAttribute('aria-checked', String(on));
+                });
+            });
+            const oldToggle = document.getElementById('settings-theme-toggle');
+            if (oldToggle) {
+                oldToggle.checked = resolved === 'dark';
+            }
+            const diagThemeVal = document.getElementById('diag-theme-val');
+            if (diagThemeVal) {
+                diagThemeVal.textContent = choice === 'system'
+                    ? `System (${resolved === 'dark' ? 'Dark' : 'Light'})`
+                    : (choice === 'dark' ? 'Dark' : 'Light');
+            }
+        };
+
+        groups.forEach(group => {
+            if (group.dataset.prefThemeBound === 'true') return;
+            group.dataset.prefThemeBound = 'true';
+            const buttons = group.querySelectorAll('[data-theme-choice]');
+            buttons.forEach(btn => btn.addEventListener('click', () => {
+                const choice = btn.dataset.themeChoice;
+                if (choice === 'system') localStorage.removeItem('theme');
+                else localStorage.setItem('theme', choice);
+                applyTheme(choice);
+                if (window.ActivityService && typeof window.ActivityService.logSetting === 'function') {
+                    window.ActivityService.logSetting('theme', choice);
+                }
+                if (typeof showToast === 'function') {
+                    showToast('Appearance set to ' + choice, 'success');
+                }
+            }));
+        });
+
+        if (media && media.addEventListener) {
+            media.addEventListener('change', () => { if (currentChoice() === 'system') applyTheme('system'); });
+        }
+        applyTheme(currentChoice());
+    }
+
+    // Universal Role-Scoped Default Landing Page Controller
+    function initDefaultLandingPreference() {
+        const selects = document.querySelectorAll('.lset-select, .pref-select, [id$="-landing-select"]');
+        if (!selects.length) return;
+
+        const role = resolveDashboardRole();
+        const roleKey = role + '_default_landing';
+        const savedLanding = localStorage.getItem(roleKey)
+            || (role === 'librarian' ? localStorage.getItem('lib_default_landing') : null)
+            || 'dashboard';
+
+        selects.forEach(select => {
+            if (Array.from(select.options).some(o => o.value === savedLanding)) {
+                select.value = savedLanding;
+            } else {
+                select.value = 'dashboard';
+            }
+            if (select.dataset.prefLandingBound === 'true') return;
+            select.dataset.prefLandingBound = 'true';
+            select.addEventListener('change', () => {
+                localStorage.setItem(roleKey, select.value);
+                if (role === 'librarian') localStorage.setItem('lib_default_landing', select.value);
+                const label = select.options[select.selectedIndex]?.text || select.value;
+                if (typeof showToast === 'function') {
+                    showToast(label + ' will open when you sign in', 'success');
+                }
+            });
+        });
+    }
+
+    initThemeSegmentedControl();
+    initDefaultLandingPreference();
+
     // Toast Notifications Toggle
     const toastToggle = document.getElementById('settings-toast-toggle');
     if (toastToggle) {
@@ -132,6 +239,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 db.collection('users').doc(user.uid).get().then(doc => {
                     if (doc.exists) {
                         const data = doc.data() || {};
+                        if (data.email) {
+                            if (userEmailDisplay) userEmailDisplay.textContent = data.email;
+                            if (cardEmailDisplay) cardEmailDisplay.textContent = data.email;
+                        }
+                        if (data.fullName || data.name) {
+                            if (studentNameEl) studentNameEl.textContent = data.fullName || data.name;
+                        }
                         const sid = data.studentId || data.teacherId || data.employeeId || data.idNumber;
                         if (sid) {
                             sessionStorage.setItem('idNumber', sid);
@@ -296,6 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for hashchange to update stats on #settings
     window.addEventListener('hashchange', () => {
         if (window.location.hash === '#settings') {
+            updateStudentProfileCard();
+        }
+    });
+    window.addEventListener('rail:section-change', (e) => {
+        if (e.detail?.sectionId === 'settings') {
             updateStudentProfileCard();
         }
     });

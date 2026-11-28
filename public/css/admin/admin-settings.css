@@ -2,9 +2,16 @@
    RE-CAPS Admin Settings — Premium Ergonomic UI/UX Design System
    ============================================================================ */
 
-/* Enable true viewport sticky behavior by preventing parent overflow clipping */
+/* Enable true viewport sticky behavior & prevent parent overflow clipping or vertical scroll lock */
 html, body, .dashboard-layout {
     overflow-x: clip !important;
+}
+
+html:not(.staff-2fa-locked),
+body:not(.dialog-open):not(.modal-open):not(.staff-2fa-locked) {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100vh;
 }
 
 /* Main Container Sizing & Full-Width Viewport Sizing */
@@ -1213,15 +1220,62 @@ html, body, .dashboard-layout {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1.15rem;
     background: var(--background);
     border-radius: 10px;
     border: 1px solid var(--border);
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .shortcut-item:hover {
     border-color: rgba(8, 212, 136, 0.4);
+}
+
+.shortcut-item.recording {
+    border-color: var(--brand-green, #08D488) !important;
+    background: rgba(8, 212, 136, 0.08) !important;
+    box-shadow: 0 0 16px rgba(8, 212, 136, 0.25);
+    animation: shortcutPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes shortcutPulse {
+    0%, 100% { border-color: rgba(8, 212, 136, 0.9); }
+    50% { border-color: rgba(8, 212, 136, 0.35); }
+}
+
+.shortcut-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.shortcut-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.shortcut-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.shortcut-badge-custom {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    background: rgba(8, 212, 136, 0.15);
+    color: var(--brand-green, #08D488);
+    font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
 .shortcut-key {
@@ -1244,8 +1298,50 @@ html, body, .dashboard-layout {
     box-shadow: 0 2px 0 var(--border);
 }
 
-.shortcut-desc {
-    font-size: 0.84rem;
+.shortcut-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.btn-rebind-shortcut {
+    background: rgba(100, 116, 139, 0.12);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.65rem;
     color: var(--text-secondary);
-    text-align: right;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.btn-rebind-shortcut:hover {
+    color: var(--brand-green, #08D488);
+    border-color: var(--brand-green, #08D488);
+    background: rgba(8, 212, 136, 0.12);
+}
+
+.btn-reset-shortcut {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0.35rem 0.55rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-reset-shortcut:hover {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.08);
 }

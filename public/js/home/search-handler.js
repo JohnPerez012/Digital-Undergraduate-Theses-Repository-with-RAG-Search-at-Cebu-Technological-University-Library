@@ -24,8 +24,8 @@ const SearchHandler = {
       return;
     }
     
-    // Handle search button click
-    searchBtn.addEventListener('click', () => {
+    // Handle search button click & form submit
+    const executeSearchSubmission = () => {
       if (this.realtimeDebounceTimer) {
         clearTimeout(this.realtimeDebounceTimer);
         this.realtimeDebounceTimer = null;
@@ -35,9 +35,23 @@ const SearchHandler = {
         this.performSearch(query);
         this.saveSearchHistory(query);
       }
+    };
+
+    searchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      executeSearchSubmission();
     });
 
+    const searchForm = searchInput.closest('form');
+    if (searchForm) {
+      searchForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        executeSearchSubmission();
+      });
+    }
+
     // Handle initial search from URL parameter or student dashboard redirect
+    let initialQuery = null;
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const urlQuery = urlParams.get('search') || urlParams.get('q') || urlParams.get('program');
@@ -45,7 +59,7 @@ const SearchHandler = {
       if (sessionQuery) {
         sessionStorage.removeItem('pendingSearchQuery');
       }
-      const initialQuery = urlQuery || sessionQuery;
+      initialQuery = urlQuery || sessionQuery;
       if (initialQuery && initialQuery.trim()) {
         const cleanQuery = initialQuery.trim();
         searchInput.value = cleanQuery;
@@ -58,6 +72,25 @@ const SearchHandler = {
     } catch (e) {
       console.warn('Error reading initial search parameters:', e);
     }
+
+    // Anti-Autofill Guard: Prevent browser/password managers from mistakenly autofilling account emails into the search input
+    const sanitizeAutofill = () => {
+      if (!searchInput || initialQuery) return;
+      const val = (searchInput.value || '').trim();
+      const isEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val);
+      let isAutofilled = false;
+      try {
+        isAutofilled = searchInput.matches(':-webkit-autofill');
+      } catch (_) {}
+      if (isEmail || isAutofilled) {
+        searchInput.value = '';
+        if (searchClearBtn) searchClearBtn.style.display = 'none';
+      }
+    };
+    sanitizeAutofill();
+    setTimeout(sanitizeAutofill, 80);
+    setTimeout(sanitizeAutofill, 250);
+    setTimeout(sanitizeAutofill, 600);
     
     // Handle clear button click
     if (searchClearBtn) {

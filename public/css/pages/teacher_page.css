@@ -23,3 +23,29 @@
 [data-theme="dark"] .dashboard-layout.role-teacher .rail-profile-role {
     color: #fde047;
 }
+
+/* ==========================================================================
+   MOBILE FLOATING BOTTOM DOCK - TEACHER BRAND YELLOW THEME OVERRIDES
+   ========================================================================== */
+.mobile-back-home-btn svg {
+    color: var(--brand-yellow, #FCCC56) !important;
+}
+
+.mobile-back-home-btn:hover {
+    color: var(--brand-yellow, #FCCC56) !important;
+    border-color: rgba(252, 204, 86, 0.5) !important;
+}
+
+.dock-nav-item.active {
+    background: rgba(252, 204, 86, 0.18) !important;
+    color: var(--brand-yellow, #FCCC56) !important;
+}
+
+.dock-nav-item.active .dock-label {
+    color: var(--brand-yellow, #FCCC56) !important;
+    font-weight: 700 !important;
+}
+
+.dock-nav-item.active .dock-icon-wrap svg {
+    stroke: var(--brand-yellow, #FCCC56) !important;
+}

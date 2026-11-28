@@ -12,83 +12,275 @@ document.addEventListener('DOMContentLoaded', function() {
         const loginEmailInput = document.getElementById('login-email');
         const loginPasswordInput = document.getElementById('login-password');
         const loginBtn = document.getElementById('login-btn');
+        const loginBtnLabel = document.getElementById('login-btn-label');
+        const loginBtnIcon = document.getElementById('login-btn-icon');
+        const loginBtnSpinner = document.getElementById('login-btn-spinner');
+        const loginModalForm = document.getElementById('login-modal-form');
         const googleLoginBtn = document.getElementById('google-login-btn');
+        const googleBtnLabel = document.getElementById('google-btn-label');
         const emailError = document.getElementById('email-error');
         const passwordError = document.getElementById('password-error');
         const rememberMeCheckbox = document.getElementById('remember-me');
-        const passwordToggleBtn = document.querySelector('.toggle-password-btn');
+        const passwordToggleBtn = loginModal.querySelector('.toggle-password-btn');
+
+        // Calm UX elements
+        const domainTag = document.getElementById('login-domain-tag');
+        const emailValidMark = document.getElementById('login-email-valid');
+        const capsWarning = document.getElementById('login-caps-warning');
+        const inlineAlert = document.getElementById('login-inline-alert');
+        const alertTitle = document.getElementById('login-alert-title');
+        const alertDesc = document.getElementById('login-alert-desc');
+
+        // Sub-views inside the modal
+        const forgotView = document.getElementById('login-forgot-view');
+        const forgotTrigger = document.getElementById('login-forgot-trigger');
+        const backToSignInBtn = document.getElementById('login-back-to-signin');
+        const forgotEmailInput = document.getElementById('forgot-email-input');
+        const forgotSubmitBtn = document.getElementById('forgot-submit-btn');
+        const forgotBtnLabel = document.getElementById('forgot-btn-label');
+        const forgotBtnSpinner = document.getElementById('forgot-btn-spinner');
+        const forgotAlert = document.getElementById('forgot-inline-alert');
+        const forgotAlertTitle = document.getElementById('forgot-alert-title');
+        const forgotAlertDesc = document.getElementById('forgot-alert-desc');
+
+        const successView = document.getElementById('login-success-view');
+        const successNameEl = document.getElementById('login-success-name');
+        const successRoleEl = document.getElementById('login-success-role');
+
+        // Interactive Role Access Explorer on left dossier
+        const roleAccessSpecs = {
+            student: {
+                title: 'Student Researcher',
+                quota: '25 AI / day',
+                items: [
+                    'Semantic RAG search & citation exports (APA, MLA, IEEE)',
+                    'Cloud thesis bookmarks & 3 saved research threads'
+                ]
+            },
+            teacher: {
+                title: 'Faculty / Adviser',
+                quota: '50 AI / day',
+                items: [
+                    'Student capstone discovery & research tracking tools',
+                    'Expanded daily AI quota & 3 saved research threads'
+                ]
+            },
+            librarian: {
+                title: 'Campus Librarian',
+                quota: '150 AI / day',
+                items: [
+                    'Physical shelf cataloging, Tesseract OCR & 45s mutex guard',
+                    'Staff Copilot RAG & Email 2FA security protection'
+                ]
+            },
+            admin: {
+                title: 'System Administrator',
+                quota: '150 AI / day',
+                items: [
+                    'User governance, approvals queue & Pinecone batch sync',
+                    'Repository analytics, audit trail & Staff Email 2FA'
+                ]
+            }
+        };
+
+        const roleTabs = loginModal.querySelectorAll('.login-role-tab[data-role]');
+        const roleTitleEl = document.getElementById('login-role-title');
+        const roleQuotaEl = document.getElementById('login-role-quota');
+        const roleListEl = document.getElementById('login-role-list');
+
+        roleTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const roleKey = tab.getAttribute('data-role');
+                const spec = roleAccessSpecs[roleKey];
+                if (!spec) return;
+
+                roleTabs.forEach(t => {
+                    const isActive = t === tab;
+                    t.classList.toggle('active', isActive);
+                    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+
+                if (roleTitleEl) roleTitleEl.textContent = spec.title;
+                if (roleQuotaEl) roleQuotaEl.textContent = spec.quota;
+                if (roleListEl) {
+                    roleListEl.innerHTML = '';
+                    spec.items.forEach(text => {
+                        const li = document.createElement('li');
+                        li.textContent = text;
+                        roleListEl.appendChild(li);
+                    });
+                }
+            });
+        });
+
+        function switchLoginView(viewName) {
+            const views = [
+                { key: 'login', el: loginModalForm },
+                { key: 'forgot', el: forgotView },
+                { key: 'success', el: successView }
+            ];
+            views.forEach(({ key, el }) => {
+                if (!el) return;
+                const show = key === viewName;
+                el.hidden = !show;
+                el.classList.toggle('active', show);
+            });
+        }
+
+        function setLoginLoading(isLoading) {
+            if (loginBtn) loginBtn.disabled = isLoading;
+            if (loginEmailInput) loginEmailInput.disabled = isLoading;
+            if (loginPasswordInput) loginPasswordInput.disabled = isLoading;
+            if (googleLoginBtn) {
+                googleLoginBtn.style.pointerEvents = isLoading ? 'none' : '';
+                googleLoginBtn.style.opacity = isLoading ? '0.6' : '';
+                googleLoginBtn.setAttribute('aria-disabled', isLoading ? 'true' : 'false');
+            }
+            if (loginBtnSpinner) loginBtnSpinner.hidden = !isLoading;
+            if (loginBtnIcon) loginBtnIcon.hidden = isLoading;
+            if (loginBtnLabel) loginBtnLabel.textContent = isLoading ? 'Verifying credentials...' : 'Sign In';
+        }
+
+        function setGoogleLoading(isLoading) {
+            if (googleLoginBtn) {
+                // Do NOT set googleLoginBtn.disabled = true here:
+                // Disabling the button synchronously cancels the browser's user activation context,
+                // causing Chrome/Edge/Firefox to block the popup with auth/popup-blocked.
+                googleLoginBtn.style.pointerEvents = isLoading ? 'none' : '';
+                googleLoginBtn.style.opacity = isLoading ? '0.75' : '';
+                googleLoginBtn.setAttribute('aria-disabled', isLoading ? 'true' : 'false');
+            }
+            if (loginBtn) loginBtn.disabled = isLoading;
+            if (googleBtnLabel) googleBtnLabel.textContent = isLoading ? 'Connecting to Google...' : 'Sign in with Google';
+        }
+
+        function showInlineAlert(title, desc, isSuccess = false) {
+            if (!inlineAlert) return;
+            inlineAlert.classList.toggle('is-success', Boolean(isSuccess));
+            if (alertTitle) alertTitle.textContent = title;
+            if (alertDesc) alertDesc.textContent = desc;
+            inlineAlert.hidden = false;
+        }
+
+        function hideInlineAlert() {
+            if (inlineAlert) inlineAlert.hidden = true;
+        }
+
+        function showForgotAlert(title, desc, isSuccess = false) {
+            if (!forgotAlert) return;
+            forgotAlert.classList.toggle('is-success', Boolean(isSuccess));
+            if (forgotAlertTitle) forgotAlertTitle.textContent = title;
+            if (forgotAlertDesc) forgotAlertDesc.textContent = desc;
+            forgotAlert.hidden = false;
+        }
+
+        function hideForgotAlert() {
+            if (forgotAlert) forgotAlert.hidden = true;
+        }
+
+        function evaluateEmailIndicator() {
+            if (!loginEmailInput) return;
+            const val = loginEmailInput.value.trim();
+            const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+            if (emailValidMark) emailValidMark.hidden = !isValid;
+            if (domainTag) {
+                if (val.toLowerCase().endsWith('@ctu.edu.ph')) {
+                    domainTag.textContent = 'CTU Institutional';
+                    domainTag.hidden = false;
+                } else if (isValid) {
+                    domainTag.textContent = 'Registered Email';
+                    domainTag.hidden = false;
+                } else {
+                    domainTag.hidden = true;
+                }
+            }
+        }
+
+        function showSuccessHandoff(displayName, roleType, onComplete) {
+            const roleLabels = {
+                admin: 'Opening Administrator Dashboard...',
+                librarian: 'Opening Librarian Workspace...',
+                teacher: 'Opening Faculty Dashboard...',
+                faculty: 'Opening Faculty Dashboard...',
+                student: 'Opening Student Workspace...'
+            };
+            const cleanName = (displayName || 'Researcher').trim();
+            if (successNameEl) successNameEl.textContent = `Welcome back, ${cleanName}`;
+            if (successRoleEl) successRoleEl.textContent = roleLabels[(roleType || '').toLowerCase()] || 'Preparing your workspace...';
+
+            switchLoginView('success');
+            setTimeout(() => {
+                closeModal();
+                if (typeof onComplete === 'function') onComplete();
+            }, 680);
+        }
 
         // Open modal
         function openModal() {
+            switchLoginView('login');
+            clearErrors();
+            setLoginLoading(false);
+            setGoogleLoading(false);
+            evaluateEmailIndicator();
             loginModal.classList.add('active');
-            // Reset and replay text animations
-            restartLoginAnimations();
             setTimeout(() => {
                 if (loginEmailInput) {
                     loginEmailInput.focus();
                 }
-            }, 120);
+            }, 140);
         }
 
         // Auto-focus email input whenever the login modal becomes active
         const modalObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.attributeName === 'class' && loginModal.classList.contains('active')) {
+                    switchLoginView('login');
                     setTimeout(() => {
                         if (loginEmailInput) {
                             loginEmailInput.focus();
                         }
-                    }, 120);
+                    }, 140);
                 }
             });
         });
         modalObserver.observe(loginModal, { attributes: true, attributeFilter: ['class'] });
 
-        // Restart login panel animations
-        function restartLoginAnimations() {
-            // Get all animated elements
-            const welcomeLine = loginModal.querySelector('.welcome-line');
-            const letters = loginModal.querySelectorAll('.letter');
-            const tagline = loginModal.querySelector('.tagline-animated');
-            
-            // Remove all animated elements temporarily
-            const elementsToAnimate = [welcomeLine, ...letters, tagline].filter(el => el);
-            
-            elementsToAnimate.forEach(element => {
-                // Clone the element to reset its animation
-                const clone = element.cloneNode(true);
-                element.parentNode.replaceChild(clone, element);
-            });
-        }
-
         // Close modal
         function closeModal() {
             loginModal.classList.remove('active');
-            loginEmailInput.value = '';
-            loginPasswordInput.value = '';
+            if (loginEmailInput) loginEmailInput.value = '';
+            if (loginPasswordInput) {
+                loginPasswordInput.value = '';
+                loginPasswordInput.type = 'password';
+            }
+            if (capsWarning) capsWarning.hidden = true;
+            if (domainTag) domainTag.hidden = true;
+            if (emailValidMark) emailValidMark.hidden = true;
             clearErrors();
+            hideForgotAlert();
+            setLoginLoading(false);
+            setGoogleLoading(false);
+            switchLoginView('login');
         }
 
         // Clear all error states
         function clearErrors() {
-            emailError.classList.remove('show');
-            passwordError.classList.remove('show');
-            loginEmailInput.classList.remove('error');
-            loginPasswordInput.classList.remove('error');
+            if (emailError) emailError.classList.remove('show');
+            if (passwordError) passwordError.classList.remove('show');
+            if (loginEmailInput) loginEmailInput.classList.remove('error');
+            if (loginPasswordInput) loginPasswordInput.classList.remove('error');
+            hideInlineAlert();
         }
 
-        // Show field error
+        // Show calm persistent field error (clears when user types)
         function showFieldError(field, message) {
             const input = field === 'email' ? loginEmailInput : loginPasswordInput;
             const errorDiv = field === 'email' ? emailError : passwordError;
-            
-            input.classList.add('error');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-            
-            setTimeout(() => {
-                input.classList.remove('error');
-            }, 500);
+            if (input) input.classList.add('error');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.add('show');
+            }
         }
 
         // Password toggle functionality
@@ -98,27 +290,113 @@ document.addEventListener('DOMContentLoaded', function() {
                 const targetInput = document.getElementById(targetId);
                 const eyeOpen = this.querySelector('.eye-open');
                 const eyeClosed = this.querySelector('.eye-closed');
-                
+                if (!targetInput) return;
+
                 if (targetInput.type === 'password') {
                     targetInput.type = 'text';
-                    eyeOpen.style.display = 'none';
-                    eyeClosed.style.display = 'block';
+                    if (eyeOpen) eyeOpen.style.display = 'none';
+                    if (eyeClosed) eyeClosed.style.display = 'block';
                 } else {
                     targetInput.type = 'password';
-                    eyeOpen.style.display = 'block';
-                    eyeClosed.style.display = 'none';
+                    if (eyeOpen) eyeOpen.style.display = 'block';
+                    if (eyeClosed) eyeClosed.style.display = 'none';
                 }
             });
         }
 
-        // Clear errors on input
+        // Clear errors & update indicators smoothly on input
         if (loginEmailInput) {
             loginEmailInput.addEventListener('input', () => {
-                emailError.classList.remove('show');
+                if (emailError) emailError.classList.remove('show');
                 loginEmailInput.classList.remove('error');
+                hideInlineAlert();
+                evaluateEmailIndicator();
             });
         }
-        
+
+        if (loginPasswordInput) {
+            const syncCapsState = (e) => {
+                if (!capsWarning || typeof e.getModifierState !== 'function') return;
+                capsWarning.hidden = !e.getModifierState('CapsLock');
+            };
+            loginPasswordInput.addEventListener('keydown', syncCapsState);
+            loginPasswordInput.addEventListener('keyup', syncCapsState);
+            loginPasswordInput.addEventListener('blur', () => {
+                if (capsWarning) capsWarning.hidden = true;
+            });
+            loginPasswordInput.addEventListener('input', () => {
+                if (passwordError) passwordError.classList.remove('show');
+                loginPasswordInput.classList.remove('error');
+                hideInlineAlert();
+            });
+        }
+
+        // Inline Forgot Password Flow
+        if (forgotTrigger) {
+            forgotTrigger.addEventListener('click', () => {
+                hideForgotAlert();
+                if (forgotEmailInput && loginEmailInput) {
+                    forgotEmailInput.value = loginEmailInput.value.trim();
+                }
+                switchLoginView('forgot');
+                setTimeout(() => {
+                    if (forgotEmailInput) forgotEmailInput.focus();
+                }, 80);
+            });
+        }
+
+        if (backToSignInBtn) {
+            backToSignInBtn.addEventListener('click', () => {
+                hideForgotAlert();
+                switchLoginView('login');
+                setTimeout(() => {
+                    if (loginEmailInput) loginEmailInput.focus();
+                }, 80);
+            });
+        }
+
+        if (forgotView && forgotSubmitBtn) {
+            forgotView.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideForgotAlert();
+                const email = forgotEmailInput ? forgotEmailInput.value.trim() : '';
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    showForgotAlert('Valid email required', 'Please enter the email address associated with your RE-CAPS account.');
+                    if (forgotEmailInput) forgotEmailInput.focus();
+                    return;
+                }
+
+                forgotSubmitBtn.disabled = true;
+                if (forgotBtnSpinner) forgotBtnSpinner.hidden = false;
+                if (forgotBtnLabel) forgotBtnLabel.textContent = 'Sending recovery link...';
+
+                try {
+                    if (!auth || typeof auth.sendPasswordResetEmail !== 'function') {
+                        throw new Error('Password recovery service is currently unavailable.');
+                    }
+                    await auth.sendPasswordResetEmail(email);
+                    showForgotAlert(
+                        'Recovery link sent',
+                        `If an account matches ${email}, a password reset link has been sent to your inbox.`,
+                        true
+                    );
+                } catch (resetErr) {
+                    console.error('[Auth] Password reset error:', resetErr);
+                    if (resetErr.code === 'auth/invalid-email') {
+                        showForgotAlert('Invalid email format', 'Please double-check the email address and try again.');
+                    } else if (resetErr.code === 'auth/too-many-requests') {
+                        showForgotAlert('Please wait a moment', 'Too many reset requests were sent recently. Try again shortly.');
+                    } else {
+                        showForgotAlert('Could not send link', 'Please verify your connection and try again.');
+                    }
+                } finally {
+                    forgotSubmitBtn.disabled = false;
+                    if (forgotBtnSpinner) forgotBtnSpinner.hidden = true;
+                    if (forgotBtnLabel) forgotBtnLabel.textContent = 'Send Recovery Link';
+                }
+            });
+        }
+
         // Keyboard navigation: Enter on Email moves cursor directly to Password
         if (loginEmailInput) {
             loginEmailInput.addEventListener('keydown', function(e) {
@@ -142,22 +420,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     const email = loginEmailInput ? loginEmailInput.value.trim() : '';
                     const password = loginPasswordInput.value;
 
-                    // If email field is empty, shift focus back to email
                     if (!email) {
-                        if (loginEmailInput) {
-                            loginEmailInput.focus();
-                        }
+                        if (loginEmailInput) loginEmailInput.focus();
                         showFieldError('email', 'Please enter your email address');
                         return;
                     }
 
-                    // If password field is empty, show password error
                     if (!password) {
                         showFieldError('password', 'Please enter your password');
                         return;
                     }
 
-                    // Both fields have values: trigger login button to evaluate validity
                     if (loginBtn && !loginBtn.disabled) {
                         loginBtn.click();
                     }
@@ -166,6 +439,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Event listeners
+        if (loginModalForm) {
+            loginModalForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (loginBtn && !loginBtn.disabled) {
+                    loginBtn.click();
+                }
+            });
+        }
+
         if (loginNavLink) {
             loginNavLink.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -193,23 +475,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 const email = loginEmailInput.value.trim();
                 const password = loginPasswordInput.value;
-                const rememberMe = rememberMeCheckbox.checked;
-                
+                const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
+
                 clearErrors();
-                
+
                 if (!email) {
                     showFieldError('email', 'Please enter your email address');
+                    loginEmailInput.focus();
                     return;
                 }
-                
+
                 if (!password) {
                     showFieldError('password', 'Please enter your password');
+                    loginPasswordInput.focus();
                     return;
                 }
-                
-                loginBtn.disabled = true;
-                loginBtn.textContent = 'Logging in...';
-                
+
+                setLoginLoading(true);
+
                 try {
                     let persistence = 'local';
                     try {
@@ -224,14 +507,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     } catch (persistErr) {
                         console.warn('[Auth] Persistence setup skipped:', persistErr);
                     }
-                    
+
                     if (!auth || typeof auth.signInWithEmailAndPassword !== 'function') {
                         throw new Error('Authentication service is currently unavailable. Please check your internet connection or reload the page.');
                     }
 
                     const userCredential = await auth.signInWithEmailAndPassword(email, password);
                     const user = userCredential.user;
-                    
+
                     const serverTimestampVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.serverTimestamp === 'function')
                         ? firebase.firestore.FieldValue.serverTimestamp()
                         : new Date().toISOString();
@@ -245,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.warn('[Auth] Failed to update lastLogin:', updErr);
                         }
                     }
-                    
+
                     let userData = null;
                     if (db && typeof db.collection === 'function') {
                         const userDoc = await db.collection('users').doc(user.uid).get();
@@ -256,20 +539,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (userData.status === 'suspended') {
                             await auth.signOut();
                             sessionStorage.clear();
-                            loginBtn.disabled = false;
-                            loginBtn.textContent = 'Login';
+                            setLoginLoading(false);
                             const reason = userData.suspensionReason || 'Academic/institutional policy violation';
                             const duration = userData.suspendedDuration ? ` (${userData.suspendedDuration})` : '';
-                            alert(`⚠️ Account Suspended${duration}\n\nYour account access has been temporarily restricted by Library Administration.\nReason: ${reason}\n\nFor inquiries or formal appeals, please contact the CTU Daanbantayan Campus Library Office.`);
+                            showInlineAlert(
+                                `Account Suspended${duration}`,
+                                `Access has been temporarily restricted by Library Administration (${reason}). Contact the CTU Daanbantayan Library Office for assistance.`
+                            );
                             return;
                         }
                         if (userData.status === 'quarantined') {
                             await auth.signOut();
                             sessionStorage.clear();
-                            loginBtn.disabled = false;
-                            loginBtn.textContent = 'Login';
+                            setLoginLoading(false);
                             const reason = userData.deletionReason || 'Administrative request';
-                            alert(`⚠️ Account Quarantined\n\nThis account has been scheduled for deletion.\nReason: ${reason}\n\nIf you believe this was done in error, please contact Library Administration within the 14-day grace period to restore your account.`);
+                            showInlineAlert(
+                                'Account Quarantined',
+                                `This account is scheduled for deletion (${reason}). Contact Library Administration within the 14-day grace period to restore access.`
+                            );
                             return;
                         }
                         if (userData.deletionScheduled || userData.accountStatus === 'pending_deletion') {
@@ -278,10 +565,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (scheduledTime > 0 && now >= scheduledTime) {
                                 await auth.signOut();
                                 sessionStorage.clear();
-                                loginBtn.disabled = false;
-                                loginBtn.textContent = 'Login';
+                                setLoginLoading(false);
                                 const days = userData.deletionGraceDays || 15;
-                                alert(`⚠️ Account Expired\n\nThe ${days}-day grace period for this account has expired, and the account has been permanently marked for deletion.\n\nFor inquiries, please contact Library Administration.`);
+                                showInlineAlert(
+                                    'Account Grace Period Expired',
+                                    `The ${days}-day recovery window has expired and this account is marked for deletion. Contact Library Administration for inquiries.`
+                                );
                                 return;
                             } else {
                                 // Logging in cancels and clears the deletion timer
@@ -307,53 +596,206 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     }
-                    
+
+                    const resolvedRole = (userData && userData.userType) || 'student';
+                    const resolvedName = user.displayName || (userData && (userData.fullName || userData.displayName)) || email.split('@')[0];
+
                     sessionStorage.setItem('userId', user.uid);
                     sessionStorage.setItem('userEmail', user.email);
-                    sessionStorage.setItem('userName', user.displayName);
-                    sessionStorage.setItem('userType', userData.userType);
+                    sessionStorage.setItem('userName', resolvedName);
+                    sessionStorage.setItem('userType', resolvedRole);
 
-                    window.dispatchEvent(new CustomEvent('authRoleUpdated', { detail: { role: userData.userType } }));
+                    window.dispatchEvent(new CustomEvent('authRoleUpdated', { detail: { role: resolvedRole } }));
 
                     if (typeof window.ActivityService !== 'undefined') {
-                        window.ActivityService.logAuth('login', `Signed in via email as ${userData.userType || 'user'}`);
+                        window.ActivityService.logAuth('login', `Signed in via email as ${resolvedRole}`);
                     }
-                    
-                    closeModal();
-                    
+                    if (window.DeviceManager && typeof window.DeviceManager.registerCurrentDevice === 'function') {
+                        window.DeviceManager.registerCurrentDevice({ isFreshLogin: true }).catch(() => {});
+                    }
+
                     const proceedWithLogin = () => {
                         AuthService.redirectAfterLogin(
-                            userData.userType, 
-                            user.displayName || email.split('@')[0], 
+                            resolvedRole,
+                            resolvedName,
                             showWelcomeModal
                         );
                     };
 
-                    // Check if local device has guest saved projects (Admins do not save/bookmark projects)
-                    if (userData.userType !== 'admin' && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
-                        showSyncPromptModal(user, userData, proceedWithLogin);
-                    } else {
-                        proceedWithLogin();
-                    }
-                    
+                    showSuccessHandoff(resolvedName, resolvedRole, () => {
+                        if (resolvedRole !== 'admin' && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                            showSyncPromptModal(user, userData || { userType: resolvedRole }, proceedWithLogin);
+                        } else {
+                            proceedWithLogin();
+                        }
+                    });
+
                 } catch (error) {
                     console.error('Login error:', error);
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = 'Login';
-                    
+                    setLoginLoading(false);
+
                     if (error.code === 'auth/user-not-found') {
-                        showFieldError('email', 'No account found with this email');
+                        showFieldError('email', 'No account found with this email address.');
+                        showInlineAlert('Account not found', 'Check your email spelling or create a new RE-CAPS account below.');
                     } else if (error.code === 'auth/wrong-password') {
-                        showFieldError('password', 'Incorrect password');
+                        showFieldError('password', 'Incorrect password.');
+                        showInlineAlert('Incorrect password', 'Please try again or use "Forgot password?" to reset access.');
                     } else if (error.code === 'auth/invalid-email') {
-                        showFieldError('email', 'Invalid email address format');
+                        showFieldError('email', 'Invalid email address format.');
                     } else if (error.code === 'auth/too-many-requests') {
-                        showFieldError('password', 'Too many failed attempts. Try again later');
+                        showInlineAlert('Temporarily paused', 'Too many unsuccessful sign-in attempts. Please wait a few minutes before trying again.');
                     } else if (error.code === 'auth/invalid-credential') {
-                        showFieldError('password', 'Invalid email or password');
+                        showFieldError('password', 'Check your email or password.');
+                        showInlineAlert('Invalid email or password', 'Double-check your credentials or reset your password if needed.');
                     } else {
-                        showFieldError('password', 'Login failed. Please try again');
+                        showInlineAlert('Unable to sign in', 'Please check your connection and try again.');
                     }
+                }
+            });
+        }
+
+        // Reusable Google Auth success handler (supports both popup and redirect results)
+        async function processGoogleAuthSuccess(user) {
+            let userDoc = null;
+            if (db && typeof db.collection === 'function') {
+                userDoc = await db.collection('users').doc(user.uid).get();
+            }
+
+            if (!userDoc || !userDoc.exists) {
+                if (auth && typeof auth.signOut === 'function') {
+                    await auth.signOut();
+                }
+                setGoogleLoading(false);
+                showNoAccountModal();
+                return;
+            }
+
+            const serverTimestampVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.serverTimestamp === 'function')
+                ? firebase.firestore.FieldValue.serverTimestamp()
+                : new Date().toISOString();
+
+            if (db && typeof db.collection === 'function') {
+                try {
+                    await db.collection('users').doc(user.uid).update({
+                        lastLogin: serverTimestampVal
+                    });
+                } catch (updErr) {
+                    console.warn('[Auth] Failed to update lastLogin on Google login:', updErr);
+                }
+            }
+
+            const userData = userDoc.data();
+
+            if (userData) {
+                if (userData.status === 'suspended') {
+                    await auth.signOut();
+                    sessionStorage.clear();
+                    setGoogleLoading(false);
+                    const reason = userData.suspensionReason || 'Academic/institutional policy violation';
+                    const duration = userData.suspendedDuration ? ` (${userData.suspendedDuration})` : '';
+                    showInlineAlert(
+                        `Account Suspended${duration}`,
+                        `Access has been temporarily restricted by Library Administration (${reason}). Contact the CTU Daanbantayan Library Office for assistance.`
+                    );
+                    return;
+                }
+                if (userData.status === 'quarantined') {
+                    await auth.signOut();
+                    sessionStorage.clear();
+                    setGoogleLoading(false);
+                    const reason = userData.deletionReason || 'Administrative request';
+                    showInlineAlert(
+                        'Account Quarantined',
+                        `This account is scheduled for deletion (${reason}). Contact Library Administration within the 14-day grace period to restore access.`
+                    );
+                    return;
+                }
+                if (userData.deletionScheduled || userData.accountStatus === 'pending_deletion') {
+                    const now = Date.now();
+                    const scheduledTime = userData.scheduledDeletionTimestamp || 0;
+                    if (scheduledTime > 0 && now >= scheduledTime) {
+                        await auth.signOut();
+                        sessionStorage.clear();
+                        setGoogleLoading(false);
+                        const days = userData.deletionGraceDays || 15;
+                        showInlineAlert(
+                            'Account Grace Period Expired',
+                            `The ${days}-day recovery window has expired and this account is marked for deletion. Contact Library Administration for inquiries.`
+                        );
+                        return;
+                    } else {
+                        // Logging in cancels and clears the deletion timer
+                        try {
+                            const deleteFieldVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.delete === 'function')
+                                ? firebase.firestore.FieldValue.delete()
+                                : null;
+                            await db.collection('users').doc(user.uid).update({
+                                deletionScheduled: deleteFieldVal,
+                                scheduledDeletionTimestamp: deleteFieldVal,
+                                deletionGraceDays: deleteFieldVal,
+                                deletionReason: deleteFieldVal,
+                                deletionRequestedAt: deleteFieldVal,
+                                accountStatus: 'active'
+                            });
+                            localStorage.removeItem('recaps_account_pending_deletion_' + user.uid);
+                            userData.deletionScheduled = false;
+                            userData.accountStatus = 'active';
+                            console.log('[Auth] Deletion timer removed upon Google user login.');
+                        } catch (delErr) {
+                            console.warn('[Auth] Failed to reset deletion fields on Google login:', delErr);
+                        }
+                    }
+                }
+            }
+
+            const resolvedRole = (userData && userData.userType) || 'student';
+            const resolvedName = user.displayName || (userData && (userData.fullName || userData.displayName)) || user.email.split('@')[0];
+
+            sessionStorage.setItem('userId', user.uid);
+            sessionStorage.setItem('userEmail', user.email);
+            sessionStorage.setItem('userName', resolvedName);
+            sessionStorage.setItem('userType', resolvedRole);
+
+            window.dispatchEvent(new CustomEvent('authRoleUpdated', { detail: { role: resolvedRole } }));
+
+            if (typeof window.ActivityService !== 'undefined') {
+                window.ActivityService.logAuth('login', `Signed in via Google as ${resolvedRole}`);
+            }
+            if (window.DeviceManager && typeof window.DeviceManager.registerCurrentDevice === 'function') {
+                window.DeviceManager.registerCurrentDevice({ isFreshLogin: true }).catch(() => {});
+            }
+
+            const proceedWithLogin = () => {
+                AuthService.redirectAfterLogin(
+                    resolvedRole,
+                    resolvedName,
+                    showWelcomeModal
+                );
+            };
+
+            showSuccessHandoff(resolvedName, resolvedRole, () => {
+                if (resolvedRole !== 'admin' && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
+                    showSyncPromptModal(user, userData || { userType: resolvedRole }, proceedWithLogin);
+                } else {
+                    proceedWithLogin();
+                }
+            });
+        }
+
+        // Check for Google redirect sign-in result when returning from redirect
+        if (auth && typeof auth.getRedirectResult === 'function') {
+            auth.getRedirectResult().then(async (result) => {
+                if (result && result.user) {
+                    console.log('[Auth] Processing Google Redirect sign-in result for:', result.user.email);
+                    sessionStorage.removeItem('recaps_google_redirect_pending');
+                    setGoogleLoading(true);
+                    await processGoogleAuthSuccess(result.user);
+                }
+            }).catch((redirErr) => {
+                sessionStorage.removeItem('recaps_google_redirect_pending');
+                if (redirErr && redirErr.code !== 'auth/credential-already-in-use') {
+                    console.warn('[Auth] getRedirectResult check:', redirErr.message || redirErr);
+                    showInlineAlert('Google Sign-In paused', redirErr.message || 'Could not complete Google authentication.');
                 }
             });
         }
@@ -362,9 +804,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (googleLoginBtn) {
             googleLoginBtn.addEventListener('click', async function(e) {
                 e.preventDefault();
-                googleLoginBtn.disabled = true;
-                googleLoginBtn.innerHTML = '<span>Signing in...</span>';
-                
+                clearErrors();
+                setGoogleLoading(true);
+
                 try {
                     if (typeof firebase === 'undefined' || !firebase.auth || !firebase.auth.GoogleAuthProvider) {
                         throw new Error('Google Sign-In is unavailable because Firebase Auth SDK could not be loaded.');
@@ -372,143 +814,67 @@ document.addEventListener('DOMContentLoaded', function() {
                     const provider = new firebase.auth.GoogleAuthProvider();
                     provider.addScope('email');
                     provider.addScope('profile');
-                    
+                    provider.setCustomParameters({ prompt: 'select_account' });
+
                     if (!auth || typeof auth.signInWithPopup !== 'function') {
                         throw new Error('Authentication service is currently unavailable.');
                     }
 
-                    const result = await auth.signInWithPopup(provider);
-                    const user = result.user;
-                    
-                    let userDoc = null;
-                    if (db && typeof db.collection === 'function') {
-                        userDoc = await db.collection('users').doc(user.uid).get();
-                    }
-                    
-                    if (!userDoc || !userDoc.exists) {
-                        if (auth && typeof auth.signOut === 'function') {
-                            await auth.signOut();
-                        }
-                        googleLoginBtn.disabled = false;
-                        googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+                    let result = null;
+                    try {
+                        result = await auth.signInWithPopup(provider);
+                    } catch (popupErr) {
+                        const isPopupBlocked = popupErr.code === 'auth/popup-blocked' ||
+                                             popupErr.code === 'auth/cancelled-popup-request' ||
+                                             (popupErr.message && popupErr.message.toLowerCase().includes('popup')) ||
+                                             (popupErr.message && popupErr.message.toLowerCase().includes('network error'));
 
-                        showNoAccountModal();
-                        return;
-                    }
-                    
-                    const serverTimestampVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.serverTimestamp === 'function')
-                        ? firebase.firestore.FieldValue.serverTimestamp()
-                        : new Date().toISOString();
-
-                    if (db && typeof db.collection === 'function') {
-                        try {
-                            await db.collection('users').doc(user.uid).update({
-                                lastLogin: serverTimestampVal
-                            });
-                        } catch (updErr) {
-                            console.warn('[Auth] Failed to update lastLogin on Google login:', updErr);
-                        }
-                    }
-                    
-                    const userData = userDoc.data();
-
-                    if (userData) {
-                        if (userData.status === 'suspended') {
-                            await auth.signOut();
-                            sessionStorage.clear();
-                            googleLoginBtn.disabled = false;
-                            googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
-                            const reason = userData.suspensionReason || 'Academic/institutional policy violation';
-                            const duration = userData.suspendedDuration ? ` (${userData.suspendedDuration})` : '';
-                            alert(`⚠️ Account Suspended${duration}\n\nYour account access has been temporarily restricted by Library Administration.\nReason: ${reason}\n\nFor inquiries or formal appeals, please contact the CTU Daanbantayan Campus Library Office.`);
+                        if (popupErr.code === 'auth/popup-closed-by-user') {
+                            setGoogleLoading(false);
                             return;
                         }
-                        if (userData.status === 'quarantined') {
-                            await auth.signOut();
-                            sessionStorage.clear();
-                            googleLoginBtn.disabled = false;
-                            googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
-                            const reason = userData.deletionReason || 'Administrative request';
-                            alert(`⚠️ Account Quarantined\n\nThis account has been scheduled for deletion.\nReason: ${reason}\n\nIf you believe this was done in error, please contact Library Administration within the 14-day grace period to restore your account.`);
-                            return;
-                        }
-                        if (userData.deletionScheduled || userData.accountStatus === 'pending_deletion') {
-                            const now = Date.now();
-                            const scheduledTime = userData.scheduledDeletionTimestamp || 0;
-                            if (scheduledTime > 0 && now >= scheduledTime) {
-                                await auth.signOut();
-                                sessionStorage.clear();
-                                googleLoginBtn.disabled = false;
-                                googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
-                                const days = userData.deletionGraceDays || 15;
-                                alert(`⚠️ Account Expired\n\nThe ${days}-day grace period for this account has expired, and the account has been permanently marked for deletion.\n\nFor inquiries, please contact Library Administration.`);
-                                return;
-                            } else {
-                                // Logging in cancels and clears the deletion timer
+
+                        // Automatically fall back to signInWithRedirect when popups are blocked or cross-origin connection fails
+                        if (isPopupBlocked && typeof auth.signInWithRedirect === 'function') {
+                            console.warn('[Auth] Popup blocked or failed connection. Seamlessly falling back to signInWithRedirect:', popupErr);
+                            showInlineAlert(
+                                'Redirecting to Google...',
+                                'Popup was blocked by your browser. Redirecting you directly to Google Sign-In...'
+                            );
+                            sessionStorage.setItem('recaps_google_redirect_pending', 'true');
+                            setTimeout(async () => {
                                 try {
-                                    const deleteFieldVal = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue && typeof firebase.firestore.FieldValue.delete === 'function')
-                                        ? firebase.firestore.FieldValue.delete()
-                                        : null;
-                                    await db.collection('users').doc(user.uid).update({
-                                        deletionScheduled: deleteFieldVal,
-                                        scheduledDeletionTimestamp: deleteFieldVal,
-                                        deletionGraceDays: deleteFieldVal,
-                                        deletionReason: deleteFieldVal,
-                                        deletionRequestedAt: deleteFieldVal,
-                                        accountStatus: 'active'
-                                    });
-                                    localStorage.removeItem('recaps_account_pending_deletion_' + user.uid);
-                                    userData.deletionScheduled = false;
-                                    userData.accountStatus = 'active';
-                                    console.log('[Auth] Deletion timer removed upon Google user login.');
-                                } catch (delErr) {
-                                    console.warn('[Auth] Failed to reset deletion fields on Google login:', delErr);
+                                    await auth.signInWithRedirect(provider);
+                                } catch (redirErr) {
+                                    console.error('[Auth] signInWithRedirect error:', redirErr);
+                                    setGoogleLoading(false);
+                                    showInlineAlert('Sign-In Paused', 'Popup was blocked. Please allow popups or use email and password to sign in.');
                                 }
-                            }
+                            }, 350);
+                            return;
                         }
-                    }
-                    
-                    sessionStorage.setItem('userId', user.uid);
-                    sessionStorage.setItem('userEmail', user.email);
-                    sessionStorage.setItem('userName', user.displayName);
-                    sessionStorage.setItem('userType', userData.userType);
 
-                    window.dispatchEvent(new CustomEvent('authRoleUpdated', { detail: { role: userData.userType } }));
-
-                    if (typeof window.ActivityService !== 'undefined') {
-                        window.ActivityService.logAuth('login', `Signed in via Google as ${userData.userType || 'user'}`);
+                        throw popupErr;
                     }
-                    
-                    closeModal();
-                    
-                    const proceedWithLogin = () => {
-                        AuthService.redirectAfterLogin(
-                            userData.userType,
-                            user.displayName || user.email.split('@')[0],
-                            showWelcomeModal
-                        );
-                    };
 
-                    // Check if local device has guest saved projects (Admins do not save/bookmark projects)
-                    if (userData.userType !== 'admin' && typeof window.GuestSavedProjects !== 'undefined' && window.GuestSavedProjects.hasSaved()) {
-                        showSyncPromptModal(user, userData, proceedWithLogin);
-                    } else {
-                        proceedWithLogin();
+                    if (result && result.user) {
+                        await processGoogleAuthSuccess(result.user);
                     }
-                    
+
                 } catch (error) {
                     console.error('Google Sign-In error:', error);
-                    googleLoginBtn.disabled = false;
-                    googleLoginBtn.innerHTML = (typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : '';
+                    setGoogleLoading(false);
 
                     const isPopupIssue = error.code === 'auth/popup-blocked' ||
                                          error.code === 'auth/cancelled-popup-request' ||
                                          (error.message && error.message.toLowerCase().includes('popup'));
 
-                    if (isPopupIssue) {
-                        showToast('Google Sign-In popup was blocked by your browser. Please allow popups for this site or sign in with Email & Password.', 'warning');
+                    if (error.code === 'auth/popup-closed-by-user') {
+                        return;
+                    } else if (isPopupIssue) {
+                        showInlineAlert('Popup blocked', 'Allow popups for this site or sign in using your email and password above.');
                     } else {
-                        showToast('Sign-in failed. Please verify your credentials and try again.', 'error');
+                        showInlineAlert('Google Sign-In paused', 'Could not complete Google authentication. Please try again.');
                     }
                 }
             });

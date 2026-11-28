@@ -3,645 +3,783 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About RE-CAPS — Digital Undergraduate Theses Repository with RAG Search</title>
+  <title>About RE-CAPS — CTU Daanbantayan Undergraduate Research Repository</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/pages/about_page.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/pages/about_page.css?v=3.0" />
   <link rel="stylesheet" href="../css/shared/toast.css" />
   <link rel="stylesheet" href="../css/shared/modal-dialog.css" />
   <link rel="stylesheet" href="../css/shared/text-protection.css" />
+  <link rel="stylesheet" href="../css/shared/institutional-badges.css?v=1" />
   <script>
-    // Apply theme before render to avoid flash
     const savedTheme = localStorage.getItem('theme') ||
       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', savedTheme);
   </script>
 </head>
 <body>
-<!-- Reading Progress Bar -->
-<div id="scroll-progress" class="scroll-progress-bar" aria-hidden="true"></div>
+  <!-- Thin Top Reading Progress Rule -->
+  <div id="scroll-progress" class="scroll-progress-bar" aria-hidden="true"></div>
 
-<div class="about-page">
+  <div class="about-shell">
+    <!-- STICKY ARCHITECTURAL HEADER -->
+    <header class="about-nav" role="banner">
+      <div class="about-nav-inner">
+        <a href="../index.html" class="nav-brand" aria-label="RE-CAPS Home">
+          <img src="../assets/logo.png" alt="CTU RE-CAPS Crest" class="nav-logo-img" />
+          <div class="nav-brand-text">
+            <span class="nav-title">RE-CAPS</span>
+            <span class="nav-subtitle">CTU Daanbantayan Research Archive</span>
+          </div>
+        </a>
 
-  <!-- NAV -->
-  <nav class="nav" role="navigation" aria-label="Main navigation">
-    <div class="nav-brand">
-      <img src="../assets/logo.png" alt="RE-CAPS Logo" class="nav-logo-img logo-light" />
-      <img src="../assets/logo.png" alt="RE-CAPS Logo" class="nav-logo-img logo-dark" />
-      <div>
-        <div class="nav-title">RE-CAPS</div>
-        <div class="nav-subtitle">Digital Undergraduate Theses Repository with RAG Search</div>
-      </div>
-    </div>
-    <div class="nav-actions">
-      <a href="../index.html" class="btn btn-ghost" style="text-decoration:none">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:5px"><polyline points="15 18 9 12 15 6"/></svg>Back to Search
-      </a>
-    </div>
-  </nav>
+        <nav class="nav-links" aria-label="About page sections">
+          <a href="#overview" class="nav-anchor">Overview</a>
+          <a href="#rag-architecture" class="nav-anchor">Architecture</a>
+          <a href="#validation" class="nav-anchor">Validation</a>
+          <a href="#stakeholders" class="nav-anchor">Roles</a>
+          <a href="#team" class="nav-anchor">Team</a>
+          <a href="#feedback" class="nav-anchor">Feedback</a>
+        </nav>
 
-  <!-- HERO -->
-  <div class="about-hero">
-    <div class="bubble b1"></div>
-    <div class="bubble b2"></div>
-    <div class="bubble b3"></div>
-    <div class="bubble b4"></div>
-    <div class="bubble b5"></div>
-    <div class="bubble b6"></div>
-    <div class="bubble b7"></div>
-    <div class="bubble b8"></div>
-    <div class="about-badge"><div class="about-badge-dot"></div>CTU Daanbantayan Campus Library · Capstone Repository</div>
-    <h1>About <span>RE-CAPS</span></h1>
-    <p>A next-generation digital undergraduate theses repository designed for Cebu Technological University — Daanbantayan Campus. Powered by Pinecone vector semantic search, a 4-tier cascading AI research engine, and instant multi-format academic citation generation.</p>
-    <div class="about-hero-actions">
-      <a href="../index.html" class="btn btn-orange" style="text-decoration:none">Start Searching</a>
-      <a href="#how-rag-works" class="btn btn-orange" style="text-decoration:none">How RAG Works</a>
-      <a href="#team" class="btn btn-orange" style="text-decoration:none">Meet the Team</a>
-    </div>
-
-    <!-- Hero Animated Metrics Ribbon -->
-    <div class="hero-stats-ribbon">
-      <div class="hero-stat-card">
-        <div class="stat-number" data-counter-target="100" data-counter-suffix="%">0%</div>
-        <div class="stat-label">Digital Indexing</div>
-        <div class="stat-desc">Past physical binders digitized and cataloged</div>
-      </div>
-      <div class="hero-stat-card">
-        <div class="stat-number" data-counter-target="1024" data-counter-suffix="-D">0-D</div>
-        <div class="stat-label">Dense Vectors</div>
-        <div class="stat-desc">Multilingual E5 embedding space via Pinecone</div>
-      </div>
-      <div class="hero-stat-card">
-        <div class="stat-number" data-counter-target="4" data-counter-prefix="Tier-" data-counter-suffix="">0</div>
-        <div class="stat-label">Cascading AI Engine</div>
-        <div class="stat-desc">Mistral → Groq → Gemini → OpenRouter</div>
-      </div>
-      <div class="hero-stat-card">
-        <div class="stat-number" data-counter-target="3" data-counter-suffix=" Styles">0 Styles</div>
-        <div class="stat-label">Citation Generator</div>
-        <div class="stat-desc">APA 7th, MLA 9th, IEEE</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- THE PROBLEM -->
-  <div class="about-section reveal-on-scroll">
-    <div class="about-label">The Academic Challenge</div>
-    <div class="about-title">Why Traditional Research Archives Fall Short</div>
-    <div class="about-sub">Before RE-CAPS, undergraduate researchers and faculty advisers at CTU Daanbantayan faced systemic hurdles when trying to discover, evaluate, and cite past capstone manuscripts.</div>
-    <div class="problem-grid">
-      <div class="problem-card">
-        <div class="problem-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        </div>
-        <div class="problem-title">Physical Binder Silos</div>
-        <div class="problem-desc">Decades of capstones locked in shelf binders with no digital index, accessible only during library hours.</div>
-      </div>
-      <div class="problem-card">
-        <div class="problem-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-        </div>
-        <div class="problem-title">Keyword Search Blindness</div>
-        <div class="problem-desc">Traditional exact keyword searches miss relevant studies that use conceptual synonyms, acronyms, or differing academic phrasing.</div>
-      </div>
-      <div class="problem-card">
-        <div class="problem-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </div>
-        <div class="problem-title">Unintentional Duplication</div>
-        <div class="problem-desc">Students frequently proposed capstone ideas that had already been defended in prior semesters due to lack of cross-year visibility.</div>
-      </div>
-      <div class="problem-card">
-        <div class="problem-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        </div>
-        <div class="problem-title">Citation Overhead</div>
-        <div class="problem-desc">Manual bibliography formatting in APA, IEEE, or MLA caused citation inaccuracies and wasted critical writing time.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-divider"></div>
-
-  <!-- HOW RAG WORKS PIPELINE -->
-  <div class="about-band reveal-on-scroll" id="how-rag-works">
-    <div class="about-band-inner">
-      <div class="about-label">Architecture Breakdown</div>
-      <div class="about-title">How the RE-CAPS RAG Pipeline Works</div>
-      <div class="about-sub">Retrieval-Augmented Generation (RAG) grounds language models in verified university thesis data, eliminating AI hallucinations and providing source citations.</div>
-
-      <div class="rag-pipeline-container">
-        <div class="rag-step-card">
-          <div class="rag-step-badge">Stage 01</div>
-          <div class="rag-step-title">Vector Ingestion</div>
-          <div class="rag-step-desc">Each thesis title, abstract, methodology, and key findings are transformed into 1024-dimensional dense vectors using the multilingual-e5-large model.</div>
-          <div class="rag-step-tech">multilingual-e5-large</div>
-        </div>
-
-        <div class="rag-step-card">
-          <div class="rag-step-badge">Stage 02</div>
-          <div class="rag-step-title">Pinecone Similarity</div>
-          <div class="rag-step-desc">When a student searches, their natural language query is vectorized in real time and matched against the Pinecone index using cosine similarity (80%+ threshold).</div>
-          <div class="rag-step-tech">Pinecone Vector DB</div>
-        </div>
-
-        <div class="rag-step-card">
-          <div class="rag-step-badge">Stage 03</div>
-          <div class="rag-step-title">Context Grounding</div>
-          <div class="rag-step-desc">The top relevant manuscripts, author credits, advisers, and key discoveries are injected into the AI context window as authoritative ground truth.</div>
-          <div class="rag-step-tech">System Prompt Grounding</div>
-        </div>
-
-        <div class="rag-step-card">
-          <div class="rag-step-badge">Stage 04</div>
-          <div class="rag-step-title">Cascading Synthesis</div>
-          <div class="rag-step-desc">A 4-tier cascading engine (Mistral → Groq → Gemini → OpenRouter) streams word-by-word academic responses with real citations via Server-Sent Events.</div>
-          <div class="rag-step-tech">SSE Streaming API</div>
+        <div class="nav-actions">
+          <button type="button" class="nav-theme-btn" id="about-theme-toggle" aria-label="Toggle color theme" title="Switch light or dark theme">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <a href="../index.html" class="ed-btn ed-btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+            <span>Back to Search</span>
+          </a>
         </div>
       </div>
+    </header>
 
-      <!-- Live Interactive RAG Query Simulator -->
-      <div class="rag-simulator-box reveal-on-scroll delay-1">
-        <div class="sim-header">
-          <div class="sim-title-group">
-            <div class="sim-dot-live"></div>
-            <div>
-              <div class="sim-main-title">Interactive RAG Query Simulator</div>
-              <div class="sim-instruction">Click a sample research query below to preview simulated vector matching and RAG synthesis:</div>
+    <main>
+      <!-- HERO: ASYMMETRIC SWISS EDITORIAL DOSSIER -->
+      <section class="hero-band" id="overview">
+        <div class="ed-container hero-grid">
+          <div class="hero-copy">
+            <p class="ed-eyebrow">CEBU TECHNOLOGICAL UNIVERSITY — DAANBANTAYAN CAMPUS LIBRARY</p>
+            <h1 class="hero-headline">
+              Research Capstone Archiving &amp; Retrieval, <span class="hero-accent">engineered for scholarly clarity.</span>
+            </h1>
+            <p class="hero-lead">
+              <strong>RE-CAPS</strong> centralizes undergraduate capstone metadata, physical library shelf coordinates, and conceptual AI discovery across campus degree programs—pairing 1024-dimensional Pinecone vector search with a 4-tier cascading RAG assistant and strict Republic Act No. 10173 intellectual property safeguards.
+            </p>
+            <div class="hero-cta-row">
+              <a href="../index.html" class="ed-btn ed-btn-primary">
+                <span>Explore Repository</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </a>
+              <a href="#rag-architecture" class="ed-btn ed-btn-outline">Inspect RAG Pipeline</a>
+              <a href="#validation" class="ed-btn ed-btn-ghost">View Study Results</a>
             </div>
           </div>
-        </div>
 
-        <div class="sim-preset-chips">
-          <button type="button" class="sim-preset-btn active" data-sim-key="aquaculture">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-            Aquaculture IoT Telemetry
-          </button>
-          <button type="button" class="sim-preset-btn" data-sim-key="fisherfolk">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-            Fisherfolk PWA Marketplace
-          </button>
-          <button type="button" class="sim-preset-btn" data-sim-key="agriculture">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
-            Mango Crop Vision AI
-          </button>
-        </div>
-
-        <div class="sim-display-card" id="sim-result-card">
-          <div class="sim-query-row">
-            <div class="sim-query-label">Simulated Query:</div>
-            <div class="sim-query-text" id="sim-query-text">"IoT-based Smart Aquaculture & Water Quality Monitoring in Northern Cebu"</div>
-          </div>
-
-          <div class="sim-metric-bar">
-            <div class="sim-metric-label">Pinecone Cosine Match:</div>
-            <div class="sim-metric-track">
-              <div class="sim-metric-fill" id="sim-score-fill" style="width: 97.8%; background-color: #08D488;"></div>
+          <!-- Technical Dossier / System Specification Ledger -->
+          <aside class="hero-dossier" aria-label="RE-CAPS System Specification">
+            <div class="dossier-header">
+              <span class="dossier-code">SYS-SPEC // REV 2026</span>
+              <span class="dossier-status">PRODUCTION READY</span>
             </div>
-            <div class="sim-score-badge" id="sim-score-val">97.8%</div>
-          </div>
-
-          <div class="sim-result-details">
-            <div class="sim-result-title" id="sim-result-title">IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu</div>
-            <div class="sim-pills-row" id="sim-result-meta">
-              <span class="sim-pill">BSIT</span>
-              <span class="sim-pill">A.Y. 2025</span>
-              <span class="sim-pill">Adviser: Prof. M. Arriesgado</span>
-            </div>
-            <p class="sim-desc" id="sim-result-summary" style="font-size:.88rem; color:var(--text-secondary); line-height:1.65;">Utilizes an ESP32 sensor cluster measuring dissolved oxygen (DO), pH, and salinity with MQTT telemetry and cloud alarms. Evaluated at Daanbantayan coastal fish ponds, the system demonstrated a 34% reduction in unexpected aquatic mortality and enabled real-time mobile notifications for farm operators.</p>
-
-            <div class="sim-synthesis-block">
-              <div class="sim-synthesis-label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                RAG AI Synthesis &amp; Academic Attribution:
+            <dl class="dossier-list">
+              <div class="dossier-row">
+                <dt>Embedding Space</dt>
+                <dd><strong data-counter-target="1024" data-counter-suffix="-D">1024-D</strong> multilingual-e5-large</dd>
               </div>
-              <div class="sim-synthesis-text" id="sim-result-findings">DO levels remained consistently above 5.0 mg/L via automated relay activation; average notification latency was 1.4 seconds.</div>
+              <div class="dossier-row">
+                <dt>Cascading LLMs</dt>
+                <dd><strong>4-Tier</strong> Mistral · Groq · Gemini · OpenRouter</dd>
+              </div>
+              <div class="dossier-row">
+                <dt>Empirical Validation</dt>
+                <dd><strong data-counter-target="363" data-counter-suffix="">363</strong> Respondents · <strong>4.27 / 5.00</strong> Mean</dd>
+              </div>
+              <div class="dossier-row">
+                <dt>Librarian Speed Rating</dt>
+                <dd><strong>5.00 / 5.00</strong> Unanimous Strongly Agree</dd>
+              </div>
+              <div class="dossier-row">
+                <dt>IP &amp; Security</dt>
+                <dd>R.A. 10173 Guard · 45s Mutex · Email 2FA</dd>
+              </div>
+              <div class="dossier-row">
+                <dt>Citation Standards</dt>
+                <dd>APA 7th · MLA 9th · IEEE Instant Export</dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
+      </section>
+
+      <!-- SECTION 01: THE ARCHIVE GAP (BEFORE vs. AFTER COMPARISON) -->
+      <section class="ed-section reveal-on-scroll">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">01 / INSTITUTIONAL CONTEXT</p>
+              <h2 class="ed-title">Solving Manual Shelf Bottlenecks Without Compromising Manuscript Security</h2>
+            </div>
+            <p class="ed-sub">
+              Baseline evaluation across 363 campus stakeholders confirmed severe manual search friction (Mean <strong>4.32 / 5.00</strong>). RE-CAPS indexes structured metadata and physical call numbers—never exposed PDFs—so researchers find relevant studies in seconds while honoring institutional copyright.
+            </p>
+          </div>
+
+          <div class="comparison-grid">
+            <div class="comparison-col comparison-legacy">
+              <div class="comparison-head">
+                <span class="comparison-index">BASELINE</span>
+                <h3>Manual Binder &amp; Logbook Process</h3>
+              </div>
+              <ul class="comparison-list">
+                <li>
+                  <strong>Physical Shelf Silos</strong>
+                  <span>Hardbound capstones searchable only in person during campus library hours, averaging 20–30 minutes per manual stack search.</span>
+                </li>
+                <li>
+                  <strong>Exact-Keyword Blindness</strong>
+                  <span>Spreadsheets and paper ledgers miss conceptually related studies phrased with different methodologies or terminology.</span>
+                </li>
+                <li>
+                  <strong>Unintentional Topic Duplication</strong>
+                  <span>Capstone 1 teams lacked cross-year, cross-program visibility during title defense proposals.</span>
+                </li>
+                <li>
+                  <strong>Manual Citation Friction</strong>
+                  <span>Hand-formatting APA 7th, MLA 9th, and IEEE entries led to inconsistent bibliographies and referencing errors.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="comparison-col comparison-modern">
+              <div class="comparison-head">
+                <span class="comparison-index comparison-index-accent">RE-CAPS</span>
+                <h3>AI-Integrated Metadata &amp; Shelf Locator</h3>
+              </div>
+              <ul class="comparison-list">
+                <li>
+                  <strong>24/7 Structured Metadata + Call Numbers</strong>
+                  <span>Instant remote discovery of titles, abstracts, advisers, authors, and exact physical rack/row shelf coordinates.</span>
+                </li>
+                <li>
+                  <strong>1024-D Semantic Vector Retrieval</strong>
+                  <span>Natural-language queries retrieve conceptually matched studies via Pinecone cosine similarity across all degree programs.</span>
+                </li>
+                <li>
+                  <strong>Pre-Defense Novelty Verification</strong>
+                  <span>Faculty advisers and students inspect prior work across semesters before approving Capstone 1 titles.</span>
+                </li>
+                <li>
+                  <strong>R.A. 10173 Copy Guard + 1-Click Citations</strong>
+                  <span>Titles and abstracts are copy-protected against plagiarism while authors remain whitelisted and citations export cleanly.</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
 
-  <!-- CORE FEATURES -->
-  <div class="about-section reveal-on-scroll">
-    <div class="about-label">System Capabilities</div>
-    <div class="about-title">Built for Real Academic Discovery</div>
-    <div class="about-sub">RE-CAPS is not just a digital catalog — it is a complete, production-grade research platform built with modern cloud and AI infrastructure.</div>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon fi-blue">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </div>
-        <div class="feature-title">Dual Search Engine</div>
-        <div class="feature-desc">Instant Boolean filtering by year, program, and adviser combined with Pinecone vector semantic search for contextual queries.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon fi-purple">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div class="feature-title">4-Tier Cascading AI</div>
-        <div class="feature-desc">Resilient multi-model fallback across Mistral, Groq, Google Gemini, and OpenRouter, streaming answers with real-time SSE.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon fi-orange">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-        </div>
-        <div class="feature-title">Cloudinary Visual Gallery</div>
-        <div class="feature-desc">High-resolution figure showcases, architecture diagrams, and hardware photos hosted with dynamic Cloudinary transformations.</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon fi-green">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div class="feature-title">Cloud &amp; Guest Bookmarks</div>
-        <div class="feature-desc">Save theses locally as a guest, then automatically merge your reading collection into Firestore when creating an account.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-divider"></div>
-
-  <!-- INTERACTIVE ROLE MATRIX -->
-  <div class="about-band reveal-on-scroll">
-    <div class="about-band-inner">
-      <div class="about-label">Role-Based Access Control</div>
-      <div class="about-title">Tailored for Every Campus Stakeholder</div>
-      <div class="about-sub">RE-CAPS serves four distinct user groups with dedicated workflows, permissions, and specialized dashboards.</div>
-
-      <div class="role-matrix-tabs">
-        <button type="button" class="role-tab-btn active" data-role-key="student">
-          <div class="role-tab-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <!-- SECTION 02: INTERACTIVE RAG ARCHITECTURE & LIVE QUERY EXPLORER -->
+      <section class="ed-band reveal-on-scroll" id="rag-architecture">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">02 / RETRIEVAL-AUGMENTED GENERATION</p>
+              <h2 class="ed-title">How the 4-Stage RAG &amp; Cascading Engine Works</h2>
+            </div>
+            <p class="ed-sub">
+              Select any pipeline stage below to inspect its exact technical contract, then run a simulated semantic query against sample CTU Daanbantayan capstone holdings.
+            </p>
           </div>
-          <div class="role-tab-label">Student Researcher</div>
-        </button>
 
-        <button type="button" class="role-tab-btn" data-role-key="teacher">
-          <div class="role-tab-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-          </div>
-          <div class="role-tab-label">Faculty / Adviser</div>
-        </button>
-
-        <button type="button" class="role-tab-btn" data-role-key="librarian">
-          <div class="role-tab-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-          </div>
-          <div class="role-tab-label">Campus Librarian</div>
-        </button>
-
-        <button type="button" class="role-tab-btn" data-role-key="admin">
-          <div class="role-tab-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div class="role-tab-label">System Administrator</div>
-        </button>
-      </div>
-
-      <div class="role-card-display" id="role-card-body">
-        <div class="role-display-header">
-          <div>
-            <div class="role-badge-pill" id="role-card-badge">Undergraduate Researchers</div>
-            <div class="role-display-title" id="role-card-title">Student Researcher</div>
-          </div>
-          <div id="role-card-icon" style="color:var(--primary-color);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          </div>
-        </div>
-        <div class="role-display-desc" id="role-card-desc">Students can search the repository using traditional filters or the AI-powered Pinecone vector search, read abstracts and key findings, save bookmarks, and export formatted citations.</div>
-        <ul class="role-feature-list" id="role-card-features">
-          <li class="role-feature-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Natural-language semantic search via Pinecone Vector Database</span>
-          </li>
-          <li class="role-feature-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Conversational Q&amp;A with the RAG Assistant grounded in CTU theses</span>
-          </li>
-          <li class="role-feature-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Instant multi-format citation export (APA 7th, MLA 9th, IEEE)</span>
-          </li>
-          <li class="role-feature-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Personal Cloud Bookmarking synced across devices</span>
-          </li>
-        </ul>
-        <a href="../index.html" class="btn btn-orange" id="role-card-cta" style="text-decoration:none;">Start Researching</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- INTERACTIVE CITATION PLAYGROUND -->
-  <div class="about-section reveal-on-scroll">
-    <div class="about-label">Academic Attribution</div>
-    <div class="about-title">Instant Multi-Format Citation Playground</div>
-    <div class="about-sub">Maintaining academic integrity is seamless with 1-click citation export. Select a format below to preview the formatted reference for a sample CTU capstone study.</div>
-
-    <div class="citation-box">
-      <div class="cite-tabs-nav">
-        <button type="button" class="cite-tab-btn active" data-cite-fmt="apa">APA 7th</button>
-        <button type="button" class="cite-tab-btn" data-cite-fmt="ieee">IEEE</button>
-        <button type="button" class="cite-tab-btn" data-cite-fmt="mla">MLA 9th</button>
-
-      </div>
-
-      <div class="cite-preview-area" id="cite-sample-text">Cadaro, J., Cabardo, C., Conde, C., De Jesus, A., &amp; Ompoy, R. (2025). IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu. Cebu Technological University — Daanbantayan Campus Library.</div>
-
-      <div class="cite-actions-row">
-        <div class="cite-support-note">Supports direct copy &amp; export across all project detail views in RE-CAPS.</div>
-        <button type="button" class="btn-cite-copy" id="cite-copy-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy Citation
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-divider"></div>
-
-  <!-- TECH STACK -->
-  <div class="about-section reveal-on-scroll">
-    <div class="about-label">Under the Hood</div>
-    <div class="about-title">Production-Grade Modern Tech Stack</div>
-    <div class="about-sub">RE-CAPS is architected with a decoupled full-stack model, combining high-speed vector retrieval with server-sent event streaming and cloud storage.</div>
-
-    <div class="tech-category-group">
-      <div class="tech-category-label">Vector Database &amp; AI Engine</div>
-      <div class="tech-cards-row">
-        <div class="tech-badge-card">
-          <div class="tech-badge-dot" style="background:#08D488; color:#08D488;"></div>
-          <div>
-            <div class="tech-name">Pinecone Vector DB</div>
-            <div class="tech-desc">recaps-projects-search index (multilingual-e5-large)</div>
-          </div>
-        </div>
-        <div class="tech-badge-card">
-          <div class="tech-badge-dot" style="background:#6B4FBB; color:#6B4FBB;"></div>
-          <div>
-            <div class="tech-name">4-Tier AI Engine</div>
-            <div class="tech-desc">Mistral → Groq → Gemini → OpenRouter cascading LLMs</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tech-category-group">
-      <div class="tech-category-label">Backend &amp; Cloud Database</div>
-      <div class="tech-cards-row">
-        <div class="tech-badge-card">
-          <div class="tech-badge-dot" style="background:#069F66; color:#069F66;"></div>
-          <div>
-            <div class="tech-name">Node.js &amp; Express</div>
-            <div class="tech-desc">REST API, SSE streaming, and Pinecone vector sync</div>
-          </div>
-        </div>
-        <div class="tech-badge-card">
-          <div class="tech-badge-dot" style="background:#FFA500; color:#FFA500;"></div>
-          <div>
-            <div class="tech-name">Google Firebase</div>
-            <div class="tech-desc">Firestore NoSQL, Firebase Auth (RBAC), and Hosting</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tech-category-group">
-      <div class="tech-category-label">Digital Assets &amp; Communications</div>
-      <div class="tech-cards-row">
-        <div class="tech-badge-card">
-          <div class="tech-badge-dot" style="background:#3b82f6; color:#3b82f6;"></div>
-          <div>
-            <div class="tech-name">Cloudinary CDN</div>
-            <div class="tech-desc">Cloud image hosting, thumbnail transforms, and lightbox</div>
-          </div>
-        </div>
-        <div class="tech-badge-card">
-          <div class="tech-badge-dot" style="background:#ec4899; color:#ec4899;"></div>
-          <div>
-            <div class="tech-name">Resend &amp; NodeMailer</div>
-            <div class="tech-desc">Two-factor OTP email verification and feedback routing</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-divider"></div>
-
-  <!-- INSTITUTION -->
-  <div class="about-section reveal-on-scroll">
-    <div class="about-label">Academic Institution</div>
-    <div class="about-title">CTU Daanbantayan Campus Library</div>
-    <div class="inst-card">
-      <div class="inst-logo">CTU<br>DBN</div>
-      <div>
-        <div class="inst-name">Cebu Technological University — Daanbantayan Campus</div>
-        <div class="inst-desc">Located in Agujo, Daanbantayan, Cebu, Philippines. The campus library serves as the central scholarly repository for students, faculty, and researchers. RE-CAPS bridges physical accession records with 24/7 digital cloud intelligence, safeguarding institutional knowledge for generations to come.</div>
-        <div class="inst-tags">
-          <span class="inst-tag">Agujo, Daanbantayan, Cebu</span>
-          <span class="inst-tag">College of Technology</span>
-          <span class="inst-tag">BS in Information Technology</span>
-          <span class="inst-tag">A.Y. 2026–2027</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-divider"></div>
-
-  <!-- THE TEAM -->
-  <div class="about-band reveal-on-scroll" id="team">
-    <div class="about-band-inner">
-      <div class="about-label">The Engineering Team</div>
-      <div class="about-title">Engineered by Group 2, BSIT 3A</div>
-      <div class="about-sub" style="margin-bottom:0">College of Technology · Cebu Technological University — Daanbantayan Campus · A.Y. 2026–2027</div>
-
-      <div class="team-grid-extended">
-        <div class="team-card-modern">
-          <div class="team-avatar-ring">
-            <div class="team-avatar-inner">JC</div>
-          </div>
-          <div class="team-modern-name">John Cadaro</div>
-          <div class="team-modern-role">Project Lead &amp; Backend Dev</div>
-          <div class="team-modern-badge">Node.js · Pinecone · REST</div>
-        </div>
-
-        <div class="team-card-modern">
-          <div class="team-avatar-ring">
-            <div class="team-avatar-inner">CC</div>
-          </div>
-          <div class="team-modern-name">Carmela Cabardo</div>
-          <div class="team-modern-role">AI Integration &amp; RAG</div>
-          <div class="team-modern-badge">Cascading LLMs · Embeddings</div>
-        </div>
-
-        <div class="team-card-modern">
-          <div class="team-avatar-ring">
-            <div class="team-avatar-inner">CC</div>
-          </div>
-          <div class="team-modern-name">Christine Conde</div>
-          <div class="team-modern-role">Information Architecture</div>
-          <div class="team-modern-badge">Metadata · Requirements</div>
-        </div>
-
-        <div class="team-card-modern">
-          <div class="team-avatar-ring">
-            <div class="team-avatar-inner">AJ</div>
-          </div>
-          <div class="team-modern-name">Allan De Jesus Jr.</div>
-          <div class="team-modern-role">UI/UX Design &amp; Frontend</div>
-          <div class="team-modern-badge">Responsive UI · Aesthetics</div>
-        </div>
-
-        <div class="team-card-modern">
-          <div class="team-avatar-ring">
-            <div class="team-avatar-inner">RO</div>
-          </div>
-          <div class="team-modern-name">Rheina Ompoy</div>
-          <div class="team-modern-role">Database &amp; QA Engineer</div>
-          <div class="team-modern-badge">Firestore · Security Rules</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CONTACT & FEEDBACK -->
-  <div class="about-section reveal-on-scroll" style="padding-top:4.5rem">
-    <div class="contact-card">
-      <div class="contact-title">Have <span class="contact-title-accent">feedback</span> or found an issue?</div>
-      <div class="contact-sub">Reach out to the RE-CAPS development team — we value your suggestions and bug reports.</div>
-      
-      <form id="feedback-form" class="feedback-form">
-        <div class="feedback-form-row">
-          <div class="feedback-form-group">
-            <label for="feedback-name" class="feedback-label">Name <span class="required">*</span></label>
-            <input 
-              type="text" 
-              id="feedback-name" 
-              name="name" 
-              class="feedback-input" 
-              placeholder="Your full name" 
-              required
-              minlength="2"
-              maxlength="100"
-              aria-label="Your name"
-            />
-            <div class="field-feedback"></div>
-          </div>
-          
-          <div class="feedback-form-group">
-            <label for="feedback-email" class="feedback-label">Email <span class="required">*</span></label>
-            <input 
-              type="email" 
-              id="feedback-email" 
-              name="email" 
-              class="feedback-input" 
-              placeholder="your.email@example.com" 
-              required
-              aria-label="Your email address"
-            />
-            <div class="field-feedback"></div>
-          </div>
-        </div>
-
-        <div class="feedback-form-group">
-          <label for="feedback-subject" class="feedback-label">Subject <span class="optional">(optional)</span></label>
-          <input 
-            type="text" 
-            id="feedback-subject" 
-            name="subject" 
-            class="feedback-input" 
-            placeholder="Brief subject line" 
-            maxlength="150"
-            aria-label="Feedback subject"
-          />
-        </div>
-        
-        <div class="feedback-form-group">
-          <label for="feedback-message" class="feedback-label">Message <span class="required">*</span></label>
-          <textarea 
-            id="feedback-message" 
-            name="message" 
-            class="feedback-textarea" 
-            placeholder="Tell us what's on your mind — suggestions, bug reports, questions, or general feedback..." 
-            required
-            minlength="10"
-            maxlength="2000"
-            rows="6"
-            aria-label="Your message"
-          ></textarea>
-          <div class="field-feedback"></div>
-        </div>
-        
-        <!-- Image Attachments -->
-        <div class="feedback-form-group" style="text-align:center;">
-          <label class="feedback-label">Attach Screenshots <span class="optional">(optional, max 3 images)</span></label>
-          <div class="feedback-image-upload">
-            <input 
-              type="file" 
-              id="feedback-images" 
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              multiple
-              style="display: none;"
-            />
-            <button type="button" class="feedback-upload-btn" id="feedback-upload-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <span>Choose Images</span>
+          <!-- Interactive 4-Stage Architectural Stepper -->
+          <div class="rag-stepper" role="tablist" aria-label="RAG Pipeline Stages">
+            <button type="button" class="rag-stage-card active" role="tab" aria-selected="true" data-stage="1">
+              <span class="rag-stage-num">01</span>
+              <span class="rag-stage-title">Dual-DB Ingestion</span>
+              <span class="rag-stage-spec">Firestore ↔ Pinecone</span>
             </button>
-            <div class="feedback-image-preview" id="feedback-image-preview"></div>
+            <button type="button" class="rag-stage-card" role="tab" aria-selected="false" data-stage="2">
+              <span class="rag-stage-num">02</span>
+              <span class="rag-stage-title">Cosine Vector Match</span>
+              <span class="rag-stage-spec">1024-D E5 Embeddings</span>
+            </button>
+            <button type="button" class="rag-stage-card" role="tab" aria-selected="false" data-stage="3">
+              <span class="rag-stage-num">03</span>
+              <span class="rag-stage-title">Context Grounding</span>
+              <span class="rag-stage-spec">Zero-Hallucination Prompt</span>
+            </button>
+            <button type="button" class="rag-stage-card" role="tab" aria-selected="false" data-stage="4">
+              <span class="rag-stage-num">04</span>
+              <span class="rag-stage-title">4-Tier SSE Cascade</span>
+              <span class="rag-stage-spec">Health Pool &amp; Quotas</span>
+            </button>
           </div>
-          <div class="feedback-image-hint">Supports PNG, JPG, JPEG, WebP (Max 5MB each)</div>
+
+          <div class="rag-stage-detail" id="rag-stage-detail" role="tabpanel">
+            <div class="rag-detail-left">
+              <span class="rag-detail-kicker" id="rag-detail-kicker">STAGE 01 · SYNCHRONIZATION CONTRACT</span>
+              <h3 class="rag-detail-heading" id="rag-detail-heading">Structured Metadata Vectorization &amp; Atomic Parity</h3>
+              <p class="rag-detail-desc" id="rag-detail-desc">
+                Whenever a librarian approves or edits a capstone record in Firestore, Express formats its Title, Abstract, Authors, Adviser, Program, Year, and Keywords via <code>formatSearchableText()</code> and embeds it using Pinecone Inference (<code>multilingual-e5-large</code>, <code>input_type: "passage"</code>) with identical document IDs.
+              </p>
+            </div>
+            <div class="rag-detail-specs" id="rag-detail-specs">
+              <div class="spec-line"><span>Endpoint</span><code>POST /api/projects/sync</code></div>
+              <div class="spec-line"><span>Index</span><code>recaps-projects-search</code></div>
+              <div class="spec-line"><span>Dimensions</span><code>1024-D float32 (Cosine)</code></div>
+            </div>
+          </div>
+
+          <!-- Interactive RAG Query Explorer -->
+          <div class="sim-workbench">
+            <div class="sim-workbench-bar">
+              <div>
+                <span class="sim-kicker">INTERACTIVE SANDBOX</span>
+                <h3 class="sim-heading">Semantic Vector Match Explorer</h3>
+              </div>
+              <div class="sim-preset-bar" role="group" aria-label="Sample research queries">
+                <button type="button" class="sim-preset-btn active" data-sim-key="aquaculture">Aquaculture IoT</button>
+                <button type="button" class="sim-preset-btn" data-sim-key="fisherfolk">Fisherfolk PWA</button>
+                <button type="button" class="sim-preset-btn" data-sim-key="agriculture">Mango Vision AI</button>
+                <button type="button" class="sim-preset-btn" data-sim-key="library">Capstone Archive</button>
+              </div>
+            </div>
+
+            <div class="sim-body" id="sim-result-card">
+              <div class="sim-query-strip">
+                <span class="sim-field-label">Natural-Language Query</span>
+                <div class="sim-query-text" id="sim-query-text">"IoT-based Smart Aquaculture &amp; Water Quality Monitoring in Northern Cebu"</div>
+              </div>
+
+              <div class="sim-score-row">
+                <span class="sim-field-label">Pinecone Cosine Similarity</span>
+                <div class="sim-seg-meter" id="sim-seg-meter" aria-hidden="true"></div>
+                <strong class="sim-score-num" id="sim-score-val">97.8%</strong>
+              </div>
+
+              <div class="sim-record-grid">
+                <div class="sim-record-main">
+                  <div class="sim-record-meta" id="sim-result-meta">
+                    <span class="ed-tag">BSIT</span>
+                    <span class="ed-tag">A.Y. 2025</span>
+                    <span class="ed-tag">Shelf: IT-R2-S4</span>
+                    <span class="ed-tag">Adviser: Prof. M. Arriesgado</span>
+                  </div>
+                  <h4 class="sim-record-title" id="sim-result-title">IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu</h4>
+                  <p class="sim-record-abstract" id="sim-result-summary">
+                    Utilizes an ESP32 sensor cluster measuring dissolved oxygen (DO), pH, and salinity with MQTT telemetry and cloud alarms. Evaluated at Daanbantayan coastal fish ponds, the system demonstrated a 34% reduction in unexpected aquatic mortality and enabled real-time mobile notifications for farm operators.
+                  </p>
+                </div>
+
+                <div class="sim-synthesis-panel">
+                  <div class="sim-synthesis-head">
+                    <span>GROUNDED RAG SYNTHESIS</span>
+                    <span id="sim-provider-label">Mistral AI · Tier 1</span>
+                  </div>
+                  <p class="sim-synthesis-text" id="sim-result-findings">
+                    DO levels remained consistently above 5.0 mg/L via automated relay activation; average notification latency was 1.4 seconds. Physical manuscript available at Shelf IT-R2-S4 for on-campus inspection.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div class="feedback-form-actions">
-          <button type="button" class="btn-clear-feedback" id="btn-clear-feedback" title="Clear all fields in this form">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 6h18"></path>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            <span>Clear Form</span>
-          </button>
-          <button type="submit" class="btn btn-orange btn-submit">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-            <span>Send Feedback</span>
-          </button>
+      </section>
+
+      <!-- SECTION 03: EMPIRICAL VALIDATION & 7-LAYER SECURITY GOVERNANCE -->
+      <section class="ed-section reveal-on-scroll" id="validation">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">03 / EMPIRICAL STUDY &amp; GOVERNANCE</p>
+              <h2 class="ed-title">Validated by 363 Campus Respondents &amp; Hardened by 7 Security Layers</h2>
+            </div>
+            <p class="ed-sub">
+              Evaluated under ISO/IEC 25010 criteria via Slovin stratified student sampling, 40% faculty quota sampling, and a complete census of campus library personnel. One-Way ANOVA and Kruskal-Wallis tests confirmed uniform acceptability across all stakeholder groups.
+            </p>
+          </div>
+
+          <!-- Empirical Metrics Strip -->
+          <div class="metrics-ledger">
+            <div class="metric-cell">
+              <div class="metric-value" data-counter-target="4.27" data-counter-suffix=" / 5">4.27 / 5</div>
+              <div class="metric-label">Overall System Mean</div>
+              <div class="metric-note">Strongly Agree (SD 0.53) across 363 respondents</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-value" data-counter-target="5.00" data-counter-suffix=" / 5">5.00 / 5</div>
+              <div class="metric-label">Librarian Retrieval Speed</div>
+              <div class="metric-note">Unanimous top score across campus library staff (n = 6)</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-value" data-counter-target="4.35" data-counter-suffix=" / 5">4.35 / 5</div>
+              <div class="metric-label">Workload Reduction</div>
+              <div class="metric-note">Advising &amp; manual cataloging overhead minimized</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-value">0.94</div>
+              <div class="metric-label">Instrument Reliability</div>
+              <div class="metric-note">Cronbach's α = 0.9301 (Students) · 0.9445 (Faculty)</div>
+            </div>
+          </div>
+
+          <!-- Interactive 7-Layer Security & Compliance Accordion -->
+          <div class="security-ledger">
+            <div class="security-ledger-head">
+              <h3>Institutional Security, Privacy &amp; Quota Architecture</h3>
+              <span>Click any safeguard to inspect implementation details</span>
+            </div>
+            <div class="accordion-list" id="security-accordion">
+              <div class="acc-item active">
+                <button type="button" class="acc-trigger" aria-expanded="true">
+                  <span class="acc-num">01</span>
+                  <span class="acc-title">Republic Act No. 10173 Anti-Plagiarism &amp; Text Protection Guard</span>
+                  <span class="acc-chevron" aria-hidden="true">+</span>
+                </button>
+                <div class="acc-panel">
+                  <p>Capstone titles and abstracts are strictly protected against copying, text selection, dragging, right-clicking, and mobile touch-holding across all portals (<code>text-protection.js</code>), while research authors remain 100% whitelisted and copyable for legitimate academic attribution. Full-text PDFs are never exposed publicly.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button type="button" class="acc-trigger" aria-expanded="false">
+                  <span class="acc-num">02</span>
+                  <span class="acc-title">Role-Based Daily AI Quotas &amp; Live 4-Tier Health Pool</span>
+                  <span class="acc-chevron" aria-hidden="true">+</span>
+                </button>
+                <div class="acc-panel">
+                  <p>Prevents API exhaustion on free-tier LLM keys with server-enforced daily query allocations (<strong>25/day</strong> Students, <strong>50/day</strong> Faculty, <strong>150/day</strong> Librarians &amp; Admins) resetting at 12:00 AM PHT, live <code>X-RateLimit-*</code> &amp; <code>X-Model-Health</code> headers, automatic 429 cooldown routing, and zero Firestore write overhead.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button type="button" class="acc-trigger" aria-expanded="false">
+                  <span class="acc-num">03</span>
+                  <span class="acc-title">45-Second Heartbeat Shelf Cataloging Mutex Lock</span>
+                  <span class="acc-chevron" aria-hidden="true">+</span>
+                </button>
+                <div class="acc-panel">
+                  <p>Prevents concurrent editing collisions when multiple librarians catalog physical shelf coordinates (<code>callNumber</code>, <code>accessionNumber</code>, rack/row notes) using atomic Firestore leases with 45-second TTL heartbeat renewal.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button type="button" class="acc-trigger" aria-expanded="false">
+                  <span class="acc-num">04</span>
+                  <span class="acc-title">Tesseract.js Campus ID Verification &amp; Behavioral Slider CAPTCHA</span>
+                  <span class="acc-chevron" aria-hidden="true">+</span>
+                </button>
+                <div class="acc-panel">
+                  <p>Account registration performs client-side OCR verification of CTU Student/Faculty ID numbers with unique ID locking and trajectory-jitter velocity analysis to block automated bot sign-ups.</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <button type="button" class="acc-trigger" aria-expanded="false">
+                  <span class="acc-num">05</span>
+                  <span class="acc-title">Mandatory Staff Email 2FA &amp; 4-Tier RBAC Enforcement</span>
+                  <span class="acc-chevron" aria-hidden="true">+</span>
+                </button>
+                <div class="acc-panel">
+                  <p>Administrator and Librarian accounts enforce server-verified personal Gmail 2FA via Resend OTP before unlocking privileged catalog writes, user governance sanctions, or batch Pinecone synchronization.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </form>
-    </div>
+      </section>
+
+      <!-- SECTION 04: INTERACTIVE STAKEHOLDER WORKSTATION MATRIX -->
+      <section class="ed-band reveal-on-scroll" id="stakeholders">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">04 / ROLE-BASED ACCESS CONTROL</p>
+              <h2 class="ed-title">Dedicated Workstations for Every Campus Stakeholder</h2>
+            </div>
+            <p class="ed-sub">
+              Four strictly enforced permission tiers match each user's institutional responsibility, daily AI quota, and saved conversation allocation.
+            </p>
+          </div>
+
+          <div class="role-tabs" role="tablist" aria-label="Campus Stakeholder Roles">
+            <button type="button" class="role-tab-btn active" role="tab" aria-selected="true" data-role-key="student">Student Researcher</button>
+            <button type="button" class="role-tab-btn" role="tab" aria-selected="false" data-role-key="teacher">Faculty / Adviser</button>
+            <button type="button" class="role-tab-btn" role="tab" aria-selected="false" data-role-key="librarian">Campus Librarian</button>
+            <button type="button" class="role-tab-btn" role="tab" aria-selected="false" data-role-key="admin">System Administrator</button>
+          </div>
+
+          <div class="role-panel" id="role-card-body" role="tabpanel">
+            <div class="role-panel-main">
+              <div class="role-panel-top">
+                <span class="ed-tag" id="role-card-badge">Undergraduate Researchers</span>
+                <div class="role-quota-strip" id="role-card-quotas">
+                  <span class="ed-tag">25 AI Queries / Day</span>
+                  <span class="ed-tag">3 Saved Chats</span>
+                </div>
+              </div>
+              <h3 class="role-panel-title" id="role-card-title">Student Researcher</h3>
+              <p class="role-panel-desc" id="role-card-desc">
+                Discover prior undergraduate capstones using natural-language Pinecone semantic search, inspect abstracts and physical shelf locations, bookmark references, and export formatted citations.
+              </p>
+              <ul class="role-checklist" id="role-card-features">
+                <li>Natural-language semantic search across campus degree programs</li>
+                <li>Grounded RAG Assistant with live 4-tier model health visibility</li>
+                <li>Instant APA 7th, MLA 9th, and IEEE citation generation</li>
+                <li>Personal Cloud Bookmarking and local-device activity history</li>
+              </ul>
+              <div class="role-panel-actions">
+                <a href="../index.html" class="ed-btn ed-btn-primary" id="role-card-cta">Start Researching</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 05: INTERACTIVE CITATION PLAYGROUND -->
+      <section class="ed-section reveal-on-scroll" id="citations">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">05 / ACADEMIC ATTRIBUTION</p>
+              <h2 class="ed-title">Instant Multi-Format Citation Playground</h2>
+            </div>
+            <p class="ed-sub">
+              Switch between bibliography formats and in-text styles to preview how RE-CAPS formats institutional capstone references in one click.
+            </p>
+          </div>
+
+          <div class="cite-workbench">
+            <div class="cite-toolbar">
+              <div class="cite-format-group" role="tablist" aria-label="Citation Format">
+                <button type="button" class="cite-tab-btn active" data-cite-fmt="apa">APA 7th</button>
+                <button type="button" class="cite-tab-btn" data-cite-fmt="mla">MLA 9th</button>
+                <button type="button" class="cite-tab-btn" data-cite-fmt="ieee">IEEE</button>
+              </div>
+              <div class="cite-mode-group" role="group" aria-label="Citation Display Mode">
+                <button type="button" class="cite-mode-btn active" data-cite-mode="full">Reference Entry</button>
+                <button type="button" class="cite-mode-btn" data-cite-mode="intext">In-Text</button>
+              </div>
+            </div>
+
+            <div class="cite-output-frame">
+              <div class="cite-preview-text" id="cite-sample-text">Cabardo, C. M., Cadaro, J. P., Conde, C. D., De Jesus, A., Jr. P., &amp; Ompoy, R. C. (2026). Development of an AI-integrated undergraduate capstone project and fundamentals of research repository with retrieval-augmented generation and chatbot support for Cebu Technological University Daanbantayan Campus Library [Undergraduate capstone project]. Cebu Technological University — Daanbantayan Campus.</div>
+            </div>
+
+            <div class="cite-footer">
+              <span class="cite-note">Available directly inside every Project Detail modal across RE-CAPS.</span>
+              <button type="button" class="ed-btn ed-btn-primary" id="cite-copy-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <span>Copy Citation</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 06: ARCHITECTURE & TECH STACK MATRIX -->
+      <section class="ed-band reveal-on-scroll" id="tech-stack">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">06 / SYSTEM INFRASTRUCTURE</p>
+              <h2 class="ed-title">Decoupled Full-Stack Cloud Architecture</h2>
+            </div>
+            <p class="ed-sub">
+              Engineered for high availability and Spark free-tier efficiency using zero-Firestore-write local telemetry, connection pooling, and multi-provider failover.
+            </p>
+          </div>
+
+          <div class="stack-grid">
+            <div class="stack-card">
+              <div class="stack-layer">01 · VECTOR &amp; INFERENCE</div>
+              <h3>Pinecone + 4-Tier LLMs</h3>
+              <p>1024-D <code>multilingual-e5-large</code> semantic indexing paired with Mistral, Groq, Google Gemini, and OpenRouter SSE failover.</p>
+            </div>
+            <div class="stack-card">
+              <div class="stack-layer">02 · APPLICATION GATEWAY</div>
+              <h3>Node.js, Express &amp; Undici</h3>
+              <p>REST API and SSE streaming hosted on Render with 30-second Undici connection pooling, Cloudflare keep-alive, and rate-limit headers.</p>
+            </div>
+            <div class="stack-card">
+              <div class="stack-layer">03 · METADATA &amp; IDENTITY</div>
+              <h3>Firebase Firestore &amp; Auth</h3>
+              <p>Relational capstone metadata, 4-tier RBAC custom claims, 45-second shelf mutex leases, and Firebase Hosting static edge delivery.</p>
+            </div>
+            <div class="stack-card">
+              <div class="stack-layer">04 · ASSETS &amp; SECURITY</div>
+              <h3>Cloudinary, Resend &amp; OCR</h3>
+              <p>Cloudinary cover galleries, Resend transactional 2FA OTP dispatch, Tesseract.js campus ID scanning, and R.A. 10173 copy protection.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 07: INSTITUTION & ENGINEERING TEAM -->
+      <section class="ed-section reveal-on-scroll" id="team">
+        <div class="ed-container">
+          <div class="section-head-split">
+            <div>
+              <p class="ed-eyebrow">07 / INSTITUTION &amp; CREDITS</p>
+              <h2 class="ed-title">Engineered for CTU Daanbantayan Campus Library</h2>
+            </div>
+            <p class="ed-sub">
+              Developed by BS in Information Technology researchers at Cebu Technological University — Daanbantayan Campus (Agujo, Daanbantayan, Cebu, Philippines).
+            </p>
+          </div>
+
+          <!-- Institutional Colophon Bar -->
+          <div class="institution-bar">
+            <div class="inst-crest-box">
+              <img src="../assets/logo.png" alt="CTU Seal" class="inst-seal-img" />
+            </div>
+            <div class="inst-body">
+              <h3>Cebu Technological University — Daanbantayan Campus</h3>
+              <p>
+                Serving undergraduate researchers, faculty advisers, and library personnel across ten campus degree programs (BSIT, BIT, BSFi, BSHM, BSIE, BEEd, BSEd, BTLEd-HE, and allied disciplines). RE-CAPS bridges physical shelf accession records with 24/7 semantic cloud discovery.
+              </p>
+              <div class="inst-meta-row">
+                <span class="ed-tag">Agujo, Daanbantayan, Cebu</span>
+                <span class="ed-tag">College of Technology &amp; Engineering</span>
+                <span class="ed-tag">BS Information Technology</span>
+                <span class="ed-tag">Academic Year 2026</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5-Member Engineering Team Grid -->
+          <div class="team-grid">
+            <article class="team-card">
+              <div class="team-monogram">JC</div>
+              <h4 class="team-name">John P. Cadaro</h4>
+              <p class="team-role">Project Lead &amp; Backend Engineer</p>
+              <span class="team-focus">Node.js · Pinecone · REST &amp; SSE</span>
+            </article>
+            <article class="team-card">
+              <div class="team-monogram">CC</div>
+              <h4 class="team-name">Carmela M. Cabardo</h4>
+              <p class="team-role">AI Integration &amp; RAG Engineer</p>
+              <span class="team-focus">4-Tier LLMs · Vector Embeddings</span>
+            </article>
+            <article class="team-card">
+              <div class="team-monogram">CD</div>
+              <h4 class="team-name">Christine D. Conde</h4>
+              <p class="team-role">Information Architecture</p>
+              <span class="team-focus">Metadata Schema · Documentation</span>
+            </article>
+            <article class="team-card">
+              <div class="team-monogram">AJ</div>
+              <h4 class="team-name">Allan Jr. P. De Jesus</h4>
+              <p class="team-role">UI/UX &amp; Frontend Engineer</p>
+              <span class="team-focus">Design System · Responsive UX</span>
+            </article>
+            <article class="team-card">
+              <div class="team-monogram">RO</div>
+              <h4 class="team-name">Rheina C. Ompoy</h4>
+              <p class="team-role">Database &amp; QA Engineer</p>
+              <span class="team-focus">Firestore · ISO/IEC 25010 QA</span>
+            </article>
+          </div>
+
+          <!-- Academic Advisory & Guidance Credits -->
+          <div class="advisory-strip">
+            <div class="advisory-item">
+              <span class="advisory-role">Project Adviser</span>
+              <strong>Mr. Virgilio Sayson Jr.</strong>
+            </div>
+            <div class="advisory-item">
+              <span class="advisory-role">Course Instructor &amp; Department Chair</span>
+              <strong>Dr. Iris L. Gulbe, CoE, MSIT, Ph.D.</strong>
+            </div>
+            <div class="advisory-item">
+              <span class="advisory-role">Campus Director</span>
+              <strong>Dr. Rowena P. Dato-on</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 08: FEEDBACK & ISSUE REPORTING -->
+      <section class="ed-band reveal-on-scroll" id="feedback">
+        <div class="ed-container">
+          <div class="feedback-layout">
+            <div class="feedback-intro">
+              <p class="ed-eyebrow">08 / CONTACT &amp; SUPPORT</p>
+              <h2 class="ed-title">Report an Issue or Share Feedback</h2>
+              <p class="ed-sub">
+                Spot a metadata typo, broken shelf coordinate, or UI issue? Send a message directly to the RE-CAPS engineering team—up to 3 screenshots can be attached for faster diagnosis.
+              </p>
+              <div class="feedback-checklist">
+                <div class="fb-meta-row">
+                  <span>Access Policy</span>
+                  <strong>Authenticated Account Only (Auto-Email)</strong>
+                </div>
+                <div class="fb-meta-row">
+                  <span>Dispatch Channel</span>
+                  <strong>Resend Transactional API + Firestore</strong>
+                </div>
+                <div class="fb-meta-row">
+                  <span>Attachment Pipeline</span>
+                  <strong>Cloudinary CDN (PNG, JPG, WebP)</strong>
+                </div>
+                <div class="fb-meta-row">
+                  <span>Max Attachments</span>
+                  <strong>3 Images · 5 MB Each</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="feedback-card">
+              <!-- Authenticated-Only Guard Banner (Guest State) -->
+              <div id="feedback-auth-guest-gate" class="feedback-auth-gate" role="region" aria-label="Authentication required to submit feedback">
+                <div class="feedback-auth-gate-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <div class="feedback-auth-gate-body">
+                  <div class="feedback-auth-gate-title">Authenticated Account Required</div>
+                  <p class="feedback-auth-gate-text">
+                    Only signed-in RE-CAPS users may submit feedback. Once authenticated, your account identity and email address are retrieved automatically so you never have to type your email manually.
+                  </p>
+                </div>
+                <button type="button" class="ed-btn ed-btn-primary feedback-signin-btn" id="feedback-signin-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                  <span>Sign In to Submit Feedback</span>
+                </button>
+              </div>
+
+              <!-- Verified Account Identity Bar (Authenticated State) -->
+              <div id="feedback-auth-user-bar" class="feedback-auth-user-bar" style="display: none;" role="status" aria-live="polite">
+                <div class="feedback-auth-user-info">
+                  <span class="feedback-auth-verified-tag">VERIFIED ACCOUNT</span>
+                  <span class="feedback-auth-role-tag" id="feedback-auth-role-badge">STUDENT</span>
+                  <span class="feedback-auth-account-text">Identity &amp; Gmail confirmation receipt linked automatically</span>
+                </div>
+              </div>
+
+              <form id="feedback-form" class="feedback-form is-guest-locked" novalidate>
+                <div class="feedback-form-row">
+                  <div class="feedback-form-group">
+                    <label for="feedback-name" class="feedback-label">Account Holder Name <span class="feedback-auto-tag">AUTO-RETRIEVED</span></label>
+                    <input
+                      type="text"
+                      id="feedback-name"
+                      name="name"
+                      class="feedback-input feedback-input-locked"
+                      placeholder="Sign in required — auto-retrieved"
+                      readonly
+                      aria-readonly="true"
+                      required
+                    />
+                    <div class="field-feedback"></div>
+                  </div>
+                  <div class="feedback-form-group">
+                    <label for="feedback-email" class="feedback-label">Verified Account Email <span class="feedback-auto-tag">AUTO-RETRIEVED</span></label>
+                    <input
+                      type="email"
+                      id="feedback-email"
+                      name="email"
+                      class="feedback-input feedback-input-locked"
+                      placeholder="Sign in required — auto-retrieved"
+                      readonly
+                      aria-readonly="true"
+                      tabindex="-1"
+                      required
+                    />
+                    <div class="field-feedback"></div>
+                  </div>
+                </div>
+
+                <div class="feedback-form-group">
+                  <label for="feedback-subject" class="feedback-label">Subject <span class="optional">(optional)</span></label>
+                  <input
+                    type="text"
+                    id="feedback-subject"
+                    name="subject"
+                    class="feedback-input"
+                    placeholder="e.g., Search query relevance, metadata update, or UI bug"
+                    maxlength="150"
+                  />
+                </div>
+
+                <div class="feedback-form-group">
+                  <label for="feedback-message" class="feedback-label">Message <span class="required">*</span></label>
+                  <textarea
+                    id="feedback-message"
+                    name="message"
+                    class="feedback-textarea"
+                    placeholder="Describe your suggestion, question, or issue in detail..."
+                    required
+                    minlength="10"
+                    maxlength="2000"
+                    rows="5"
+                  ></textarea>
+                  <div class="field-feedback"></div>
+                </div>
+
+                <div class="feedback-form-group">
+                  <label class="feedback-label">Screenshots <span class="optional">(optional · max 3 images)</span></label>
+                  <div class="feedback-upload-row">
+                    <input
+                      type="file"
+                      id="feedback-images"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      multiple
+                      style="display: none;"
+                    />
+                    <button type="button" class="ed-btn ed-btn-outline" id="feedback-upload-btn">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      <span>Attach Images</span>
+                    </button>
+                    <span class="feedback-image-hint">PNG, JPG, JPEG, WebP · Max 5 MB each</span>
+                  </div>
+                  <div class="feedback-image-preview" id="feedback-image-preview"></div>
+                </div>
+
+                <div class="feedback-form-actions">
+                  <button type="button" class="ed-btn ed-btn-ghost" id="btn-clear-feedback">Clear Form</button>
+                  <button type="submit" class="ed-btn ed-btn-primary btn-submit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    <span>Send Feedback</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- CLEAN EDITORIAL FOOTER -->
+    <footer class="about-footer">
+      <div class="ed-container about-footer-inner">
+        <div class="footer-copy">&copy; 2026 RE-CAPS &middot; CTU Daanbantayan Campus Library &middot; BSIT Capstone Research Group 2</div>
+        <div class="footer-links">
+          <a href="../index.html" class="footer-link">Repository Search</a>
+          <a href="#rag-architecture" class="footer-link">RAG Pipeline</a>
+          <a href="#validation" class="footer-link">Validation</a>
+          <a href="#team" class="footer-link">Team</a>
+        </div>
+      </div>
+    </footer>
   </div>
 
-  <!-- FOOTER -->
-  <div class="about-footer">
-    <div class="footer-copy">© 2026 RE-CAPS · CTU Daanbantayan Campus Library · Group 2, BSIT 3A</div>
-    <div class="footer-links">
-      <a href="../index.html" class="footer-link">Back to App</a>
-      <a href="#how-rag-works" class="footer-link">RAG Architecture</a>
-      <a href="#team" class="footer-link">Engineering Team</a>
-    </div>
-  </div>
+  <!-- Firebase SDKs (Local First with CDN Fallback) for Authenticated Feedback Identity -->
+  <script src="../vendor/firebase/firebase-app-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'"></script>
+  <script src="../vendor/firebase/firebase-auth-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'"></script>
+  <script src="../vendor/firebase/firebase-firestore-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'"></script>
+  <script src="../vendor/firebase/firebase-database-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'"></script>
+  <script src="../vendor/firebase/firebase-app-check-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check-compat.js'"></script>
+  <script src="../js/shared/firebase-config.js"></script>
 
-</div>
-
-<script src="../js/shared/svg/svg-loader.js"></script>
-<script src="../js/shared/svg/svg-registry.js"></script>
-<script src="../js/shared/svg/svg-init.js"></script>
-<script src="../js/shared/toast.js"></script>
-<script src="../js/shared/modal-dialog.js"></script>
-<script src="../js/shared/text-protection.js"></script>
-<script src="../js/shared/network-monitor.js"></script>
-<script src="../js/shared/smooth-scroll.js?v=2"></script>
-<script src="../js/shared/cloudinary-service.js"></script>
-<script src="../js/pages/feedback.js"></script>
-<script src="../js/pages/about.js"></script>
+  <script src="../js/shared/svg/svg-loader.js"></script>
+  <script src="../js/shared/svg/svg-registry.js"></script>
+  <script src="../js/shared/svg/svg-init.js"></script>
+  <script src="../js/shared/toast.js"></script>
+  <script src="../js/shared/modal-dialog.js"></script>
+  <script src="../js/shared/text-protection.js"></script>
+  <script src="../js/shared/network-monitor.js"></script>
+  <script src="../js/shared/smooth-scroll.js?v=2"></script>
+  <script src="../js/shared/cloudinary-service.js"></script>
+  <script src="../js/pages/feedback.js?v=2.0"></script>
+  <script src="../js/pages/about.js?v=3.0"></script>
 </body>
 </html>

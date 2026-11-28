@@ -24,12 +24,14 @@
     <link rel="stylesheet" href="../css/shared/toast.css">
     <link rel="stylesheet" href="../css/shared/modal-dialog.css">
     <link rel="stylesheet" href="../css/shared/text-protection.css">
+    <link rel="stylesheet" href="../css/shared/institutional-badges.css?v=1">
 
     <!-- Firebase SDKs (Local First with CDN Fallback) -->
     <script src="../vendor/firebase/firebase-app-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'"></script>
     <script src="../vendor/firebase/firebase-auth-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'"></script>
     <script src="../vendor/firebase/firebase-firestore-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'"></script>
     <script src="../vendor/firebase/firebase-database-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-app-check-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check-compat.js'"></script>
 
     <!-- Advanced Slider Captcha -->
     <script src="../js/registration/slider-captcha.js"></script>
@@ -252,8 +254,9 @@
                                     <button type="button" class="btn btn-secondary btn-small" id="btn-cancel-zone">
                                         Choose Another
                                     </button>
-                                    <button type="button" class="btn btn-secondary btn-small" id="btn-reset-zone" title="Re-center card zone">
-                                        ⛶ Fit Center
+                                    <button type="button" class="btn btn-secondary btn-small" id="btn-reset-zone" title="Re-center card zone" style="display:inline-flex;align-items:center;gap:0.35rem;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                                        <span>Fit Center</span>
                                     </button>
                                     <button type="button" class="btn btn-primary btn-confirm-scan" id="btn-confirm-zone-scan">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
@@ -490,11 +493,11 @@
                     <!-- Teacher ID (only for teachers) -->
                     <div class="form-group" id="teacher-id-group">
                         <label class="form-label" for="teacher-id">
-                            Employee ID <span class="badge-locked-field" style="background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.3); color: #81c784;">✏️ Verified from ID (Editable)</span>
+                            Employee ID <span class="badge-locked-field" style="background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.3); color: #81c784;">Verified from ID (Editable)</span>
                         </label>
                         <div class="locked-input-wrapper">
                             <input type="text" id="teacher-id" class="form-input" placeholder="e.g. Employee ID Number">
-                            <span class="locked-field-icon" title="Verified from ID">🪪</span>
+                            <span class="locked-field-icon" title="Verified from ID"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span>
                         </div>
                     </div>
 
@@ -542,7 +545,7 @@
                         <!-- Department / Specialization (for teachers only - MANUAL INPUT) -->
                         <div class="form-group" id="teacher-department-group" style="margin-top: 1.25rem;">
                             <label class="form-label" for="teacher-department">
-                                Department / Specialization <span class="badge-locked-field" style="background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.3); color: #81c784;">✏️ Manual Entry</span>
+                                Department / Specialization <span class="badge-locked-field" style="background: rgba(76, 175, 80, 0.15); border-color: rgba(76, 175, 80, 0.3); color: #81c784;">Manual Entry</span>
                             </label>
                             <input type="text" id="teacher-department" class="form-input" placeholder="e.g. Information Technology / Part-Time Instructor">
                         </div>
@@ -1133,7 +1136,7 @@
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
-    <script src="../js/registration/registration.js?v=unique_id_guard_2"></script>
+    <script src="../js/registration/registration.js?v=ocr_csp_fix_1"></script>
     <script src="../js/shared/smooth-scroll.js?v=2"></script>
     <!-- <script src="js/secondary-header.js"></script> -->
 </body>

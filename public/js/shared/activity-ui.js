@@ -600,19 +600,14 @@
                 const count = selectedActivityIds.size;
                 if (count === 0) return;
 
-                let confirmed = false;
-                if (window.ModalDialog && typeof window.ModalDialog.confirm === 'function') {
-                    confirmed = await ModalDialog.confirm({
-                        title: `Remove ${count} Activity ${count === 1 ? 'Record' : 'Records'}?`,
-                        message: `Permanently delete ${count} selected activity ${count === 1 ? 'record' : 'records'} from your browser's local storage? This action cannot be undone.`,
-                        confirmText: `Remove (${count})`,
-                        cancelText: 'Cancel',
-                        isDanger: true,
-                        icon: 'trash'
-                    });
-                } else {
-                    confirmed = window.confirm(`Permanently remove ${count} selected activity record(s) from storage?`);
-                }
+                const confirmed = await ModalDialog.confirm({
+                    title: `Remove ${count} Activity ${count === 1 ? 'Record' : 'Records'}?`,
+                    message: `Permanently delete ${count} selected activity ${count === 1 ? 'record' : 'records'} from your browser's local storage? This action cannot be undone.`,
+                    confirmText: `Remove (${count})`,
+                    cancelText: 'Cancel',
+                    isDanger: true,
+                    icon: 'trash'
+                });
 
                 if (!confirmed) return;
 

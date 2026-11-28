@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error('Error loading recent projects:', error);
-                recentProjectsList.innerHTML = '<p class="error-state">⚠️ Error loading recent projects</p>';
+                recentProjectsList.innerHTML = '<p class="error-state">Error loading recent projects</p>';
             }
 
         } catch (error) {
@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error('Error loading projects:', error);
-            tbody.innerHTML = '<tr><td colspan="6" class="table-error">⚠️ Error loading projects. Please refresh the page.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="table-error">Error loading projects. Please refresh the page.</td></tr>';
             showToast('Error loading projects. Check console for details.', '❌');
         }
     }
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error('Error loading catalog:', error);
-            catalogGrid.innerHTML = '<div class="error-state">⚠️ Error loading catalog. Please refresh the page.</div>';
+            catalogGrid.innerHTML = '<div class="error-state">Error loading catalog. Please refresh the page.</div>';
             showToast('Error loading catalog. Check console for details.', '❌');
         }
     }

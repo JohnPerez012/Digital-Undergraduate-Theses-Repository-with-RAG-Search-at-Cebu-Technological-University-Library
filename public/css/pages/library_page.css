@@ -625,7 +625,6 @@ body {
 
 .data-table tbody tr:hover {
     background: var(--background);
-    transform: translateX(2px);
 }
 
 .data-table tbody tr:last-child td {

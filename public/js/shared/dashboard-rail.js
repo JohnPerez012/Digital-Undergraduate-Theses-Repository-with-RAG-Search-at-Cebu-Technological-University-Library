@@ -42,6 +42,11 @@
                 navItems.forEach(nav => nav.classList.remove('active'));
                 this.classList.add('active');
 
+                // Sync sidebar footer profile card active state when viewing settings/profile
+                document.querySelectorAll('.rail-profile').forEach(profileEl => {
+                    profileEl.classList.toggle('is-active', sectionId === 'settings');
+                });
+
                 // Sync mobile bottom dock items
                 const dockItems = document.querySelectorAll('.dock-nav-item[data-section]');
                 dockItems.forEach(d => {
@@ -117,6 +122,62 @@
             badgeObserver.observe(savedCountElem, { childList: true, characterData: true, subtree: true });
         }
 
+        // Sync full name tooltip on truncated .rail-profile-name across all stakeholder dashboards
+        document.querySelectorAll('.rail-profile-name').forEach(nameEl => {
+            const syncTitle = () => {
+                const fullText = (nameEl.textContent || '').trim();
+                if (fullText) nameEl.setAttribute('title', fullText);
+            };
+            syncTitle();
+            new MutationObserver(syncTitle).observe(nameEl, { childList: true, characterData: true, subtree: true });
+        });
+
+        // Clicking .rail-profile navigates directly to User Settings & Profile across all dashboards
+        document.querySelectorAll('.rail-profile').forEach(profileCard => {
+            profileCard.setAttribute('role', 'button');
+            profileCard.setAttribute('tabindex', '0');
+            if (!profileCard.getAttribute('aria-label')) {
+                profileCard.setAttribute('aria-label', 'Open User Settings and Profile');
+            }
+            if (!profileCard.getAttribute('title')) {
+                profileCard.setAttribute('title', 'View Profile & Settings');
+            }
+
+            const openUserProfileSettings = (e) => {
+                if (e) e.preventDefault();
+                const settingsNav = document.querySelector('.rail-nav-item[data-section="settings"]');
+                if (settingsNav) {
+                    settingsNav.click();
+                } else {
+                    const settingsSection = document.getElementById('section-settings');
+                    if (settingsSection) {
+                        contentSections.forEach(section => section.classList.remove('active'));
+                        settingsSection.classList.add('active');
+                        window.dispatchEvent(new CustomEvent('rail:section-change', { detail: { sectionId: 'settings' } }));
+                    }
+                }
+
+                // Focus and subtly emphasize the stakeholder profile card inside Settings
+                requestAnimationFrame(() => {
+                    const targetProfileCard = document.querySelector('#section-settings #sset-profile-card, #section-settings #lset-profile-card, #section-settings #aset-profile-card');
+                    if (targetProfileCard) {
+                        targetProfileCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        targetProfileCard.classList.remove('rail-profile-target-focus');
+                        void targetProfileCard.offsetWidth;
+                        targetProfileCard.classList.add('rail-profile-target-focus');
+                        setTimeout(() => targetProfileCard.classList.remove('rail-profile-target-focus'), 1200);
+                    }
+                });
+            };
+
+            profileCard.addEventListener('click', openUserProfileSettings);
+            profileCard.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    openUserProfileSettings(e);
+                }
+            });
+        });
+
         // Theme toggle functionality
         const themeToggle = document.querySelector('[id^="theme-toggle"]');
         if (themeToggle) {
@@ -154,10 +215,26 @@
         // Load dashboard data
         loadDashboardData();
 
-        // Check hash on page load (e.g. #saved, #citations, #settings)
-        const initialHash = window.location.hash.replace('#', '');
-        if (initialHash) {
-            const hashItem = document.querySelector(`.rail-nav-item[data-section="${initialHash}"]`);
+        // Check hash on page load or fall back to this role's saved Default Landing Page preference
+        const initialHash = (window.location.hash || '').replace('#', '').trim();
+        const resolvedRole = (
+            document.documentElement.getAttribute('data-required-role') ||
+            (document.querySelector('.dashboard-layout.role-admin') ? 'admin' :
+             document.querySelector('.dashboard-layout.role-librarian') ? 'librarian' :
+             document.querySelector('.dashboard-layout.role-teacher') ? 'teacher' :
+             document.querySelector('.dashboard-layout.role-student') ? 'student' : '') ||
+            sessionStorage.getItem('userType') ||
+            'user'
+        ).toLowerCase();
+        const savedLanding = (
+            localStorage.getItem(resolvedRole + '_default_landing') ||
+            (resolvedRole === 'librarian' ? localStorage.getItem('lib_default_landing') : '') ||
+            ''
+        ).trim();
+        const targetSection = initialHash || (savedLanding && savedLanding !== 'dashboard' ? savedLanding : null);
+
+        if (targetSection) {
+            const hashItem = document.querySelector(`.rail-nav-item[data-section="${targetSection}"]`);
             if (hashItem) {
                 setTimeout(() => hashItem.click(), 60);
             }

@@ -26,6 +26,7 @@ const firebaseConfig = {
 var auth = null;
 var db = null;
 var rtdb = null;
+var appCheck = null;
 
 if (typeof firebase !== 'undefined') {
     try {
@@ -45,6 +46,49 @@ if (typeof firebase !== 'undefined') {
         if (typeof firebase.database === 'function') {
             rtdb = firebase.database();
         }
+
+        // Firebase App Check Guard
+        // Note: Google reCAPTCHA Enterprise requires a registered key with verified domains in Google Cloud Console.
+        // If an unregistered/expired key is activated, Google returns HTTP 400, causing periodic token rejection loops.
+        // To prevent console spam and auth latency, App Check is strictly opt-in via window.RECAPS_ENABLE_APPCHECK.
+        try {
+            if (typeof firebase.appCheck === 'function') {
+                var hostname = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+                var isDevHost = (
+                    hostname === 'localhost' || 
+                    hostname === '127.0.0.1' || 
+                    hostname === '' ||
+                    hostname.startsWith('192.168.') ||
+                    hostname.startsWith('10.') ||
+                    hostname.endsWith('.local') ||
+                    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+                );
+
+                var shouldActivate = (typeof window !== 'undefined' && window.RECAPS_ENABLE_APPCHECK === true);
+
+                if (shouldActivate && !isDevHost) {
+                    var RECAPTCHA_SITE_KEY = "6LeWAS4uAAAAAC7KmKCsWuHmYg2KXzD2e8ZB1h";
+                    appCheck = firebase.appCheck();
+
+                    if (typeof firebase.appCheck.ReCaptchaEnterpriseProvider === 'function') {
+                        appCheck.activate(
+                            new firebase.appCheck.ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
+                            true
+                        );
+                        console.log('🛡️ [AppCheck] Activated with reCAPTCHA Enterprise provider');
+                    } else if (typeof firebase.appCheck.ReCaptchaV3Provider === 'function') {
+                        appCheck.activate(
+                            new firebase.appCheck.ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+                            true
+                        );
+                        console.log('🛡️ [AppCheck] Activated with reCAPTCHA v3 fallback provider');
+                    }
+                }
+            }
+        } catch (appCheckErr) {
+            // Silently suppress App Check initialization exceptions
+        }
+
         console.log('Firebase initialized successfully');
     } catch (initErr) {
         console.warn('⚠️ Firebase initialization error:', initErr.message);

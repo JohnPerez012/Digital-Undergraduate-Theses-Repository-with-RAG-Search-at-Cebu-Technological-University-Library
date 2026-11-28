@@ -368,7 +368,14 @@ window.NetworkMonitor = networkMonitor;
     window.addEventListener('unhandledrejection', function(event) {
         const reason = event.reason;
         const msg = reason ? (reason.message || String(reason)) : '';
-        if (!msg || msg.includes('ResizeObserver') || msg.includes('chrome-extension')) return;
+        if (!msg || 
+            msg.includes('ResizeObserver') || 
+            msg.includes('chrome-extension') || 
+            msg === 'cancelled' || 
+            msg.includes('recaptcha') || 
+            msg.includes('appCheck/')) {
+            return;
+        }
 
         console.error('[RE-CAPS Unhandled Rejection]', reason);
         safeNotify('Notice: An operation did not complete. Please retry.', 'warning');

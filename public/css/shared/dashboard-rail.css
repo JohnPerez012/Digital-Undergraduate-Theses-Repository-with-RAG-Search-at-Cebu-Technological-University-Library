@@ -25,14 +25,16 @@
 html, body {
     margin: 0;
     padding: 0;
-    height: 100%;
+    min-height: 100%;
+    height: auto;
 }
 
 body {
     font-family: 'Roboto Mono', monospace;
     background: var(--background);
     color: var(--text-color);
-    overflow-x: hidden;
+    overflow-x: clip;
+    overflow-y: auto;
 }
 
 /* ===== DASHBOARD LAYOUT ===== */
@@ -44,7 +46,7 @@ body {
     padding: 0;
     min-width: 0;
     max-width: 100vw;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 /* ===== SIDEBAR RAIL ===== */
@@ -70,7 +72,7 @@ body {
 
 /* ===== RAIL HEADER ===== */
 .rail-header {
-    height: 80px;
+    height: 70px;
     display: flex;
     align-items: center;
     padding: 0 1.25rem;
@@ -115,7 +117,7 @@ body {
 /* ===== RAIL NAVIGATION ===== */
 .rail-nav {
     flex: 1;
-    padding: 1.5rem 0;
+    padding: 0.75rem 0;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
@@ -141,22 +143,33 @@ body {
 }
 
 .rail-nav-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.rail-divider {
+    height: 1px;
+    background: var(--rail-border);
+    margin: 0.5rem 1rem;
 }
 
 .rail-nav-label {
-    padding: 0.5rem 1.5rem;
+    height: 0;
+    padding: 0 1.5rem;
+    margin: 0;
+    overflow: hidden;
     font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     opacity: 0;
-    transition: opacity 0.3s ease 0.1s;
+    transition: opacity 0.25s ease, height 0.25s ease, padding 0.25s ease;
     white-space: nowrap;
 }
 
 .sidebar-rail:hover .rail-nav-label {
+    height: auto;
+    padding: 0.35rem 1.5rem;
     opacity: 1;
 }
 
@@ -164,8 +177,8 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.8rem 1rem 0.8rem 1.25rem;
-    margin: 0.25rem 0.75rem;
+    padding: 0.68rem 1rem 0.68rem 1.35rem;
+    margin: 0.2rem 0.75rem;
     border-radius: 12px;
     color: var(--text-primary);
     text-decoration: none;
@@ -244,7 +257,7 @@ body {
 
 /* ===== RAIL FOOTER ===== */
 .rail-footer {
-    padding: 1rem 0.75rem;
+    padding: 0.65rem 0.75rem;
     border-top: 1px solid var(--rail-border);
     flex-shrink: 0;
 }
@@ -253,8 +266,8 @@ body {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.875rem 0.75rem;
-    margin-bottom: 0.5rem;
+    padding: 0.65rem 0.75rem 0.65rem 1.1rem;
+    margin-bottom: 0.3rem;
     border-radius: 12px;
     color: var(--text-primary);
     text-decoration: none;
@@ -263,6 +276,10 @@ body {
     transition: var(--rail-transition);
     cursor: pointer;
     border: 1px solid transparent;
+}
+
+.rail-footer-item:last-child {
+    margin-bottom: 0;
 }
 
 .rail-footer-item:hover {
@@ -284,18 +301,46 @@ body {
 .rail-profile {
     display: flex;
     align-items: center;
-    padding: 0.875rem 0.75rem;
-    margin-bottom: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.35rem;
     border-radius: 12px;
     background: var(--background);
     border: 1px solid var(--rail-border);
     cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
     transition: var(--rail-transition);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .rail-profile:hover {
     border-color: var(--primary-color);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+    background: var(--rail-hover-bg);
+}
+
+.rail-profile:active {
+    transform: scale(0.985);
+}
+
+.rail-profile:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.rail-profile.is-active {
+    border-color: var(--primary-color);
+    background: var(--rail-hover-bg);
+}
+
+.rail-profile-target-focus {
+    border-color: var(--primary-color) !important;
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    transition: border-color 0.25s ease, outline-color 0.25s ease;
 }
 
 .rail-profile-avatar {
@@ -309,6 +354,9 @@ body {
 
 .rail-profile-info {
     margin-left: 0.875rem;
+    flex: 1 1 0%;
+    min-width: 0;
+    overflow: hidden;
     opacity: 0;
     transition: opacity 0.3s ease 0.1s;
     white-space: nowrap;
@@ -319,16 +367,26 @@ body {
 }
 
 .rail-profile-name {
+    display: block;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 0.125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .rail-profile-role {
+    display: block;
     font-size: 0.75rem;
     color: var(--text-secondary);
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 /* ===== MAIN CONTENT AREA ===== */
@@ -1466,11 +1524,103 @@ body {
     transform: scale(1);
 }
 
+/* ============================================================================
+   UNIVERSAL WORKSPACE PREFERENCES & SEGMENTED CONTROLS (All Stakeholders)
+   ============================================================================ */
+.lset-segmented,
+.pref-segmented {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    gap: 4px;
+    align-items: center;
+}
+
+[data-theme="dark"] .lset-segmented,
+[data-theme="dark"] .pref-segmented {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.lset-seg-btn,
+.pref-seg-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+
+.lset-seg-btn:hover,
+.pref-seg-btn:hover {
+    color: var(--text-primary);
+}
+
+.lset-seg-btn[aria-checked="true"],
+.lset-seg-btn.active,
+.pref-seg-btn[aria-checked="true"],
+.pref-seg-btn.active {
+    background: var(--surface);
+    color: var(--text-primary);
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .lset-seg-btn[aria-checked="true"],
+[data-theme="dark"] .lset-seg-btn.active,
+[data-theme="dark"] .pref-seg-btn[aria-checked="true"],
+[data-theme="dark"] .pref-seg-btn.active {
+    background: #1a1e23;
+    color: #08D488;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.lset-select,
+.pref-select {
+    padding: 0.55rem 2.25rem 0.55rem 0.95rem;
+    border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: var(--background);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-family: inherit;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-theme="dark"] .lset-select,
+[data-theme="dark"] .pref-select {
+    background: #1a1e23;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.lset-select:focus,
+.pref-select:focus {
+    border-color: #08D488;
+    box-shadow: 0 0 0 3px rgba(8, 212, 136, 0.18);
+}
+
 /* ===================================== 
    ACCOUNT SETTINGS - DANGER ZONE DROPDOWN
    Low-contrast, unappealing by design to prevent temptation
    ===================================== */
 .danger-zone-container {
+    order: 9999;
+    width: 100%;
     margin-top: 0.75rem;
     border-radius: 12px;
     border: 1px solid rgba(148, 163, 184, 0.15);
@@ -1758,9 +1908,15 @@ body {
     }
 
     /* Teacher Role Theme Tint */
+    html[data-required-role="teacher"] .mobile-back-home-btn svg,
+    body:has(.role-teacher) .mobile-back-home-btn svg,
+    .dashboard-layout.role-teacher ~ .mobile-bottom-dock-container .mobile-back-home-btn svg,
     .dashboard-layout.role-teacher .mobile-back-home-btn svg {
         color: var(--brand-yellow, #FCCC56) !important;
     }
+    html[data-required-role="teacher"] .mobile-back-home-btn:hover,
+    body:has(.role-teacher) .mobile-back-home-btn:hover,
+    .dashboard-layout.role-teacher ~ .mobile-bottom-dock-container .mobile-back-home-btn:hover,
     .dashboard-layout.role-teacher .mobile-back-home-btn:hover {
         color: var(--brand-yellow, #FCCC56) !important;
         border-color: rgba(252, 204, 86, 0.5) !important;
@@ -1834,9 +1990,28 @@ body {
         color: #08D488;
     }
 
+    /* Teacher Active Item Pill Highlight (Official Brand Yellow #FCCC56) */
+    html[data-required-role="teacher"] .dock-nav-item.active,
+    body:has(.role-teacher) .dock-nav-item.active,
+    .dashboard-layout.role-teacher ~ .mobile-bottom-dock-container .dock-nav-item.active,
     .dashboard-layout.role-teacher .dock-nav-item.active {
-        background: rgba(234, 179, 8, 0.15);
-        color: #eab308;
+        background: rgba(252, 204, 86, 0.18) !important;
+        color: var(--brand-yellow, #FCCC56) !important;
+    }
+
+    html[data-required-role="teacher"] .dock-nav-item.active .dock-label,
+    body:has(.role-teacher) .dock-nav-item.active .dock-label,
+    .dashboard-layout.role-teacher ~ .mobile-bottom-dock-container .dock-nav-item.active .dock-label,
+    .dashboard-layout.role-teacher .dock-nav-item.active .dock-label {
+        color: var(--brand-yellow, #FCCC56) !important;
+        font-weight: 700 !important;
+    }
+
+    html[data-required-role="teacher"] .dock-nav-item.active .dock-icon-wrap svg,
+    body:has(.role-teacher) .dock-nav-item.active .dock-icon-wrap svg,
+    .dashboard-layout.role-teacher ~ .mobile-bottom-dock-container .dock-nav-item.active .dock-icon-wrap svg,
+    .dashboard-layout.role-teacher .dock-nav-item.active .dock-icon-wrap svg {
+        stroke: var(--brand-yellow, #FCCC56) !important;
     }
 
     .dock-nav-item.active .dock-label {
@@ -1908,10 +2083,10 @@ body {
     }
 }
 
-/* Strict Viewport Width Locking across Mobile & Tablet */
+/* Strict Viewport Width Locking across Mobile & Tablet (clip prevents nested vertical scroll traps) */
 @media (max-width: 1024px) {
     html, body, .dashboard-layout, .dashboard-main, .dashboard-content, .content-section {
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
         max-width: 100vw !important;
         box-sizing: border-box !important;
     }

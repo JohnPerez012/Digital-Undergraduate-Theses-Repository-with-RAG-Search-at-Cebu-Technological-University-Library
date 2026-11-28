@@ -271,9 +271,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Function to load saved projects from Firestore
     async function loadSavedProjectsFromFirestore(userId) {
-        if (isSaveRestrictedRole()) {
+        if (!userId || isSaveRestrictedRole()) {
             savedProjectIds = [];
             savedProjectsFull = [];
+            return;
+        }
+        // Ensure caller matches current Firebase Auth session to prevent permission-denied rejections
+        if (typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid !== userId) {
             return;
         }
         try {
@@ -297,7 +301,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.ViewManager.updateSecondaryNavSavedCount();
             }
         } catch (error) {
-            console.error('Error loading saved projects from Firestore:', error);
+            if (error && (error.code === 'permission-denied' || (error.message && error.message.includes('insufficient permissions')))) {
+                console.warn('[SavedProjects] Firestore permission restricted for current session role; using local saved state.');
+            } else {
+                console.error('Error loading saved projects from Firestore:', error);
+            }
         }
     }
     
@@ -1048,22 +1056,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const year = data.year || 'N/A';
             const projectId = data.id || title; // Fallback to title if id is missing
             
-            let authorsStr = 'Unknown Authors';
-            if (Array.isArray(data.authors)) {
+            let authorsStr = 'Not specified in physical manuscript record';
+            if (Array.isArray(data.authors) && data.authors.length > 0) {
                 authorsStr = data.authors.join(' · ');
-            } else if (typeof data.authors === 'string') {
+            } else if (typeof data.authors === 'string' && data.authors.trim()) {
                 authorsStr = data.authors;
             }
 
-            const program = data.program || 'Unknown Program';
-            const abstract = data.abstract || 'The abstract is not available.';
+            const program = data.program || 'Not specified in record';
+            const rawAbstractStr = (data.abstract && typeof data.abstract === 'string') ? data.abstract.trim() : '';
+            const isAbstractNull = !rawAbstractStr || /^(?:none|null|undefined|n\/?a|not specified|not specified in physical manuscript record\.?|no abstract provided\.?|the abstract is not available\.?|no abstract available for this project\.?)$/i.test(rawAbstractStr);
+            const abstract = isAbstractNull
+                ? 'Not specified in physical manuscript record — consult hardbound volume at campus library.'
+                : rawAbstractStr;
             
             // Apply highlighting only if we have a search query and it's NOT from AI semantic search
             const shouldHighlight = window.currentSearchQuery && !isRAGResults;
-            const displayTitle = shouldHighlight ? highlightSearchTerms(title, window.currentSearchQuery) : title;
-            const displayAuthors = shouldHighlight ? highlightSearchTerms(authorsStr, window.currentSearchQuery) : authorsStr;
-            const displayProgram = shouldHighlight ? highlightSearchTerms(program, window.currentSearchQuery) : program;
-            const displayAbstract = shouldHighlight ? highlightSearchTerms(abstract, window.currentSearchQuery) : abstract;
+            const displayTitle = shouldHighlight ? highlightSearchTerms(title, window.currentSearchQuery) : escapeHtml(title);
+            const displayAuthors = shouldHighlight ? highlightSearchTerms(authorsStr, window.currentSearchQuery) : escapeHtml(authorsStr);
+            const displayProgram = shouldHighlight ? highlightSearchTerms(program, window.currentSearchQuery) : escapeHtml(program);
+            const displayAbstract = isAbstractNull
+                ? `<span style="font-style:italic;color:var(--text-secondary);">${escapeHtml(abstract)}</span>`
+                : (shouldHighlight ? highlightSearchTerms(abstract, window.currentSearchQuery) : escapeHtml(abstract));
             
             const isSaved = savedProjectIds.includes(projectId);
             const saveBtnClass = isSaved ? 'btn-save saved' : 'btn-save';
@@ -1554,7 +1568,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtered.length === 0) {
             projectsContainer.innerHTML = `
                 <div class="no-projects-found" style="text-align: center; padding: 3rem 1.5rem; width: 100%; grid-column: 1 / -1;">
-                     <div style="font-size: 3rem; margin-bottom: 0.75rem;">🔍</div>
+                    <div style="display:flex;justify-content:center;margin-bottom:0.75rem;color:var(--text-muted, #94a3b8);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
                     <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary, #1e293b);">No capstone projects found</h3>
                     <p style="color: var(--text-secondary, #64748b); max-width: 480px; margin: 0 auto 1.5rem;">
                         No results found matching "<strong>${escapeHtml(cleanQuery)}</strong>". Try checking for typos or searching a different term.

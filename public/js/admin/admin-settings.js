@@ -37,6 +37,39 @@
         updateUI();
         updateAdminProfileCard();
         refreshDiagnostics();
+        initLinkedGmailControls();
+
+        // 1. Reactive Auth State listener: immediately rehydrate admin profile & email when Auth resolves
+        if (typeof auth !== 'undefined' && auth && typeof auth.onAuthStateChanged === 'function') {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    updateAdminProfileCard(user);
+                    updateAdminStats();
+                    refreshLinkedEmailState(user);
+                } else {
+                    refreshLinkedEmailState(null);
+                }
+            });
+        }
+
+        // 2. Section Change listener: re-calculate stats and profile whenever admin opens #settings
+        window.addEventListener('rail:section-change', (e) => {
+            if (e.detail?.sectionId === 'settings') {
+                updateAdminProfileCard();
+                updateAdminStats();
+                refreshLinkedEmailState();
+            }
+        });
+
+        // 3. Live custom events from main.js when projects/users/approvals finish loading
+        window.addEventListener('admin:stats-updated', updateAdminStats);
+        window.addEventListener('admin:profile-updated', (e) => {
+            updateAdminProfileCard(e.detail?.user, e.detail?.userData);
+            refreshLinkedEmailState(e.detail?.user, e.detail?.userData);
+        });
+        window.addEventListener('admin:linked-email-updated', (e) => {
+            refreshLinkedEmailState(null, e.detail);
+        });
 
         // Attempt cloud sync if Firestore is available
         if (typeof db !== 'undefined' && db) {
@@ -138,9 +171,14 @@
      * Restore default settings
      */
     async function resetDefaults() {
-        if (!confirm('Are you sure you want to restore factory default system settings?')) {
-            return;
-        }
+        const confirmed = await ModalDialog.confirm({
+            title: 'Restore Factory Defaults',
+            message: 'All system settings will be reset to their original factory configuration. Active governance rules and maintenance flags will be cleared. This action cannot be undone.',
+            confirmText: 'Restore Defaults',
+            cancelText: 'Keep Current',
+            type: 'warning'
+        });
+        if (!confirmed) return;
         currentSettings = { ...DEFAULT_SETTINGS };
         saveLocalSettings();
         updateUI();
@@ -212,7 +250,7 @@
                 globalStatusPill.innerHTML = '<span class="status-pulse-dot"></span><span>Maintenance Mode Active</span>';
             }
             if (stripRepoState) {
-                stripRepoState.textContent = '🟡 Maintenance Mode';
+                stripRepoState.textContent = 'Maintenance Mode';
                 stripRepoState.className = 'overview-val';
             }
         } else {
@@ -226,7 +264,7 @@
                 globalStatusPill.innerHTML = '<span class="status-pulse-dot"></span><span>All Systems Operational</span>';
             }
             if (stripRepoState) {
-                stripRepoState.textContent = '🟢 Online & Open';
+                stripRepoState.textContent = 'Online & Open';
                 stripRepoState.className = 'overview-val green';
             }
         }
@@ -235,10 +273,10 @@
         const stripRegState = document.getElementById('strip-reg-state');
         if (stripRegState) {
             if (currentSettings.allowRegistration) {
-                stripRegState.textContent = '🟢 Open (@ctu.edu.ph)';
+                stripRegState.textContent = 'Open (@ctu.edu.ph)';
                 stripRegState.className = 'overview-val green';
             } else {
-                stripRegState.textContent = '🔴 Closed by Admin';
+                stripRegState.textContent = 'Closed by Admin';
                 stripRegState.className = 'overview-val';
             }
         }
@@ -252,56 +290,121 @@
         const pendingEl = document.getElementById('aset-stat-pending');
         const usersEl = document.getElementById('aset-stat-users');
 
+        // 1. Holdings count (all approved/archived projects)
         if (holdingsEl) {
-            const count = document.getElementById('total-projects-stat')?.textContent ||
-                          (window.allProjectsData ? window.allProjectsData.length : null);
-            if (count !== null && count !== undefined && count !== '') {
-                holdingsEl.textContent = count;
+            let holdingsCount = null;
+            const domStat = document.getElementById('total-projects-stat')?.textContent?.trim();
+            if (domStat && domStat !== '...' && domStat !== '–' && domStat !== '0') {
+                holdingsCount = domStat;
+            } else if (Array.isArray(window.allProjectsData) && window.allProjectsData.length > 0) {
+                holdingsCount = window.allProjectsData.length;
+            } else {
+                try {
+                    const cached = JSON.parse(localStorage.getItem('projectsData') || localStorage.getItem('cachedProjects') || '[]');
+                    if (Array.isArray(cached) && cached.length > 0) holdingsCount = cached.length;
+                } catch (_) {}
+            }
+            if (holdingsCount !== null && holdingsCount !== undefined) {
+                holdingsEl.textContent = holdingsCount;
+            } else if (domStat && domStat !== '...') {
+                holdingsEl.textContent = domStat;
             }
         }
 
+        // 2. Pending Approvals count
         if (pendingEl) {
-            const count = document.getElementById('pending-approvals-badge')?.textContent ||
-                          document.getElementById('stat-pending-approval')?.textContent ||
-                          '0';
-            pendingEl.textContent = count;
+            let pendingCount = null;
+            const badge = document.getElementById('pending-approvals-badge')?.textContent?.trim();
+            const stat = document.getElementById('pending-approvals-stat')?.textContent?.trim();
+            if (badge && badge !== '0' && badge !== '') {
+                pendingCount = badge;
+            } else if (stat && stat !== '...' && stat !== '–') {
+                pendingCount = stat;
+            } else {
+                try {
+                    const cachedPending = JSON.parse(localStorage.getItem('pendingApprovalsData') || '[]');
+                    if (Array.isArray(cachedPending)) pendingCount = cachedPending.length;
+                } catch (_) {}
+            }
+            if (pendingCount !== null && pendingCount !== undefined) {
+                pendingEl.textContent = pendingCount;
+            } else {
+                pendingEl.textContent = '0';
+            }
         }
 
+        // 3. Total Users count
         if (usersEl) {
-            const count = document.getElementById('total-users-stat')?.textContent ||
-                          (window.allUsersData ? window.allUsersData.length : null);
-            if (count !== null && count !== undefined && count !== '') {
-                usersEl.textContent = count;
+            let usersCount = null;
+            const domUserStat = document.getElementById('total-users-stat')?.textContent?.trim();
+            if (domUserStat && domUserStat !== '...' && domUserStat !== '–' && domUserStat !== '0') {
+                usersCount = domUserStat;
+            } else if (Array.isArray(window.allUsersData) && window.allUsersData.length > 0) {
+                usersCount = window.allUsersData.length;
+            } else {
+                try {
+                    const cachedUsers = JSON.parse(localStorage.getItem('usersData') || localStorage.getItem('cachedUsers') || '[]');
+                    if (Array.isArray(cachedUsers) && cachedUsers.length > 0) usersCount = cachedUsers.length;
+                } catch (_) {}
+            }
+            if (usersCount !== null && usersCount !== undefined) {
+                usersEl.textContent = usersCount;
+            } else if (domUserStat && domUserStat !== '...') {
+                usersEl.textContent = domUserStat;
             }
         }
     }
 
     /**
-     * Update Admin Profile Box with authenticated user info
+     * Update Admin Profile Box with authenticated user info (Prioritizing Firestore Database Record)
      */
-    function updateAdminProfileCard() {
+    async function updateAdminProfileCard(passedUser = null, passedUserData = null) {
         const adminNameEl = document.getElementById('settings-admin-name');
         const adminEmailEl = document.getElementById('settings-admin-email');
         const adminAvatar = document.getElementById('settings-profile-avatar');
         const avatarInitials = document.getElementById('aset-avatar-initials');
 
-        const currentUser = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
-        if (currentUser) {
-            const name = currentUser.displayName || 'Administrator';
-            const email = currentUser.email || 'admin@ctu.edu.ph';
+        const currentUser = passedUser || ((typeof auth !== 'undefined' && auth) ? auth.currentUser : null);
+        const sessionEmail = sessionStorage.getItem('userEmail');
+        const sessionName = sessionStorage.getItem('userName');
 
-            if (adminNameEl) adminNameEl.textContent = name;
-            if (adminEmailEl) adminEmailEl.textContent = email;
+        let name = passedUserData?.fullName || passedUserData?.name || currentUser?.displayName || sessionName || 'Administrator of the Library';
+        let email = passedUserData?.email || sessionEmail || currentUser?.email || '';
 
-            if (currentUser.photoURL && adminAvatar) {
-                adminAvatar.src = currentUser.photoURL;
-                adminAvatar.style.display = 'block';
-                if (avatarInitials) avatarInitials.style.display = 'none';
-            } else if (avatarInitials) {
-                const initial = (name.trim().charAt(0) || 'A').toUpperCase();
-                avatarInitials.textContent = initial;
+        // Prioritize actual database record in Firestore if available
+        if ((!passedUserData || !passedUserData.email) && currentUser?.uid && typeof db !== 'undefined' && db) {
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data() || {};
+                    if (data.email) {
+                        email = data.email;
+                        sessionStorage.setItem('userEmail', data.email);
+                    }
+                    if (data.fullName || data.name) {
+                        name = data.fullName || data.name;
+                        sessionStorage.setItem('userName', name);
+                    }
+                }
+            } catch (err) {
+                console.debug('[AdminSettings] Firestore profile read deferred:', err);
             }
         }
+
+        if (adminNameEl && name) adminNameEl.textContent = name;
+        if (adminEmailEl && email) adminEmailEl.textContent = email;
+
+        if (currentUser?.photoURL && adminAvatar) {
+            adminAvatar.src = currentUser.photoURL;
+            adminAvatar.style.display = 'block';
+            if (avatarInitials) avatarInitials.style.display = 'none';
+        } else if (avatarInitials && name) {
+            const initial = (name.trim().charAt(0) || 'A').toUpperCase();
+            avatarInitials.textContent = initial;
+            avatarInitials.style.display = 'inline-flex';
+            if (adminAvatar) adminAvatar.style.display = 'none';
+        }
+
         updateAdminStats();
     }
 
@@ -316,7 +419,7 @@
 
         if (firestoreVal) {
             const isOnline = navigator.onLine && (typeof db !== 'undefined' && db);
-            firestoreVal.textContent = isOnline ? '🟢 Connected' : '🟡 Offline / Cached';
+            firestoreVal.textContent = isOnline ? 'Connected' : 'Offline / Cached';
         }
 
         if (cacheVal) {
@@ -392,10 +495,15 @@
     /**
      * Purge Client Data Cache
      */
-    function purgeClientCache() {
-        if (!confirm('Clear local manuscript cache and force an immediate re-fetch from Firestore?')) {
-            return;
-        }
+    async function purgeClientCache() {
+        const confirmed = await ModalDialog.confirm({
+            title: 'Purge Client Data Cache',
+            message: 'This will clear all locally cached manuscript records and force an immediate re-fetch from Firestore. The page will reload fresh repository data automatically.',
+            confirmText: 'Purge Cache',
+            cancelText: 'Cancel',
+            type: 'warning'
+        });
+        if (!confirmed) return;
 
         const keysToPurge = [
             'projectsData',
@@ -446,7 +554,7 @@
             }
 
             if (projects.length === 0) {
-                if (typeof showToast === 'function') showToast('⚠️ No projects found to export', 'warning');
+                if (typeof showToast === 'function') showToast('No projects found to export', 'warning');
                 return;
             }
 
@@ -490,7 +598,7 @@
             }
         } catch (err) {
             console.error('[AdminSettings] CSV export failed:', err);
-            if (typeof showToast === 'function') showToast('❌ Failed to export CSV', 'error');
+            if (typeof showToast === 'function') showToast('Failed to export CSV', 'error');
         }
     }
 
@@ -512,7 +620,7 @@
             }
 
             if (projects.length === 0) {
-                if (typeof showToast === 'function') showToast('⚠️ No projects found to export', 'warning');
+                if (typeof showToast === 'function') showToast('No projects found to export', 'warning');
                 return;
             }
 
@@ -547,7 +655,7 @@
             }
         } catch (err) {
             console.error('[AdminSettings] JSON export failed:', err);
-            if (typeof showToast === 'function') showToast('❌ Failed to export JSON', 'error');
+            if (typeof showToast === 'function') showToast('Failed to export JSON', 'error');
         }
     }
 
@@ -566,7 +674,7 @@
 
         const currentUser = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
         if (currentUser) {
-            if (emailInput) emailInput.value = currentUser.email || 'admin@ctu.edu.ph';
+            if (emailInput) emailInput.value = currentUser.email || sessionStorage.getItem('userEmail') || '';
             if (deptInput) deptInput.value = 'University Library';
 
             // Fetch stored profile from Firestore users collection
@@ -575,9 +683,10 @@
                     const doc = await db.collection('users').doc(currentUser.uid).get();
                     if (doc.exists) {
                         const data = doc.data() || {};
+                        if (emailInput && data.email) emailInput.value = data.email;
                         if (firstNameInput && data.firstName) firstNameInput.value = data.firstName;
                         if (lastNameInput && data.lastName) lastNameInput.value = data.lastName;
-                        if (personalEmailInput) personalEmailInput.value = data.personalEmail || '';
+                        if (personalEmailInput && data.personalEmail) personalEmailInput.value = data.personalEmail || '';
 
                         // If firstName or lastName is missing in Firestore doc, parse from fullName or displayName
                         if (firstNameInput && !firstNameInput.value) {
@@ -608,8 +717,42 @@
             }
         }
 
+        // Live input validation visual cues
+        const validateInputs = () => {
+            if (firstNameInput) {
+                firstNameInput.style.borderColor = firstNameInput.value.trim() ? 'rgba(8, 212, 136, 0.4)' : '';
+            }
+            if (lastNameInput) {
+                lastNameInput.style.borderColor = lastNameInput.value.trim() ? 'rgba(8, 212, 136, 0.4)' : '';
+            }
+            if (personalEmailInput) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const val = personalEmailInput.value.trim();
+                if (val && emailRegex.test(val)) {
+                    personalEmailInput.style.borderColor = 'rgba(8, 212, 136, 0.6)';
+                } else if (val) {
+                    personalEmailInput.style.borderColor = 'rgba(252, 204, 86, 0.6)';
+                } else {
+                    personalEmailInput.style.borderColor = '';
+                }
+            }
+        };
+
+        [firstNameInput, lastNameInput, personalEmailInput].forEach(inp => {
+            if (inp && !inp.dataset.boundValidation) {
+                inp.dataset.boundValidation = 'true';
+                inp.addEventListener('input', validateInputs);
+            }
+        });
+        validateInputs();
+
         modal.classList.add('active');
         document.body.classList.add('modal-open');
+
+        // Focus first field smoothly
+        setTimeout(() => {
+            if (firstNameInput) firstNameInput.focus();
+        }, 120);
     }
 
     /**
@@ -640,19 +783,28 @@
 
         if (!firstName) {
             if (typeof showToast === 'function') showToast('First name is required', 'error');
-            firstNameInput?.focus();
+            if (firstNameInput) {
+                firstNameInput.style.borderColor = '#ef4444';
+                firstNameInput.focus();
+            }
             return;
         }
 
         if (!lastName) {
             if (typeof showToast === 'function') showToast('Last name is required', 'error');
-            lastNameInput?.focus();
+            if (lastNameInput) {
+                lastNameInput.style.borderColor = '#ef4444';
+                lastNameInput.focus();
+            }
             return;
         }
 
         if (!personalEmail) {
             if (typeof showToast === 'function') showToast('Personal email is required', 'error');
-            personalEmailInput?.focus();
+            if (personalEmailInput) {
+                personalEmailInput.style.borderColor = '#ef4444';
+                personalEmailInput.focus();
+            }
             return;
         }
 
@@ -660,7 +812,10 @@
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(personalEmail)) {
             if (typeof showToast === 'function') showToast('Please enter a valid personal email address', 'error');
-            personalEmailInput?.focus();
+            if (personalEmailInput) {
+                personalEmailInput.style.borderColor = '#ef4444';
+                personalEmailInput.focus();
+            }
             return;
         }
 
@@ -690,6 +845,20 @@
                     }, { merge: true });
                 }
 
+                // Synchronize in-memory caches and session storage
+                sessionStorage.setItem('userName', fullName);
+                if (window.currentUserData) {
+                    window.currentUserData = {
+                        ...window.currentUserData,
+                        firstName,
+                        lastName,
+                        fullName,
+                        displayName: fullName,
+                        personalEmail,
+                        department: dept
+                    };
+                }
+
                 // Update UI elements across dashboard
                 const railAdminName = document.getElementById('admin-name');
                 const settingsAdminName = document.getElementById('settings-admin-name');
@@ -701,6 +870,16 @@
                 }
 
                 closeProfileModal();
+
+                // Reactive broadcast across views
+                window.dispatchEvent(new CustomEvent('admin:profile-updated', {
+                    detail: {
+                        user: currentUser,
+                        userData: { firstName, lastName, fullName, personalEmail, department: dept }
+                    }
+                }));
+
+                updateAdminProfileCard(currentUser, { firstName, lastName, fullName, personalEmail });
 
                 if (typeof ActivityService !== 'undefined' && typeof ActivityService.logAdmin === 'function') {
                     ActivityService.logAdmin(
@@ -829,6 +1008,25 @@
         if (profileOverlay) profileOverlay.addEventListener('click', closeProfileModal);
         if (profileSaveBtn) profileSaveBtn.addEventListener('click', saveAdminProfile);
 
+        // Enter key to submit profile form & Escape key to close
+        const profileForm = document.getElementById('admin-profile-form');
+        if (profileForm) {
+            profileForm.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveAdminProfile();
+                }
+            });
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('admin-profile-modal');
+                if (modal && modal.classList.contains('active')) {
+                    closeProfileModal();
+                }
+            }
+        });
+
         // Password Change Button (Delegate to PasswordChange module)
         const changePasswordBtn = document.getElementById('change-password-btn');
         if (changePasswordBtn) {
@@ -901,69 +1099,805 @@
         });
 
         // Admin KPI Action Buttons
-        document.getElementById('aset-btn-holdings')?.addEventListener('click', () => {
-            const nav = document.querySelector('.rail-nav-item[data-section="projects"]');
-            if (nav) nav.click();
-            else window.location.hash = 'projects';
+        // Helper to reliably switch sections across rail and content viewports
+        function navigateToSection(sectionId) {
+            const nav = document.querySelector(`.rail-nav-item[data-section="${sectionId}"]`);
+            if (nav) {
+                nav.click();
+            } else {
+                const dock = document.querySelector(`.dock-nav-item[data-section="${sectionId}"]`);
+                if (dock) {
+                    dock.click();
+                } else {
+                    document.querySelectorAll('.rail-nav-item[data-section]').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                    const target = document.getElementById(`section-${sectionId}`);
+                    if (target) target.classList.add('active');
+                    window.dispatchEvent(new CustomEvent('rail:section-change', { detail: { sectionId } }));
+                }
+            }
+        }
+
+        // Admin KPI Action Buttons: Dynamic Navigation to specific repository sections
+        document.getElementById('aset-btn-holdings')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateToSection('projects');
         });
 
-        document.getElementById('aset-btn-pending')?.addEventListener('click', () => {
-            const nav = document.querySelector('.rail-nav-item[data-section="approvals"]');
-            if (nav) nav.click();
-            else window.location.hash = 'approvals';
+        document.getElementById('aset-btn-pending')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateToSection('approvals');
         });
 
-        document.getElementById('aset-btn-users')?.addEventListener('click', () => {
-            const nav = document.querySelector('.rail-nav-item[data-section="users"]');
-            if (nav) nav.click();
-            else window.location.hash = 'users';
+        document.getElementById('aset-btn-users')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateToSection('users');
         });
 
-        // Global Keyboard Shortcuts
+        // Global Keyboard Shortcuts & Reset All handler
         document.addEventListener('keydown', handleKeyboardShortcuts);
+        renderShortcutsUI();
+
+        const resetAllShortcutsBtn = document.getElementById('btn-reset-all-shortcuts');
+        if (resetAllShortcutsBtn) {
+            resetAllShortcutsBtn.addEventListener('click', resetAllShortcuts);
+        }
     }
 
-    
+    /**
+     * ========================================================================
+     * PRODUCTIVITY & SHORTCUTS CUSTOMIZATION ENGINE
+     * Defaults are immutable in code; custom bindings persist in machine localStorage.
+     * ========================================================================
+     */
+    const SHORTCUTS_STORAGE_KEY = 'recaps_admin_custom_shortcuts';
+    let activeRecordingId = null;
+    let recordingListener = null;
+
+    const DEFAULT_SHORTCUTS = [
+        {
+            id: 'search',
+            title: 'Global Search Focus',
+            desc: 'Focus active search bar across manuscripts, approvals, or users',
+            ctrl: true,
+            shift: false,
+            alt: false,
+            key: 'K',
+            display: 'Ctrl + K',
+            action: () => {
+                const activeSearch = document.getElementById('projects-search') ||
+                                     document.getElementById('approvals-search') ||
+                                     document.getElementById('users-search') ||
+                                     document.querySelector('.content-section.active input[type="text"]') ||
+                                     document.querySelector('.content-section.active input[type="search"]');
+                if (activeSearch) {
+                    activeSearch.focus();
+                    activeSearch.select();
+                }
+            }
+        },
+        {
+            id: 'add_project',
+            title: 'Add New Project',
+            desc: 'Open Add New Project cataloging modal',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'P',
+            display: 'Ctrl + Shift + P',
+            action: () => {
+                const addBtn = document.getElementById('add-project-btn');
+                if (addBtn) addBtn.click();
+            }
+        },
+        {
+            id: 'approvals',
+            title: 'Submissions & Approvals',
+            desc: 'Jump straight to Submissions & Approvals queue',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'A',
+            display: 'Ctrl + Shift + A',
+            action: () => {
+                const nav = document.getElementById('rail-nav-approvals') || document.querySelector('.rail-nav-item[data-section="approvals"]');
+                if (nav) nav.click();
+            }
+        },
+        {
+            id: 'copilot',
+            title: 'Librarian AI Copilot',
+            desc: 'Toggle Librarian AI Copilot assistant workspace or widget',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'C',
+            display: 'Ctrl + Shift + C',
+            action: () => {
+                const copilotNav = document.getElementById('rail-nav-copilot') || document.querySelector('.rail-nav-item[data-section="copilot"]');
+                if (copilotNav) {
+                    copilotNav.click();
+                } else {
+                    const floatingCopilot = document.getElementById('admin-floating-copilot-btn');
+                    if (floatingCopilot) floatingCopilot.click();
+                }
+            }
+        },
+        {
+            id: 'dashboard',
+            title: 'Dashboard Overview',
+            desc: 'Jump directly to the Executive Dashboard overview and live metrics',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'D',
+            display: 'Ctrl + Shift + D',
+            action: () => {
+                const nav = document.getElementById('rail-nav-dashboard') || document.querySelector('.rail-nav-item[data-section="dashboard"]');
+                if (nav) nav.click();
+            }
+        },
+        {
+            id: 'users',
+            title: 'User Management',
+            desc: 'Jump straight to Users section and staff governance table',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'U',
+            display: 'Ctrl + Shift + U',
+            action: () => {
+                const nav = document.getElementById('rail-nav-users') || document.querySelector('.rail-nav-item[data-section="users"]');
+                if (nav) nav.click();
+            }
+        },
+        {
+            id: 'analytics',
+            title: 'Research & Accreditation Analytics',
+            desc: 'Jump to Analytics charts and accreditation statistics',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'Y',
+            display: 'Ctrl + Shift + Y',
+            action: () => {
+                const nav = document.getElementById('rail-nav-analytics') || document.querySelector('.rail-nav-item[data-section="analytics"]');
+                if (nav) nav.click();
+            }
+        },
+        {
+            id: 'activity',
+            title: 'Local Activity Logs',
+            desc: 'Jump to Local Activity History and audit inspection',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'L',
+            display: 'Ctrl + Shift + L',
+            action: () => {
+                const nav = document.getElementById('rail-nav-activity') || document.querySelector('.rail-nav-item[data-section="activity"]');
+                if (nav) nav.click();
+            }
+        },
+        {
+            id: 'sync_pinecone',
+            title: 'Pinecone AI Vector Sync',
+            desc: 'Open Pinecone Vector Synchronization Studio modal',
+            ctrl: true,
+            shift: true,
+            alt: false,
+            key: 'S',
+            display: 'Ctrl + Shift + S',
+            action: () => {
+                const syncBtn = document.getElementById('sync-pinecone-btn');
+                if (syncBtn) syncBtn.click();
+            }
+        },
+        {
+            id: 'dismiss',
+            title: 'Dismiss Active Surface',
+            desc: 'Dismiss active modal dialog or close mobile sidebar rail',
+            ctrl: false,
+            shift: false,
+            alt: false,
+            key: 'Escape',
+            display: 'Esc',
+            action: () => {
+                const activeModal = document.querySelector('.modal.active');
+                if (activeModal) {
+                    const closeBtn = activeModal.querySelector('.modal-close-btn') || activeModal.querySelector('.btn-secondary');
+                    if (closeBtn) closeBtn.click();
+                    else activeModal.classList.remove('active');
+                }
+                const sidebar = document.getElementById('sidebar-rail') || document.querySelector('.sidebar-rail');
+                if (sidebar && sidebar.classList.contains('mobile-open')) {
+                    sidebar.classList.remove('mobile-open');
+                }
+            }
+        }
+    ];
+
+    function getStoredCustomShortcuts() {
+        try {
+            const raw = localStorage.getItem(SHORTCUTS_STORAGE_KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveCustomShortcut(id, shortcutConfig) {
+        try {
+            const current = getStoredCustomShortcuts();
+            current[id] = shortcutConfig;
+            localStorage.setItem(SHORTCUTS_STORAGE_KEY, JSON.stringify(current));
+            renderShortcutsUI();
+        } catch (e) {
+            console.error('[AdminShortcuts] Failed saving to localStorage:', e);
+        }
+    }
+
+    function resetSingleShortcut(id) {
+        try {
+            const current = getStoredCustomShortcuts();
+            delete current[id];
+            localStorage.setItem(SHORTCUTS_STORAGE_KEY, JSON.stringify(current));
+            renderShortcutsUI();
+            if (typeof showToast === 'function') {
+                showToast('Shortcut reset to default', 'info');
+            }
+        } catch (e) {
+            console.error('[AdminShortcuts] Failed resetting shortcut:', e);
+        }
+    }
+
+    function resetAllShortcuts() {
+        try {
+            localStorage.removeItem(SHORTCUTS_STORAGE_KEY);
+            cancelRebinding();
+            renderShortcutsUI();
+            if (typeof showToast === 'function') {
+                showToast('All shortcuts restored to factory defaults', 'success');
+            }
+        } catch (e) {
+            console.error('[AdminShortcuts] Failed resetting shortcuts:', e);
+        }
+    }
+
+    function getActiveShortcuts() {
+        const custom = getStoredCustomShortcuts();
+        return DEFAULT_SHORTCUTS.map(def => {
+            if (custom[def.id]) {
+                return {
+                    ...def,
+                    ctrl: custom[def.id].ctrl,
+                    shift: custom[def.id].shift,
+                    alt: custom[def.id].alt,
+                    key: custom[def.id].key,
+                    display: custom[def.id].display,
+                    isCustom: true
+                };
+            }
+            return { ...def, isCustom: false };
+        });
+    }
+
+    function formatKbdHTML(displayStr) {
+        return (displayStr || '').split(' + ').map(k => `<kbd>${k}</kbd>`).join(' + ');
+    }
+
+    function renderShortcutsUI() {
+        const container = document.getElementById('admin-shortcuts-container');
+        if (!container) return;
+
+        const shortcuts = getActiveShortcuts();
+        let html = '';
+
+        shortcuts.forEach(sc => {
+            const isRecording = activeRecordingId === sc.id;
+            const customBadge = sc.isCustom ? `<span class="shortcut-badge-custom">Custom</span>` : '';
+            const resetButton = sc.isCustom 
+                ? `<button type="button" class="btn-reset-shortcut" data-reset-id="${sc.id}" title="Reset this key to factory default">Reset</button>`
+                : '';
+
+            html += `
+                <div class="shortcut-item ${isRecording ? 'recording' : ''}" data-shortcut-id="${sc.id}">
+                    <span class="shortcut-key">
+                        ${isRecording 
+                            ? '<span style="color:#08D488;font-weight:700;font-size:0.8rem;letter-spacing:0.3px;">Press new keys... (Esc to cancel)</span>' 
+                            : formatKbdHTML(sc.display)}
+                    </span>
+                    <div class="shortcut-item-info">
+                        <span class="shortcut-title">${sc.title} ${customBadge}</span>
+                        <span class="shortcut-desc">${sc.desc}</span>
+                    </div>
+                    <div class="shortcut-actions">
+                        ${resetButton}
+                        <button type="button" class="btn-rebind-shortcut" data-rebind-id="${sc.id}" title="Rebind shortcut key">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            <span>${isRecording ? 'Listening...' : 'Rebind'}</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+        // Bind rebind clicks
+        container.querySelectorAll('[data-rebind-id]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-rebind-id');
+                startRebinding(id);
+            });
+        });
+
+        // Bind reset single clicks
+        container.querySelectorAll('[data-reset-id]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-reset-id');
+                resetSingleShortcut(id);
+            });
+        });
+    }
+
+    function startRebinding(id) {
+        if (activeRecordingId === id) {
+            cancelRebinding();
+            return;
+        }
+
+        activeRecordingId = id;
+        renderShortcutsUI();
+
+        if (recordingListener) {
+            window.removeEventListener('keydown', recordingListener, true);
+        }
+
+        recordingListener = function(e) {
+            // Ignore bare modifier presses
+            if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                cancelRebinding();
+                if (typeof showToast === 'function') {
+                    showToast('Rebinding cancelled', 'info');
+                }
+                return;
+            }
+
+            const ctrl = Boolean(e.ctrlKey || e.metaKey);
+            const shift = Boolean(e.shiftKey);
+            const alt = Boolean(e.altKey);
+
+            // Require Ctrl or Alt modifier unless it's a function key (F1-F12)
+            const isFnKey = /^F[1-9]|F1[0-2]$/i.test(e.key);
+            if (!ctrl && !alt && !isFnKey) {
+                if (typeof showToast === 'function') {
+                    showToast('Custom shortcuts must include Ctrl or Alt modifier', 'warning');
+                }
+                return;
+            }
+
+            const rawKey = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+
+            // Build display string
+            const parts = [];
+            if (ctrl) parts.push('Ctrl');
+            if (alt) parts.push('Alt');
+            if (shift) parts.push('Shift');
+            parts.push(rawKey);
+
+            const display = parts.join(' + ');
+
+            saveCustomShortcut(activeRecordingId, {
+                ctrl,
+                shift,
+                alt,
+                key: rawKey,
+                display
+            });
+
+            cancelRebinding();
+
+            if (typeof showToast === 'function') {
+                showToast(`Shortcut updated: ${display}`, 'success');
+            }
+        };
+
+        // Attach with capture = true to intercept before anything else
+        window.addEventListener('keydown', recordingListener, true);
+    }
+
+    function cancelRebinding() {
+        activeRecordingId = null;
+        if (recordingListener) {
+            window.removeEventListener('keydown', recordingListener, true);
+            recordingListener = null;
+        }
+        renderShortcutsUI();
+    }
 
     /**
-     * Keyboard Shortcuts Handler
+     * Dynamic Keyboard Shortcuts Dispatcher
      */
     function handleKeyboardShortcuts(e) {
-        // Ctrl + K -> Search
-        if (e.ctrlKey && e.key.toLowerCase() === 'k') {
-            e.preventDefault();
-            const activeSearch = document.getElementById('projects-search') || document.getElementById('approvals-search') || document.getElementById('users-search');
-            if (activeSearch) {
-                activeSearch.focus();
-                activeSearch.select();
+        // If recording a shortcut, do not dispatch regular actions
+        if (activeRecordingId) return;
+
+        // Ignore when user is actively typing in inputs unless it's a Ctrl/Alt combination or Escape
+        const target = e.target;
+        const isEditing = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+        const hasModifier = Boolean(e.ctrlKey || e.altKey || e.metaKey);
+
+        if (isEditing && !hasModifier && e.key !== 'Escape') {
+            return;
+        }
+
+        const pressedCtrl = Boolean(e.ctrlKey || e.metaKey);
+        const pressedShift = Boolean(e.shiftKey);
+        const pressedAlt = Boolean(e.altKey);
+        const pressedKey = (e.key || '').length === 1 ? e.key.toUpperCase() : e.key;
+        const isEscape = e.key === 'Escape' || e.key === 'Esc';
+
+        const shortcuts = getActiveShortcuts();
+
+        for (const sc of shortcuts) {
+            const matchesCtrl = Boolean(sc.ctrl) === pressedCtrl;
+            const matchesShift = Boolean(sc.shift) === pressedShift;
+            const matchesAlt = Boolean(sc.alt) === pressedAlt;
+            const matchesKey = isEscape 
+                ? (sc.key === 'Escape' || sc.key === 'Esc')
+                : (sc.key.toUpperCase() === pressedKey.toUpperCase());
+
+            if (matchesCtrl && matchesShift && matchesAlt && matchesKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof sc.action === 'function') {
+                    sc.action();
+                }
+                return;
             }
         }
+    }
 
-        // Ctrl + Shift + P -> Add Project
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') {
-            e.preventDefault();
-            const addBtn = document.getElementById('add-project-btn');
-            if (addBtn) addBtn.click();
+    /**
+     * ========================================================================
+     * LINKED PERSONAL GMAIL (2FA & RECOVERY CHANNEL) CONTROLLER
+     * ========================================================================
+     */
+    function getBackendUrl() {
+        if (typeof window.BACKEND_API_BASE === 'string' && window.BACKEND_API_BASE.trim()) {
+            return window.BACKEND_API_BASE.replace(/\/+$/, '');
         }
-
-        // Ctrl + Shift + A -> Jump to Approvals
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
-            e.preventDefault();
-            const approvalsNav = document.getElementById('rail-nav-approvals') || document.querySelector('.rail-nav-item[data-section="approvals"]');
-            if (approvalsNav) approvalsNav.click();
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            return 'http://localhost:3001';
         }
+        return 'https://recap-backend-jy5b.onrender.com';
+    }
 
-        // Ctrl + Shift + C -> Open Librarian AI Copilot
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
-            e.preventDefault();
-            const copilotNav = document.getElementById('rail-nav-copilot') || document.querySelector('.rail-nav-item[data-section="copilot"]');
-            if (copilotNav) {
-                copilotNav.click();
+    async function fetchWithAuth(apiPath, options = {}) {
+        const currentUser = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
+        if (!currentUser) throw new Error('User is not authenticated');
+        const token = await currentUser.getIdToken(true);
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+        };
+
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const candidateBases = (apiPath.startsWith('http://') || apiPath.startsWith('https://'))
+            ? ['']
+            : (isLocal ? ['http://localhost:3001', 'https://recap-backend-jy5b.onrender.com'] : ['https://recap-backend-jy5b.onrender.com', 'http://localhost:3001']);
+
+        let lastErr = null;
+        for (const base of candidateBases) {
+            const fullUrl = base ? `${base}${apiPath}` : apiPath;
+            try {
+                const resp = await fetch(fullUrl, { ...options, headers });
+                const data = await resp.json().catch(() => ({}));
+                if (!resp.ok) {
+                    throw new Error(data.error || `Server responded with ${resp.status}`);
+                }
+                return data;
+            } catch (err) {
+                lastErr = err;
+                console.warn(`[AdminSettings] Failed fetch on ${fullUrl}:`, err.message);
+            }
+        }
+        throw lastErr || new Error('Backend service unreachable.');
+    }
+
+    /**
+     * Refresh the Linked Personal Gmail (2FA Channel) UI state
+     */
+    async function refreshLinkedEmailState(passedUser = null, passedUserData = null) {
+        const badgeEl = document.getElementById('linked-email-status-badge');
+        const bindContainer = document.getElementById('linked-email-bind-container');
+        const activeContainer = document.getElementById('linked-email-active-container');
+        const activeDisplay = document.getElementById('active-linked-gmail-display');
+        const inputGmail = document.getElementById('input-link-gmail');
+        const verifyRow = document.getElementById('linked-email-code-verify-row');
+        const unlinkRow = document.getElementById('linked-email-unlink-pin-row');
+
+        if (!badgeEl || !bindContainer || !activeContainer) return;
+
+        const currentUser = passedUser || ((typeof auth !== 'undefined' && auth) ? auth.currentUser : null);
+
+        // If auth hasn't resolved yet, show Checking... rather than Sign-in Required if session exists
+        if (!currentUser) {
+            const hasSavedSession = sessionStorage.getItem('userEmail') || localStorage.getItem('cachedAuthState');
+            if (hasSavedSession) {
+                badgeEl.textContent = 'Checking...';
+                badgeEl.style.background = 'rgba(100, 116, 139, 0.15)';
+                badgeEl.style.color = 'var(--text-secondary)';
             } else {
-                const floatingCopilot = document.getElementById('admin-floating-copilot-btn');
-                if (floatingCopilot) floatingCopilot.click();
+                badgeEl.textContent = 'Sign-in Required';
+                badgeEl.style.background = 'rgba(100, 116, 139, 0.15)';
+                badgeEl.style.color = 'var(--text-secondary)';
             }
+            return;
         }
+
+        try {
+            let data = passedUserData || null;
+
+            // Check cached in-memory user data first
+            if (!data && window.currentUserData && (window.currentUserData.linkedEmail || window.currentUserData.personalEmail)) {
+                data = window.currentUserData;
+            }
+
+            // Always fetch fresh from Firestore if db is available
+            if (typeof db !== 'undefined' && db && currentUser?.uid) {
+                try {
+                    const doc = await db.collection('users').doc(currentUser.uid).get();
+                    if (doc.exists) {
+                        data = { ...(data || {}), ...(doc.data() || {}) };
+                    }
+                } catch (fetchErr) {
+                    console.warn('[AdminSettings] Firestore read warning for linked email:', fetchErr.message);
+                }
+            }
+
+            const linkedEmail = data?.linkedEmail || data?.personalEmail;
+            const isVerified = Boolean(data?.linkedEmailVerified === true || data?.personalEmailVerified === true);
+
+            if (linkedEmail && isVerified) {
+                badgeEl.textContent = 'Active & Linked';
+                badgeEl.style.background = 'rgba(8, 212, 136, 0.15)';
+                badgeEl.style.color = '#08D488';
+
+                bindContainer.style.display = 'none';
+                activeContainer.style.display = 'block';
+                if (activeDisplay) activeDisplay.textContent = linkedEmail;
+                if (unlinkRow) unlinkRow.style.display = 'none';
+                return;
+            }
+
+            if (linkedEmail && !isVerified) {
+                badgeEl.textContent = 'Pending Verification';
+                badgeEl.style.background = 'rgba(252, 204, 86, 0.15)';
+                badgeEl.style.color = '#FCCC56';
+
+                activeContainer.style.display = 'none';
+                bindContainer.style.display = 'block';
+                if (inputGmail) {
+                    inputGmail.value = linkedEmail;
+                    inputGmail.disabled = false;
+                }
+                if (verifyRow) verifyRow.style.display = 'block';
+                return;
+            }
+
+            // Not linked / unverified state
+            badgeEl.textContent = 'Not Bound';
+            badgeEl.style.background = 'rgba(252, 204, 86, 0.15)';
+            badgeEl.style.color = '#FCCC56';
+
+            activeContainer.style.display = 'none';
+            bindContainer.style.display = 'block';
+            if (verifyRow) verifyRow.style.display = 'none';
+            if (inputGmail) inputGmail.disabled = false;
+        } catch (err) {
+            console.warn('[AdminSettings] Failed to refresh linked email state:', err.message);
+        }
+    }
+
+    async function initLinkedGmailControls() {
+        const badgeEl = document.getElementById('linked-email-status-badge');
+        const bindContainer = document.getElementById('linked-email-bind-container');
+        const activeContainer = document.getElementById('linked-email-active-container');
+        const activeDisplay = document.getElementById('active-linked-gmail-display');
+        const inputGmail = document.getElementById('input-link-gmail');
+        const btnRequestCode = document.getElementById('btn-request-link-code');
+        const verifyRow = document.getElementById('linked-email-code-verify-row');
+        const inputCode = document.getElementById('input-link-code');
+        const btnConfirmCode = document.getElementById('btn-confirm-link-code');
+        const btnCancelCode = document.getElementById('btn-cancel-link-code');
+        const bindStatusMsg = document.getElementById('link-gmail-status-msg');
+
+        const btnStartUnlink = document.getElementById('btn-start-unlink-gmail');
+        const unlinkRow = document.getElementById('linked-email-unlink-pin-row');
+        const inputPin = document.getElementById('input-unlink-pin');
+        const btnConfirmPin = document.getElementById('btn-confirm-unlink-pin');
+        const btnCancelPin = document.getElementById('btn-cancel-unlink-pin');
+        const unlinkStatusMsg = document.getElementById('unlink-pin-status-msg');
+
+        if (!badgeEl || !bindContainer || !activeContainer) return;
+
+        // Request Link Code
+        if (btnRequestCode && !btnRequestCode.dataset.bound) {
+            btnRequestCode.dataset.bound = 'true';
+            btnRequestCode.addEventListener('click', async () => {
+                const email = (inputGmail ? inputGmail.value : '').trim();
+                if (!email || !email.includes('@')) {
+                    if (typeof showToast === 'function') showToast('Please enter a valid Gmail address', 'error');
+                    if (inputGmail) inputGmail.focus();
+                    return;
+                }
+
+                btnRequestCode.disabled = true;
+                btnRequestCode.textContent = 'Sending Code...';
+                if (bindStatusMsg) {
+                    bindStatusMsg.textContent = '';
+                    bindStatusMsg.style.color = '';
+                }
+
+                try {
+                    const data = await fetchWithAuth(`${getBackendUrl()}/api/auth/email/request-link-code`, {
+                        method: 'POST',
+                        body: JSON.stringify({ email })
+                    });
+
+                    if (typeof showToast === 'function') showToast(data.message || 'Verification code sent!', 'success');
+                    if (verifyRow) verifyRow.style.display = 'block';
+                    if (inputGmail) inputGmail.disabled = true;
+                    if (inputCode) {
+                        inputCode.value = '';
+                        inputCode.focus();
+                    }
+                    if (bindStatusMsg) {
+                        bindStatusMsg.textContent = `A 6-digit code was sent to ${data.maskedEmail || email}.`;
+                        bindStatusMsg.style.color = '#08D488';
+                    }
+                } catch (err) {
+                    if (typeof showToast === 'function') showToast(err.message, 'error');
+                    if (bindStatusMsg) {
+                        bindStatusMsg.textContent = err.message;
+                        bindStatusMsg.style.color = '#ef4444';
+                    }
+                } finally {
+                    btnRequestCode.disabled = false;
+                    btnRequestCode.textContent = 'Send Verification Code';
+                }
+            });
+        }
+
+        // Confirm Link Code
+        if (btnConfirmCode && !btnConfirmCode.dataset.bound) {
+            btnConfirmCode.dataset.bound = 'true';
+            btnConfirmCode.addEventListener('click', async () => {
+                const code = (inputCode ? inputCode.value : '').trim();
+                if (!code || code.length !== 6) {
+                    if (typeof showToast === 'function') showToast('Please enter the 6-digit code from your email', 'error');
+                    if (inputCode) inputCode.focus();
+                    return;
+                }
+
+                btnConfirmCode.disabled = true;
+                btnConfirmCode.textContent = 'Verifying...';
+
+                try {
+                    const data = await fetchWithAuth(`${getBackendUrl()}/api/auth/email/confirm-link`, {
+                        method: 'POST',
+                        body: JSON.stringify({ code })
+                    });
+
+                    if (typeof showToast === 'function') showToast(data.message || 'Gmail successfully bound!', 'success');
+                    await refreshLinkedEmailState();
+                } catch (err) {
+                    if (typeof showToast === 'function') showToast(err.message, 'error');
+                    if (bindStatusMsg) {
+                        bindStatusMsg.textContent = err.message;
+                        bindStatusMsg.style.color = '#ef4444';
+                    }
+                } finally {
+                    btnConfirmCode.disabled = false;
+                    btnConfirmCode.textContent = 'Verify & Bind Gmail';
+                }
+            });
+        }
+
+        // Cancel Link Code
+        if (btnCancelCode && !btnCancelCode.dataset.bound) {
+            btnCancelCode.dataset.bound = 'true';
+            btnCancelCode.addEventListener('click', () => {
+                if (verifyRow) verifyRow.style.display = 'none';
+                if (inputGmail) inputGmail.disabled = false;
+                if (bindStatusMsg) bindStatusMsg.textContent = '';
+            });
+        }
+
+        // Start Unlink PIN Request
+        if (btnStartUnlink && !btnStartUnlink.dataset.bound) {
+            btnStartUnlink.dataset.bound = 'true';
+            btnStartUnlink.addEventListener('click', async () => {
+                btnStartUnlink.disabled = true;
+                btnStartUnlink.textContent = 'Requesting PIN...';
+
+                try {
+                    const data = await fetchWithAuth(`${getBackendUrl()}/api/auth/email/request-unlink-pin`, {
+                        method: 'POST'
+                    });
+
+                    if (typeof showToast === 'function') showToast(data.message || 'Authorization PIN sent!', 'info');
+                    if (unlinkRow) unlinkRow.style.display = 'block';
+                    if (inputPin) {
+                        inputPin.value = '';
+                        inputPin.focus();
+                    }
+                } catch (err) {
+                    if (typeof showToast === 'function') showToast(err.message, 'error');
+                } finally {
+                    btnStartUnlink.disabled = false;
+                    btnStartUnlink.textContent = 'Change / Unbind';
+                }
+            });
+        }
+
+        // Confirm Unlink PIN
+        if (btnConfirmPin && !btnConfirmPin.dataset.bound) {
+            btnConfirmPin.dataset.bound = 'true';
+            btnConfirmPin.addEventListener('click', async () => {
+                const pin = (inputPin ? inputPin.value : '').trim();
+                if (!pin || pin.length !== 6) {
+                    if (typeof showToast === 'function') showToast('Please enter the 6-digit PIN from your email', 'error');
+                    if (inputPin) inputPin.focus();
+                    return;
+                }
+
+                btnConfirmPin.disabled = true;
+                btnConfirmPin.textContent = 'Unbinding...';
+
+                try {
+                    const data = await fetchWithAuth(`${getBackendUrl()}/api/auth/email/unlink`, {
+                        method: 'POST',
+                        body: JSON.stringify({ pin })
+                    });
+
+                    if (typeof showToast === 'function') showToast(data.message || 'Gmail unbound successfully', 'success');
+                    await refreshLinkedEmailState();
+                } catch (err) {
+                    if (typeof showToast === 'function') showToast(err.message, 'error');
+                    if (unlinkStatusMsg) {
+                        unlinkStatusMsg.textContent = err.message;
+                        unlinkStatusMsg.style.color = '#ef4444';
+                    }
+                } finally {
+                    btnConfirmPin.disabled = false;
+                    btnConfirmPin.textContent = 'Authorize Unbind';
+                }
+            });
+        }
+
+        // Cancel Unlink PIN
+        if (btnCancelPin && !btnCancelPin.dataset.bound) {
+            btnCancelPin.dataset.bound = 'true';
+            btnCancelPin.addEventListener('click', () => {
+                if (unlinkRow) unlinkRow.style.display = 'none';
+            });
+        }
+
+        // Initial check
+        refreshLinkedEmailState();
     }
 
     // Export module to global scope
@@ -972,6 +1906,17 @@
         load: init,
         saveSettings,
         resetDefaults,
+        updateAdminStats,
+        updateAdminProfileCard,
+        refreshLinkedEmailState,
+        openProfileModal,
+        shortcuts: {
+            getActiveShortcuts,
+            resetAllShortcuts,
+            resetSingleShortcut,
+            saveCustomShortcut,
+            renderShortcutsUI
+        },
         getSettings: () => ({ ...currentSettings })
     };
 

@@ -1,0 +1,402 @@
+/**
+ * Institutional Flat Typography & Non-Capsule Badge System
+ * ========================================================
+ * Enforces the Universal Anti-AI Capsule & Glowing Badge Ban across ALL stakeholder surfaces:
+ *   - Administrator (admin_page.html)
+ *   - Librarian (librarian_page.html)
+ *   - Faculty / Teacher (teacher_page.html)
+ *   - Student (student_page.html)
+ *   - Public Home, Project Details & Chatbot (index.html, about_page.html, account_registration.html)
+ *
+ * Design Law:
+ *   - ZERO capsule/pill shapes (border-radius: 999px/9999px) on badges, status indicators, or tags.
+ *   - ZERO translucent neon-tinted fills or glowing box-shadow halos.
+ *   - ZERO pulsing dots or purely decorative AI-style filler badges ("Live Updates", "Advisory Guidance System").
+ *   - Functional labels use crisp flat rectangular monochrome tags (4px radius, neutral slate border/surface)
+ *     or clean understated editorial typography.
+ */
+
+/* 1. Eliminate ALL pulsing / glowing AI indicator dots everywhere */
+.pulse-dot,
+.dash-pulse-dot,
+.stat-card-pulse-dot,
+.catalog-pulse-dot,
+.ppe-live-pulse-dot,
+.cn-status-glow-dot,
+.ppe-status-dot,
+.live-editing-dot,
+.vision-pulse-dot,
+.badge-dot,
+.status-indicator-dot {
+    display: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+}
+
+/* 2. Hide purely decorative AI-style filler badges if rendered dynamically */
+.realtime-indicator,
+.copilot-badge,
+.dash-hero-badge,
+.copilot-widget-welcome-badge {
+    display: none !important;
+}
+
+/* 3. Clean Editorial Plain Typography (no box, no capsule, no fill) for card metadata tags */
+.stat-card-badge,
+.kpi-badge,
+.kpi-badge.indigo,
+.kpi-badge.emerald,
+.kpi-badge.amber,
+.kpi-badge.purple,
+.kpi-badge.rose,
+.kpi-badge.cyan,
+.insights-badge,
+.section-eyebrow-badge,
+.terms-section-badge,
+.viewfinder-card-badge,
+.fallback-camera-badge,
+.ocr-vision-badge,
+.ocr-pixel-badge,
+.adc-status-pill,
+.ug-status-pill {
+    display: inline-block !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    color: #94a3b8 !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+}
+
+[data-theme="light"] .stat-card-badge,
+[data-theme="light"] .kpi-badge,
+[data-theme="light"] .kpi-badge.indigo,
+[data-theme="light"] .kpi-badge.emerald,
+[data-theme="light"] .kpi-badge.amber,
+[data-theme="light"] .kpi-badge.purple,
+[data-theme="light"] .kpi-badge.rose,
+[data-theme="light"] .kpi-badge.cyan,
+[data-theme="light"] .insights-badge,
+[data-theme="light"] .section-eyebrow-badge,
+[data-theme="light"] .terms-section-badge,
+[data-theme="light"] .adc-status-pill,
+[data-theme="light"] .ug-status-pill {
+    color: #64748b !important;
+}
+
+/* 4. Universal Flat Rectangular Monochrome Functional Tags (Zero capsules, zero neon tints, zero glows) */
+.badge,
+.status-badge,
+.status-badge.status-indicator-badge,
+.role-badge,
+.role-badge-pill,
+.dash-role-badge,
+.librarian-role-pill,
+.role-security-badge,
+.role-lock-badge,
+.sec-badge-pill,
+.lib-badge-pill,
+.lib-badge-green,
+.settings-badge,
+.settings-system-pill,
+.settings-threshold-badge,
+.ai-provider-pill,
+.aset-chip,
+.aset-chip-green,
+.lset-chip,
+.lset-chip-green,
+.sset-chip,
+.sset-chip-blue,
+.pinecone-pill,
+.pinecone-option-badge,
+.admin-audit-badge,
+.bulk-batches-pill,
+.batch-type-pill,
+.saves-count-badge,
+.save-stat-badge,
+.project-header-save-pill,
+.project-badge,
+.saved-badge-program,
+.saved-total-counter-pill,
+.sync-data-pill,
+.catalog-status-chip,
+.cn-hero-status-pill,
+.ctm-status-pill,
+.ctm-badge-tag,
+.ctm-chip-program,
+.ctm-shelf-pill,
+.ppe-status-pill,
+.being-edited-pill,
+.edit-locked-badge,
+.pe-timer-badge,
+.atm-badge,
+.pwd-strength-badge,
+.telegram-status-pill,
+.citation-import-badge,
+.citation-import-badge-year,
+.citation-live-pill,
+.selected-college-badge,
+.badge-locked-field,
+.pill-local,
+.pill-cloud,
+.pill-client,
+.export-extension-badge,
+.shortcut-badge-custom,
+.copilot-count-badge,
+.quota-role-badge,
+.quota-model-badge,
+.quota-status-pill,
+.protection-callout-badge,
+.topic-chip,
+.mfc-dropdown-badge,
+.analytics-reset-badge,
+.analytics-rank-badge,
+.delete-project-name-badge {
+    border-radius: 4px !important;
+    background: rgba(148, 163, 184, 0.08) !important;
+    background-image: none !important;
+    border: 1px solid rgba(148, 163, 184, 0.22) !important;
+    box-shadow: none !important;
+    color: #cbd5e1 !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    text-shadow: none !important;
+}
+
+/* Light theme crisp monochrome surface */
+[data-theme="light"] .badge,
+[data-theme="light"] .status-badge,
+[data-theme="light"] .status-badge.status-indicator-badge,
+[data-theme="light"] .role-badge,
+[data-theme="light"] .role-badge-pill,
+[data-theme="light"] .dash-role-badge,
+[data-theme="light"] .librarian-role-pill,
+[data-theme="light"] .role-security-badge,
+[data-theme="light"] .role-lock-badge,
+[data-theme="light"] .sec-badge-pill,
+[data-theme="light"] .lib-badge-pill,
+[data-theme="light"] .lib-badge-green,
+[data-theme="light"] .settings-badge,
+[data-theme="light"] .settings-system-pill,
+[data-theme="light"] .settings-threshold-badge,
+[data-theme="light"] .ai-provider-pill,
+[data-theme="light"] .aset-chip,
+[data-theme="light"] .aset-chip-green,
+[data-theme="light"] .lset-chip,
+[data-theme="light"] .lset-chip-green,
+[data-theme="light"] .sset-chip,
+[data-theme="light"] .sset-chip-blue,
+[data-theme="light"] .pinecone-pill,
+[data-theme="light"] .pinecone-option-badge,
+[data-theme="light"] .admin-audit-badge,
+[data-theme="light"] .bulk-batches-pill,
+[data-theme="light"] .batch-type-pill,
+[data-theme="light"] .saves-count-badge,
+[data-theme="light"] .save-stat-badge,
+[data-theme="light"] .project-header-save-pill,
+[data-theme="light"] .project-badge,
+[data-theme="light"] .saved-badge-program,
+[data-theme="light"] .saved-total-counter-pill,
+[data-theme="light"] .sync-data-pill,
+[data-theme="light"] .catalog-status-chip,
+[data-theme="light"] .cn-hero-status-pill,
+[data-theme="light"] .ctm-status-pill,
+[data-theme="light"] .ctm-badge-tag,
+[data-theme="light"] .ctm-chip-program,
+[data-theme="light"] .ctm-shelf-pill,
+[data-theme="light"] .ppe-status-pill,
+[data-theme="light"] .being-edited-pill,
+[data-theme="light"] .edit-locked-badge,
+[data-theme="light"] .pe-timer-badge,
+[data-theme="light"] .atm-badge,
+[data-theme="light"] .pwd-strength-badge,
+[data-theme="light"] .telegram-status-pill,
+[data-theme="light"] .citation-import-badge,
+[data-theme="light"] .citation-import-badge-year,
+[data-theme="light"] .citation-live-pill,
+[data-theme="light"] .selected-college-badge,
+[data-theme="light"] .badge-locked-field,
+[data-theme="light"] .pill-local,
+[data-theme="light"] .pill-cloud,
+[data-theme="light"] .pill-client,
+[data-theme="light"] .export-extension-badge,
+[data-theme="light"] .shortcut-badge-custom,
+[data-theme="light"] .copilot-count-badge,
+[data-theme="light"] .quota-role-badge,
+[data-theme="light"] .quota-model-badge,
+[data-theme="light"] .quota-status-pill,
+[data-theme="light"] .protection-callout-badge,
+[data-theme="light"] .topic-chip,
+[data-theme="light"] .mfc-dropdown-badge,
+[data-theme="light"] .analytics-reset-badge,
+[data-theme="light"] .analytics-rank-badge,
+[data-theme="light"] .delete-project-name-badge {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+/* 5. Subtle Semantic Text Accent ONLY (flat neutral surface, crisp left border or text color — NO neon fill!) */
+.status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.22rem 0.6rem !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.2 !important;
+}
+
+.status-badge svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+}
+
+.status-badge.status-approved,
+.status-badge.status-completed,
+.status-badge.status-published,
+.status-badge.status-active,
+.status-badge.status-indicator-published,
+.pinecone-pill.synced,
+.admin-audit-badge.cataloged,
+.catalog-status-chip.catalog-status-shelved,
+.telegram-status-pill.pill-verified,
+.pwd-strength-badge.strong,
+.quota-model-badge.status-active,
+.settings-badge.active,
+.ai-provider-pill.active,
+.role-security-badge.success {
+    color: #08D488 !important;
+    border-color: rgba(8, 212, 136, 0.35) !important;
+    background: rgba(8, 212, 136, 0.08) !important;
+}
+
+[data-theme="light"] .status-badge.status-approved,
+[data-theme="light"] .status-badge.status-completed,
+[data-theme="light"] .status-badge.status-published,
+[data-theme="light"] .status-badge.status-active,
+[data-theme="light"] .status-badge.status-indicator-published,
+[data-theme="light"] .pinecone-pill.synced,
+[data-theme="light"] .admin-audit-badge.cataloged,
+[data-theme="light"] .catalog-status-chip.catalog-status-shelved,
+[data-theme="light"] .telegram-status-pill.pill-verified,
+[data-theme="light"] .pwd-strength-badge.strong,
+[data-theme="light"] .quota-model-badge.status-active,
+[data-theme="light"] .settings-badge.active,
+[data-theme="light"] .ai-provider-pill.active,
+[data-theme="light"] .role-security-badge.success {
+    color: #067a4e !important;
+    border-color: rgba(8, 212, 136, 0.45) !important;
+    background: rgba(8, 212, 136, 0.12) !important;
+}
+
+.status-badge.status-pending,
+.status-badge.status-review,
+.status-badge.status-revision,
+.catalog-status-chip.catalog-status-pending,
+.ctm-shelf-pill.unassigned,
+.telegram-status-pill.pill-warning,
+.pwd-strength-badge.medium,
+.quota-model-badge.status-cooldown,
+.quota-status-pill.tone-warning,
+.settings-system-pill.maintenance,
+.being-edited-pill,
+.edit-locked-badge {
+    color: #FCCC56 !important;
+    border-color: rgba(252, 204, 86, 0.35) !important;
+    background: rgba(252, 204, 86, 0.08) !important;
+}
+
+[data-theme="light"] .status-badge.status-pending,
+[data-theme="light"] .status-badge.status-review,
+[data-theme="light"] .status-badge.status-revision,
+[data-theme="light"] .catalog-status-chip.catalog-status-pending,
+[data-theme="light"] .ctm-shelf-pill.unassigned,
+[data-theme="light"] .telegram-status-pill.pill-warning,
+[data-theme="light"] .pwd-strength-badge.medium,
+[data-theme="light"] .quota-model-badge.status-cooldown,
+[data-theme="light"] .quota-status-pill.tone-warning,
+[data-theme="light"] .settings-system-pill.maintenance,
+[data-theme="light"] .being-edited-pill,
+[data-theme="light"] .edit-locked-badge {
+    color: #92620a !important;
+    border-color: rgba(252, 204, 86, 0.45) !important;
+    background: rgba(252, 204, 86, 0.12) !important;
+}
+
+.status-badge.status-draft {
+    color: #94a3b8 !important;
+    border-color: rgba(148, 163, 184, 0.28) !important;
+    background: rgba(148, 163, 184, 0.06) !important;
+}
+
+[data-theme="light"] .status-badge.status-draft {
+    color: #475569 !important;
+    border-color: rgba(148, 163, 184, 0.35) !important;
+    background: #f1f5f9 !important;
+}
+
+.status-badge.status-rejected,
+.status-badge.status-suspended,
+.status-badge.status-deleted,
+.status-badge.status-inactive,
+.pwd-strength-badge.weak,
+.quota-model-badge.status-offline,
+.quota-status-pill.tone-danger,
+.copilot-count-badge.limit-reached {
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+[data-theme="light"] .status-badge.status-rejected,
+[data-theme="light"] .status-badge.status-suspended,
+[data-theme="light"] .status-badge.status-deleted,
+[data-theme="light"] .status-badge.status-inactive,
+[data-theme="light"] .pwd-strength-badge.weak,
+[data-theme="light"] .quota-model-badge.status-offline,
+[data-theme="light"] .quota-status-pill.tone-danger,
+[data-theme="light"] .copilot-count-badge.limit-reached {
+    color: #b91c1c !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+/* 6. Clean interactive hover for clickable rectangular controls (quota pill, filter pills) */
+.quota-status-pill:hover {
+    background: rgba(148, 163, 184, 0.16) !important;
+    border-color: rgba(148, 163, 184, 0.4) !important;
+    color: #F7F7F8 !important;
+}
+
+[data-theme="light"] .quota-status-pill:hover {
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* 7. Clean flat non-capsule filter tabs & prompt chips across dashboards */
+.filter-pill,
+.chat-prompt-pill,
+.copilot-prompt-pill,
+.copilot-widget-chip,
+.domain-quick-chip,
+.pwd-gen-chip {
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}
+
+/* 8. Remove glowing capsule feel on live concurrency banner (keep clean flat institutional alert bar) */
+.ppe-live-session-banner {
+    border-radius: 6px !important;
+    box-shadow: none !important;
+}

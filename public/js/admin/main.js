@@ -4,6 +4,22 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Compact single-line acronyms for verbose BIT program codes (full label preserved in tooltips & DB)
+    const formatProgramAcronym = (program) => {
+        if (!program || typeof program !== 'string') return 'N/A';
+        const raw = program.trim();
+        const normalized = raw.toLowerCase();
+        const bitAcronyms = {
+            'bit-electronics': 'BIT-ET',
+            'bit electronics': 'BIT-ET',
+            'bit-automotive': 'BIT-AT',
+            'bit automotive': 'BIT-AT',
+            'bit-computer': 'BIT-CT',
+            'bit computer': 'BIT-CT'
+        };
+        return bitAcronyms[normalized] || raw;
+    };
+
     // ===== Authentication & Role Check =====
     const checkAdminAuth = async () => {
         return new Promise((resolve) => {
@@ -46,8 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Admin authenticated successfully
                     sessionStorage.setItem('userId', user.uid);
-                    sessionStorage.setItem('userEmail', user.email);
-                    sessionStorage.setItem('userName', user.displayName || 'Administrator');
+                    sessionStorage.setItem('userEmail', userData.email || user.email || '');
+                    sessionStorage.setItem('userName', userData.fullName || userData.name || user.displayName || 'Administrator');
                     sessionStorage.setItem('userType', 'admin');
 
                     // Update admin profile display
@@ -132,6 +148,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (adminProfileImg && user.photoURL) {
             adminProfileImg.src = user.photoURL;
         }
+
+        // Keep Settings profile card in sync with real authenticated admin identity
+        if (window.AdminSettings && typeof window.AdminSettings.updateAdminProfileCard === 'function') {
+            window.AdminSettings.updateAdminProfileCard(user, userData);
+        } else {
+            window.dispatchEvent(new CustomEvent('admin:profile-updated', { detail: { user, userData } }));
+        }
     }
 
     // ===== Navigation: hook loadSectionData onto rail nav clicks =====
@@ -202,6 +225,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'analytics':
                 await loadAnalyticsData();
                 break;
+            case 'feedback':
+                if (window.AdminFeedback && typeof window.AdminFeedback.loadFeedbackData === 'function') {
+                    await window.AdminFeedback.loadFeedbackData();
+                }
+                break;
         }
     }
 
@@ -225,6 +253,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const userStat = document.getElementById('total-users-stat');
             if (userStat) userStat.textContent = totalUsers;
+
+            // Notify AdminSettings profile KPI counters
+            if (window.AdminSettings && typeof window.AdminSettings.updateAdminStats === 'function') {
+                window.AdminSettings.updateAdminStats();
+            } else {
+                window.dispatchEvent(new CustomEvent('admin:stats-updated'));
+            }
 
             const studentsCountEl = document.getElementById('stat-students-count');
             const librariansCountEl = document.getElementById('stat-librarians-count');
@@ -544,7 +579,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorMessage = 'Permission Denied';
                     errorDetail = `
                         <div class="error-detail">
-                            <p class="error-title">⚠️ Firestore Permission Error</p>
+                            <p class="error-title">Firestore Permission Error</p>
                             <p>Your admin account doesn't have permission to read the database.</p>
                             <p><strong>Common causes:</strong></p>
                             <ul>
@@ -559,7 +594,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorMessage = 'Connection Error';
                     errorDetail = `
                         <div class="error-detail">
-                            <p class="error-title">🔌 Network Connection Issue</p>
+                            <p class="error-title">Network Connection Issue</p>
                             <p>Unable to connect to the database. Please check your internet connection.</p>
                             <button class="btn-secondary" onclick="location.reload()">Retry</button>
                         </div>
@@ -567,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     errorDetail = `
                         <div class="error-detail">
-                            <p class="error-title">⚠️ ${errorMessage}</p>
+                            <p class="error-title">${errorMessage}</p>
                             <p>${error.message || 'An unexpected error occurred'}</p>
                             <button class="btn-secondary" onclick="location.reload()">Retry</button>
                         </div>
@@ -968,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorHtml = `
                         <tr><td colspan="6" class="table-error">
                             <div class="error-box">
-                                <div class="error-icon">🔒</div>
+                                <div class="error-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                                 <h4>Permission Denied</h4>
                                 <p>Unable to access projects data. Please verify your Firestore security rules allow admin access.</p>
                                 <button class="btn-secondary" onclick="location.reload()">Retry</button>
@@ -980,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorHtml = `
                         <tr><td colspan="6" class="table-error">
                             <div class="error-box">
-                                <div class="error-icon">⚠️</div>
+                                <div class="error-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
                                 <h4>Error Loading Projects</h4>
                                 <p>${error.message || 'An unexpected error occurred'}</p>
                                 <button class="btn-secondary" onclick="loadProjectsData(true)">Retry</button>
@@ -1307,10 +1342,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
                 </td>
-                <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
-                <td><span class="badge badge-info">${highlightSearchTerms(data.program || 'N/A', searchQuery)}</span></td>
+                <td>${highlightSearchTerms((data.authors || []).join(', ') || 'Not specified in record', searchQuery)}</td>
+                <td><span class="badge badge-info" style="white-space:nowrap;" title="${escapeHtml(data.program || 'N/A')}">${highlightSearchTerms(formatProgramAcronym(data.program), searchQuery)}</span></td>
                 <td>${highlightSearchTerms(data.year || 'N/A', searchQuery)}</td>
-                <td>${highlightSearchTerms(data.adviser || 'N/A', searchQuery)}</td>
+                <td>${cleanNullableField(data.adviser) ? highlightSearchTerms(cleanNullableField(data.adviser), searchQuery) : '<span style="color:var(--text-secondary);font-style:italic;font-size:0.82rem;">Not specified in record</span>'}</td>
                 <td>
                     <div class="table-actions projects-action-grid">
                         <button class="action-btn action-view" onclick="viewProject('${data.id}')" title="View details" aria-label="View details">
@@ -1474,10 +1509,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
                 </td>
-                <td>${highlightSearchTerms((data.authors || []).join(', ') || 'N/A', searchQuery)}</td>
-                <td><span class="badge badge-info">${highlightSearchTerms(data.program || 'N/A', searchQuery)}</span></td>
+                <td>${highlightSearchTerms((data.authors || []).join(', ') || 'Not specified in record', searchQuery)}</td>
+                <td><span class="badge badge-info" style="white-space:nowrap;" title="${escapeHtml(data.program || 'N/A')}">${highlightSearchTerms(formatProgramAcronym(data.program), searchQuery)}</span></td>
                 <td>${highlightSearchTerms(data.year || 'N/A', searchQuery)}</td>
-                <td>${highlightSearchTerms(data.adviser || 'N/A', searchQuery)}</td>
+                <td>${cleanNullableField(data.adviser) ? highlightSearchTerms(cleanNullableField(data.adviser), searchQuery) : '<span style="color:var(--text-secondary);font-style:italic;font-size:0.82rem;">Not specified in record</span>'}</td>
                 <td>
                     ${(() => {
                         const isLocked = Boolean(data.isLockedByAdmin);
@@ -2084,6 +2119,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 1. Try to load and render from cache immediately (unless forceRefresh is true)
+        const savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        const hasExistingRows = Boolean(
+            tbody &&
+            tbody.children.length > 0 &&
+            !tbody.querySelector('.table-loading') &&
+            !tbody.querySelector('.table-empty')
+        );
         let users = forceRefresh ? null : loadUsersFromCache();
         let renderedFromCache = false;
         
@@ -2102,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             renderedFromCache = true;
             console.log('🚀 Using cached user data for instant render - revalidating in background...');
-        } else {
+        } else if (!hasExistingRows) {
             tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
         }
 
@@ -2126,7 +2168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             console.log('📡 Fetching fresh users data from Firestore...');
-            if (!renderedFromCache) {
+            if (!renderedFromCache && !hasExistingRows) {
                 tbody.innerHTML = '<tr><td colspan="7" class="table-loading"><div class="spinner"></div> Loading users...</td></tr>';
             }
 
@@ -2179,6 +2221,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 filterUsersTable();
             }
 
+            // Ensure document scroll remains unlocked and restore vertical scroll offset smoothly if needed
+            document.body.style.overflow = '';
+            document.body.style.overflowY = '';
+            document.documentElement.style.overflow = '';
+            document.documentElement.style.overflowY = '';
+            if (savedScrollY > 0) {
+                requestAnimationFrame(() => {
+                    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+                    window.scrollTo({ top: Math.min(savedScrollY, maxScroll), behavior: 'instant' });
+                });
+            }
+
         } catch (error) {
             console.error('Error loading users:', error);
             
@@ -2188,7 +2242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorHtml = `
                         <tr><td colspan="7" class="table-error">
                             <div class="error-box">
-                                <div class="error-icon">🔒</div>
+                                <div class="error-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                                 <h4>Permission Denied</h4>
                                 <p>Unable to access users data. Please verify your Firestore security rules allow admin access.</p>
                                 <button class="btn-secondary" onclick="location.reload()">Retry</button>
@@ -2200,7 +2254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     errorHtml = `
                         <tr><td colspan="7" class="table-error">
                             <div class="error-box">
-                                <div class="error-icon">⚠️</div>
+                                <div class="error-icon"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
                                 <h4>Error Loading Users</h4>
                                 <p>${error.message || 'An unexpected error occurred'}</p>
                                 <button class="btn-secondary" onclick="loadUsersData()">Retry</button>
@@ -2774,7 +2828,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const label = displayName || searchKeyword;
             const prefix = contextLabel ? `Filtered projects for ${contextLabel}: ` : 'Filtered projects: ';
             if (typeof showToast === 'function') {
-                showToast(`${prefix}${label}`, '🔍');
+                showToast(`${prefix}${label}`, 'info');
             }
         }
 
@@ -2831,7 +2885,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 5. User feedback toast
             const label = displayName || roleKey;
             if (typeof showToast === 'function') {
-                showToast(`Filtered users for role: ${label}`, '👥');
+                showToast(`Filtered users for role: ${label}`, 'info');
             }
         }
 
@@ -2859,10 +2913,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isHorizontal = chartType === 'horizontalBar';
             const actualType = isHorizontal ? 'bar' : (chartType === 'doughnut' ? 'doughnut' : 'bar');
 
+            const programDisplayLabels = programLabels.map(formatProgramAcronym);
+
             analyticsCharts['programChart'] = new Chart(ctx.getContext('2d'), {
                 type: actualType,
                 data: {
-                    labels: programLabels.length > 0 ? programLabels : ['No Data'],
+                    labels: programDisplayLabels.length > 0 ? programDisplayLabels : ['No Data'],
                     datasets: [{
                         label: 'Theses & Capstones',
                         data: programData.length > 0 ? programData : [0],
@@ -2923,7 +2979,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             borderWidth: 1,
                             padding: 10,
                             callbacks: {
-                                afterLabel: () => '👉 Click to view in Projects'
+                                title: (items) => {
+                                    const idx = items && items[0] ? items[0].dataIndex : -1;
+                                    const rawProg = idx >= 0 && programLabels[idx] ? programLabels[idx] : '';
+                                    const shortProg = formatProgramAcronym(rawProg);
+                                    return rawProg && shortProg !== rawProg ? `${shortProg} (${rawProg})` : (rawProg || 'No Data');
+                                },
+                                afterLabel: () => 'Click to view in Projects'
                             }
                         }
                     },
@@ -3012,7 +3074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     const pct = Math.round((val / totalUserCount) * 100);
                                     return ` ${context.label}: ${val} (${pct}%)`;
                                 },
-                                afterLabel: () => '👉 Click to view in Users'
+                                afterLabel: () => 'Click to view in Users'
                             }
                         }
                     }
@@ -3221,7 +3283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             callbacks: {
                                 title: (context) => topAdvisers[context[0].dataIndex]?.canonicalDisplay || '',
                                 label: (context) => ` Advised: ${context.raw} projects`,
-                                afterLabel: () => '👉 Click to view & search projects'
+                                afterLabel: () => 'Click to view & search projects'
                             }
                         }
                     },
@@ -3304,7 +3366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </td>
                     <td>
-                        <span class="badge badge-info" style="font-size:0.75rem;">${escapeHtml(p.program || 'N/A')}</span>
+                        <span class="badge badge-info" style="font-size:0.75rem; white-space:nowrap;" title="${escapeHtml(p.program || 'N/A')}">${escapeHtml(formatProgramAcronym(p.program))}</span>
                     </td>
                     <td>${escapeHtml(p.year || 'N/A')}</td>
                     <td style="font-size:0.8rem; color:var(--text-secondary);">${escapeHtml(p.adviser || 'N/A')}</td>
@@ -3585,6 +3647,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 0;
     }
 
+    function cleanNullableField(val) {
+        if (val === null || val === undefined) return '';
+        const str = String(val).trim();
+        if (!str) return '';
+        if (/^(?:none|null|undefined|n\/?a|not specified|not specified in physical manuscript record\.?|not listed|no abstract provided\.?|the abstract is not available\.?|no abstract available for this project\.?|no abstract summary provided for this project\.?)$/i.test(str)) {
+            return '';
+        }
+        return str;
+    }
+
     function escapeHtml(text) {
         const map = {
             '&': '&amp;',
@@ -3729,9 +3801,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 authors: editAuthors,
                 program: data.program || '',
                 year: parsedYear,
-                adviser: data.adviser || '',
+                adviser: cleanNullableField(data.adviser),
                 status: data.status || 'Completed',
-                abstract: data.abstract || '',
+                abstract: cleanNullableField(data.abstract),
                 topics: editTopics,
                 keywords: editKeywords,
                 catalogLocation: '',
@@ -3746,9 +3818,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('project-title-input').value = data.title || '';
             document.getElementById('project-program-select').value = data.program || '';
             document.getElementById('project-year-input').value = data.year || parsedYear;
-            document.getElementById('project-adviser-input').value = data.adviser || '';
+            document.getElementById('project-adviser-input').value = cleanNullableField(data.adviser);
             document.getElementById('project-status-select').value = data.status || 'Completed';
-            document.getElementById('project-abstract-input').value = data.abstract || '';
+            document.getElementById('project-abstract-input').value = cleanNullableField(data.abstract);
 
             // Populate dynamic fields
             initDynamicContainers({ authors: editAuthors, topics: editTopics, keywords: editKeywords });
@@ -4446,13 +4518,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         const categorySelect = document.getElementById('ug-violation-category');
         const notesTextarea = document.getElementById('ug-justification-notes');
         const charCountEl = document.getElementById('ug-char-count');
+        const charLabelEl = document.getElementById('ug-char-label');
         const affirmationCheckbox = document.getElementById('ug-affirmation-checkbox');
+        const MIN_JUSTIFICATION_CHARS = 15;
+        const MAX_JUSTIFICATION_CHARS = 250;
 
         const closeModal = () => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+            }
             if (modal) {
+                if (document.activeElement && modal.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 modal.style.display = 'none';
                 modal.classList.remove('active');
             }
+            document.body.style.overflow = '';
+            document.body.style.overflowY = '';
+            document.documentElement.style.overflow = '';
+            document.documentElement.style.overflowY = '';
+            document.body.classList.remove('modal-open', 'dialog-open');
         };
 
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
@@ -4507,19 +4593,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Tier 2 & Tier 3 Validation Check
         function validateGovernanceForm() {
             const category = categorySelect?.value || '';
-            const notes = (notesTextarea?.value || '').trim();
+            const rawNotes = notesTextarea?.value || '';
+            const notes = rawNotes.trim();
+            const len = rawNotes.length;
             const affirmed = affirmationCheckbox ? affirmationCheckbox.checked : false;
 
             if (charCountEl) {
-                charCountEl.textContent = notes.length;
-                if (notes.length < 15) {
+                charCountEl.textContent = len;
+                if (len < MIN_JUSTIFICATION_CHARS) {
                     charCountEl.style.color = '#ef4444';
+                    if (charLabelEl) {
+                        charLabelEl.textContent = `/ ${MIN_JUSTIFICATION_CHARS} min chars`;
+                        charLabelEl.style.color = 'var(--text-secondary)';
+                    }
                 } else {
-                    charCountEl.style.color = '#10b981';
+                    if (charLabelEl) {
+                        charLabelEl.textContent = `/ ${MAX_JUSTIFICATION_CHARS} max chars`;
+                        charLabelEl.style.color = 'var(--text-secondary)';
+                    }
+                    if (len >= MAX_JUSTIFICATION_CHARS) {
+                        charCountEl.style.color = '#ef4444';
+                    } else if (len >= MAX_JUSTIFICATION_CHARS * 0.9) {
+                        charCountEl.style.color = '#f59e0b';
+                    } else {
+                        charCountEl.style.color = '#10b981';
+                    }
                 }
             }
 
-            const isValid = category !== '' && notes.length >= 15 && affirmed;
+            const isValid = category !== '' && notes.length >= MIN_JUSTIFICATION_CHARS && len <= MAX_JUSTIFICATION_CHARS && affirmed;
             if (submitBtn) {
                 submitBtn.disabled = !isValid;
             }
@@ -4535,11 +4637,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!currentUgTargetUserId) return;
 
                 const category = categorySelect?.value || '';
-                const notes = (notesTextarea?.value || '').trim();
+                const rawNotes = notesTextarea?.value || '';
+                const notes = rawNotes.trim();
                 const affirmed = affirmationCheckbox?.checked;
 
-                if (!category || notes.length < 15 || !affirmed) {
-                    showToast('Please complete all mandatory fields and affirmation.', '⚠️');
+                if (!category || notes.length < MIN_JUSTIFICATION_CHARS || rawNotes.length > MAX_JUSTIFICATION_CHARS || !affirmed) {
+                    showToast(`Please complete all mandatory fields. Justification must be between ${MIN_JUSTIFICATION_CHARS} and ${MAX_JUSTIFICATION_CHARS} characters.`, 'warning');
                     return;
                 }
 
@@ -4600,7 +4703,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         invalidateUsersCache();
                         closeModal();
-                        showToast(`Account for "${currentUgTargetUserName}" has been suspended (${duration}).`, '🛡️');
+                        showToast(`Account for "${currentUgTargetUserName}" has been suspended (${duration}).`, 'warning');
                         await loadUsersData(true);
 
                     } else if (actionType === 'quarantine') {
@@ -4741,7 +4844,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const categorySelect = document.getElementById('ug-violation-category');
         const notesTextarea = document.getElementById('ug-justification-notes');
         const charCountEl = document.getElementById('ug-char-count');
+        const charLabelEl = document.getElementById('ug-char-label');
         const affirmationCheckbox = document.getElementById('ug-affirmation-checkbox');
+        const MIN_JUSTIFICATION_CHARS = 15;
+        const MAX_JUSTIFICATION_CHARS = 250;
         const submitBtn = document.getElementById('ug-submit-btn');
 
         if (categorySelect) categorySelect.value = '';
@@ -4750,11 +4856,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             charCountEl.textContent = '0';
             charCountEl.style.color = '#ef4444';
         }
+        if (charLabelEl) {
+            charLabelEl.textContent = `/ ${MIN_JUSTIFICATION_CHARS} min chars`;
+            charLabelEl.style.color = 'var(--text-secondary)';
+        }
         if (affirmationCheckbox) affirmationCheckbox.checked = false;
         if (submitBtn) submitBtn.disabled = true;
 
         modal.style.display = 'flex';
         modal.classList.add('active');
+        const ugModalBody = document.getElementById('ug-modal-body');
+        if (ugModalBody) ugModalBody.scrollTop = 0;
     };
 
     /**
@@ -4875,7 +4987,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.purgeQuarantinedUser = async (userId, name, email) => {
         const confirmed = await ModalDialog.confirm({
             title: 'Permanently Purge Account',
-            message: `⚠️ PERMANENT PURGE WARNING\n\nThis account is currently in Quarantine.\nPurging will permanently delete authentication and profile data for "${name || email}".\n\n🛡️ ACADEMIC INTEGRITY SAFEGUARD:\nAll capstone manuscripts and institutional research authored or advised by this user will remain preserved in the institutional repository.\n\nAre you sure you want to proceed with permanent purge?`,
+            message: `PERMANENT PURGE WARNING\n\nThis account is currently in Quarantine.\nPurging will permanently delete authentication and profile data for "${name || email}".\n\nACADEMIC INTEGRITY SAFEGUARD:\nAll capstone manuscripts and institutional research authored or advised by this user will remain preserved in the institutional repository.\n\nAre you sure you want to proceed with permanent purge?`,
             confirmText: 'Permanently Purge',
             cancelText: 'Keep in Quarantine',
             isDanger: true,
@@ -5021,7 +5133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         savedAt: new Date().toISOString()
                     };
                     localStorage.setItem('admin_project_draft', JSON.stringify(draft));
-                    showToast('Draft auto-saved', '💾');
+                    showToast('Draft auto-saved', 'info');
                 }
             }
         }, 1500);
@@ -5581,7 +5693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (d.callNumber && document.getElementById('project-call-number')) document.getElementById('project-call-number').value = d.callNumber;
                     if (d.accessionNumber && document.getElementById('project-accession-number')) document.getElementById('project-accession-number').value = d.accessionNumber;
                     initDynamicContainers({ authors: d.authors || [], topics: d.topics || [], keywords: d.keywords || [] });
-                    showToast('Draft restored ✨', 'ℹ️');
+                    showToast('Draft restored', 'info');
                 } catch { initDynamicContainers(); }
             } else {
                 initDynamicContainers();
@@ -6355,15 +6467,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             const authors = getDynamicValues('authors-container');
             const program = document.getElementById('project-program-select').value;
             const year = parseInt(document.getElementById('project-year-input').value.trim(), 10);
-            const adviser = document.getElementById('project-adviser-input').value.trim();
+            const adviser = cleanNullableField(document.getElementById('project-adviser-input').value);
             const status = document.getElementById('project-status-select').value;
-            const abstract = document.getElementById('project-abstract-input').value.trim();
+            const abstract = cleanNullableField(document.getElementById('project-abstract-input').value);
             const topics = getDynamicValues('topics-container');
             const keywords = getDynamicValues('keywords-container');
 
-            // Validation
+            // Validation (Only Core Identity fields are strictly required; Abstract, Adviser, Keywords, Topics, Images, and Cataloging are nullable)
+            if (!title) {
+                showToast('Project title is required', '⚠️');
+                return;
+            }
             if (authors.length === 0) {
                 showToast('Please add at least one author', '⚠️');
+                return;
+            }
+            if (!program) {
+                showToast('Please select an academic program', '⚠️');
+                return;
+            }
+            if (!year || isNaN(year)) {
+                showToast('Please enter a valid academic year', '⚠️');
                 return;
             }
 
@@ -6549,7 +6673,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     callNumber,
                     accessionNumber,
                     lastUpdatedByName: 'Administrator',
-                    lastUpdatedByEmail: currentUser?.email || 'admin@ctu.edu.ph',
+                    lastUpdatedByEmail: currentUser?.email || sessionStorage.getItem('userEmail') || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             } catch (cnSaveErr) {
@@ -6718,7 +6842,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         callNumber,
                         accessionNumber,
                         createdByName: 'Administrator',
-                        createdByEmail: currentUser?.email || 'admin@ctu.edu.ph',
+                        createdByEmail: currentUser?.email || sessionStorage.getItem('userEmail') || '',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
@@ -6928,19 +7052,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ===== Keyboard Shortcuts =====
+    // ===== Keyboard Shortcuts (Global shortcuts managed by AdminSettings engine) =====
     document.addEventListener('keydown', (e) => {
-        // Ctrl/Cmd + K for search focus
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            const activeSection = document.querySelector('.content-section.active');
-            const searchInput = activeSection?.querySelector('input[type="text"]');
-            if (searchInput) {
-                searchInput.focus();
-                searchInput.select();
-            }
-        }
-
         // Escape to close sidebar on mobile
         if (e.key === 'Escape') {
             if (window.innerWidth <= 1024 && sidebar) {
@@ -6958,21 +7071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ===== Settings Functionality =====
-    const changePasswordBtn = document.getElementById('change-password-btn');
-    const updateProfileBtn = document.getElementById('update-profile-btn');
-
-    if (changePasswordBtn) {
-        changePasswordBtn.addEventListener('click', () => {
-            showToast('Password change feature coming soon', 'ℹ️');
-        });
-    }
-
-    if (updateProfileBtn) {
-        updateProfileBtn.addEventListener('click', () => {
-            showToast('Profile update feature coming soon', 'ℹ️');
-        });
-    }
+    // ===== Settings Functionality (Delegated to AdminSettings and PasswordChange modules) =====
 
     // ===== Export Analytics Functionality =====
     const exportAnalyticsBtn = document.getElementById('export-analytics-btn');
@@ -7118,7 +7217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const activeSection = document.querySelector('.content-section.active');
                 if (activeSection && activeSection.id === 'section-users') {
-                    loadUsersData(true);
+                    loadUsersData(false);
                 }
                 // Update dashboard stats if on dashboard
                 if (activeSection && activeSection.id === 'section-dashboard') {
@@ -7309,6 +7408,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const batchBtn = document.getElementById('batch-approve-all-btn');
         const batchCountPill = document.getElementById('batch-approve-count-pill');
         if (batchCountPill) batchCountPill.textContent = count;
+
+        // Keep Settings profile card pending counter synchronized
+        if (window.AdminSettings && typeof window.AdminSettings.updateAdminStats === 'function') {
+            window.AdminSettings.updateAdminStats();
+        } else {
+            window.dispatchEvent(new CustomEvent('admin:stats-updated'));
+        }
         if (batchBtn) {
             if (count > 0) {
                 batchBtn.disabled = false;
@@ -7468,7 +7574,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <span class="approvals-submitter-meta" style="font-size:0.7rem;opacity:0.8;">${dateStr}</span>
                     </div>
                 </td>
-                <td><span class="badge badge-info" style="font-weight:700;">${escapeHtml(item.program || 'N/A')}</span></td>
+                <td><span class="badge badge-info" style="font-weight:700; white-space:nowrap;" title="${escapeHtml(item.program || 'N/A')}">${escapeHtml(formatProgramAcronym(item.program))}</span></td>
                 <td><span style="font-weight:600;">${escapeHtml(String(item.year || 'N/A'))}</span></td>
                 <td style="max-width:220px;font-size:0.85rem;">${escapeHtml(authorsStr)}</td>
                 <td style="text-align:center;">
@@ -7560,9 +7666,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.getElementById('approval-program').value = data.program || 'BSIT';
         document.getElementById('approval-year').value = data.year || new Date().getFullYear();
-        document.getElementById('approval-adviser').value = data.adviser || '';
+        document.getElementById('approval-adviser').value = cleanNullableField(data.adviser);
         document.getElementById('approval-keywords').value = Array.isArray(data.keywords) ? data.keywords.join(', ') : (data.keywords || '');
-        document.getElementById('approval-abstract').value = data.abstract || '';
+        document.getElementById('approval-abstract').value = cleanNullableField(data.abstract);
 
         const nameEl = document.getElementById('approval-submitter-name');
         if (nameEl) nameEl.textContent = item?.submittedByName || 'Librarian';
@@ -7855,8 +7961,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </svg>
             `;
             modalTitle.textContent = 'Are you sure you want to approve?';
-            statusPill.className = 'adc-status-pill pill-amber';
-            statusPill.textContent = '⚠️ Duplicate Detected';
+          
             modalSubtitle.textContent = `A potential duplicate or existing project was detected. You have the freedom to evaluate and modify details per field before approving, or approve anyway.`;
 
             let activeDupIdx = 0;
@@ -7872,7 +7977,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <span style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);margin-right:0.25rem;">Compare With:</span>
                             ${duplicates.map((d, i) => `
                                 <button type="button" class="adc-match-tab-btn ${i === activeDupIdx ? 'is-active' : ''}" data-dup-idx="${i}" role="tab" aria-selected="${i === activeDupIdx}">
-                                    ${d.source.includes('Completed') ? '🏛️ Catalog' : '⏳ Pending Queue'}: "${escapeHtml(d.targetTitle.slice(0, 18))}${d.targetTitle.length > 18 ? '...' : ''}" (${d.commonFieldCount} match${d.commonFieldCount > 1 ? 'es' : ''})
+                                    ${d.source.includes('Completed') ? 'Catalog' : 'Pending Queue'}: "${escapeHtml(d.targetTitle.slice(0, 18))}${d.targetTitle.length > 18 ? '...' : ''}" (${d.commonFieldCount} match${d.commonFieldCount > 1 ? 'es' : ''})
                                 </button>
                             `).join('')}
                         </div>
@@ -7881,7 +7986,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 modalBody.innerHTML = `
                     <div class="adc-alert-banner">
-                        <div class="adc-alert-icon">⚠️</div>
+                        <div class="adc-alert-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        </div>
                         <div class="adc-alert-text">
                             <strong>Duplicate / Common Value Alert (${duplicates.length} match${duplicates.length > 1 ? 'es' : ''} found)</strong>
                             <span>This submission shares identical or similar values with an existing project in the <strong>${escapeHtml(currentDup.source)}</strong>. You have the free will to evaluate and adjust any field or proceed with approval.</span>
@@ -8020,7 +8127,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             modalBody.innerHTML = `
                 <div class="adc-alert-banner banner-info">
-                    <div class="adc-alert-icon"></div>
+                    <div class="adc-alert-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#08D488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
                     <div class="adc-alert-text">
                         <strong>Ready for Publication</strong>
                         <span>This submission has no duplicate conflicts in the published catalog or pending submissions queue.</span>
@@ -8103,12 +8212,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             modalTitle.textContent = `Are you sure you want to approve all (${totalSubmissions}) submissions?`;
             statusPill.className = 'adc-status-pill pill-amber';
-            statusPill.textContent = `⚠️ ${batchConflicts.length} Conflict${batchConflicts.length > 1 ? 's' : ''} Detected`;
+            statusPill.textContent = `${batchConflicts.length} Conflict${batchConflicts.length > 1 ? 's' : ''} Detected`;
             modalSubtitle.textContent = `Potential duplicates were found in ${batchConflicts.length} of ${totalSubmissions} pending submissions. You have the freedom to evaluate individual conflicting items, approve only clean submissions, or approve all anyway.`;
 
             modalBody.innerHTML = `
                 <div class="adc-alert-banner">
-                    <div class="adc-alert-icon">⚠️</div>
+                    <div class="adc-alert-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    </div>
                     <div class="adc-alert-text">
                         <strong>Batch Approval Conflict Warning</strong>
                         <span>${batchConflicts.length} of ${totalSubmissions} submissions share common or identical values with existing projects in the catalog or pending queue. You have the freedom to evaluate any project below before proceeding.</span>
@@ -8185,7 +8296,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             modalBody.innerHTML = `
                 <div class="adc-alert-banner banner-info">
-                    <div class="adc-alert-icon"></div>
+                    <div class="adc-alert-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#08D488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
                     <div class="adc-alert-text">
                         <strong>All Submissions Ready for Publication</strong>
                         <span>All ${totalSubmissions} projects have been verified against the completed projects catalog and pending submissions queue with zero duplicate conflicts found.</span>
@@ -8294,9 +8407,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const title = (customData?.title || item?.title || 'Untitled').trim();
-        const abstract = (customData?.abstract || item?.abstract || '').trim();
+        const abstract = cleanNullableField(customData?.abstract !== undefined ? customData.abstract : item?.abstract);
         const authors = customData?.authors || (Array.isArray(item?.authors) ? item.authors : String(item?.authors || '').split(',').map(a => a.trim()).filter(Boolean));
-        const adviser = (customData?.adviser || item?.adviser || '').trim();
+        const adviser = cleanNullableField(customData?.adviser !== undefined ? customData.adviser : item?.adviser);
         const program = (customData?.program || item?.program || 'BSIT').trim();
         const year = parseInt(customData?.year || item?.year, 10) || new Date().getFullYear();
         const keywords = customData?.keywords || (Array.isArray(item?.keywords) ? item.keywords : String(item?.keywords || '').split(',').map(k => k.trim()).filter(Boolean));
@@ -8462,18 +8575,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const item = allPendingApprovals.find(x => x.id === id);
         const title = item ? item.title : 'this submission';
 
-        let confirmed = false;
-        if (typeof ModalDialog !== 'undefined' && ModalDialog.confirm) {
-            confirmed = await ModalDialog.confirm({
-                title: 'Reject Project Submission',
-                message: `Are you sure you want to reject and discard "${escapeHtml(title)}"? This will delete the submission from the pending queue.`,
-                confirmText: 'Reject & Discard',
-                confirmClass: 'btn-danger',
-                icon: 'warning'
-            });
-        } else {
-            confirmed = confirm(`Are you sure you want to reject and discard "${title}"?`);
-        }
+        const confirmed = await ModalDialog.confirm({
+            title: 'Reject Project Submission',
+            message: `Are you sure you want to reject and discard "${escapeHtml(title)}"? This will delete the submission from the pending queue.`,
+            confirmText: 'Reject & Discard',
+            confirmClass: 'btn-danger',
+            icon: 'warning'
+        });
 
         if (!confirmed) return;
 
@@ -8591,13 +8699,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!id) return;
 
             const title = document.getElementById('approval-title')?.value.trim();
-            const abstract = document.getElementById('approval-abstract')?.value.trim();
+            const abstract = cleanNullableField(document.getElementById('approval-abstract')?.value);
             const authors = getDynamicValues('approval-authors-container');
             const program = document.getElementById('approval-program')?.value;
             const year = document.getElementById('approval-year')?.value;
 
-            if (!title || !abstract || authors.length === 0 || !program || !year) {
-                showToast('Please fill all required fields, including at least one author.', '❌');
+            if (!title || authors.length === 0 || !program || !year) {
+                showToast('Please fill all required fields (Title, Program, Year, and at least one Author).', '❌');
                 return;
             }
 
@@ -8607,7 +8715,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 authors,
                 program,
                 year: parseInt(year, 10) || year,
-                adviser: document.getElementById('approval-adviser')?.value.trim(),
+                adviser: cleanNullableField(document.getElementById('approval-adviser')?.value),
                 keywords: (document.getElementById('approval-keywords')?.value || '').split(',').map(k => k.trim()).filter(Boolean)
             };
 
@@ -8943,7 +9051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.execCommand('copy');
                     document.body.removeChild(tempInput);
                 }
-                showToast('Credentials copied to clipboard! 📋', '✅');
+                showToast('Credentials copied to clipboard!', 'success');
             } catch (copyErr) {
                 console.error('Failed to copy credentials:', copyErr);
                 showToast('Could not copy automatically. Please select and copy manually.', '⚠️');
@@ -8999,7 +9107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             evaluatePasswordStrength(generated);
             evaluatePasswordMatch();
             updateLibrarianButtonVisibility();
-            showToast('Strong password generated! 🔑', 'ℹ️');
+            showToast('Strong password generated!', 'info');
         });
     }
 
@@ -9288,7 +9396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Successful creation processing
             if (creationSuccess) {
-                showToast(`✅ Librarian account created for ${name}!`, '✅');
+                showToast(`Librarian account created for ${name}!`, 'success');
 
                 // Log system activity if ActivityService is available
                 try {
@@ -9383,21 +9491,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bulkImportErrorList = document.getElementById('bulk-import-error-list');
     const downloadExcelTemplateBtn = document.getElementById('download-excel-template');
     const downloadJsonTemplateBtn = document.getElementById('download-json-template');
-    
-    /**
-     * Escape HTML to prevent XSS
-     */
-    function escapeHtml(text) {
-        if (!text) return '';
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return String(text).replace(/[&<>"']/g, (m) => map[m]);
-    }
     
     // Sample template data
     const sampleProjects = [
@@ -9699,7 +9792,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const idx = bulkImportBatches.findIndex(b => b.id === batchId);
         if (idx !== -1) {
             const removed = bulkImportBatches.splice(idx, 1)[0];
-            showToast(`Removed Batch: "${removed.fileName}"`, '🗑️');
+            showToast(`Removed Batch: "${removed.fileName}"`, 'info');
             updateBatchesUI();
             
             // Auto-save draft after removal
@@ -9715,7 +9808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             bulkImportBatches = [];
             bulkImportFileInput.value = '';
             updateBatchesUI();
-            showToast('All staged batches removed', '🗑️');
+            showToast('All staged batches removed', 'info');
             
             // Clear draft when all batches removed
             clearBulkImportDraft();
@@ -9783,7 +9876,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             Add Images
                         </button>
                         <button type="button" class="bulk-preview-toggle-imgs-btn" id="bulk-toggle-imgs-${batch.id}-${pIndex}" style="display: ${imgCount > 0 ? 'inline-flex' : 'none'};" title="Click to view and manage staged images">
-                            <span>🖼️ Review Images (<span class="imgs-count-num">${imgCount}</span>)</span>
+                            <span>Review Images (<span class="imgs-count-num">${imgCount}</span>)</span>
                             <span class="toggle-arrow">▾</span>
                         </button>
                         <span class="bulk-preview-img-count" id="bulk-img-count-${batch.id}-${pIndex}" style="display: ${imgCount > 0 ? 'none' : 'inline'};">No images</span>
@@ -9861,7 +9954,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             e.stopPropagation();
                             URL.revokeObjectURL(previewUrl);
                             project._imageFiles.splice(imgIdx, 1);
-                            showToast(`Removed "${file.name}" from ${project.title}`, '🗑️');
+                            showToast(`Removed "${file.name}" from ${project.title}`, 'info');
                             refreshImagesTray();
                         });
 
@@ -9901,7 +9994,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
 
                     if (added > 0) {
-                        showToast(`Added ${added} image${added > 1 ? 's' : ''} to "${project.title}"`, '🖼️');
+                        showToast(`Added ${added} image${added > 1 ? 's' : ''} to "${project.title}"`, 'info');
                         // Auto-open tray when images are added so admin can inspect immediately
                         imgsTray.style.display = 'block';
                         toggleImgsBtn.classList.add('open');
@@ -9958,8 +10051,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const seenInFile = new Set();
 
             data.forEach((project, index) => {
-                if (project.abstract === 'None' || project.abstract === 'null' || project.abstract === null) project.abstract = '';
-                if (project.adviser  === 'None' || project.adviser  === 'null' || project.adviser  === null) project.adviser  = '';
+                project.abstract = cleanNullableField(project.abstract);
+                project.adviser  = cleanNullableField(project.adviser);
 
                 const missing = ['title', 'authors', 'program', 'year'].filter(f => !project[f]);
                 if (missing.length > 0) {
@@ -9971,8 +10064,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         fileErrors.push(`"${project.title}" (row ${index + 1}): duplicate title within this file — skipped`);
                     } else {
                         seenInFile.add(norm);
-                        if (!project.abstract || !project.abstract.trim()) project.abstract = 'No abstract provided.';
-                        if (!project.adviser  || !project.adviser.trim())  project.adviser  = 'Not specified';
+                        // Keep empty nullable fields as "" in Firestore (never store fallback UI strings in the database)
+                        project.abstract = cleanNullableField(project.abstract);
+                        project.adviser  = cleanNullableField(project.adviser);
                         project._imageFiles = []; // per-project image staging
                         validProjects.push(project);
                     }
@@ -10325,12 +10419,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (resultsTitle) {
                 if (errorCount === 0 && successCount > 0) {
                     bulkImportResults.classList.add('is-success');
-                    resultsTitle.innerHTML = '<span>✅</span> Import Completed Successfully';
+                    resultsTitle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#08D488" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Import Completed Successfully';
                 } else if (successCount === 0 && errorCount > 0) {
                     bulkImportResults.classList.add('is-error');
-                    resultsTitle.innerHTML = '<span>❌</span> Import Failed';
+                    resultsTitle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Import Failed';
                 } else {
-                    resultsTitle.innerHTML = '<span>📊</span> Import Summary';
+                    resultsTitle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Import Summary';
                 }
             }
             bulkImportResults.style.display = 'block';
@@ -10407,7 +10501,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (Array.isArray(restored) && restored.length > 0) {
                     bulkImportBatches = restored;
                     updateBatchesUI();
-                    showToast('Draft restored ✨', 'ℹ️');
+                    showToast('Draft restored', 'info');
                     console.log('Bulk import draft loaded:', bulkImportBatches.length, 'batches');
                 }
             } catch (error) {
@@ -10827,7 +10921,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         html += `
         <div class="copilot-footer-meta">
             <span class="rag-indicator">
-                <span class="pulse-dot"></span>
                 <span>Grounded Pinecone RAG • Powered by ${escapeHtml(stripCopilotEmojis(provider))}</span>
             </span>
             <button type="button" class="copilot-copy-btn" onclick="window.copyCopilotGuidance(this)" title="Copy guidance text">
@@ -10867,7 +10960,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             targetSection = 'analytics';
         } else if (area.includes('activity') || area.includes('audit') || area.includes('log') || area.includes('history')) {
             targetSection = 'activity';
-        } else if (area.includes('setting') || area.includes('security') || area.includes('diagnostic') || area.includes('shortcut') || area.includes('maintenance') || area.includes('password') || area.includes('telegram')) {
+        } else if (area.includes('setting') || area.includes('security') || area.includes('diagnostic') || area.includes('shortcut') || area.includes('maintenance') || area.includes('password') || false) {
             targetSection = 'settings';
         } else if (area.includes('dashboard') || area.includes('overview') || area.includes('kpi') || area.includes('metric')) {
             targetSection = 'dashboard';
@@ -11039,7 +11132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 1. SETTINGS DOMAIN (Evaluated before Users when asking about Admin password/OTP, Cache, Profile, or legacy toggles)
-        const isAdminPasswordQuery = (q.includes('change password') || q.includes('my password') || q.includes('admin password') || q.includes('telegram') || q.includes('otp'));
+        const isAdminPasswordQuery = (q.includes('change password') || q.includes('my password') || q.includes('admin password') || q.includes('password change'));
         if (isAdminPasswordQuery || q.includes('maintenance') || q.includes('allow registration') || q.includes('guest browsing') || q.includes('setting') || q.includes('purge cache') || q.includes('export catalog') || q.includes('shortcut') || q.includes('diagnostic') || q.includes('edit profile')) {
             if (q.includes('maintenance') || q.includes('allow registration') || q.includes('guest browsing') || q.includes('offline') || q.includes('downtime')) {
                 return {
@@ -11047,7 +11140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     steps: [
                         'Open **"Settings"** in the left Sidebar Rail.',
                         '**Does Not Exist:** RE-CAPS Admin Settings has **NO Maintenance Mode switch**, **NO Allow Registration toggle**, and **NO Guest Browsing toggle**.',
-                        'Available Settings utilities are: Sticky Profile Card (clickable **Holdings**, **Pending**, and **Users** jump stats plus email copy), **"Edit Profile Info"** (`#update-profile-btn`), and **"Change Password"** (`#change-password-btn` with Current Password + 6-digit Telegram OTP).',
+                        'Available Settings utilities are: Sticky Profile Card (clickable **Holdings**, **Pending**, and **Users** jump stats plus email copy), **"Edit Profile Info"** (`#update-profile-btn`), and **"Change Password"** (`#change-password-btn` with Current Password Verification Gate).',
                         'Scroll to `#settings-card-maintenance` for **"Purge Cache"** (`#btn-purge-cache`), **"Export Repository Catalog"** (`CSV` / `JSON`), the 4-cell Diagnostics grid, and Productivity Shortcuts.'
                     ],
                     precaution: 'Do not look for removed Maintenance Mode or Registration toggles; use Approvals and Users governance controls to manage repository visibility and accounts.'
@@ -11059,9 +11152,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     steps: [
                         'Click **"Settings"** in the left Sidebar Rail.',
                         'Under Security, click **"Change Password"** (`#change-password-btn`).',
-                        'Verify your identity using **both** your Current Password and a 6-digit Telegram OTP sent via `@RecapsOtpBot` (`#send-otp-btn` / `#link-chat-id-input`).',
+                        'Verify your identity using your Current Password (`#current-password-input`).',
                         'Choose a strong new password (8-128 characters with uppercase, lowercase, number, and special character).',
-                        'Submit to revoke refresh tokens and dispatch Telegram + Resend confirmation notifications.'
+                        'Submit to revoke refresh tokens and dispatch Resend confirmation email notifications.'
                     ],
                     precaution: 'Password updates are limited to 10 changes per 24 hours; 5 consecutive failures lock password changes for 1 hour.'
                 };
@@ -11109,7 +11202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         'Use the 6 real filter pills in `#user-filters`: `All Users`, `Admins`, `Librarians`, `Students`, `Suspended`, and `Quarantine (14d Trash)` (type `faculty` in `#users-search` to match `teacher` rows).',
                         'Available per-row actions are strictly: **"Sanction"** (Active rows -> opens `#user-governance-modal`), **"Reactivate"** / **"Sanction"** (Suspended rows), and **"Restore"** / **"Purge"** (Quarantine rows). Admin rows have no sanction or delete buttons.'
                     ],
-                    precaution: 'Administrators rotate their own password in Settings > Change Password with Telegram OTP; campus users use the standard login reset flow.'
+                    precaution: 'Administrators rotate their own password in Settings > Change Password Verification Gate; campus users use the standard login reset flow.'
                 };
             }
 
@@ -11121,7 +11214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         'Click **"Users"** in the left Sidebar Rail and locate the active non-Admin account via `#users-search` or `#user-filters`.',
                         'Click **"Sanction"** in the row Actions column to open the 3-tier Governance Modal (`#user-governance-modal`).',
                         '**Tier 1:** Choose **Account Suspension (Freeze)** (`24h`, `3d`, `7d`, `30d`, or `indefinite`) OR **14-Day Deletion Quarantine** (soft-delete).',
-                        '**Tier 2 & Tier 3:** Select a Violation Category, enter at least **15 characters** of justification notes, check the Affirmation box, and submit.',
+                        '**Tier 2 & Tier 3:** Select a Violation Category, enter **15 to 250 characters** of justification notes, check the Affirmation box, and submit.',
                         'Filter by **"Quarantine (14d Trash)"** to click **"Restore"** or **"Purge"** (calls `DELETE /api/users/:uid` to wipe Firebase Auth and Firestore user records); filter by **"Suspended"** to click **"Reactivate"**.'
                     ],
                     precaution: 'Purging permanently removes user authentication and Firestore profile documents while keeping historical authored/advised theses intact. Admin accounts are protected against sanctions and purging.'
@@ -11316,7 +11409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 '**Approvals:** Evaluate or batch-approve Librarian `pendingProjects` with automatic duplicate checks.',
                 '**Users:** 6 filter pills, Create Librarian, 3-tier Sanction modal (Suspension or 14d Quarantine), Reactivate, Restore, Purge.',
                 '**Analytics & Activity:** Interactive chart drilldowns, Print Report, Export CSV, and browser-local Activity history.',
-                '**Settings, Copilot, Home & Logout:** Profile edit, Telegram OTP Password Change, Purge Cache/Catalog Export, Diagnostics, Shortcuts, read-only Copilot, Home (`../index.html`), and Logout confirmation modal.'
+                '**Settings, Copilot, Home & Logout:** Profile edit, Password Change Gate, Purge Cache/Catalog Export, Diagnostics, Shortcuts, read-only Copilot, Home (`../index.html`), and Logout confirmation modal.'
             ],
             precaution: 'Ask specifically about any of the 9 Sidebar Rail items or AI Copilot limits for step-by-step screen guidance.'
         };
@@ -11592,6 +11685,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             copilotConversationHistory.push({ role: 'user', content: text });
             copilotConversationHistory.push({ role: 'assistant', content: (accumulatedText || replyHTML).replace(/<[^>]+>/g, '') });
         })();
+    }
+
+    // Expose helpers globally for unified StaffCopilotController
+    window.getAdminCopilotResponse = getAdminCopilotResponse;
+    window.dynamicCopilotNormalizer = dynamicCopilotNormalizer;
+
+    // Check if unified StaffCopilotController is loaded/active
+    const hasStaffCopilotController = Boolean(
+        window._staffCopilot || 
+        window.StaffCopilot || 
+        document.querySelector('script[src*="staff-copilot-controller"]')
+    );
+
+    if (hasStaffCopilotController) {
+        console.log('[AdminMain] Unified StaffCopilotController active; delegating copilot events.');
+        return;
     }
 
     // Widget quick chips

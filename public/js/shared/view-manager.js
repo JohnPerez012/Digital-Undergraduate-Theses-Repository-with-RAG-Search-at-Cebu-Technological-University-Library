@@ -255,18 +255,53 @@
             this.updateSecondaryNavSavedCount();
         },
 
+        isStaffChatbotRestrictedRole(roleOverride) {
+            const role = (
+                roleOverride ||
+                sessionStorage.getItem('userType') ||
+                localStorage.getItem('userType') ||
+                document.documentElement.getAttribute('data-user-role') ||
+                ''
+            ).toLowerCase();
+            return role === 'admin' || role === 'librarian';
+        },
+
+        getStaffCopilotNotice(roleOverride) {
+            const role = (
+                roleOverride ||
+                sessionStorage.getItem('userType') ||
+                localStorage.getItem('userType') ||
+                document.documentElement.getAttribute('data-user-role') ||
+                ''
+            ).toLowerCase();
+            return role === 'librarian'
+                ? 'The public AI Chatbot is for Students and Faculty only. Use Staff AI Copilot inside your Librarian Dashboard.'
+                : 'The public AI Chatbot is for Students and Faculty only. Use Staff AI Copilot inside your Admin Dashboard.';
+        },
+
+        syncChatbotNavVisibility(roleOverride) {
+            const isStaff = this.isStaffChatbotRestrictedRole(roleOverride);
+            const chatbotNav = document.querySelector('.secondary-header .nav-item[data-page="ai-chatbot"]');
+            if (chatbotNav) {
+                chatbotNav.style.display = isStaff ? 'none' : '';
+            }
+            if (isStaff) {
+                const chatbotView = document.getElementById('chatbot-view');
+                if (chatbotView && chatbotView.classList.contains('active')) {
+                    this.switchView('index');
+                }
+            }
+        },
+
         setupNavigation() {
-            // Check if current user is admin
-            const userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
-            const isAdmin = userRole === 'admin';
+            const isStaff = this.isStaffChatbotRestrictedRole();
 
             // Update secondary header navigation
             const navItems = document.querySelectorAll('.secondary-header .nav-item');
             navItems.forEach(item => {
-                // If user is admin, suppress the student research chatbot from the secondary header
-                if (isAdmin && item.dataset.page === 'ai-chatbot') {
+                // Suppress the public research chatbot from the secondary header for Librarian & Admin staff
+                if (isStaff && item.dataset.page === 'ai-chatbot') {
                     item.style.display = 'none';
-                    return;
                 }
 
                 // Remove any existing listeners by cloning
@@ -280,10 +315,10 @@
 
                     const page = newItem.dataset.page;
 
-                    // If admin somehow clicks ai-chatbot, redirect to admin dashboard
-                    if (isAdmin && page === 'ai-chatbot') {
+                    // Block Librarian Staff & Administrators from opening public AI Chatbot outside their dashboard
+                    if (this.isStaffChatbotRestrictedRole() && page === 'ai-chatbot') {
                         if (typeof showToast === 'function') {
-                            showToast('Librarian AI Copilot is located in your Admin Dashboard.', 'info');
+                            showToast(this.getStaffCopilotNotice(), 'info');
                         }
                         return;
                     }
@@ -309,13 +344,20 @@
                 backBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (this.previousView === 'ai-chatbot') {
+                    if (this.previousView === 'ai-chatbot' && !this.isStaffChatbotRestrictedRole()) {
                         this.switchView('ai-chatbot');
                     } else {
                         this.switchView('index');
                     }
                 });
             }
+
+            // React immediately when auth role changes (login/logout)
+            window.addEventListener('authRoleUpdated', (e) => {
+                const updatedRole = e && e.detail ? e.detail.role : null;
+                this.syncChatbotNavVisibility(updatedRole);
+                this.syncSavedNavVisibility();
+            });
 
             // Logo click navigation to home
             document.addEventListener('click', (e) => {
@@ -366,6 +408,7 @@
         },
 
         syncSavedNavVisibility(user) {
+            this.syncChatbotNavVisibility();
             const currentUser = user || ((typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null);
             const isAuth = Boolean(currentUser || localStorage.getItem('cachedAuthState') === 'true');
             const userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
@@ -465,12 +508,12 @@
         switchView(viewName) {
             console.log('Switching to view:', viewName);
 
-            // Guard: Admins should not use the student research chatbot
-            const userRole = sessionStorage.getItem('userType') || localStorage.getItem('userType');
-            if (viewName === 'ai-chatbot' && userRole === 'admin') {
-                console.log('Admins use the dedicated Librarian AI Copilot in the Admin Dashboard.');
+            // Guard: Public AI Chatbot is strictly for Students & Faculty/Teachers only.
+            // Librarian Staff & Administrators exclusively use Staff AI Copilot inside their dashboard.
+            if (viewName === 'ai-chatbot' && this.isStaffChatbotRestrictedRole()) {
+                console.log('[RBAC] Blocked public AI Chatbot for staff role; directing to in-dashboard Staff AI Copilot.');
                 if (typeof showToast === 'function') {
-                    showToast('Librarian AI Copilot is located in your Admin Dashboard.', 'info');
+                    showToast(this.getStaffCopilotNotice(), 'info');
                 }
                 return;
             }
@@ -859,14 +902,25 @@
     const projectData = sessionStorage.getItem('selectedProjectForViewDetails');
     const shouldShowChatbot = sessionStorage.getItem('showChatbotView') === 'true' || 
                               new URLSearchParams(window.location.search).get('view') === 'chatbot' ||
-                              window.location.hash === '#chatbot';
+                              window.location.hash === '#chatbot' ||
+                              window.location.hash === '#ai-chatbot';
     const shouldShowSaved = sessionStorage.getItem('showSavedProjectsView') === 'true' ||
                             new URLSearchParams(window.location.search).get('view') === 'saved' ||
                             window.location.hash === '#saved';
 
-    if (shouldShowChatbot) {
+    if (shouldShowChatbot && !ViewManager.isStaffChatbotRestrictedRole()) {
         sessionStorage.removeItem('showChatbotView');
         ViewManager.switchView('ai-chatbot');
+    } else if (shouldShowChatbot && ViewManager.isStaffChatbotRestrictedRole()) {
+        sessionStorage.removeItem('showChatbotView');
+        if (homeView) homeView.classList.add('active');
+        if (detailsView) detailsView.classList.remove('active');
+        if (chatbotView) chatbotView.classList.remove('active');
+        const homeNavItem = document.querySelector('.nav-item[data-page="index"]');
+        if (homeNavItem) homeNavItem.classList.add('active', 'nav-item-disabled');
+        if (typeof showToast === 'function') {
+            showToast(ViewManager.getStaffCopilotNotice(), 'info');
+        }
     } else if (shouldShowSaved) {
         sessionStorage.removeItem('showSavedProjectsView');
         if (window.ProjectList && typeof window.ProjectList.applyScopeFilter === 'function') {
@@ -965,20 +1019,48 @@
             </svg>
         `;
 
-        const authors = Array.isArray(project.authors)
-            ? project.authors.map(author => escapeHtml(author)).join(' · ')
-            : escapeHtml(project.authors || 'Unknown Authors');
+        function cleanNullableField(val) {
+            if (val === null || val === undefined) return '';
+            const str = String(val).trim();
+            if (!str) return '';
+            if (/^(?:none|null|undefined|n\/?a|not specified|not specified in physical manuscript record\.?|not listed|no abstract provided\.?|the abstract is not available\.?|no abstract available for this project\.?|no abstract summary provided for this project\.?)$/i.test(str)) {
+                return '';
+            }
+            return str;
+        }
 
-        const program = escapeHtml(project.program || 'Unknown Program');
-        const year = escapeHtml(project.year || 'N/A');
-        const status = escapeHtml(project.status || 'undefined');
-        const adviser = escapeHtml(project.adviser || 'Not listed');
+        function cleanNullableList(val) {
+            if (!val) return [];
+            const rawList = Array.isArray(val)
+                ? val
+                : (typeof val === 'string' ? val.split(',') : []);
+            return rawList.map(item => cleanNullableField(item)).filter(Boolean);
+        }
+
+        const cleanAuthorsList = cleanNullableList(project.authors);
+        const authors = cleanAuthorsList.length > 0
+            ? cleanAuthorsList.map(author => escapeHtml(author)).join(' · ')
+            : 'Not specified in physical manuscript record';
+
+        const program = escapeHtml(cleanNullableField(project.program) || 'Not specified in record');
+        const year = escapeHtml(cleanNullableField(project.year) || 'Not specified');
+        const status = escapeHtml(cleanNullableField(project.status) || 'Completed');
+        const rawAdviser = cleanNullableField(project.adviser || project.advisor);
+        const adviser = rawAdviser ? escapeHtml(rawAdviser) : '<span style="font-style:italic;opacity:0.85;">Not specified in physical manuscript record</span>';
         const updatedAtStr = formatDate(project.updatedAt || project.createdAt);
 
-        const locationNote = (project.catalogLocation || project.note || '').trim();
-        const callNo = (project.callNumber || '').trim();
-        const accessionNo = (project.accessionNumber || project.accessionNo || '').trim();
-        const subjectHeading = (project.subjectHeading || '').trim();
+        const rawAbstract = cleanNullableField(project.abstract);
+        const abstractDisplayHtml = rawAbstract
+            ? escapeHtml(rawAbstract)
+            : '<span class="nullable-placeholder-text" style="font-style:italic;color:var(--text-secondary);">Not specified in physical manuscript record. An abstract was not included in the hardbound volume; please consult the physical manuscript at the campus library for the complete study contents.</span>';
+
+        const keywordsList = cleanNullableList(project.keywords);
+        const topicsList = cleanNullableList(project.topics);
+
+        const locationNote = cleanNullableField(project.catalogLocation || project.note);
+        const callNo = cleanNullableField(project.callNumber);
+        const accessionNo = cleanNullableField(project.accessionNumber || project.accessionNo);
+        const subjectHeading = cleanNullableField(project.subjectHeading);
         const isCataloged = Boolean(project.cataloged || locationNote || callNo || accessionNo || subjectHeading);
 
         const headerSaveButtonHtml = isRestricted ? `
@@ -1024,7 +1106,28 @@
                         </button>
                     </div>
                 </div>
-                <p class="section-text project-abstract-text" id="project-detail-abstract" data-protected="true">${escapeHtml(project.abstract || 'No abstract available for this project.')}</p>
+                <p class="section-text project-abstract-text" id="project-detail-abstract" data-protected="true">${abstractDisplayHtml}</p>
+            </div>
+
+            <div class="project-section" style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                    <div>
+                        <h4 style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); margin: 0 0 0.45rem 0;">Keywords</h4>
+                        <div style="font-size: 0.88rem; color: var(--text-primary); line-height: 1.5;">
+                            ${keywordsList.length > 0
+                                ? keywordsList.map(k => `<span style="display:inline-block;padding:2px 8px;margin:0 4px 4px 0;border-radius:4px;border:1px solid var(--border);background:var(--surface);font-size:0.78rem;">${escapeHtml(k)}</span>`).join('')
+                                : '<span style="font-style:italic;color:var(--text-secondary);font-size:0.84rem;">Not specified in physical manuscript record</span>'}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); margin: 0 0 0.45rem 0;">Research Topics</h4>
+                        <div style="font-size: 0.88rem; color: var(--text-primary); line-height: 1.5;">
+                            ${topicsList.length > 0
+                                ? topicsList.map(t => `<span style="display:inline-block;padding:2px 8px;margin:0 4px 4px 0;border-radius:4px;border:1px solid var(--border);background:var(--surface);font-size:0.78rem;">${escapeHtml(t)}</span>`).join('')
+                                : '<span style="font-style:italic;color:var(--text-secondary);font-size:0.84rem;">Not specified in physical manuscript record</span>'}
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -1161,54 +1264,11 @@
 
                     <div class="catalog-details-dropdown-panel" id="catalog-details-dropdown-panel" style="display: none;">
                         ${isCataloged ? `
-                            <div class="catalog-panel-inner">
-                                ${locationNote ? `
-                                    <div class="catalog-info-item catalog-info-highlight">
-                                        <div class="catalog-info-label">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                            <span>Shelf Placement / Cabinet</span>
-                                        </div>
-                                        <div class="catalog-info-value catalog-location-pill">${escapeHtml(locationNote)}</div>
-                                    </div>
-                                ` : `
-                                    <div class="catalog-info-item">
-                                        <div class="catalog-info-label">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                                            <span>Shelf Placement</span>
-                                        </div>
-                                        <div class="catalog-info-value">Library Archives Section</div>
-                                    </div>
-                                `}
-                                ${callNo ? `
-                                    <div class="catalog-info-item">
-                                        <div class="catalog-info-label">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                                            <span>Call Number (Dewey/LC)</span>
-                                        </div>
-                                        <div class="catalog-info-value font-mono">${escapeHtml(callNo)}</div>
-                                    </div>
-                                ` : ''}
-                                ${accessionNo ? `
-                                    <div class="catalog-info-item">
-                                        <div class="catalog-info-label">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
-                                            <span>Accession No.</span>
-                                        </div>
-                                        <div class="catalog-info-value font-mono">${escapeHtml(accessionNo)}</div>
-                                    </div>
-                                ` : ''}
-                                ${subjectHeading ? `
-                                    <div class="catalog-info-item">
-                                        <div class="catalog-info-label">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                                            <span>Subject Heading</span>
-                                        </div>
-                                        <div class="catalog-info-value">${escapeHtml(subjectHeading)}</div>
-                                    </div>
-                                ` : ''}
-                                <div class="catalog-staff-verification-stamp">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                                    <span>Cataloged & physically indexed by Library Staff</span>
+                            <div class="catalog-unshelved-notice" id="catalog-locked-placeholder">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                <div>
+                                    <strong>Authenticated Accountability Required</strong>
+                                    <p>Physical shelf coordinates and call numbers are restricted to signed-in RE-CAPS users who complete the accountability declaration.</p>
                                 </div>
                             </div>
                         ` : `
@@ -1415,10 +1475,95 @@
         setupGalleryLightbox(project.images);
 
         /**
+         * Build verified physical shelf placement HTML (injected ONLY after authenticated user passes accountability modal)
+         */
+        function buildVerifiedCatalogPanelHtml() {
+            return `
+                <div class="catalog-panel-inner">
+                    ${locationNote ? `
+                        <div class="catalog-info-item catalog-info-highlight">
+                            <div class="catalog-info-label">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                <span>Shelf Placement / Cabinet</span>
+                            </div>
+                            <div class="catalog-info-value catalog-location-pill">${escapeHtml(locationNote)}</div>
+                        </div>
+                    ` : `
+                        <div class="catalog-info-item">
+                            <div class="catalog-info-label">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                <span>Shelf Placement</span>
+                            </div>
+                            <div class="catalog-info-value" style="font-style:italic;color:var(--text-secondary);">Not specified in physical manuscript record</div>
+                        </div>
+                    `}
+                    <div class="catalog-info-item">
+                        <div class="catalog-info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <span>Call Number (Dewey/LC)</span>
+                        </div>
+                        <div class="catalog-info-value ${callNo ? 'font-mono' : ''}" style="${callNo ? '' : 'font-style:italic;color:var(--text-secondary);'}">${callNo ? escapeHtml(callNo) : 'Not specified in physical manuscript record'}</div>
+                    </div>
+                    <div class="catalog-info-item">
+                        <div class="catalog-info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+                            <span>Accession No.</span>
+                        </div>
+                        <div class="catalog-info-value ${accessionNo ? 'font-mono' : ''}" style="${accessionNo ? '' : 'font-style:italic;color:var(--text-secondary);'}">${accessionNo ? escapeHtml(accessionNo) : 'Not specified in physical manuscript record'}</div>
+                    </div>
+                    <div class="catalog-info-item">
+                        <div class="catalog-info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                            <span>Subject Heading</span>
+                        </div>
+                        <div class="catalog-info-value" style="${subjectHeading ? '' : 'font-style:italic;color:var(--text-secondary);'}">${subjectHeading ? escapeHtml(subjectHeading) : 'Not specified in physical manuscript record'}</div>
+                    </div>
+                    <div class="catalog-staff-verification-stamp">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        <span>Cataloged & physically indexed by Library Staff</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function buildLockedCatalogPlaceholderHtml() {
+            return `
+                <div class="catalog-unshelved-notice" id="catalog-locked-placeholder">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <div>
+                        <strong>Authenticated Accountability Required</strong>
+                        <p>Physical shelf coordinates and call numbers are restricted to signed-in RE-CAPS users who complete the accountability declaration.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Helper to route unauthenticated guest / anonymous users to the Login Modal
+         */
+        function redirectGuestToLogin() {
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.add('active');
+                return;
+            }
+            const loginNavLink = document.getElementById('login-nav-link');
+            if (loginNavLink) {
+                loginNavLink.click();
+                return;
+            }
+            try {
+                sessionStorage.setItem('openLoginModal', 'true');
+            } catch (_) {}
+            window.location.href = window.location.pathname.includes('/pages/')
+                ? '../index.html'
+                : 'index.html';
+        }
+
+        /**
          * Institutional Physical Shelf Location Accountability Security Modal
          * Enforces R.A. 10173 and institutional archive accountability.
-         * Requires explicit acknowledgment checkbox before "Proceed" unlocks.
-         * Automatically logs timestamp, userName, userId, userRole, and agreed boolean to Firestore.
+         * Strictly blocks Guest / Anonymous users from viewing physical book placements and routes the action button to Login first.
          */
         function showCatalogAccountabilityModal(onProceed) {
             // Remove any existing instance
@@ -1426,10 +1571,26 @@
             if (existingModal) existingModal.remove();
 
             const currentUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-            const userName = currentUser?.displayName || sessionStorage.getItem('userName') || localStorage.getItem('userName') || 'Campus Researcher';
-            const userEmail = currentUser?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || 'campus-researcher@ctu.edu.ph';
-            const userId = currentUser?.uid || 'guest-session';
-            const userRole = sessionStorage.getItem('userType') || sessionStorage.getItem('userRole') || localStorage.getItem('userType') || 'student';
+            let cachedAuth = null;
+            try {
+                cachedAuth = JSON.parse(localStorage.getItem('cachedAuthState') || 'null');
+            } catch (_) {}
+
+            const isAuthenticated = Boolean(
+                (currentUser && currentUser.uid && !currentUser.isAnonymous) ||
+                (cachedAuth && cachedAuth.isLoggedIn && cachedAuth.uid && sessionStorage.getItem('isLoggedIn') !== 'false')
+            );
+
+            const userId = isAuthenticated ? (currentUser?.uid || cachedAuth?.uid || '') : null;
+            const userEmail = isAuthenticated
+                ? (currentUser?.email || cachedAuth?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || '')
+                : '';
+            const userName = isAuthenticated
+                ? (currentUser?.displayName || cachedAuth?.fullName || cachedAuth?.displayName || sessionStorage.getItem('userName') || localStorage.getItem('userName') || (userEmail ? userEmail.split('@')[0] : 'Authenticated Researcher'))
+                : 'Guest User (Sign-In Required)';
+            const userRole = isAuthenticated
+                ? (cachedAuth?.userType || cachedAuth?.role || sessionStorage.getItem('userType') || sessionStorage.getItem('userRole') || localStorage.getItem('userType') || 'student')
+                : 'guest';
 
             const modalEl = document.createElement('div');
             modalEl.id = 'catalog-accountability-modal';
@@ -1464,7 +1625,7 @@
                     <div class="catalog-accountability-body">
                         <div class="catalog-accountability-policy-box">
                             <p>
-                                Under university repository regulations, physical undergraduate capstone volumes and their shelf placements are restricted assets. Requesting the specific cabinet placement and classification call number requires formal acknowledgment and auditable user logging.
+                                Under university repository regulations, physical undergraduate capstone volumes and their shelf placements are restricted assets. Requesting the specific cabinet placement and classification call number requires an authenticated RE-CAPS account, formal acknowledgment, and auditable user logging.
                             </p>
                         </div>
 
@@ -1480,12 +1641,19 @@
                                 </div>
                                 <div class="catalog-meta-col">
                                     <span class="catalog-meta-label">Accountable User</span>
-                                    <strong class="catalog-meta-value">${escapeHtml(userName)}</strong>
+                                    <strong class="catalog-meta-value" style="${!isAuthenticated ? 'color: #FCCC56;' : ''}">${escapeHtml(userName)}</strong>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="catalog-accountability-agreement">
+                        ${!isAuthenticated ? `
+                        <div class="catalog-accountability-policy-box" style="border-left: 3px solid #FCCC56; margin-top: 0.75rem;">
+                            <p style="color: #FCCC56; font-weight: 600; margin-bottom: 0.2rem;">Authentication Required to View Book Placement</p>
+                            <p style="margin: 0;">Guest and anonymous users cannot view physical shelf placements. Click the sign-in button below to authenticate your RE-CAPS account first.</p>
+                        </div>
+                        ` : ''}
+
+                        <div class="catalog-accountability-agreement" style="${!isAuthenticated ? 'opacity: 0.6;' : ''}">
                             <label class="catalog-accountability-check-label" for="catalog-accountability-checkbox">
                                 <input type="checkbox" id="catalog-accountability-checkbox" class="catalog-accountability-checkbox">
                                 <span class="catalog-accountability-custom-box">
@@ -1502,8 +1670,8 @@
                         <button type="button" class="catalog-btn-secondary" id="catalog-accountability-cancel-btn">
                             Cancel
                         </button>
-                        <button type="button" class="catalog-btn-primary" id="catalog-accountability-proceed-btn" disabled>
-                            <span>Proceed to Location</span>
+                        <button type="button" class="catalog-btn-primary" id="catalog-accountability-proceed-btn" ${isAuthenticated ? 'disabled' : ''}>
+                            <span>${isAuthenticated ? 'Proceed to Location' : 'Log In to View Location'}</span>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </button>
                     </div>
@@ -1531,6 +1699,11 @@
             document.addEventListener('keydown', handleKeyDown);
 
             checkbox.addEventListener('change', () => {
+                if (!isAuthenticated) {
+                    // Guest users cannot unlock location via checkbox; keep proceed button enabled to route to Login
+                    proceedBtn.disabled = false;
+                    return;
+                }
                 proceedBtn.disabled = !checkbox.checked;
             });
 
@@ -1539,6 +1712,26 @@
             backdrop.addEventListener('click', closeModal);
 
             proceedBtn.addEventListener('click', async () => {
+                // Re-verify live authentication state on click: unauthenticated / guest users MUST log in first
+                const liveUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+                let liveCached = null;
+                try {
+                    liveCached = JSON.parse(localStorage.getItem('cachedAuthState') || 'null');
+                } catch (_) {}
+                const liveAuthenticated = Boolean(
+                    (liveUser && liveUser.uid && !liveUser.isAnonymous) ||
+                    (liveCached && liveCached.isLoggedIn && liveCached.uid && sessionStorage.getItem('isLoggedIn') !== 'false')
+                );
+
+                if (!isAuthenticated || !liveAuthenticated || !userId) {
+                    closeModal();
+                    if (typeof showToast === 'function') {
+                        showToast('Authentication required. Please log in to view the physical book placement.', 'warning');
+                    }
+                    redirectGuestToLogin();
+                    return;
+                }
+
                 if (!checkbox.checked) return;
 
                 proceedBtn.disabled = true;
@@ -1609,9 +1802,12 @@
                 const isExpanded = catalogToggleBtn.getAttribute('aria-expanded') === 'true';
 
                 if (isExpanded) {
-                    // Close the dropdown and reset state (next open requires accountability modal again if shelved)
+                    // Close the dropdown and reset panel content so shelf location is removed from DOM
                     catalogToggleBtn.setAttribute('aria-expanded', 'false');
                     catalogToggleBtn.classList.remove('is-open');
+                    if (isCataloged) {
+                        catalogPanel.innerHTML = buildLockedCatalogPlaceholderHtml();
+                    }
                     catalogPanel.style.display = 'none';
                 } else {
                     // IF the project is "Awaiting Shelf" (empty/not cataloged yet),
@@ -1623,8 +1819,9 @@
                         return;
                     }
 
-                    // For shelved projects with restricted physical locations, require the accountability modal
+                    // For shelved projects with restricted physical locations, require authenticated accountability modal
                     showCatalogAccountabilityModal(() => {
+                        catalogPanel.innerHTML = buildVerifiedCatalogPanelHtml();
                         catalogToggleBtn.setAttribute('aria-expanded', 'true');
                         catalogToggleBtn.classList.add('is-open');
                         catalogPanel.style.display = 'block';
@@ -1642,7 +1839,7 @@
             return `
                 <div class="no-images-placeholder">
                     ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('image-placeholder') : ''}
-                    <span>No physical book images provided</span>
+                    <span>Not specified in physical manuscript record</span>
                 </div>
             `;
         }

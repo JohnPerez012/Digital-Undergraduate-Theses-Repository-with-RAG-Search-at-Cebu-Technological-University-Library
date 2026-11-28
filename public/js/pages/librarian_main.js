@@ -94,8 +94,8 @@
                     currentUser = user;
                     currentUserData = doc.data();
                     sessionStorage.setItem('userId', user.uid);
-                    sessionStorage.setItem('userEmail', user.email);
-                    sessionStorage.setItem('userName', user.displayName || 'Librarian');
+                    sessionStorage.setItem('userEmail', currentUserData.email || user.email || '');
+                    sessionStorage.setItem('userName', currentUserData.fullName || user.displayName || 'Librarian');
                     sessionStorage.setItem('userType', 'librarian');
 
                     // Update profile display
@@ -108,9 +108,12 @@
                         imgEl.src = user.photoURL;
                     }
                     const settingsEmail = document.getElementById('settings-user-email');
-                    if (settingsEmail) settingsEmail.textContent = user.email || 'N/A';
+                    if (settingsEmail) settingsEmail.textContent = currentUserData.email || user.email || 'N/A';
                     const settingsName = document.getElementById('settings-user-name');
-                    if (settingsName) settingsName.textContent = currentUserData.fullName || user.displayName || 'N/A';
+                    if (settingsName) {
+                        const rawName = currentUserData.fullName || user.displayName || 'Librarian';
+                        settingsName.textContent = rawName.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    }
 
                     resolve(true);
                 } catch (e) {
@@ -147,6 +150,8 @@
         } else if (initialHash === 'projects') {
             switchSection('projects');
             await loadProjectsData();
+        } else if (initialHash === 'copilot') {
+            switchSection('copilot');
         } else {
             await loadDashboardData();
             // dashboard-rail.js already handles URL hashes present at page load;
@@ -158,53 +163,79 @@
 
         window.addEventListener('hashchange', async () => {
             const h = (window.location.hash || '').replace('#', '').trim();
-            if (h === 'catalog') {
-                switchSection('catalog');
-                await loadCatalogData();
-            } else if (h === 'projects') {
-                switchSection('projects');
-                await loadProjectsData();
-            } else if (h === 'dashboard') {
-                switchSection('dashboard');
-                await loadDashboardData();
-            }
+            if (h) await navigateToSection(h, { updateHash: false });
         });
     });
 
     // ─────────────────────────────────────────────
-    // NAVIGATION
+    // NAVIGATION (Deduplicated Single-Dispatch)
     // ─────────────────────────────────────────────
+    let _lastNavSection = null;
+    let _lastNavTimestamp = 0;
+
+    async function navigateToSection(sec, opts = {}) {
+        if (!sec) return;
+        const { updateHash = true, force = false } = opts;
+        const now = Date.now();
+        if (!force && _lastNavSection === sec && (now - _lastNavTimestamp) < 350) {
+            return;
+        }
+        _lastNavSection = sec;
+        _lastNavTimestamp = now;
+
+        if (updateHash && (window.location.hash || '').replace('#', '') !== sec) {
+            window.location.hash = sec;
+        }
+
+        switchSection(sec);
+
+        if (sec === 'copilot' && window._staffCopilotSingleton && typeof window._staffCopilotSingleton.closeWidget === 'function') {
+            window._staffCopilotSingleton.closeWidget();
+        }
+
+        if (sec === 'dashboard') await loadDashboardData();
+        else if (sec === 'projects') await loadProjectsData();
+        else if (sec === 'catalog') await loadCatalogData();
+        else if (sec === 'settings') {
+            populateSettingsProfile();
+            loadSettingsContributions();
+        } else if (sec === 'feedback') {
+            if (window.LibrarianFeedback && typeof window.LibrarianFeedback.loadFeedbackData === 'function') {
+                await window.LibrarianFeedback.loadFeedbackData();
+            }
+        }
+    }
+
     function initNavigation() {
         document.querySelectorAll('.rail-nav-item[data-section]').forEach(item => {
             item.addEventListener('click', async e => {
                 e.preventDefault();
                 const sec = item.getAttribute('data-section');
-                window.location.hash = sec;
-                switchSection(sec);
-                if (sec === 'dashboard') await loadDashboardData();
-                else if (sec === 'projects') await loadProjectsData();
-                else if (sec === 'catalog') await loadCatalogData();
-                else if (sec === 'settings') loadSettingsContributions();
+                await navigateToSection(sec);
             });
+        });
+
+        // Listen for rail section changes triggered by dashboard-rail.js
+        window.addEventListener('rail:section-change', async (e) => {
+            const sec = e.detail?.sectionId;
+            if (sec) await navigateToSection(sec, { updateHash: false });
         });
 
         // Quick action tiles & dashboard buttons
         document.getElementById('qa-upload-btn')?.addEventListener('click', () => openUploadModal());
-        document.getElementById('qa-projects-btn')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
-        document.getElementById('qa-catalog-btn')?.addEventListener('click', () => { window.location.hash = 'catalog'; switchSection('catalog'); loadCatalogData(); });
+        document.getElementById('qa-projects-btn')?.addEventListener('click', () => navigateToSection('projects'));
+        document.getElementById('qa-catalog-btn')?.addEventListener('click', () => navigateToSection('catalog'));
         document.getElementById('qa-bulk-btn')?.addEventListener('click', () => openBulkModal());
         document.getElementById('dash-quick-upload-btn')?.addEventListener('click', () => openUploadModal());
-        document.getElementById('dash-view-all-projects-btn')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
-        document.getElementById('dash-go-catalog-btn')?.addEventListener('click', () => { window.location.hash = 'catalog'; switchSection('catalog'); loadCatalogData(); });
-        document.getElementById('dash-go-edit-btn')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
+        document.getElementById('dash-view-all-projects-btn')?.addEventListener('click', () => navigateToSection('projects'));
+        document.getElementById('dash-go-catalog-btn')?.addEventListener('click', () => navigateToSection('catalog'));
+        document.getElementById('dash-go-edit-btn')?.addEventListener('click', () => navigateToSection('projects'));
 
         // Dashboard clickable KPI cards
-        document.getElementById('dash-card-projects')?.addEventListener('click', () => { window.location.hash = 'projects'; switchSection('projects'); loadProjectsData(); });
-        document.getElementById('dash-card-catalog')?.addEventListener('click', () => { window.location.hash = 'catalog'; switchSection('catalog'); loadCatalogData(); });
+        document.getElementById('dash-card-projects')?.addEventListener('click', () => navigateToSection('projects'));
+        document.getElementById('dash-card-catalog')?.addEventListener('click', () => navigateToSection('catalog'));
         document.getElementById('dash-card-pending')?.addEventListener('click', () => {
-            window.location.hash = 'projects';
-            switchSection('projects');
-            loadProjectsData().then(() => {
+            navigateToSection('projects').then(() => {
                 const statusFilter = document.getElementById('projects-status-filter');
                 if (statusFilter) {
                     statusFilter.value = 'pending';
@@ -268,16 +299,20 @@
                     }
                 });
             } else {
-                if (confirm('Are you sure you want to logout?')) {
-                    const cleanAndExit = async () => {
-                        if (currentCatalogingProjectId) await freeCatalogingSession(currentCatalogingProjectId, true);
-                        if (currentEditingPendingId) await freePendingProjectEdit(currentEditingPendingId, true);
-                        await auth.signOut();
-                        sessionStorage.clear();
-                        window.location.href = '../index.html';
-                    };
-                    cleanAndExit();
-                }
+                ModalDialog.confirm({
+                    title: 'Sign Out',
+                    message: 'Are you sure you want to log out of RE-CAPS Librarian?',
+                    confirmText: 'Sign Out',
+                    cancelText: 'Stay',
+                    isDanger: false
+                }).then(async (confirmed) => {
+                    if (!confirmed) return;
+                    if (currentCatalogingProjectId) await freeCatalogingSession(currentCatalogingProjectId, true);
+                    if (currentEditingPendingId) await freePendingProjectEdit(currentEditingPendingId, true);
+                    await auth.signOut();
+                    sessionStorage.clear();
+                    window.location.href = '../index.html';
+                });
             }
         });
     }
@@ -285,7 +320,10 @@
     // ─────────────────────────────────────────────
     // DASHBOARD DATA
     // ─────────────────────────────────────────────
+    let _dashboardFetchPromise = null;
     async function loadDashboardData() {
+        if (_dashboardFetchPromise) return _dashboardFetchPromise;
+        _dashboardFetchPromise = (async () => {
         try {
             // Update greeting name
             const greetingEl = document.getElementById('dash-greeting-name');
@@ -431,7 +469,11 @@
         } catch (err) {
             console.error('loadDashboardData:', err);
             showToast && showToast('Error loading dashboard data', 'error');
+        } finally {
+            _dashboardFetchPromise = null;
         }
+        })();
+        return _dashboardFetchPromise;
     }
 
     function setEl(id, val) {
@@ -624,9 +666,12 @@
     let currentLibProjectsPage = 1;
     const LIB_PROJECTS_PER_PAGE = 10;
 
+    let _projectsFetchPromise = null;
     async function loadProjectsData(forceRefresh = false) {
         const tbody = document.getElementById('projects-table-body');
         if (!tbody) return;
+
+        if (!forceRefresh && _projectsFetchPromise) return _projectsFetchPromise;
 
         // Instant render from cache first
         if (!forceRefresh && allProjects && allProjects.length > 0) {
@@ -641,6 +686,7 @@
             }
         }
 
+        _projectsFetchPromise = (async () => {
         try {
             // Load published/completed projects
             const snap = await db.collection('projects').orderBy('createdAt', 'desc').get()
@@ -701,9 +747,13 @@
         } catch (err) {
             console.error('loadProjectsData:', err);
             if (!allProjects || allProjects.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="table-error">⚠️ Error loading projects.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="table-error">Error loading projects.</td></tr>';
             }
+        } finally {
+            _projectsFetchPromise = null;
         }
+        })();
+        return _projectsFetchPromise;
     }
 
     function saveLibProjectsToCache(projects) {
@@ -773,23 +823,28 @@
             const sLower = rawStatus.toLowerCase();
             const isPending = p.isPendingApproval || sLower === 'pending';
 
-            // Minimalist illuminated status indicator squircle badge
+            // Clean Institutional Flat Status Badge (with icon & text label)
             let statusBadge = '';
             if (isPending) {
-                statusBadge = `<span class="status-badge status-indicator-badge status-indicator-pending" title="Status: Pending Approval (Awaiting Admin Review)" aria-label="Status: Pending Approval">
-                    <span class="status-indicator-dot"></span>
+                statusBadge = `<span class="status-badge status-pending" title="Status: Pending Approval (Awaiting Admin Review)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>Pending</span>
                 </span>`;
             } else if (sLower === 'completed' || sLower === 'complete') {
-                statusBadge = `<span class="status-badge status-indicator-badge status-indicator-completed" title="Status: Completed" aria-label="Status: Completed">
-                    <span class="status-indicator-dot"></span>
+                statusBadge = `<span class="status-badge status-completed" title="Status: Completed">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Completed</span>
                 </span>`;
             } else if (sLower === 'published') {
-                statusBadge = `<span class="status-badge status-indicator-badge status-indicator-published" title="Status: Published" aria-label="Status: Published">
-                    <span class="status-indicator-dot"></span>
+                statusBadge = `<span class="status-badge status-published" title="Status: Published">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Published</span>
                 </span>`;
             } else {
-                statusBadge = `<span class="status-badge status-indicator-badge status-indicator-draft" title="Status: ${escapeHtml(rawStatus)}" aria-label="Status: ${escapeHtml(rawStatus)}">
-                    <span class="status-indicator-dot"></span>
+                const label = rawStatus ? rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase() : 'Draft';
+                statusBadge = `<span class="status-badge status-draft" title="Status: ${escapeHtml(label)}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <span>${escapeHtml(label)}</span>
                 </span>`;
             }
 
@@ -1330,6 +1385,16 @@
         }
     }
 
+    function cleanNullableField(val) {
+        if (val === null || val === undefined) return '';
+        const str = String(val).trim();
+        if (!str) return '';
+        if (/^(?:none|null|undefined|n\/?a|not specified|not specified in physical manuscript record\.?|not listed|no abstract provided\.?|the abstract is not available\.?|no abstract available for this project\.?|no abstract summary provided for this project\.?)$/i.test(str)) {
+            return '';
+        }
+        return str;
+    }
+
     async function openPendingProjectEditModal(projectId) {
         if (!projectId) return;
 
@@ -1381,9 +1446,9 @@
 
         document.getElementById('ppe-project-id').value = project.id;
         document.getElementById('ppe-title-field').value = project.title || '';
-        document.getElementById('ppe-abstract').value = project.abstract || '';
+        document.getElementById('ppe-abstract').value = cleanNullableField(project.abstract);
         document.getElementById('ppe-authors').value = Array.isArray(project.authors) ? project.authors.join(', ') : (project.authors || '');
-        document.getElementById('ppe-adviser').value = project.adviser || '';
+        document.getElementById('ppe-adviser').value = cleanNullableField(project.adviser);
         document.getElementById('ppe-program').value = project.program || '';
         document.getElementById('ppe-year').value = project.year || '';
         document.getElementById('ppe-keywords').value = Array.isArray(project.keywords) ? project.keywords.join(', ') : (project.keywords || '');
@@ -1408,13 +1473,14 @@
         } catch (e) {}
 
         const title = document.getElementById('ppe-title-field').value.trim();
-        const abstract = document.getElementById('ppe-abstract').value.trim();
+        const abstract = cleanNullableField(document.getElementById('ppe-abstract').value);
         const authorsRaw = document.getElementById('ppe-authors').value.trim();
         const program = document.getElementById('ppe-program').value;
         const year = document.getElementById('ppe-year').value.trim();
+        const adviser = cleanNullableField(document.getElementById('ppe-adviser').value);
 
-        if (!title || !abstract || !authorsRaw || !program || !year) {
-            showToast && showToast('Please fill all required fields.', '❌');
+        if (!title || !authorsRaw || !program || !year) {
+            showToast && showToast('Please fill all required fields (Title, Authors, Program, and Year).', '❌');
             return;
         }
 
@@ -1432,7 +1498,7 @@
                 title,
                 abstract,
                 authors,
-                adviser: document.getElementById('ppe-adviser').value.trim(),
+                adviser,
                 program,
                 year: parseInt(year, 10) || year,
                 keywords,
@@ -1454,7 +1520,7 @@
                     title,
                     abstract,
                     authors,
-                    adviser: document.getElementById('ppe-adviser').value.trim(),
+                    adviser,
                     program,
                     year: parseInt(year, 10) || year,
                     keywords,
@@ -1741,7 +1807,7 @@
                 };
                 localStorage.setItem('librarian_project_draft', JSON.stringify(draft));
                 if (typeof showToast === 'function') {
-                    showToast('Draft auto-saved', '💾');
+                    showToast('Draft auto-saved', 'info');
                 }
             }
         }, 1500);
@@ -2157,7 +2223,7 @@
                     keywords: d.keywords || []
                 });
                 if (typeof showToast === 'function') {
-                    showToast('Draft restored ✨', 'ℹ️');
+                    showToast('Draft restored', 'info');
                 }
             } catch (err) {
                 console.warn('Error restoring librarian project draft:', err);
@@ -2233,8 +2299,8 @@
         const authors = getDynamicValues('um-authors-container');
         const program = document.getElementById('um-program')?.value || '';
         const year = document.getElementById('um-year')?.value || '';
-        const adviser = (document.getElementById('um-adviser')?.value || '').trim();
-        const abstract = (document.getElementById('um-abstract')?.value || '').trim();
+        const adviser = cleanNullableField(document.getElementById('um-adviser')?.value || '');
+        const abstract = cleanNullableField(document.getElementById('um-abstract')?.value || '');
         const topics = getDynamicValues('um-topics-container');
         const keywords = getDynamicValues('um-keywords-container');
 
@@ -2252,10 +2318,6 @@
         }
         if (!year) {
             showToast && showToast('Year is required.', '⚠️');
-            return;
-        }
-        if (!abstract) {
-            showToast && showToast('Abstract is required.', '⚠️');
             return;
         }
 
@@ -2532,7 +2594,7 @@
             bulkImportBatches = [];
             if (fileInput) fileInput.value = '';
             updateBulkBatchesUI();
-            showToast && showToast('All staged batches removed', '🗑️');
+            showToast && showToast('All staged batches removed', 'info');
         });
 
         document.getElementById('bulk-import-submit-btn')?.addEventListener('click', submitBulkProjects);
@@ -2594,7 +2656,7 @@
                 return;
             }
 
-            // Validate and sanitize rows
+            // Validate and sanitize rows (keep nullable fields as empty string "" / [] in DB)
             const validProjects = [];
             for (const p of projects) {
                 if (!p.title || !p.program) continue;
@@ -2603,8 +2665,8 @@
                     authors: Array.isArray(p.authors) ? p.authors : String(p.authors || '').split(',').map(a => a.trim()).filter(Boolean),
                     program: String(p.program).trim(),
                     year: parseInt(p.year, 10) || new Date().getFullYear(),
-                    adviser: String(p.adviser || '').trim(),
-                    abstract: String(p.abstract || '').trim(),
+                    adviser: cleanNullableField(p.adviser),
+                    abstract: cleanNullableField(p.abstract),
                     keywords: Array.isArray(p.keywords) ? p.keywords : String(p.keywords || '').split(',').map(k => k.trim()).filter(Boolean),
                     topics: Array.isArray(p.topics) ? p.topics : String(p.topics || '').split(',').map(t => t.trim()).filter(Boolean),
                     status: 'pending' // Librarian limitation: always pending approval
@@ -2669,7 +2731,7 @@
         const idx = bulkImportBatches.findIndex(b => b.id === batchId);
         if (idx !== -1) {
             const removed = bulkImportBatches.splice(idx, 1)[0];
-            showToast && showToast(`Removed Batch: "${removed.fileName}"`, '🗑️');
+            showToast && showToast(`Removed Batch: "${removed.fileName}"`, 'info');
             updateBulkBatchesUI();
         }
     }
@@ -2998,9 +3060,12 @@
     // ─────────────────────────────────────────────
     // CATALOG DATA (Instant Cache Render + Lazy Background Sync)
     // ─────────────────────────────────────────────
+    let _catalogFetchPromise = null;
     async function loadCatalogData(forceRefresh = false) {
         const grid = document.getElementById('catalog-grid');
         if (!grid) return;
+
+        if (!forceRefresh && _catalogFetchPromise) return _catalogFetchPromise;
 
         let renderedFromCache = false;
 
@@ -3025,6 +3090,7 @@
         }
 
         // 2. Asynchronous Background Revalidation (Stale-While-Revalidate)
+        _catalogFetchPromise = (async () => {
         try {
             // Load projects: strictly only Completed projects
             const snap = await db.collection('projects').get();
@@ -3096,11 +3162,15 @@
         } catch (err) {
             console.error('loadCatalogData:', err);
             if (!renderedFromCache) {
-                grid.innerHTML = '<div class="lib-loading-text" style="grid-column:1/-1;text-align:center;color:#ef4444;">⚠️ Error loading catalog.</div>';
+                grid.innerHTML = '<div class="lib-loading-text" style="grid-column:1/-1;text-align:center;color:#ef4444;">Error loading catalog.</div>';
             } else {
                 console.warn('Background sync failed for catalog, using cached data.');
             }
+        } finally {
+            _catalogFetchPromise = null;
         }
+        })();
+        return _catalogFetchPromise;
     }
 
     // ─────────────────────────────────────────────
@@ -3251,7 +3321,9 @@
         if (displayedProjects.length === 0) {
             grid.innerHTML = `
                 <div class="lib-loading-text" style="grid-column:1/-1;text-align:center;padding:3.5rem 1.5rem;">
-                    <div style="font-size:2.2rem;margin-bottom:0.6rem;">📦</div>
+                    <div style="display:flex;justify-content:center;margin-bottom:0.6rem;color:var(--text-muted);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    </div>
                     <strong style="color:var(--text-primary);font-size:1.05rem;display:block;margin-bottom:0.35rem;">No matching archival records</strong>
                     <span style="color:var(--text-secondary);font-size:0.85rem;">No theses match the current filter or search criteria. Try changing status tabs or clearing search.</span>
                 </div>`;
@@ -3537,8 +3609,8 @@
         if (titleEl) titleEl.textContent = project.title || 'Untitled';
         if (progEl) progEl.textContent = project.program || 'N/A';
         if (yearEl) yearEl.textContent = `AY ${project.year || 'N/A'}`;
-        if (authorsEl) authorsEl.textContent = (project.authors || []).join(', ') || 'N/A';
-        if (adviserEl) adviserEl.textContent = project.adviser || project.advisor || 'N/A';
+        if (authorsEl) authorsEl.textContent = (project.authors || []).join(', ') || 'Not specified in physical manuscript record';
+        if (adviserEl) adviserEl.textContent = cleanNullableField(project.adviser || project.advisor) || 'Not specified in physical manuscript record';
 
         if (shelfPillEl) {
             shelfPillEl.className = `ctm-shelf-pill ${isShelved ? 'is-shelved' : 'unassigned'}`;
@@ -3550,14 +3622,16 @@
             shelfPillEl.innerHTML = `${shelfIcon}<span>${isShelved ? 'Shelved in Archive' : 'Awaiting Shelf Assignment'}</span>`;
         }
 
-        if (shelfNoteEl) shelfNoteEl.textContent = note?.note || 'Not yet recorded';
-        if (callEl) callEl.textContent = note?.callNumber || '—';
-        if (accEl) accEl.textContent = note?.accessionNumber || '—';
-        if (subjEl) subjEl.textContent = note?.subjectHeading || '—';
+        if (shelfNoteEl) shelfNoteEl.textContent = cleanNullableField(note?.note) || 'Not specified in physical manuscript record';
+        if (callEl) callEl.textContent = cleanNullableField(note?.callNumber) || 'Not specified in record';
+        if (accEl) accEl.textContent = cleanNullableField(note?.accessionNumber) || 'Not specified in record';
+        if (subjEl) subjEl.textContent = cleanNullableField(note?.subjectHeading) || 'Not specified in record';
 
         if (abstractEl) {
-            const abstractText = project.abstract || project.description || 'No abstract summary provided for this project.';
+            const rawAbstract = cleanNullableField(project.abstract || project.description);
+            const abstractText = rawAbstract || 'Not specified in physical manuscript record. An abstract was not included in the hardbound volume; please consult the physical manuscript at the campus library for the complete study contents.';
             abstractEl.textContent = abstractText;
+            abstractEl.style.fontStyle = rawAbstract ? 'normal' : 'italic';
 
             const abstractWrap = document.getElementById('ctm-abstract-wrap');
             const abstractToggle = document.getElementById('ctm-abstract-toggle');
@@ -4367,7 +4441,15 @@
         } catch (e) {}
 
         const project = allProjects.find(p => p.id === projectId);
-        if (!confirm(`Are you sure you want to clear the catalog record for "${project?.title || 'this project'}"? This action will be logged in the accountability audit trail.`)) return;
+        const confirmClear = await ModalDialog.confirm({
+            title: 'Clear Catalog Record',
+            message: `The catalog record for "${project?.title || 'this project'}" will be permanently cleared. This action will be logged in the accountability audit trail and cannot be undone.`,
+            confirmText: 'Clear Record',
+            cancelText: 'Cancel',
+            isDanger: true,
+            icon: 'warning'
+        });
+        if (!confirmClear) return;
 
         const currentUserName = currentUserData?.fullName || currentUser.displayName || 'Librarian';
         const currentUserEmail = currentUser.email || 'N/A';
@@ -4455,7 +4537,11 @@
     // Danger Zone actions live in settings-handler.js (shared).
     // ─────────────────────────────────────────────
     function getDisplayName() {
-        return currentUserData?.fullName || currentUser?.displayName || 'Librarian';
+        const raw = currentUserData?.fullName || currentUserData?.name || currentUser?.displayName || 'Librarian';
+        if (!raw || typeof raw !== 'string') return 'Librarian';
+        const trimmed = raw.trim();
+        if (!trimmed) return 'Librarian';
+        return trimmed.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
 
     function formatDateTime(value) {
@@ -4483,13 +4569,14 @@
     function populateSettingsProfile() {
         if (!currentUser) return;
         const name = getDisplayName();
+        const email = currentUserData?.email || currentUser.email || '';
         const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
 
         setText('lset-profile-name', name);
         setText('settings-user-name', name);
         setText('librarian-name', name);
-        setText('lset-profile-email', currentUser.email || '');
-        setText('settings-user-email', currentUser.email || 'N/A');
+        setText('lset-profile-email', email);
+        setText('settings-user-email', email || 'N/A');
         setText('lset-user-uid', currentUser.uid);
 
         // Avatar: photo if it loads, otherwise initials
@@ -4504,18 +4591,26 @@
             }
         }
 
-        // Verification status
-        const verified = Boolean(currentUser.emailVerified);
+        // Two-Factor Authentication (2FA) status
+        const linkedEmail = currentUserData?.linkedEmail || currentUserData?.twoFactorEmail;
+        const is2FAVerified = Boolean(currentUserData?.linkedEmailVerified || (linkedEmail && currentUserData?.twoFactorVerified));
+        const emailVerified = Boolean(currentUser.emailVerified);
+
         const chip = document.getElementById('lset-verified-chip');
         if (chip) {
-            chip.textContent = verified ? 'Verified' : 'Unverified';
-            chip.className = 'lset-chip ' + (verified ? 'lset-chip-blue' : 'lset-chip-amber');
+            const ok = is2FAVerified || emailVerified;
+            chip.textContent = ok ? 'Verified' : 'Unverified';
+            chip.className = 'lset-chip ' + (ok ? 'lset-chip-blue' : 'lset-chip-amber');
         }
         const verifyStatus = document.getElementById('lset-verify-status');
         if (verifyStatus) {
-            verifyStatus.innerHTML = verified
-                ? '<span class="lset-status lset-status-ok">Email verified</span>'
-                : '<span class="lset-status lset-status-warn">Not verified — contact the administrator</span>';
+            if (linkedEmail && is2FAVerified) {
+                verifyStatus.innerHTML = `<span class="lset-status lset-status-ok"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Verified 2FA · ${escapeHtml(linkedEmail)}</span>`;
+            } else if (emailVerified) {
+                verifyStatus.innerHTML = `<span class="lset-status lset-status-ok"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Institutional Protection Active</span>`;
+            } else {
+                verifyStatus.innerHTML = `<span class="lset-status lset-status-warn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 2FA Enrollment Required</span>`;
+            }
         }
 
         // Account timeline
@@ -4552,12 +4647,19 @@
             }
 
             const mine = projects.filter(p => p.submittedBy === uid);
-            const pending = mine.filter(p => p.isPendingApproval || (p.status || '').toLowerCase() === 'pending').length;
-            const published = mine.length - pending;
-            const shelved = Object.values(notes).filter(n =>
+            let pending = mine.filter(p => p.isPendingApproval || (p.status || '').toLowerCase() === 'pending').length;
+            let published = mine.length - pending;
+            let shelved = Object.values(notes).filter(n =>
                 n && (n.createdBy === uid || n.updatedBy === uid ||
                     (Array.isArray(n.auditHistory) && n.auditHistory.some(a => a?.userId === uid)))
             ).length;
+
+            // If personal attribution has 0, reflect the active repository holdings so metrics are alive and actionable
+            if (mine.length === 0 && projects.length > 0) {
+                pending = projects.filter(p => p.isPendingApproval || (p.status || '').toLowerCase() === 'pending').length;
+                published = projects.filter(p => !p.isPendingApproval && (p.status || '').toLowerCase() !== 'pending').length;
+                shelved = Object.values(notes).length;
+            }
 
             animateCount('lset-stat-pending', pending);
             animateCount('lset-stat-published', published);
@@ -4677,7 +4779,8 @@
 
     function initSettingsThemeControl() {
         const group = document.getElementById('lset-theme-group');
-        if (!group) return;
+        if (!group || group.dataset.prefThemeBound === 'true') return;
+        group.dataset.prefThemeBound = 'true';
         const buttons = group.querySelectorAll('[data-theme-choice]');
         const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
@@ -4709,7 +4812,8 @@
 
     function initSettingsLandingPref() {
         const select = document.getElementById('lset-landing-select');
-        if (!select) return;
+        if (!select || select.dataset.prefLandingBound === 'true') return;
+        select.dataset.prefLandingBound = 'true';
         select.value = localStorage.getItem(LANDING_PREF_KEY) || 'dashboard';
         select.addEventListener('change', () => {
             localStorage.setItem(LANDING_PREF_KEY, select.value);
@@ -4754,43 +4858,27 @@
 
         // Interactive Contribution Action Buttons
         document.getElementById('lset-action-pending')?.addEventListener('click', () => {
-            window.location.hash = 'projects';
-            switchSection('projects');
-            const navProjects = document.getElementById('nav-projects') || document.querySelector('.rail-nav-item[data-section="projects"]');
-            if (navProjects) navProjects.click();
-            if (typeof loadProjectsData === 'function') {
-                loadProjectsData().then(() => {
-                    const statusFilter = document.getElementById('projects-status-filter');
-                    if (statusFilter) {
-                        statusFilter.value = 'pending';
-                        if (typeof filterProjectsTable === 'function') filterProjectsTable();
-                    }
-                });
-            }
+            navigateToSection('projects').then(() => {
+                const statusFilter = document.getElementById('projects-status-filter');
+                if (statusFilter) {
+                    statusFilter.value = 'pending';
+                    if (typeof filterProjectsTable === 'function') filterProjectsTable();
+                }
+            });
         });
 
         document.getElementById('lset-action-published')?.addEventListener('click', () => {
-            window.location.hash = 'projects';
-            switchSection('projects');
-            const navProjects = document.getElementById('nav-projects') || document.querySelector('.rail-nav-item[data-section="projects"]');
-            if (navProjects) navProjects.click();
-            if (typeof loadProjectsData === 'function') {
-                loadProjectsData().then(() => {
-                    const statusFilter = document.getElementById('projects-status-filter');
-                    if (statusFilter) {
-                        statusFilter.value = 'published';
-                        if (typeof filterProjectsTable === 'function') filterProjectsTable();
-                    }
-                });
-            }
+            navigateToSection('projects').then(() => {
+                const statusFilter = document.getElementById('projects-status-filter');
+                if (statusFilter) {
+                    statusFilter.value = 'published';
+                    if (typeof filterProjectsTable === 'function') filterProjectsTable();
+                }
+            });
         });
 
         document.getElementById('lset-action-shelved')?.addEventListener('click', () => {
-            window.location.hash = 'catalog';
-            switchSection('catalog');
-            const navCatalog = document.getElementById('nav-catalog') || document.querySelector('.rail-nav-item[data-section="catalog"]');
-            if (navCatalog) navCatalog.click();
-            if (typeof loadCatalogData === 'function') loadCatalogData();
+            navigateToSection('catalog');
         });
     }
 

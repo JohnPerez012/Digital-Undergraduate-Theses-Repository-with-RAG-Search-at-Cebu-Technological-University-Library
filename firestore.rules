@@ -90,9 +90,21 @@ service cloud.firestore {
       );
     }
 
+    // Account Security: Tracked Device Sessions (Owner read-only; writes strictly via Server Admin SDK)
+    match /users/{userId}/devices/{deviceId} {
+      allow read: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
+      allow write: if false;
+    }
+
     // Institutional ID Uniqueness Lock Registry (Server Admin SDK only — blocks client spoofing)
     match /registeredIds/{idKey} {
       allow read, write: if false;
+    }
+
+    // Feedback Collection (Read-optimized for staff; write/delete reserved for admin; creation via server Admin SDK)
+    match /feedback/{feedbackId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
     }
 
     // Users Saved Projects (Owners read/write; Admin read for Top Bookmarked analytics)
@@ -115,12 +127,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Physical shelf location accountability audit logs
+    // Physical shelf location accountability audit logs (Strictly authenticated users only)
     match /physicalLocationAccessLogs/{logId} {
-      allow create: if request.resource.data.agreed == true && (
-        (isSignedIn() && request.resource.data.userId == request.auth.uid) ||
-        (!isSignedIn() && request.resource.data.userId == 'guest-session')
-      );
+      allow create: if isSignedIn() &&
+        request.resource.data.agreed == true &&
+        request.resource.data.userId == request.auth.uid;
       allow read: if isStaff();
       allow update, delete: if isAdmin();
     }

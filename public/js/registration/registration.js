@@ -530,7 +530,7 @@
                                 lastNameInput && lastNameInput.value.trim().length >= 2;
                             if ((!isVerified || !hasName) && !target.disabled) {
                                 target.disabled = true;
-                                showToast('⚠️ Please enter your legal first and last name to proceed.', '⛔');
+                                showToast('Please enter your legal first and last name to proceed.', 'error');
                             }
                         }
 
@@ -540,7 +540,7 @@
                             const hasId = verifiedIdData !== null;
                             if ((!hasRole || !hasId) && !target.disabled) {
                                 target.disabled = true;
-                                showToast('⚠️ CTU ID verification required.', '⛔');
+                                showToast('CTU ID verification required.', 'error');
                             }
                         }
 
@@ -549,7 +549,7 @@
                             const hasGoogle = googleUser !== null;
                             if (!hasGoogle && !target.disabled) {
                                 target.disabled = true;
-                                showToast('⚠️ Nice try! Google authentication required.', '⛔');
+                                showToast('Nice try! Google authentication required.', 'error');
                             }
                         }
 
@@ -558,7 +558,7 @@
                             const enteredPassword = passwordTestInput.value;
                             if (enteredPassword !== savedPassword && !target.disabled) {
                                 target.disabled = true;
-                                showToast('⚠️ Nice try! Password validation required.', '⛔');
+                                showToast('Nice try! Password validation required.', 'error');
                             }
                         }
                     }
@@ -691,7 +691,7 @@
 
             const badgeEl = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-badge') : null;
             const titleEl = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-title') : null;
-            const subEl   = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-sub') : null;
+            const subEl = cameraFallbackOverlay ? cameraFallbackOverlay.querySelector('.fallback-camera-sub') : null;
             const btnCaptureSpan = btnCapturePhoto ? btnCapturePhoto.querySelector('span:last-child') : null;
 
             if (isMobile) {
@@ -739,7 +739,7 @@
                 // On mobile phones, request 'environment' for rear camera.
                 // On desktop PCs, do NOT force 'environment' because webcams are front-facing or USB!
                 const constraints = {
-                    video: isMobile 
+                    video: isMobile
                         ? { facingMode: { ideal: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } }
                         : { width: { ideal: 1280 }, height: { ideal: 720 } },
                     audio: false
@@ -748,6 +748,10 @@
                 try {
                     cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
                 } catch (constraintErr) {
+                    const errName = constraintErr && constraintErr.name;
+                    if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+                        throw constraintErr;
+                    }
                     console.warn('Strict constraints failed on webcam, falling back to basic { video: true }:', constraintErr);
                     // Relax constraints if 1280x720 or facingMode is unsupported by desktop webcam
                     cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -764,7 +768,7 @@
                 if (btnCaptureSpan) btnCaptureSpan.textContent = 'Capture ID Card';
                 const hintText = document.getElementById('camera-hint-text');
                 if (hintText) {
-                    hintText.innerHTML = '💡 Tip: Place your ID in front of the camera. Outside the framed zone will be cropped out.';
+                    hintText.innerHTML = 'Tip: Place your ID in front of the camera. Outside the framed zone will be cropped out.';
                 }
             } catch (err) {
                 console.warn('Camera access denied or unavailable on current origin:', err);
@@ -821,7 +825,7 @@
                 return;
             }
             if (!idCameraVideo) {
-                if (window.showToast) showToast('Camera is not active', '⚠️');
+                if (window.showToast) showToast('Camera is not active', 'warning');
                 return;
             }
 
@@ -2047,7 +2051,17 @@
 
             } catch (err) {
                 console.error('OCR Processing error:', err);
-                const userMsg = err.message || 'The image is blurry or cannot be scanned. Please capture clearly.';
+                const rawErrMsg = (err && typeof err === 'object')
+                    ? (err.message || err.reason || err.type || '')
+                    : (typeof err === 'string' ? err : '');
+                let userMsg;
+                if (rawErrMsg) {
+                    userMsg = rawErrMsg;
+                } else if (!worker) {
+                    userMsg = 'Unable to start the OCR scanner engine. Please refresh the page or check your internet connection and try again.';
+                } else {
+                    userMsg = 'The image is blurry or cannot be scanned. Please capture clearly.';
+                }
                 showOcrError(userMsg);
                 if (idCapturedPreview) idCapturedPreview.src = imageSource;
                 if (window.showToast) {
@@ -2697,7 +2711,7 @@
                         this.classList.add('shake');
                         setTimeout(() => this.classList.remove('shake'), 500);
                         if (window.showToast) {
-                            showToast('⚠️ Manual selection is restricted. Please capture or upload your official CTU ID card.', '🔒');
+                            showToast('Manual selection is restricted. Please capture or upload your official CTU ID card.', 'warning');
                         }
                     }
                 });
@@ -2722,12 +2736,14 @@
             googleSignInBtn.addEventListener('click', async function () {
                 try {
                     accountExistsError.style.display = 'none';
-                    googleSignInBtn.disabled = true;
+                    googleSignInBtn.style.pointerEvents = 'none';
+                    googleSignInBtn.style.opacity = '0.75';
                     googleSignInBtn.innerHTML = '<span>Signing in...</span>';
 
                     const provider = new firebase.auth.GoogleAuthProvider();
                     provider.addScope('email');
                     provider.addScope('profile');
+                    provider.setCustomParameters({ prompt: 'select_account' });
 
                     const result = await auth.signInWithPopup(provider);
                     googleUser = result.user;
@@ -2769,7 +2785,7 @@
                         errorMessage.textContent = `The Google account "${existingEmail}" is already registered. Please login instead or use a different Google account.`;
                         accountExistsError.style.display = 'flex';
                         if (window.showToast) {
-                            showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
+                            showToast('Validation Error: Email is already linked to a registered account.', 'error');
                         }
                         nextToStep4Btn.disabled = true;
                         return;
@@ -2787,6 +2803,8 @@
 
                 } catch (error) {
                     console.error('Google Sign-In error:', error);
+                    googleSignInBtn.style.pointerEvents = '';
+                    googleSignInBtn.style.opacity = '';
                     googleSignInBtn.disabled = false;
                     googleSignInBtn.innerHTML = `
                         ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('google') : ''}
@@ -4352,29 +4370,29 @@
                 // Check if terms have been accepted (Step 8)
                 const termsCheckbox = document.getElementById('terms-agreement-checkbox');
                 if (!termsCheckbox || !termsCheckbox.checked) {
-                    showToast('⚠️ You must read and agree to the Terms and Conditions', '⛔');
+                    showToast('You must read and agree to the Terms and Conditions', 'warning');
                     return;
                 }
 
                 if (!termsScrollComplete) {
-                    showToast('⚠️ Please read the complete Terms and Conditions first', '⛔');
+                    showToast('Please read the complete Terms and Conditions first', 'warning');
                     return;
                 }
 
                 // 3.1 Immutable-like Session Cryptographic Token Check (closure protected)
                 if (!activeSessionToken || activeSessionToken !== expectedHash) {
-                    showToast('⛔ Security Check Failed: Verification token is invalid or missing.', '❌');
+                    showToast('Security Check Failed: Verification token is invalid or missing.', 'error');
                     return;
                 }
 
                 if (!googleUser || !verifiedEmail) {
-                    showToast('Please complete Google authentication first', '⚠️');
+                    showToast('Please complete Google authentication first', 'warning');
                     return;
                 }
 
                 const userPassword = savedPassword;
                 if (!userPassword) {
-                    showToast('Password is required. Please go back to Step 5.', '⚠️');
+                    showToast('Password is required. Please go back to Step 5.', 'warning');
                     return;
                 }
 
@@ -4384,7 +4402,7 @@
                     : document.getElementById('security-question').value;
                 const securityAnswer = document.getElementById('security-answer').value.trim();
                 if (!securityQuestion || !securityAnswer) {
-                    showToast('⚠️ Security question and answer are required', '❌');
+                    showToast('Security question and answer are required', 'error');
                     return;
                 }
 
@@ -4465,7 +4483,7 @@
                     isCreatingAccount = false;
                     hideCreatingAccountOverlay();
                     resetCompleteAccountButton();
-                    showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
+                    showToast('Validation Error: Email is already linked to a registered account.', 'error');
                     return;
                 }
 
@@ -4524,7 +4542,7 @@
                         isCreatingAccount = false;
                         hideCreatingAccountOverlay();
                         resetCompleteAccountButton();
-                        showToast('⚠️ Validation Error: Email is already linked to a registered account.', '❌');
+                        showToast('Validation Error: Email is already linked to a registered account.', 'error');
                         return;
                     } else {
                         throw linkError;

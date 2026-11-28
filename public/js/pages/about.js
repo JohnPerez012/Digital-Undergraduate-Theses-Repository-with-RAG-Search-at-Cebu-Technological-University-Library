@@ -1,38 +1,78 @@
 /**
- * RE-CAPS About Page Interactive Controller
- * Handles scroll progress, metric counter animations, interactive RAG simulator,
- * interactive role matrix, citation playground switcher, and scroll reveal effects.
+ * RE-CAPS About Page Interactive Controller (v3.0 — Editorial Architectural System)
+ * Handles theme toggle, scroll progress, section scroll-spy, counters,
+ * 4-stage RAG pipeline stepper, semantic vector match explorer, security accordion,
+ * stakeholder workstation matrix, and multi-format citation playground.
  */
 
 (function () {
   'use strict';
 
   document.addEventListener('DOMContentLoaded', () => {
-    initScrollProgress();
+    initThemeToggle();
+    initScrollProgressAndSpy();
     initScrollReveal();
     initCounters();
+    initRagStageStepper();
     initRagSimulator();
+    initSecurityAccordion();
     initRoleMatrix();
     initCitationPlayground();
   });
 
   /* ============================================================
-     1. Scroll Progress Bar
+     1. Light / Dark Theme Toggle (synced with main app localStorage)
      ============================================================ */
-  function initScrollProgress() {
-    const progressBar = document.getElementById('scroll-progress');
-    if (!progressBar) return;
-
-    window.addEventListener('scroll', () => {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
-    }, { passive: true });
+  function initThemeToggle() {
+    const btn = document.getElementById('about-theme-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem('theme', next);
+      } catch (_e) {}
+    });
   }
 
   /* ============================================================
-     2. Scroll-Reveal Animations (IntersectionObserver)
+     2. Scroll Progress Hairline & Sticky Nav Scroll-Spy
+     ============================================================ */
+  function initScrollProgressAndSpy() {
+    const progressBar = document.getElementById('scroll-progress');
+    const navAnchors = Array.from(document.querySelectorAll('.nav-anchor'));
+    const sections = navAnchors
+      .map(a => document.querySelector(a.getAttribute('href')))
+      .filter(Boolean);
+
+    const onScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (progressBar) {
+        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+        progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+      }
+
+      if (sections.length) {
+        let activeId = sections[0].id;
+        for (const sec of sections) {
+          if (sec.getBoundingClientRect().top <= 140) {
+            activeId = sec.id;
+          }
+        }
+        navAnchors.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === `#${activeId}`);
+        });
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+
+  /* ============================================================
+     3. Scroll-Reveal Animations
      ============================================================ */
   function initScrollReveal() {
     const revealElements = document.querySelectorAll('.reveal-on-scroll');
@@ -50,51 +90,44 @@
           obs.unobserve(entry.target);
         }
       });
-    }, {
-      root: null,
-      threshold: 0.12,
-      rootMargin: '0px 0px -40px 0px'
-    });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
 
     revealElements.forEach(el => observer.observe(el));
   }
 
   /* ============================================================
-     3. Animated Metric Counters
+     4. Metric Counters (Integer & Decimal Safe)
      ============================================================ */
   function initCounters() {
     const counterElements = document.querySelectorAll('[data-counter-target]');
     if (!counterElements.length) return;
 
     const animateCounter = (el) => {
-      const target = parseFloat(el.getAttribute('data-counter-target'));
+      const rawTarget = el.getAttribute('data-counter-target') || '0';
+      const target = parseFloat(rawTarget);
       const suffix = el.getAttribute('data-counter-suffix') || '';
       const prefix = el.getAttribute('data-counter-prefix') || '';
-      const isInteger = Number.isInteger(target);
-      const duration = 1400; // ms
+      const decimals = rawTarget.includes('.') ? rawTarget.split('.')[1].length : 0;
+      const duration = 900;
       const startTime = performance.now();
 
-      function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        // Ease out quad
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        const currentVal = target * easeOut;
-
-        el.textContent = `${prefix}${isInteger ? Math.round(currentVal) : currentVal.toFixed(1)}${suffix}`;
-
+      function tick(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const val = target * eased;
+        el.textContent = `${prefix}${decimals > 0 ? val.toFixed(decimals) : Math.round(val)}${suffix}`;
         if (progress < 1) {
-          requestAnimationFrame(update);
+          requestAnimationFrame(tick);
         } else {
-          el.textContent = `${prefix}${target}${suffix}`;
+          el.textContent = `${prefix}${decimals > 0 ? target.toFixed(decimals) : target}${suffix}`;
         }
       }
 
-      requestAnimationFrame(update);
+      requestAnimationFrame(tick);
     };
 
     if (!('IntersectionObserver' in window)) {
-      counterElements.forEach(el => animateCounter(el));
+      counterElements.forEach(animateCounter);
       return;
     }
 
@@ -105,284 +138,402 @@
           obs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.3 });
+    }, { threshold: 0.25 });
 
     counterElements.forEach(el => observer.observe(el));
   }
 
   /* ============================================================
-     4. Interactive RAG Query Simulator
+     5. Interactive 4-Stage RAG Architecture Stepper
      ============================================================ */
-  const RAG_SIMULATOR_DATA = {
-    aquaculture: {
-      tag: 'IoT & Marine Informatics',
-      query: 'IoT-based Smart Aquaculture & Water Quality Monitoring in Northern Cebu',
-      score: 97.8,
-      scoreColor: '#08D488',
-      title: 'IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu',
-      program: 'BSIT',
-      year: '2025',
-      adviser: 'Prof. M. Arriesgado',
-      authors: 'Cadaro, Cabardo, Conde, De Jesus, Ompoy',
-      summary: 'Utilizes an ESP32 sensor cluster measuring dissolved oxygen (DO), pH, and salinity with MQTT telemetry and cloud alarms. Evaluated at Daanbantayan coastal fish ponds, the system demonstrated a 34% reduction in unexpected aquatic mortality and enabled real-time mobile notifications for farm operators.',
-      keyFindings: 'DO levels remained consistently above 5.0 mg/L via automated relay activation; average notification latency was 1.4 seconds.',
-      citation: 'Cadaro, J., et al. (2025). IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture. CTU Daanbantayan Campus Library.'
+  const RAG_STAGE_DETAILS = {
+    '1': {
+      kicker: 'STAGE 01 · SYNCHRONIZATION CONTRACT',
+      heading: 'Structured Metadata Vectorization & Atomic Parity',
+      desc: 'Whenever a librarian approves or edits a capstone record in Firestore, Express formats its Title, Abstract, Authors, Adviser, Program, Year, and Keywords via <code>formatSearchableText()</code> and embeds it using Pinecone Inference (<code>multilingual-e5-large</code>, <code>input_type: "passage"</code>) with identical document IDs.',
+      specs: [
+        ['Endpoint', 'POST /api/projects/sync'],
+        ['Index', 'recaps-projects-search'],
+        ['Dimensions', '1024-D float32 (Cosine)']
+      ]
     },
-    fisherfolk: {
-      tag: 'Community Systems & PWA',
-      query: 'Mobile Inventory & Direct-Trade Marketplace for Small-Scale Fisherfolk',
-      score: 95.4,
-      scoreColor: '#1AD28F',
-      title: 'BantayanIsda: A Progressive Web-Based Fisherfolk Direct-Trade and Cold-Chain Inventory System',
-      program: 'BSIT',
-      year: '2024',
-      adviser: 'Engr. R. Batulan',
-      authors: 'Alimodian, Balbuena, Carvajal, Duka',
-      summary: 'Engineered an offline-first Progressive Web App (PWA) facilitating transparent dockside fish pricing, digital catch logbooks, and direct wholesale order matching for fisherfolk cooperatives in Daanbantayan and neighboring Bantayan islands, eliminating exploitative middlemen.',
-      keyFindings: 'Cooperatives reported a 28% increase in net profit margins; offline caching enabled uninterrupted transaction logging during sea voyages.',
-      citation: 'Alimodian, K., et al. (2024). BantayanIsda: Progressive Web-Based Direct-Trade. CTU Daanbantayan Campus Library.'
+    '2': {
+      kicker: 'STAGE 02 · SEMANTIC RETRIEVAL',
+      heading: 'Real-Time Cosine Similarity Across Degree Programs',
+      desc: 'Student and faculty natural-language queries are embedded with <code>input_type: "query"</code> and matched against the Pinecone vector space. Results are enriched with cached physical shelf call numbers, accession numbers, and Cloudinary cover previews.',
+      specs: [
+        ['Endpoint', 'POST /api/pinecone/search'],
+        ['Metric', 'Cosine Similarity Top-K'],
+        ['Role Scope', 'Public Catalog / Staff Copilot']
+      ]
     },
-    agriculture: {
-      tag: 'Computer Vision & AI',
-      query: 'Deep Learning Computer Vision for Mango Crop Pest & Disease Identification',
-      score: 98.2,
-      scoreColor: '#08D488',
-      title: 'Automated Mango Anthracnose and Stem-End Rot Detection Using Mobile Deep Learning',
-      program: 'BSIT',
-      year: '2025',
-      adviser: 'Dr. E. Sanchez',
-      authors: 'Villanueva, Mendoza, Tundag, Ybañez',
-      summary: 'Trained a lightweight MobileNetV3 convolutional network on 3,400 field images of mango foliage and fruit collected across northern Cebu orchards. The system operates directly in mobile browsers, accurately diagnosing fungal pathogens and prescribing organic countermeasures without remote cloud latency.',
-      keyFindings: 'Achieved 94.6% classification accuracy under varying sunlight conditions; inferencing completed in 142ms on standard Android devices.',
-      citation: 'Villanueva, R., et al. (2025). Automated Mango Anthracnose Detection. CTU Daanbantayan Campus Library.'
+    '3': {
+      kicker: 'STAGE 03 · ANTI-HALLUCINATION GROUNDING',
+      heading: 'Context-Only Prompt Assembly & Citation Anchoring',
+      desc: 'Retrieved project titles, abstracts, authors, advisers, and relevance scores are assembled into a strict grounding system prompt. The model is explicitly instructed never to invent external URLs or unarchived theses and to attribute every claim to verified repository records.',
+      specs: [
+        ['Grounding Rule', 'Context-Only Citation Policy'],
+        ['History Cap', '3 Saved (Std) · 5 (Staff)'],
+        ['IP Guard', 'R.A. 10173 Copy Protection']
+      ]
+    },
+    '4': {
+      kicker: 'STAGE 04 · RESILIENT MULTI-PROVIDER STREAMING',
+      heading: '4-Tier Cascading Failover with Live Health Pool & Quotas',
+      desc: 'Queries stream token-by-token via Server-Sent Events across <strong>Mistral AI</strong>, <strong>Groq AI</strong>, <strong>Google Gemini</strong>, and <strong>OpenRouter</strong> using 30-second Undici connection pooling. Rate-limit headers (<code>X-RateLimit-*</code>, <code>X-Model-Health</code>) track per-role daily allocations (25 / 50 / 150) and automatically route around cooling tiers.',
+      specs: [
+        ['Endpoints', 'POST /api/chat · GET /api/chat/quota'],
+        ['Daily Reset', '12:00 AM PHT (UTC+8)'],
+        ['Fallback Pool', 'Mistral → Groq → Gemini → OpenRouter']
+      ]
     }
   };
 
+  function initRagStageStepper() {
+    const cards = document.querySelectorAll('.rag-stage-card');
+    const kickerEl = document.getElementById('rag-detail-kicker');
+    const headingEl = document.getElementById('rag-detail-heading');
+    const descEl = document.getElementById('rag-detail-desc');
+    const specsEl = document.getElementById('rag-detail-specs');
+    if (!cards.length || !headingEl) return;
+
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        const stage = card.getAttribute('data-stage');
+        const info = RAG_STAGE_DETAILS[stage];
+        if (!info) return;
+
+        cards.forEach(c => {
+          c.classList.remove('active');
+          c.setAttribute('aria-selected', 'false');
+        });
+        card.classList.add('active');
+        card.setAttribute('aria-selected', 'true');
+
+        kickerEl.textContent = info.kicker;
+        headingEl.textContent = info.heading;
+        descEl.innerHTML = info.desc;
+        specsEl.innerHTML = info.specs
+          .map(([label, code]) => `<div class="spec-line"><span>${label}</span><code>${code}</code></div>`)
+          .join('');
+      });
+    });
+  }
+
+  /* ============================================================
+     6. Interactive Semantic Vector Match Explorer
+     ============================================================ */
+  const RAG_SIMULATOR_DATA = {
+    aquaculture: {
+      query: 'IoT-based Smart Aquaculture & Water Quality Monitoring in Northern Cebu',
+      score: 97.8,
+      title: 'IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu',
+      program: 'BSIT',
+      year: 'A.Y. 2025',
+      shelf: 'Shelf: IT-R2-S4',
+      adviser: 'Prof. M. Arriesgado',
+      provider: 'Mistral AI · Tier 1',
+      summary: 'Utilizes an ESP32 sensor cluster measuring dissolved oxygen (DO), pH, and salinity with MQTT telemetry and cloud alarms. Evaluated at Daanbantayan coastal fish ponds, the system demonstrated a 34% reduction in unexpected aquatic mortality and enabled real-time mobile notifications for farm operators.',
+      findings: 'DO levels remained consistently above 5.0 mg/L via automated relay activation; average notification latency was 1.4 seconds. Physical manuscript available at Shelf IT-R2-S4 for on-campus inspection.'
+    },
+    fisherfolk: {
+      query: 'Mobile Inventory & Direct-Trade Marketplace for Small-Scale Fisherfolk',
+      score: 95.4,
+      title: 'BantayanIsda: A Progressive Web-Based Fisherfolk Direct-Trade and Cold-Chain Inventory System',
+      program: 'BSFi / BSIT',
+      year: 'A.Y. 2024',
+      shelf: 'Shelf: FI-R1-S2',
+      adviser: 'Engr. R. Batulan',
+      provider: 'Groq AI · Tier 2',
+      summary: 'Engineered an offline-first Progressive Web App facilitating transparent dockside fish pricing, digital catch logbooks, and direct wholesale order matching for fisherfolk cooperatives in Daanbantayan and neighboring islands.',
+      findings: 'Cooperatives reported a 28% increase in net margins; offline caching enabled uninterrupted catch logging during sea voyages. Full hardbound copy cataloged under Shelf FI-R1-S2.'
+    },
+    agriculture: {
+      query: 'Deep Learning Computer Vision for Mango Crop Pest & Disease Identification',
+      score: 98.2,
+      title: 'Automated Mango Anthracnose and Stem-End Rot Detection Using Mobile Deep Learning',
+      program: 'BSIT',
+      year: 'A.Y. 2025',
+      shelf: 'Shelf: IT-R3-S1',
+      adviser: 'Dr. E. Sanchez',
+      provider: 'Mistral AI · Tier 1',
+      summary: 'Trained a lightweight MobileNetV3 convolutional network on 3,400 field images of mango foliage and fruit collected across northern Cebu orchards, diagnosing fungal pathogens directly in mobile browsers without cloud latency.',
+      findings: 'Achieved 94.6% classification accuracy under varying daylight conditions with 142ms on-device inference latency. Reference copy located at Shelf IT-R3-S1.'
+    },
+    library: {
+      query: 'AI semantic capstone repository with RAG chatbot and physical shelf tracking',
+      score: 99.1,
+      title: 'Development of an AI-Integrated Undergraduate Capstone Project and Fundamentals of Research Repository with RAG and Chatbot Support (RE-CAPS)',
+      program: 'BSIT',
+      year: 'A.Y. 2026',
+      shelf: 'Shelf: IT-R4-S1',
+      adviser: 'Mr. V. Sayson Jr.',
+      provider: 'Mistral AI · Tier 1',
+      summary: 'Centralizes undergraduate capstone metadata in Firebase Firestore with 1024-D multilingual-e5-large vector retrieval in Pinecone, 4-tier cascading LLM assistance, 45-second cataloging mutex locks, and R.A. 10173 anti-plagiarism text protection.',
+      findings: 'Validated by 363 CTU Daanbantayan respondents with an overall Strongly Agree mean of 4.27/5.00 and unanimous 5.00/5.00 librarian retrieval speed rating.'
+    }
+  };
+
+  function renderSegmentedMeter(container, pct) {
+    if (!container) return;
+    const total = 20;
+    const filled = Math.max(1, Math.min(total, Math.round((pct / 100) * total)));
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      html += `<span class="sim-seg ${i < filled ? 'filled' : ''}"></span>`;
+    }
+    container.innerHTML = html;
+  }
+
   function initRagSimulator() {
-    const tabs = document.querySelectorAll('.sim-preset-btn');
+    const buttons = document.querySelectorAll('.sim-preset-btn');
     const queryEl = document.getElementById('sim-query-text');
     const scoreValEl = document.getElementById('sim-score-val');
-    const scoreFillEl = document.getElementById('sim-score-fill');
+    const segMeterEl = document.getElementById('sim-seg-meter');
     const titleEl = document.getElementById('sim-result-title');
     const metaEl = document.getElementById('sim-result-meta');
     const summaryEl = document.getElementById('sim-result-summary');
     const findingsEl = document.getElementById('sim-result-findings');
+    const providerEl = document.getElementById('sim-provider-label');
     const cardEl = document.getElementById('sim-result-card');
 
-    if (!tabs.length || !queryEl) return;
+    if (!buttons.length || !queryEl) return;
 
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const key = tab.getAttribute('data-sim-key');
+    // Initial segmented meter render
+    renderSegmentedMeter(segMeterEl, RAG_SIMULATOR_DATA.aquaculture.score);
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-sim-key');
         const data = RAG_SIMULATOR_DATA[key];
         if (!data) return;
 
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-        // Flash animation
         if (cardEl) {
           cardEl.classList.add('sim-updating');
-          setTimeout(() => cardEl.classList.remove('sim-updating'), 350);
+          setTimeout(() => cardEl.classList.remove('sim-updating'), 220);
         }
 
         queryEl.textContent = `"${data.query}"`;
-        scoreValEl.textContent = `${data.score}%`;
-        if (scoreFillEl) {
-          scoreFillEl.style.width = `${data.score}%`;
-          scoreFillEl.style.backgroundColor = data.scoreColor;
-        }
-
+        scoreValEl.textContent = `${data.score.toFixed(1)}%`;
+        renderSegmentedMeter(segMeterEl, data.score);
         titleEl.textContent = data.title;
         metaEl.innerHTML = `
-          <span class="sim-pill">${data.program}</span>
-          <span class="sim-pill">A.Y. ${data.year}</span>
-          <span class="sim-pill">Adviser: ${data.adviser}</span>
+          <span class="ed-tag">${data.program}</span>
+          <span class="ed-tag">${data.year}</span>
+          <span class="ed-tag">${data.shelf}</span>
+          <span class="ed-tag">Adviser: ${data.adviser}</span>
         `;
         summaryEl.textContent = data.summary;
-        if (findingsEl) {
-          findingsEl.textContent = data.keyFindings;
+        if (findingsEl) findingsEl.textContent = data.findings;
+        if (providerEl) providerEl.textContent = data.provider;
+      });
+    });
+  }
+
+  /* ============================================================
+     7. Security & Governance Accordion
+     ============================================================ */
+  function initSecurityAccordion() {
+    const items = document.querySelectorAll('#security-accordion .acc-item');
+    if (!items.length) return;
+
+    items.forEach(item => {
+      const trigger = item.querySelector('.acc-trigger');
+      if (!trigger) return;
+      trigger.addEventListener('click', () => {
+        const wasActive = item.classList.contains('active');
+        items.forEach(other => {
+          other.classList.remove('active');
+          const otherBtn = other.querySelector('.acc-trigger');
+          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+        });
+        if (!wasActive) {
+          item.classList.add('active');
+          trigger.setAttribute('aria-expanded', 'true');
         }
       });
     });
   }
 
   /* ============================================================
-     5. Interactive Role Matrix Switcher
+     8. Stakeholder Workstation Matrix (Aligned with Real Quotas)
      ============================================================ */
   const ROLE_MATRIX_DATA = {
     student: {
-      roleBadge: 'Undergraduate Researchers',
+      badge: 'Undergraduate Researchers',
+      quotas: ['25 AI Queries / Day', '3 Saved Chats'],
       title: 'Student Researcher',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
-      headline: 'Uncover past research, verify topic novelty, and cite with precision.',
-      description: 'Students can search the repository using traditional filters or the AI-powered Pinecone vector search, read abstracts and key findings, save bookmarks, and export formatted citations.',
+      description: 'Discover prior undergraduate capstones using natural-language Pinecone semantic search, inspect abstracts and physical shelf locations, bookmark references, and export formatted citations.',
       features: [
-        'Natural-language semantic search via Pinecone Vector Database',
-        'Conversational Q&A with the RAG Assistant grounded in CTU theses',
-        'Instant multi-format citation export (APA 7th, MLA 9th, IEEE)',
-        'Personal Cloud Bookmarking synced across devices'
+        'Natural-language semantic search across campus degree programs',
+        'Grounded RAG Assistant with live 4-tier model health visibility',
+        'Instant APA 7th, MLA 9th, and IEEE citation generation',
+        'Personal Cloud Bookmarking and local-device activity history'
       ],
       ctaText: 'Start Researching',
       ctaHref: '../index.html'
     },
     teacher: {
-      roleBadge: 'Academic Advisers & Faculty',
-      title: 'Faculty / Teacher Researcher',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
-      headline: 'Explore past literature, benchmark methodology, and verify topic originality.',
-      description: 'Faculty members and teachers enjoy the same powerful research workstation as students: semantic search, conversational RAG AI, personal cloud bookmarks, and dynamic citation generation.',
+      badge: 'Faculty Advisers & Instructors',
+      quotas: ['50 AI Queries / Day', '3 Saved Chats'],
+      title: 'Faculty / Research Adviser',
+      description: 'Verify capstone topic novelty during Capstone 1 title hearings, benchmark prior methodologies across departments, and guide student teams with doubled daily AI query capacity.',
       features: [
-        'Natural-language semantic search via Pinecone Vector Database',
-        'Conversational Q&A with the RAG Assistant grounded in CTU theses',
-        'Instant multi-format citation export (APA 7th, MLA 9th, IEEE)',
-        'Personal Cloud Bookmarking and research activity telemetry'
+        'Pre-defense novelty verification via 1024-D semantic similarity',
+        'Expanded 50 queries/day AI Assistant research allocation',
+        'Dedicated Faculty Portal with saved reference collections',
+        'Instant APA 7th, MLA 9th, and IEEE citation verification'
       ],
-      ctaText: 'Access Teacher Portal',
+      ctaText: 'Open Faculty Portal',
       ctaHref: 'teacher_page.html'
     },
     librarian: {
-      roleBadge: 'Information Curators',
+      badge: 'Library Personnel & Curators',
+      quotas: ['150 AI Queries / Day', '5 Saved Chats'],
       title: 'Campus Librarian',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
-      headline: 'Harmonize physical library accession with digital cloud records.',
-      description: 'The campus librarian oversees repository integrity, ensuring thesis metadata, call numbers, physical shelf accession, and digital documentation remain perfectly synchronized.',
+      description: 'Catalog physical shelf coordinates, Dewey/Library call numbers, and accession numbers with 45-second concurrency mutex locks, submission review queues, and a dedicated Staff Copilot.',
       features: [
-        'Curate thesis records, abstracts, keyword indexing, and metadata taxonomy',
-        'Monitor digital repository usage statistics and search inquiry volume',
-        'Ensure compliance with CTU library institutional archival standards',
-        'Bridge physical binder archives with 24/7 online open accessibility'
+        'Physical Shelf Cataloging Studio with 45-second mutex locks',
+        'Thesis submission intake and metadata curation workflows',
+        'Dedicated Staff Copilot RAG scoped to library procedures',
+        'Mandatory Email 2FA security gate for archival integrity'
       ],
-      ctaText: 'Open Library Catalog',
+      ctaText: 'Open Librarian Portal',
       ctaHref: 'librarian_page.html'
     },
     admin: {
-      roleBadge: 'System Administration & DevOps',
+      badge: 'Head Librarian & System Admin',
+      quotas: ['150 AI Queries / Day', '5 Saved Chats'],
       title: 'System Administrator',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-      headline: 'Full operational control over vector indexes, database security, and user roles.',
-      description: 'System administrators maintain the Pinecone vector synchronization, oversee Firestore collections, manage user permissions, monitor API performance, and audit activity logs.',
+      description: 'Exercise full institutional governance over capstone approvals, one-click Pinecone batch vector synchronization, user role administration, 3-tier account sanctions, and Cloudinary asset hygiene.',
       features: [
-        'One-click Pinecone Vector DB re-indexing and synchronization endpoint',
-        'User management and role-based access control (Student, Teacher, Librarian, Admin)',
-        'Cloudinary cloud storage image asset inspection and cleanup',
-        'Real-time system audit logs tracking search, authentication, and vector activity'
+        'Approval & public publication queue with automatic Pinecone sync',
+        'User provisioning (Librarian creation) and 14-day soft-delete quarantine',
+        'Staff Copilot RAG (Admin + Librarian knowledge base scope)',
+        'Analytics dashboard, Cloudinary asset cleanup, and verified 2FA control'
       ],
-      ctaText: 'Admin Dashboard',
+      ctaText: 'Open Admin Dashboard',
       ctaHref: 'admin_page.html'
     }
   };
 
   function initRoleMatrix() {
     const roleBtns = document.querySelectorAll('.role-tab-btn');
-    const roleBadgeEl = document.getElementById('role-card-badge');
-    const roleTitleEl = document.getElementById('role-card-title');
-    const roleDescEl = document.getElementById('role-card-desc');
-    const roleFeaturesEl = document.getElementById('role-card-features');
-    const roleCtaEl = document.getElementById('role-card-cta');
-    const roleIconEl = document.getElementById('role-card-icon');
-    const roleContainer = document.getElementById('role-card-body');
+    const badgeEl = document.getElementById('role-card-badge');
+    const quotasEl = document.getElementById('role-card-quotas');
+    const titleEl = document.getElementById('role-card-title');
+    const descEl = document.getElementById('role-card-desc');
+    const featuresEl = document.getElementById('role-card-features');
+    const ctaEl = document.getElementById('role-card-cta');
+    const panelEl = document.getElementById('role-card-body');
 
-    if (!roleBtns.length || !roleTitleEl) return;
+    if (!roleBtns.length || !titleEl) return;
 
     roleBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        const roleKey = btn.getAttribute('data-role-key');
-        const role = ROLE_MATRIX_DATA[roleKey];
+        const key = btn.getAttribute('data-role-key');
+        const role = ROLE_MATRIX_DATA[key];
         if (!role) return;
 
-        roleBtns.forEach(b => b.classList.remove('active'));
+        roleBtns.forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
         btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
 
-        if (roleContainer) {
-          roleContainer.classList.add('role-updating');
-          setTimeout(() => roleContainer.classList.remove('role-updating'), 300);
+        if (panelEl) {
+          panelEl.classList.add('role-updating');
+          setTimeout(() => panelEl.classList.remove('role-updating'), 200);
         }
 
-        roleBadgeEl.textContent = role.roleBadge;
-        roleTitleEl.textContent = role.title;
-        roleDescEl.textContent = role.description;
-        if (roleIconEl) roleIconEl.innerHTML = role.icon;
-
-        roleFeaturesEl.innerHTML = role.features
-          .map(f => `
-            <li class="role-feature-item">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>${f}</span>
-            </li>
-          `)
-          .join('');
-
-        if (roleCtaEl) {
-          roleCtaEl.textContent = role.ctaText;
-          roleCtaEl.setAttribute('href', role.ctaHref);
+        if (badgeEl) badgeEl.textContent = role.badge;
+        if (quotasEl) {
+          quotasEl.innerHTML = role.quotas.map(q => `<span class="ed-tag">${q}</span>`).join('');
+        }
+        titleEl.textContent = role.title;
+        descEl.textContent = role.description;
+        featuresEl.innerHTML = role.features.map(f => `<li>${f}</li>`).join('');
+        if (ctaEl) {
+          ctaEl.textContent = role.ctaText;
+          ctaEl.setAttribute('href', role.ctaHref);
         }
       });
     });
   }
 
   /* ============================================================
-     6. Interactive Citation Playground
+     9. Interactive Citation Playground (Reference + In-Text)
      ============================================================ */
   const CITATION_SAMPLES = {
-    apa: 'Cadaro, J., Cabardo, C., Conde, C., De Jesus, A., & Ompoy, R. (2025). IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu. Cebu Technological University — Daanbantayan Campus Library.',
-    ieee: 'J. Cadaro, C. Cabardo, C. Conde, A. De Jesus, and R. Ompoy, "IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu," Undergraduate Capstone Project, Dept. Information Technology, Cebu Technological Univ., Daanbantayan Campus, 2025.',
-    mla: 'Cadaro, John, et al. "IoT-Driven Water Quality Monitoring and Automated Aeration for Coastal Aquaculture in Northern Cebu." Undergraduate Capstone Project, Cebu Technological University — Daanbantayan Campus, 2025.',
-
+    apa: {
+      full: 'Cabardo, C. M., Cadaro, J. P., Conde, C. D., De Jesus, A., Jr. P., & Ompoy, R. C. (2026). Development of an AI-integrated undergraduate capstone project and fundamentals of research repository with retrieval-augmented generation and chatbot support for Cebu Technological University Daanbantayan Campus Library [Undergraduate capstone project]. Cebu Technological University — Daanbantayan Campus.',
+      intext: 'Parenthetical: (Cabardo et al., 2026)  |  Narrative: Cabardo et al. (2026)'
+    },
+    mla: {
+      full: 'Cabardo, Carmela M., et al. "Development of an AI-Integrated Undergraduate Capstone Project and Fundamentals of Research Repository with Retrieval-Augmented Generation and Chatbot Support." Cebu Technological University — Daanbantayan Campus, 2026.',
+      intext: 'Parenthetical: (Cabardo et al.)  |  Narrative: According to Cabardo et al.'
+    },
+    ieee: {
+      full: '[1] C. M. Cabardo, J. P. Cadaro, C. D. Conde, A. P. De Jesus Jr., and R. C. Ompoy, "Development of an AI-Integrated Undergraduate Capstone Project and Fundamentals of Research Repository with Retrieval-Augmented Generation and Chatbot Support," Undergraduate Capstone Project, Cebu Technological Univ., Daanbantayan Campus, Cebu, Philippines, 2026.',
+      intext: 'Numeric In-Text: "...as demonstrated in the CTU repository architecture [1]."'
+    }
   };
 
   function initCitationPlayground() {
-    const tabs = document.querySelectorAll('.cite-tab-btn');
+    const fmtBtns = document.querySelectorAll('.cite-tab-btn');
+    const modeBtns = document.querySelectorAll('.cite-mode-btn');
     const textEl = document.getElementById('cite-sample-text');
     const copyBtn = document.getElementById('cite-copy-btn');
 
-    if (!tabs.length || !textEl || !copyBtn) return;
+    if (!fmtBtns.length || !textEl || !copyBtn) return;
 
-    let currentFormat = 'apa';
+    let currentFmt = 'apa';
+    let currentMode = 'full';
 
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const fmt = tab.getAttribute('data-cite-fmt');
-        if (!CITATION_SAMPLES[fmt]) return;
+    const updateOutput = () => {
+      const sample = CITATION_SAMPLES[currentFmt];
+      if (!sample) return;
+      textEl.textContent = sample[currentMode];
+      textEl.classList.toggle('is-intext', currentMode === 'intext');
+    };
 
-        currentFormat = fmt;
-        tabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+    fmtBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentFmt = btn.getAttribute('data-cite-fmt') || 'apa';
+        fmtBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateOutput();
+      });
+    });
 
-        textEl.textContent = CITATION_SAMPLES[fmt];
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentMode = btn.getAttribute('data-cite-mode') || 'full';
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        updateOutput();
       });
     });
 
     copyBtn.addEventListener('click', () => {
-      const text = CITATION_SAMPLES[currentFormat] || textEl.textContent;
+      const text = textEl.textContent || '';
       navigator.clipboard.writeText(text).then(() => {
         if (typeof window.showToast === 'function') {
-          window.showToast('Citation copied to clipboard!', 'success');
-        } else if (window.ModalDialog) {
-          ModalDialog.alert({
-            title: 'Copied',
-            message: 'Citation copied to clipboard!',
-            type: 'success'
-          });
-        } else {
-          alert('Citation copied to clipboard!');
+          window.showToast('Citation copied to clipboard', 'success');
         }
-
-        const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>
-          Copied!
-        `;
-        copyBtn.classList.add('btn-copied');
-
-        setTimeout(() => {
-          copyBtn.innerHTML = originalText;
-          copyBtn.classList.remove('btn-copied');
-        }, 2200);
+        const labelSpan = copyBtn.querySelector('span');
+        if (labelSpan) {
+          const orig = labelSpan.textContent;
+          labelSpan.textContent = 'Copied';
+          setTimeout(() => { labelSpan.textContent = orig; }, 1800);
+        }
       }).catch(err => {
         console.error('Failed to copy citation:', err);
       });
     });
   }
-
 })();

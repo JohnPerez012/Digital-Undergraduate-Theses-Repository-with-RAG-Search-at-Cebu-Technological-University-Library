@@ -218,26 +218,50 @@ const AIService = {
         autoCitation: settings.autoCitation !== false
       };
       
-      // Step 2: Send request with stream: true
+      // Step 2: Build headers (include Firebase ID Token for role-based daily quota verification)
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      };
+      try {
+        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+          const idToken = await firebase.auth().currentUser.getIdToken();
+          if (idToken) {
+            requestHeaders['Authorization'] = `Bearer ${idToken}`;
+          }
+        }
+      } catch (_authErr) {}
+
+      // Step 3: Send request with stream: true
       const response = await fetch(`${this.API_BASE_URL}/chat`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream'
-        },
+        headers: requestHeaders,
         body: JSON.stringify(payload)
       });
+
+      // Immediately ingest backend rate-limiting & 4-tier model health headers (X-RateLimit-*, X-Model-Health)
+      if (typeof ModelQuotaManager !== 'undefined' && typeof ModelQuotaManager.ingestResponseHeaders === 'function') {
+        ModelQuotaManager.ingestResponseHeaders(response);
+      }
       
       if (!response.ok) {
         let errorMsg = `HTTP ${response.status}`;
+        let errorCode = null;
         try {
           const errorData = await response.json();
           errorMsg = errorData.fallbackMessage || errorData.error || errorMsg;
+          errorCode = errorData.code || null;
+          if (typeof ModelQuotaManager !== 'undefined' && typeof ModelQuotaManager.applyServerPayload === 'function') {
+            ModelQuotaManager.applyServerPayload(errorData);
+          }
         } catch (e) {
           const rawText = await response.text().catch(() => '');
           if (rawText) errorMsg = rawText;
         }
-        throw new Error(errorMsg);
+        const err = new Error(errorMsg);
+        if (errorCode) err.code = errorCode;
+        err.status = response.status;
+        throw err;
       }
 
       if (!response.body) {
@@ -298,6 +322,15 @@ const AIService = {
                 relevantProjects: relevantProjects
               };
 
+              // Sync authoritative quota & 4-tier health payload from SSE completion frame
+              if (typeof ModelQuotaManager !== 'undefined') {
+                if (data.quota || data.modelHealth) {
+                  ModelQuotaManager.applyServerPayload(data);
+                } else {
+                  ModelQuotaManager.recordLocalFallbackUsage(finalResult.providerKey);
+                }
+              }
+
               // Update conversation history
               this.conversationHistory.push(
                 { role: 'user', content: userMessage },
@@ -316,6 +349,9 @@ const AIService = {
               }
               return finalResult;
             } else if (data.type === 'error') {
+              if (typeof ModelQuotaManager !== 'undefined' && data.modelHealth) {
+                ModelQuotaManager.applyServerPayload(data);
+              }
               throw new Error(data.error || 'AI provider streaming failed');
             }
           } catch (jsonErr) {

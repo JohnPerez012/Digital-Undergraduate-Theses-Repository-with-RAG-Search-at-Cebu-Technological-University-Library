@@ -887,7 +887,9 @@
 
         <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()"
             aria-label="Toggle Dark/Light Mode">
-            <span id="themeIcon">🌓</span>
+            <span id="themeIcon" style="display:inline-flex;align-items:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </span>
             <span id="themeLabel">Theme</span>
         </button>
     </header>
@@ -984,7 +986,7 @@
                 <span id="checkOnlineText">Check If Back Online</span>
             </button>
             <button class="btn-secondary" onclick="openProgramSelector()">
-                <span>🧠</span> Play CTU Academic Trivia While Waiting
+                Play CTU Academic Trivia While Waiting
             </button>
         </div>
 
@@ -1013,7 +1015,7 @@
             <div class="trivia-header">
                 <span class="program-badge" id="programLabel">BSIT</span>
                 <div class="streak-badge">
-                    🔥 Streak: <strong id="streakCount">0</strong> (Best: <span id="bestStreak">0</span>)
+                    Streak: <strong id="streakCount">0</strong> (Best: <span id="bestStreak">0</span>)
                 </div>
             </div>
 
@@ -1028,7 +1030,7 @@
             </div>
 
             <div class="trivia-controls">
-                <button class="link-btn" onclick="toggleHint()">💡 Need a hint?</button>
+                <button class="link-btn" onclick="toggleHint()">Need a hint?</button>
                 <div style="display:flex; gap: 8px;">
                     <button class="link-btn" onclick="openProgramSelector()">Change Program</button>
                     <button class="link-btn" onclick="closeTriviaSection()">Exit Game</button>
@@ -1083,10 +1085,10 @@
             const icon = document.getElementById('themeIcon');
             const label = document.getElementById('themeLabel');
             if (theme === 'dark') {
-                icon.textContent = '☀️';
+                icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
                 label.textContent = 'Light';
             } else {
-                icon.textContent = '🌙';
+                icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
                 label.textContent = 'Dark';
             }
         }

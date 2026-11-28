@@ -117,9 +117,15 @@ const Chatbot = {
         if (this.guestDialog) {
           this.guestDialog.classList.remove('active');
         }
+        const quotaExhausted = typeof ModelQuotaManager !== 'undefined' && ModelQuotaManager.isQuotaExhausted();
         if (this.userInput) {
-          this.userInput.disabled = false;
-          this.userInput.placeholder = 'Type your message here...';
+          this.userInput.disabled = quotaExhausted;
+          this.userInput.placeholder = quotaExhausted
+            ? ModelQuotaManager.getQuotaExhaustedMessage()
+            : 'Type your message here...';
+        }
+        if (typeof ModelQuotaManager !== 'undefined') {
+          ModelQuotaManager.applyLockState();
         }
         this.updateSendButtonState();
       }
@@ -194,6 +200,9 @@ const Chatbot = {
             this.userInput.disabled = true;
             this.userInput.placeholder = 'Please log in to use the chatbot';
           }
+          if (typeof ModelQuotaManager !== 'undefined') {
+            ModelQuotaManager.onAuthChanged(null);
+          }
           this.updateSendButtonState();
         } else {
           // User IS logged in
@@ -203,6 +212,9 @@ const Chatbot = {
           if (this.userInput) {
             this.userInput.disabled = false;
             this.userInput.placeholder = 'Type your message here...';
+          }
+          if (typeof ModelQuotaManager !== 'undefined') {
+            ModelQuotaManager.onAuthChanged(user);
           }
           this.updateSendButtonState();
           
@@ -437,8 +449,9 @@ const Chatbot = {
     // Strict evaluation: must have at least 1 non-whitespace character
     const hasText = text.trim().length > 0;
     const isLoggedIn = Boolean(typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+    const isQuotaLocked = typeof ModelQuotaManager !== 'undefined' && ModelQuotaManager.isQuotaExhausted();
 
-    if (hasText && isLoggedIn && !this.isSending) {
+    if (hasText && isLoggedIn && !this.isSending && !isQuotaLocked) {
       this.sendBtn.disabled = false;
       this.sendBtn.classList.remove('btn-hidden');
     } else {
@@ -514,11 +527,22 @@ const Chatbot = {
       }
     }
 
-    // LIMIT: Max 3 conversations per user (only applies to brand-new conversations)
+    // QUOTA GUARD (Concept B): Block gracefully when daily research query allocation is reached
+    if (typeof ModelQuotaManager !== 'undefined' && ModelQuotaManager.isQuotaExhausted()) {
+      ModelQuotaManager.applyLockState();
+      if (typeof showToast === 'function') {
+        showToast(ModelQuotaManager.getQuotaExhaustedMessage(), 'warning');
+      }
+      return;
+    }
+
+    // LIMIT: Max 3 conversations for standard users, 5 for librarians & admins (only applies to brand-new conversations)
     if (typeof ChatService !== 'undefined' && !ChatService.currentConversationId) {
+      const maxAllowed = typeof ChatService.getMaxConversations === 'function'
+        ? await ChatService.getMaxConversations() : 3;
       const count = await ChatService.getConversationCount();
-      if (count >= 3) {
-        this.showConversationLimitError();
+      if (count >= maxAllowed) {
+        this.showConversationLimitError(maxAllowed, count);
         return;
       }
     }
@@ -703,6 +727,15 @@ const Chatbot = {
         onError: (err) => {
           this.hideTyping();
           console.error('Streaming error caught in UI:', err);
+          if (err && err.code === 'DAILY_QUOTA_EXCEEDED') {
+            if (typeof ModelQuotaManager !== 'undefined') {
+              ModelQuotaManager.applyLockState();
+            }
+            if (typeof showToast === 'function') {
+              showToast(err.message || 'Daily research quota reached. Resets at 12:00 AM.', 'warning');
+            }
+            return;
+          }
           if (!hasCreatedMessage) {
             this.addErrorMessage();
           } else if (bubbleDiv) {
@@ -966,12 +999,14 @@ const Chatbot = {
   },
 
   /**
-   * Show a clear error when the 3-conversation limit is reached
+   * Show a clear error when the conversation quota limit is reached (3 for regular, 5 for staff)
+   * @param {number} [maxAllowed=3]
+   * @param {number} [currentCount=3]
    */
-  showConversationLimitError() {
+  showConversationLimitError(maxAllowed = 3, currentCount = 3) {
     // Toast notification
     if (typeof showToast === 'function') {
-      showToast('Conversation limit reached! Delete an existing conversation first.', 'error');
+      showToast(`Conversation limit reached (${currentCount}/${maxAllowed})! Delete an existing conversation first.`, 'error');
     }
 
     // Also show a visible error bubble in the chat UI
@@ -987,8 +1022,8 @@ const Chatbot = {
         <div class="error-message">
           ${(typeof SVGRegistry !== 'undefined') ? SVGRegistry.get('alert-circle') : ''}
           <div>
-            <strong>Conversation limit reached (3/3)</strong><br>
-            You can only have <strong>3 saved conversations</strong>. Please open
+            <strong>Conversation limit reached (${currentCount}/${maxAllowed})</strong><br>
+            You have reached the maximum allowed <strong>${maxAllowed} saved conversations</strong> for your account. Please open
             <em>Chat History</em> and delete an existing conversation before starting a new one.
           </div>
         </div>
@@ -997,7 +1032,7 @@ const Chatbot = {
     `;
     this.messagesContainer.appendChild(messageDiv);
     this.scrollToBottom();
-    console.warn('⚠️ Conversation limit (3) reached for this user.');
+    console.warn(`[Chatbot] Conversation limit (${currentCount}/${maxAllowed}) reached for this user.`);
   },
 
   addUserMessage(message) {
@@ -1239,6 +1274,9 @@ const Chatbot = {
   applySettings(newSettings) {
     if (newSettings && newSettings.preferredProvider) {
       console.log(`Chatbot active provider updated to: ${newSettings.preferredProvider}`);
+    }
+    if (typeof ModelQuotaManager !== 'undefined' && typeof ModelQuotaManager.syncWithServer === 'function') {
+      ModelQuotaManager.syncWithServer(false);
     }
   },
   
@@ -1503,19 +1541,22 @@ const Chatbot = {
    * Clears current chat and resets to welcome screen
    */
   async startNewConversation() {
-    // Check if user has reached the 3 conversation limit
+    // Check if user has reached their quota (3 for regular, 5 for staff)
+    const maxAllowed = typeof ChatService !== 'undefined' && typeof ChatService.getMaxConversations === 'function'
+      ? await ChatService.getMaxConversations() : 3;
     const count = await ChatService.getConversationCount();
     
-    if (count >= 3) {
+    if (count >= maxAllowed) {
+      const warningMsg = `You have reached the maximum of ${maxAllowed} saved conversations. Please delete an older conversation from Chat History before starting a new one.`;
       if (window.ModalDialog) {
         await ModalDialog.alert({
           title: 'Conversation Limit Reached',
-          message: 'You have reached the maximum of 3 saved conversations. Please delete an older conversation from Chat History before starting a new one.',
+          message: warningMsg,
           buttonText: 'Understood',
           type: 'warning'
         });
       } else {
-        alert('You have reached the maximum of 3 saved conversations. Please delete an old conversation from Chat History before starting a new one.');
+        alert(warningMsg);
       }
       return;
     }

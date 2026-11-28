@@ -417,8 +417,16 @@
                             if (confirmed) {
                                 this.clearForm();
                             }
-                        } else if (confirm('Are you sure you want to discard your entered manuscript details?')) {
-                            this.clearForm();
+                        } else {
+                            const discardConfirmed = await ModalDialog.confirm({
+                                title: 'Discard Manuscript Details',
+                                message: 'All entered manuscript details will be cleared. This action cannot be undone.',
+                                confirmText: 'Discard',
+                                cancelText: 'Keep Editing',
+                                isDanger: true,
+                                icon: 'warning'
+                            });
+                            if (discardConfirmed) this.clearForm();
                         }
                     } else {
                         this.clearForm();
@@ -1122,9 +1130,10 @@
             history.forEach(item => {
                 const el = document.createElement('div');
                 el.className = 'citation-history-item';
+                const safeTitle = this.escapeHtml(item.title);
                 el.innerHTML = `
                     <div class="citation-history-meta">
-                        <div class="citation-history-title-text">${this.escapeHtml(item.title)}</div>
+                        <div class="citation-history-title-text" title="${safeTitle}">${safeTitle}</div>
                         <div class="citation-history-sub-text">${item.format} · ${item.year} · ${item.timestamp}</div>
                     </div>
                     <button type="button" class="btn-history-copy" title="Copy reference">Copy</button>

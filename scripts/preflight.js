@@ -21,11 +21,24 @@ const CRITICAL_JS_FILES = [
   'public/js/pages/librarian_main.js',
   'public/js/shared/citation-generator.js',
   'public/js/shared/password-change.js',
+  'public/js/shared/staff-2fa-lock.js',
   'public/js/shared/dashboard-rail.js',
+  'public/js/shared/staff-copilot-service.js',
+  'public/js/shared/staff-copilot-controller.js',
   'public/js/pages/settings-handler.js',
   'public/js/admin/admin-settings.js',
   'public/js/registration/registration.js',
-  'public/js/registration/slider-captcha.js'
+  'public/js/registration/slider-captcha.js',
+  'public/js/chatbot/model-quota.js',
+  'public/js/chatbot/ai-service.js',
+  'public/js/chatbot/chatbot.js',
+  'public/js/pages/about.js',
+  'public/js/pages/feedback.js',
+  'public/js/shared/auth-modal.js',
+  'public/js/shared/view-manager.js',
+  'public/js/shared/device-manager.js',
+  'public/js/admin/admin-feedback.js',
+  'public/js/pages/librarian-feedback.js'
 ];
 
 function stepSyntaxCheck() {

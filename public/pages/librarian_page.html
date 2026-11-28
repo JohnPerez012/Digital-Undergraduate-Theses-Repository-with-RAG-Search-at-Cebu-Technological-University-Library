@@ -15,9 +15,11 @@
     <title>Librarian Dashboard - RE-CAPS</title>
     <meta name="description" content="RE-CAPS Librarian Dashboard — manage capstone project metadata and cataloging at CTU Daanbantayan Campus.">
     <link rel="stylesheet" href="../css/shared/style.css">
-    <link rel="stylesheet" href="../css/shared/dashboard-rail.css">
+    <link rel="stylesheet" href="../css/shared/dashboard-rail.css?v=2.6">
+    <link rel="stylesheet" href="../css/shared/device-manager.css?v=1.0">
     <link rel="stylesheet" href="../css/shared/logout-modal.css">
     <link rel="stylesheet" href="../css/shared/password-change.css">
+    <link rel="stylesheet" href="../css/shared/staff-2fa-lock.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Cedarville+Cursive&display=swap" rel="stylesheet">
@@ -26,7 +28,10 @@
     <link rel="stylesheet" href="../css/shared/text-protection.css">
     <link rel="stylesheet" href="../css/shared/activity-log.css">
     <link rel="stylesheet" href="../css/pages/library_page.css">
-    <link rel="stylesheet" href="../css/pages/librarian_renovated.css">
+    <link rel="stylesheet" href="../css/pages/librarian_renovated.css?v=2.4">
+    <link rel="stylesheet" href="../css/shared/feedback-panel.css?v=1.0">
+    <link rel="stylesheet" href="../css/shared/staff-copilot.css?v=2.3">
+    <link rel="stylesheet" href="../css/shared/institutional-badges.css?v=1">
 </head>
 <body>
     <!-- Mobile Rail Overlay -->
@@ -203,8 +208,10 @@
                         </div>
                         <div class="pform-section-body">
                             <div class="pform-field">
-                                <label class="pform-label" for="um-abstract">Abstract <span class="pform-required">*</span></label>
-                                <textarea id="um-abstract" class="pform-input pform-textarea" placeholder="Describe the project background, objectives, methodology, and results..." required></textarea>
+                                <label class="pform-label" for="um-abstract">Abstract
+                                    <span class="pform-label-hint">Optional &mdash; leave blank if not available in physical manuscript</span>
+                                </label>
+                                <textarea id="um-abstract" class="pform-input pform-textarea" placeholder="Describe the project background, objectives, methodology, and results (or leave blank if not available in the physical book)..."></textarea>
                             </div>
 
                             <div class="pform-grid-two">
@@ -422,7 +429,9 @@
                     <div class="bulk-batches-container" id="bulk-batches-container" style="display: none;">
                         <div class="bulk-batches-header">
                             <div class="bulk-batches-header-title">
-                                <span class="bulk-batches-icon">📦</span>
+                                <span class="bulk-batches-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                </span>
                                 <strong>Staged Batches</strong>
                                 <span class="bulk-batches-pill" id="bulk-batches-pill">0 batches</span>
                             </div>
@@ -1119,8 +1128,8 @@
 
                     <!-- Abstract -->
                     <div class="ppe-field-group">
-                        <label for="ppe-abstract" class="ppe-label">Abstract &amp; Scope Summary <span class="ppe-req">*</span></label>
-                        <textarea id="ppe-abstract" class="ppe-input ppe-textarea" rows="4" placeholder="Brief summary of capstone problem, methodology, and results..." required></textarea>
+                        <label for="ppe-abstract" class="ppe-label">Abstract &amp; Scope Summary <span class="ppe-hint">Optional &mdash; leave blank if not in physical book</span></label>
+                        <textarea id="ppe-abstract" class="ppe-input ppe-textarea" rows="4" placeholder="Brief summary of capstone problem, methodology, and results (or leave blank if not available in the physical manuscript)..."></textarea>
                     </div>
 
                     <!-- Keywords & Topics -->
@@ -1192,6 +1201,28 @@
                         </span>
                         <span class="rail-nav-text">Cataloging</span>
                     </a>
+
+                    <a href="#copilot" class="rail-nav-item" data-section="copilot" id="nav-copilot">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                                <circle cx="12" cy="5" r="2"></circle>
+                                <path d="M12 7v4"></path>
+                                <line x1="8" y1="16" x2="8" y2="16"></line>
+                                <line x1="16" y1="16" x2="16" y2="16"></line>
+                            </svg>
+                        </span>
+                        <span class="rail-nav-text">AI Copilot</span>
+                    </a>
+
+                    <a href="#feedback" class="rail-nav-item" data-section="feedback" id="nav-feedback">
+                        <span class="rail-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </span>
+                        <span class="rail-nav-text">Feedback</span>
+                    </a>
                 </div>
 
                 <div class="rail-divider"></div>
@@ -1251,10 +1282,6 @@
                     <!-- Hero Welcome Banner -->
                     <div class="dash-hero-banner">
                         <div class="dash-hero-left">
-                            <div class="dash-hero-badge">
-                                <span class="dash-pulse-dot"></span>
-                                Institutional Archival System
-                            </div>
                             <h1 class="section-title dash-hero-title">Library Overview</h1>
                             <p class="section-desc dash-hero-desc">Welcome back, <strong id="dash-greeting-name">Librarian Staff</strong>. Real-time repository holdings and archival studio status.</p>
                         </div>
@@ -1438,7 +1465,7 @@
                         <div class="section-actions">
                             <div class="search-box">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                                <input type="text" id="projects-search" placeholder="Search projects...">
+                                <input type="search" id="projects-search" placeholder="Search projects..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                             </div>
                             <div class="action-buttons-group">
                                 <select class="lib-filter-select" id="projects-status-filter">
@@ -1609,7 +1636,7 @@
                             </div>
                             <div class="lib-search-wrap catalog-search-wrap">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                                <input type="text" id="catalog-search" placeholder="Search title, shelf, call #, author...">
+                                <input type="search" id="catalog-search" placeholder="Search title, shelf, call #, author..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" data-form-type="other">
                             </div>
                             <button class="btn-secondary" id="lib-refresh-catalog-btn" title="Refresh catalog">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1627,9 +1654,227 @@
                     <div class="pagination-container" id="lib-catalog-pagination"></div>
                 </section>
 
+                <!-- Feedback Section (Librarian Read-Optimized) -->
+                <section id="section-feedback" class="content-section">
+                    <div class="feedback-section-wrap">
+                        <div class="feedback-header-bar">
+                            <div>
+                                <h2 class="feedback-header-title">Feedback & User Inquiries</h2>
+                                <p class="feedback-header-desc">
+                                    Community feedback, capstone inquiries, and user submissions across the institutional repository.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Read-Only Institutional Banner -->
+                        <div class="feedback-readonly-banner">
+                            <span class="feedback-readonly-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                            </span>
+                            <div>
+                                <strong>Read-Only Institutional Visibility:</strong> Library personnel have visibility over submitted feedback and research inquiries to assist in repository catalog improvements. Modifying status, sending official responses, or deleting entries is managed by System Administrators.
+                            </div>
+                        </div>
+
+                        <!-- KPI Summary Cards -->
+                        <div class="feedback-kpi-grid">
+                            <div class="feedback-kpi-card">
+                                <span class="feedback-kpi-label">Total Submissions</span>
+                                <span class="feedback-kpi-val" id="lib-fb-stat-total">0</span>
+                                <span class="feedback-kpi-sub">Logged in repository</span>
+                            </div>
+                            <div class="feedback-kpi-card">
+                                <span class="feedback-kpi-label">Open / Pending</span>
+                                <span class="feedback-kpi-val" id="lib-fb-stat-pending" style="color:#FCCC56;">0</span>
+                                <span class="feedback-kpi-sub">Awaiting admin review</span>
+                            </div>
+                            <div class="feedback-kpi-card">
+                                <span class="feedback-kpi-label">Resolved</span>
+                                <span class="feedback-kpi-val" id="lib-fb-stat-resolved" style="color:#08D488;">0</span>
+                                <span class="feedback-kpi-sub">Addressed & completed</span>
+                            </div>
+                        </div>
+
+                        <!-- Filter & Search Toolbar -->
+                        <div class="feedback-toolbar">
+                            <div class="feedback-search-box">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="lib-fb-search" placeholder="Search by name, email, subject, or message..." autocomplete="off">
+                            </div>
+                            <div class="feedback-filter-group">
+                                <select id="lib-fb-status-filter" class="feedback-select">
+                                    <option value="all">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="reviewed">Reviewed</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="resolved">Resolved</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                                <button type="button" class="feedback-btn feedback-btn-refresh" id="lib-fb-refresh-btn" title="Refresh feedback records">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <polyline points="1 20 1 14 7 14"></polyline>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                    </svg>
+                                    <span>Refresh</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Data Table Card (Read-Optimized) -->
+                        <div class="feedback-table-card">
+                            <div class="feedback-table-responsive">
+                                <table class="feedback-data-table" id="lib-feedback-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Submitter</th>
+                                            <th>Subject & Summary</th>
+                                            <th>Date Received</th>
+                                            <th>Status</th>
+                                            <th>Priority</th>
+                                            <th style="text-align: right;">Inspection</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lib-feedback-table-body">
+                                        <!-- Rendered dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="lib-fb-empty-state" class="fb-empty-state" style="display: none;">
+                                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted, #64748b);">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <h4 class="fb-empty-title">No Feedback Submissions Found</h4>
+                                <p class="fb-empty-desc">There are no user submissions matching the current filter criteria.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- ===== ACTIVITY ===== -->
                 <section id="section-activity" class="content-section">
                     <!-- Populated dynamically by ActivityUI -->
+                </section>
+
+                <!-- ===== LIBRARIAN AI COPILOT ===== -->
+                <section id="section-copilot" class="content-section">
+                    <div class="section-header">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+                                <h2 style="margin:0;">Librarian AI Copilot</h2>
+                            </div>
+                            <p class="section-desc"
+                                style="margin:0.35rem 0 0;color:var(--text-secondary);font-size:0.875rem;">
+                                Operational assistance for DDC classification, physical shelf cataloging, accession numbers, and Pinecone vector search.
+                            </p>
+                        </div>
+                        <div class="copilot-header-actions-group">
+                            <button type="button" class="copilot-btn-action copilot-btn-new-chat-trigger" title="Start a fresh conversation">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                <span>New Chat</span>
+                            </button>
+                            <button type="button" class="copilot-btn-action copilot-btn-history-trigger" title="View saved conversations (Max 5)">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                <span>Saved Chats</span>
+                                <span class="copilot-count-badge" id="copilot-history-count">0/5</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Copilot Workspace Card -->
+                    <div class="copilot-workspace-card">
+                        <!-- Slide-Over Saved Conversations Drawer -->
+                        <div class="copilot-history-drawer" id="copilot-history-drawer">
+                            <div class="copilot-drawer-header">
+                                <div class="copilot-drawer-title-group">
+                                    <h4 class="copilot-drawer-title">Saved Conversations</h4>
+                                    <div class="copilot-drawer-subtitle">Institutional Memory (Max 5 Chats)</div>
+                                </div>
+                                <button type="button" class="copilot-drawer-close" id="copilot-drawer-close-btn" aria-label="Close saved chats drawer">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </div>
+                            <div class="copilot-history-quota-bar">
+                                <span id="copilot-quota-text">Active: 0 / 5 slots utilized</span>
+                            </div>
+                            <div class="copilot-history-list" id="copilot-history-list">
+                                <!-- Rendered dynamically by StaffCopilotController -->
+                            </div>
+                        </div>
+
+                        <div class="copilot-chat-body" id="copilot-chat-body">
+                            <div class="copilot-welcome-box" id="copilot-welcome-box">
+                                <div class="copilot-avatar-large">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                                        <circle cx="12" cy="5" r="2"></circle>
+                                        <path d="M12 7v4"></path>
+                                        <line x1="8" y1="16" x2="8" y2="16"></line>
+                                        <line x1="16" y1="16" x2="16" y2="16"></line>
+                                    </svg>
+                                </div>
+                                <h3>Welcome to Librarian AI Copilot</h3>
+                                <p>Ask any operational question about cataloging, Dewey Decimal Classification, physical shelf locations, and repository archiving. I will guide you with exact UI controls and step-by-step procedures.</p>
+
+                                <div class="copilot-quick-prompts">
+                                    <button type="button" class="copilot-prompt-pill"
+                                        data-copilot-prompt="How do I assign a Dewey Decimal call number and shelf location to an approved thesis?">
+                                        Assign DDC call number &amp; shelf
+                                    </button>
+                                    <button type="button" class="copilot-prompt-pill"
+                                        data-copilot-prompt="Where do I record accession numbers and physical catalog notes?">
+                                        Record accession &amp; catalog notes
+                                    </button>
+                                    <button type="button" class="copilot-prompt-pill"
+                                        data-copilot-prompt="How does Pinecone vector synchronization index capstone abstracts?">
+                                        Vector search &amp; indexing flow
+                                    </button>
+                                    <button type="button" class="copilot-prompt-pill"
+                                        data-copilot-prompt="What are the required physical copy attributes before shelving a thesis?">
+                                        Required physical attributes
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="copilot-messages-list" id="copilot-messages-list"
+                                style="display:none; width: 100%; flex-direction: column;"></div>
+                            <!-- Section Typing Indicator -->
+                            <div class="copilot-section-typing" id="copilot-section-typing"
+                                style="display:none; width:100%; max-width:1280px; margin:14px auto 0; align-items:center; gap:10px;">
+                                <div class="copilot-typing-bubble"
+                                    style="display:inline-flex; align-items:center; gap:5px; background:var(--surface); border:1px solid var(--border); padding:8px 14px; border-radius:12px;">
+                                    <span class="typing-dot"></span>
+                                    <span class="typing-dot"></span>
+                                    <span class="typing-dot"></span>
+                                </div>
+                                <span style="font-size:12px; color:var(--text-secondary);">Consulting library operational manual &amp; Pinecone RAG...</span>
+                            </div>
+                        </div>
+
+                        <!-- Copilot Input Bar -->
+                        <div class="copilot-input-bar">
+                            <div class="copilot-input-inner">
+                                <input type="text" id="copilot-input-text" class="copilot-input-field"
+                                    placeholder="Ask how to perform any cataloging or archiving task...">
+                                <button type="button" id="copilot-send-btn" class="copilot-send-btn"
+                                    aria-label="Send question">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- ===== SETTINGS ===== -->
@@ -1644,7 +1889,7 @@
                             </div>
                             <h2 class="lset-profile-name" id="lset-profile-name">Loading...</h2>
                             <div class="lset-email-wrap">
-                                <span class="lset-profile-email" id="lset-profile-email">librarian@ctu.edu.ph</span>
+                                <span class="lset-profile-email" id="lset-profile-email">–</span>
                                 <button type="button" class="lset-email-copy-btn" id="lset-card-copy-email-btn" title="Copy email address" aria-label="Copy email address">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                 </button>
@@ -1737,7 +1982,7 @@
                                 <div class="lset-row-text">
                                     <span class="lib-settings-row-lbl">Password</span>
                                     <span class="lib-settings-row-val lset-dots">••••••••••</span>
-                                    <span class="lset-row-note">Changing your password requires answering your security question.</span>
+                                    <span class="lset-row-note">Changing your password requires verifying your current credentials and two-factor authentication.</span>
                                 </div>
                                 <div class="lset-row-actions">
                                     <button id="change-password-btn" class="libm-btn libm-btn-green libm-btn-sm">
@@ -1748,7 +1993,7 @@
                             </div>
                             <div class="lib-settings-row lset-row">
                                 <div class="lset-row-text">
-                                    <span class="lib-settings-row-lbl">Email Verification</span>
+                                    <span class="lib-settings-row-lbl">Two-Factor Authentication (2FA)</span>
                                     <span class="lib-settings-row-val" id="lset-verify-status">Checking…</span>
                                 </div>
                             </div>
@@ -1809,6 +2054,8 @@
                                     <option value="dashboard">Dashboard</option>
                                     <option value="projects">Projects</option>
                                     <option value="catalog">Catalog Studio</option>
+                                    <option value="copilot">AI Copilot</option>
+                                    <option value="feedback">Feedback</option>
                                     <option value="activity">Activity</option>
                                 </select>
                             </div>
@@ -1868,6 +2115,7 @@
     <script src="../vendor/firebase/firebase-auth-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'"></script>
     <script src="../vendor/firebase/firebase-firestore-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js'"></script>
     <script src="../vendor/firebase/firebase-database-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'"></script>
+    <script src="../vendor/firebase/firebase-app-check-compat.js" onerror="this.onerror=null;this.src='https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check-compat.js'"></script>
 
     <script src="../js/shared/firebase-config.js"></script>
     <script src="../js/core/auth-service.js"></script>
@@ -1880,14 +2128,202 @@
     <script src="../js/shared/network-monitor.js"></script>
     <script src="../js/shared/logout-modal.js"></script>
     <script src="../js/shared/password-change.js"></script>
-    <script src="../js/shared/dashboard-rail.js"></script>
+    <script src="../js/shared/dashboard-rail.js?v=2.6"></script>
     <script src="../js/shared/guest-storage.js"></script>
     <script src="../js/shared/activity-service.js"></script>
     <script src="../js/shared/activity-ui.js"></script>
     <!-- Excel (.xlsx) Processing & Cloudinary Image Upload -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="../js/shared/cloudinary-service.js"></script>
-    <script src="../js/pages/settings-handler.js"></script>
-    <script src="../js/pages/librarian_main.js?v=2"></script>
+    <script src="../js/pages/settings-handler.js?v=2.6"></script>
+    <script src="../js/shared/device-manager.js?v=1.0"></script>
+    <script src="../js/pages/librarian_main.js?v=2.4"></script>
+    <script src="../js/pages/librarian-feedback.js?v=1.0"></script>
+    <script src="../js/shared/staff-2fa-lock.js"></script>
+    <script src="../js/shared/staff-copilot-service.js?v=2.3"></script>
+    <script src="../js/shared/staff-copilot-controller.js?v=2.3"></script>
+
+    <!-- Librarian Floating AI Copilot Trigger (Bottom-Right Corner) -->
+    <div class="librarian-floating-copilot-container" id="librarian-floating-copilot-container">
+        <button type="button" class="librarian-floating-copilot-btn" id="librarian-floating-copilot-btn"
+            aria-label="Open Librarian AI Copilot" title="Librarian AI Copilot">
+            <span class="copilot-pulse-ring"></span>
+            <span class="copilot-btn-icon">
+                <img src="../assets/svgs/BotLang.svg" alt="BotLang Copilot" class="copilot-btn-botlang-img">
+            </span>
+            <span class="copilot-btn-badge">AI</span>
+            <span class="copilot-tooltip">Librarian AI Copilot</span>
+        </button>
+    </div>
+
+    <!-- Librarian Floating AI Copilot Chat Widget (Interactive Screen Overlay) -->
+    <div class="librarian-copilot-widget" id="librarian-copilot-widget" role="dialog" aria-modal="false"
+        aria-label="Librarian AI Copilot Assistant" style="display: none;">
+        <!-- Header -->
+        <div class="copilot-widget-header">
+            <div class="copilot-widget-header-brand">
+                <div class="copilot-widget-avatar-wrap">
+                    <img src="../assets/svgs/BotLang.svg" alt="BotLang Copilot" class="botlang-avatar-img">
+                    <span class="copilot-status-dot" title="Ready to assist"></span>
+                </div>
+                <div class="copilot-widget-title-wrap">
+                    <div class="copilot-widget-title">RE-CAPS Staff Copilot</div>
+                    <div class="copilot-widget-subtitle">Librarian Guidance &amp; Operations</div>
+                </div>
+            </div>
+            <div class="copilot-widget-header-actions">
+                <button type="button" class="copilot-widget-action-btn copilot-btn-new-chat-trigger"
+                    title="Start New Conversation" aria-label="Start New Conversation">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <button type="button" class="copilot-widget-action-btn copilot-btn-history-trigger"
+                    title="View Saved Conversations" aria-label="View Saved Conversations">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </button>
+                <button type="button" class="copilot-widget-action-btn" id="copilot-widget-fullscreen-btn"
+                    title="Open Full Screen AI Workspace" aria-label="Open Full Screen AI Workspace">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <polyline points="9 21 3 21 3 15"></polyline>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                </button>
+                <button type="button" class="copilot-widget-action-btn close" id="copilot-widget-close-btn"
+                    title="Close Copilot Widget" aria-label="Close Copilot Widget">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body / Chat Scroll Area -->
+        <div class="copilot-widget-body" id="copilot-widget-body">
+            <!-- Welcome Greeting Card -->
+            <div class="copilot-widget-welcome" id="copilot-widget-welcome">
+                <h4 class="copilot-widget-welcome-title">How can I assist your cataloging workflow?</h4>
+                <p class="copilot-widget-welcome-desc">
+                    Ask me how to assign DDC call numbers, shelf locations, accession numbers, or query repository collections.
+                </p>
+                <div class="copilot-widget-chips" id="copilot-widget-chips">
+                    <button type="button" class="copilot-widget-chip"
+                        data-copilot-prompt="How do I assign a Dewey Decimal call number and shelf location to an approved thesis?">
+                        <span>Assign DDC call number</span>
+                    </button>
+                    <button type="button" class="copilot-widget-chip"
+                        data-copilot-prompt="Where do I record accession numbers and physical catalog notes?">
+                        <span>Accession &amp; notes</span>
+                    </button>
+                    <button type="button" class="copilot-widget-chip"
+                        data-copilot-prompt="How does Pinecone vector synchronization index capstone abstracts?">
+                        <span>Vector search sync</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            <div class="copilot-widget-messages" id="copilot-widget-messages"></div>
+
+            <!-- Typing indicator -->
+            <div class="copilot-widget-typing" id="copilot-widget-typing" style="display: none;">
+                <div class="copilot-typing-bubble">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+                <span class="copilot-typing-text">Copilot is referencing guidelines…</span>
+            </div>
+        </div>
+
+        <!-- Footer / Input Form -->
+        <div class="copilot-widget-footer">
+            <form id="copilot-widget-form" class="copilot-widget-form" onsubmit="return false;">
+                <input type="text" id="copilot-widget-input" class="copilot-widget-input"
+                    placeholder="Ask an operational question..." autocomplete="off">
+                <button type="submit" id="copilot-widget-send-btn" class="copilot-widget-send-btn"
+                    aria-label="Send question" title="Send question">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedback View Inspection Modal (Librarian Read-Only) -->
+    <div id="lib-fb-detail-modal" class="feedback-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="lib-fb-detail-title">
+        <div class="feedback-modal-box">
+            <div class="feedback-modal-head">
+                <h3 class="feedback-modal-title" id="lib-fb-detail-title">Feedback Inspection (Read-Only)</h3>
+                <button type="button" class="feedback-modal-close-btn" data-close-modal="lib-fb-detail-modal" aria-label="Close dialog">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="feedback-modal-scrollable">
+                <div class="feedback-meta-grid">
+                    <div>
+                        <div class="feedback-meta-item-label">Submitter Name</div>
+                        <div class="feedback-meta-item-val" id="lib-fbd-name">—</div>
+                    </div>
+                    <div>
+                        <div class="feedback-meta-item-label">Submitter Email</div>
+                        <div class="feedback-meta-item-val" id="lib-fbd-email">—</div>
+                    </div>
+                    <div>
+                        <div class="feedback-meta-item-label">Subject / Topic</div>
+                        <div class="feedback-meta-item-val" id="lib-fbd-subject">—</div>
+                    </div>
+                    <div>
+                        <div class="feedback-meta-item-label">Date Received</div>
+                        <div class="feedback-meta-item-val" id="lib-fbd-date">—</div>
+                    </div>
+                    <div>
+                        <div class="feedback-meta-item-label">Current Status</div>
+                        <div class="feedback-meta-item-val" id="lib-fbd-status">—</div>
+                    </div>
+                    <div>
+                        <div class="feedback-meta-item-label">Priority Level</div>
+                        <div class="feedback-meta-item-val" id="lib-fbd-priority">—</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="feedback-form-label">Submitted Inquiry / Feedback Message</div>
+                    <div class="feedback-quote-box" id="lib-fbd-message">—</div>
+                </div>
+
+                <div id="lib-fbd-images-section" style="display: none;">
+                    <div class="feedback-form-label">Attached Screenshots</div>
+                    <div class="feedback-images-gallery" id="lib-fbd-images"></div>
+                </div>
+
+                <div id="lib-fbd-notes-section" style="display: none;">
+                    <div class="feedback-form-label">Internal Status & Administrator Notes</div>
+                    <div class="feedback-quote-box" id="lib-fbd-notes" style="border-left-color: #FCCC56;">—</div>
+                </div>
+
+                <div id="lib-fbd-reply-section" style="display: none;">
+                    <div class="feedback-form-label">Administrator Dispatched Reply</div>
+                    <div class="feedback-quote-box" id="lib-fbd-reply" style="border-left-color: #08D488;">—</div>
+                </div>
+            </div>
+            <div class="feedback-modal-foot">
+                <button type="button" class="feedback-btn feedback-btn-secondary" data-close-modal="lib-fb-detail-modal">Close</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

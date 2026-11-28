@@ -41,7 +41,7 @@
 }
 
 .search-bar-wrapper.rag-active::before {
-    content: '🤖 AI Search';
+    content: 'AI Search';
     position: absolute;
     top: -1.5rem;
     left: 0;
