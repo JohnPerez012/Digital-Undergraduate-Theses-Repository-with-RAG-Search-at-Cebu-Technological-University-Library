@@ -1113,8 +1113,61 @@
     let pendingEditHeartbeatInterval = null;
     let catalogHeartbeatInterval = null;
     let staleLockSweepInterval = null;
+    let modalIdleCheckInterval = null;
+    let modalActivityListenersBound = false;
+    let lastModalUserActivityMs = 0;
     let unsubscribePendingProjects = null;
     let unsubscribeProjects = null;
+
+    function recordModalUserActivity() {
+        if (currentEditingPendingId || currentCatalogingProjectId) {
+            lastModalUserActivityMs = Date.now();
+        }
+    }
+
+    function bindModalUserActivityListeners() {
+        if (modalActivityListenersBound) return;
+        modalActivityListenersBound = true;
+        const activityEvents = [
+            'keydown', 'keyup', 'input', 'change',
+            'mousemove', 'mousedown', 'pointerdown', 'pointermove',
+            'touchstart', 'touchmove', 'wheel', 'click'
+        ];
+        activityEvents.forEach(evt => {
+            window.addEventListener(evt, recordModalUserActivity, { passive: true, capture: true });
+        });
+    }
+
+    function stopModalIdleGuardIfNoneOpen() {
+        if (!currentEditingPendingId && !currentCatalogingProjectId && modalIdleCheckInterval) {
+            clearInterval(modalIdleCheckInterval);
+            modalIdleCheckInterval = null;
+        }
+    }
+
+    function startModalActivityAndIdleGuard() {
+        bindModalUserActivityListeners();
+        lastModalUserActivityMs = Date.now();
+        if (modalIdleCheckInterval) clearInterval(modalIdleCheckInterval);
+        modalIdleCheckInterval = setInterval(async () => {
+            if (!currentEditingPendingId && !currentCatalogingProjectId) {
+                stopModalIdleGuardIfNoneOpen();
+                return;
+            }
+            const idleMs = Date.now() - lastModalUserActivityMs;
+            if (idleMs >= LOCK_TTL_MS) {
+                if (currentEditingPendingId) {
+                    await closePendingProjectEditModal(true);
+                    showToast && showToast('Editing modal closed after 45 seconds of inactivity. Project unlocked.');
+                }
+                if (currentCatalogingProjectId) {
+                    await closeCatalogNoteModal(true);
+                    showToast && showToast('Cataloging modal closed after 45 seconds of inactivity. Project unlocked.');
+                }
+                stopModalIdleGuardIfNoneOpen();
+            }
+        }, 1000);
+    }
 
     function getLockTimestampMs(ts) {
         if (!ts) return 0;
@@ -1495,6 +1548,7 @@
         } else {
             currentEditingPendingId = null;
         }
+        stopModalIdleGuardIfNoneOpen();
     }
 
     function cleanNullableField(val) {
@@ -1556,17 +1610,20 @@
         }
 
         currentEditingPendingId = projectId;
+        startModalActivityAndIdleGuard();
 
-        // Start active 20-second heartbeat to renew lock while librarian keeps pending edit modal open
+        // Start active 20-second heartbeat to renew lock ONLY when librarian is actively interacting
         if (pendingEditHeartbeatInterval) clearInterval(pendingEditHeartbeatInterval);
         pendingEditHeartbeatInterval = setInterval(async () => {
             if (currentEditingPendingId === projectId) {
-                try {
-                    await db.collection('pendingProjects').doc(projectId).update({
-                        editingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } catch (e) {
-                    console.warn('Pending project edit heartbeat ping warning:', e);
+                if ((Date.now() - lastModalUserActivityMs) < LOCK_HEARTBEAT_MS) {
+                    try {
+                        await db.collection('pendingProjects').doc(projectId).update({
+                            editingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } catch (e) {
+                        console.warn('Pending project edit heartbeat ping warning:', e);
+                    }
                 }
             } else {
                 clearInterval(pendingEditHeartbeatInterval);
@@ -4319,22 +4376,25 @@
                     catalogingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Start active 20-second heartbeat to renew lock while librarian keeps modal open
+                // Start active 20-second heartbeat to renew lock ONLY when librarian is actively interacting
+                startModalActivityAndIdleGuard();
                 if (catalogHeartbeatInterval) clearInterval(catalogHeartbeatInterval);
                 catalogHeartbeatInterval = setInterval(async () => {
                     if (currentCatalogingProjectId === sessionProjectId) {
-                        try {
-                            await db.collection('projects').doc(sessionProjectId).update({
-                                catalogingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                        } catch (e) {
-                            console.warn('Cataloging heartbeat ping warning:', e);
+                        if ((Date.now() - lastModalUserActivityMs) < LOCK_HEARTBEAT_MS) {
+                            try {
+                                await db.collection('projects').doc(sessionProjectId).update({
+                                    catalogingHeartbeat: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            } catch (e) {
+                                console.warn('Cataloging heartbeat ping warning:', e);
+                            }
                         }
                     } else {
                         clearInterval(catalogHeartbeatInterval);
                         catalogHeartbeatInterval = null;
                     }
-                }, 20000);
+                }, LOCK_HEARTBEAT_MS);
 
                 // If closed while lock update was in flight, release it immediately
                 if (currentCatalogingProjectId !== sessionProjectId) {
@@ -4408,6 +4468,7 @@
         if (releaseLock && pid) {
             await freeCatalogingSession(pid);
         }
+        stopModalIdleGuardIfNoneOpen();
     }
 
     async function saveCatalogNote() {
